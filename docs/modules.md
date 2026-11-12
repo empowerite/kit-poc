@@ -282,6 +282,10 @@ template:regex() {
 - A jq module opens with the banner, and a comment over each `def` says what it reads and what it gives.
 - Its tests are `tests/jq/<module>.test`, in the format of `jq --run-tests`: a program, an input, and the outputs it
   gives. `tests/jq.bats` runs every module's tests, and fails a module that has none.
+- A module is written in the grammar of jq 1.7, the oldest jq kit accepts. jq 1.8 reads more: a `reduce` or an `if`
+  before `as`, an operator in an object's value, and a sum before `as`, which jq 1.7 binds by its last term alone.
+  Each of these stands in parentheses. `tests/jq.bats` runs the tests once more on jq 1.7 where `/usr/bin/jq` is one,
+  as on macOS and Ubuntu 24.04.
 - jq compiles a program each time it starts, and has no compiled form to keep. Starting jq takes about 20 ms;
   importing a module does not add any measurable time. So speed comes from starting jq fewer times: one process for
   all the files a verb reads, not one per file.

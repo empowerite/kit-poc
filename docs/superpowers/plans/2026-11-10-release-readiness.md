@@ -170,6 +170,9 @@ Left out: Command line 12 and 13 reach a checkout alone; a release has a `versio
     more bytes than code points, `points` maps each byte offset to its code point by each code point's UTF-8 width:
     1, 2, 3, or 4 bytes for a value under 128, 2048, 65536, or above (Delivery 6). The cases are in
     `tests/jq/template.test`.
+  - Built in #319. The test in `tests/jq.bats` named in Step 1. It found `forge.jq` and `terminal.jq` written in the
+    grammar of jq 1.8: neither compiled on jq 1.7.1, and `terminal::checks` bound a sum before `as` by its last
+    term. Both now read the same on jq 1.7 and 1.8. The jq programs inside the bash modules have no such test.
   - `welcome:git` holds git to 2.31 as `welcome:jq` holds jq: `git 2.30.1 is too old; kit needs git 2.31 or later`
     (Command line 28). `tests/welcome.bats:135` fakes `git version 2.30.1` as it fakes jq 1.6.
   - `guard:missing <tool>` in `1st.sh` replaces the six `run: mise install` texts (Command line 10), which

@@ -77,13 +77,13 @@ def checks($d; $key; $read; $bad; $probes; $kept):
        elif $row.none then {id: $id, ok: true, line: $row.none, fix: null, more: $more, note: $row.none}
        elif $row.fix then {id: $id, ok: false, line: ($probe.failed | fill($po)), fix: ($row.fix | fill($po)),
                            more: $more}
-       else {id: $id, ok: false, line: ($probe.failed | fill($po)) + "; no setting kit knows explains it", fix: null,
-             more: $more} end
+       else {id: $id, ok: false, line: (($probe.failed | fill($po)) + "; no setting kit knows explains it"),
+             fix: null, more: $more} end
      | if $p == "emoji-width" and (.ok | not) and $probes.grapheme_width == false
        then .line += ", and it does not measure by grapheme" else . end
      | kept(.)] as $noted
-  | [$noted[] | .note // empty] + (if $probes.answered == false then ["it did not answer kit's questions"] else [] end)
-    as $notes
+  | ([$noted[] | .note // empty]
+     + (if $probes.answered == false then ["it did not answer kit's questions"] else [] end)) as $notes
   | [$noted[] | del(.note)] as $answers
   | ($findings + $answers) as $body
   | {id: "terminal-\($key)", ok: true,

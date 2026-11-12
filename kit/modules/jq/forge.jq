@@ -1009,11 +1009,11 @@ def ado_teams($members; $url; $limit):
 # had more members.
 def ado_collaborators($members; $limit):
   .[:$limit] as $teams
-  | reduce ($teams[] | ($members[.id] // [])[:100][] | select(.identity != null)) as $m
-      ({order: [], by: {}};
-       ($m.identity.uniqueName // $m.identity.id) as $k
-       | if .by | has($k) then .by[$k].admin = (.by[$k].admin or ($m.isTeamAdmin == true))
-         else .order += [$k] | .by[$k] = {identity: $m.identity, admin: ($m.isTeamAdmin == true)} end) as $met
+  | (reduce ($teams[] | ($members[.id] // [])[:100][] | select(.identity != null)) as $m
+       ({order: [], by: {}};
+        ($m.identity.uniqueName // $m.identity.id) as $k
+        | if .by | has($k) then .by[$k].admin = (.by[$k].admin or ($m.isTeamAdmin == true))
+          else .order += [$k] | .by[$k] = {identity: $m.identity, admin: ($m.isTeamAdmin == true)} end)) as $met
   | [$met.order[] | $met.by[.]
      | { login: (.identity.uniqueName // .identity.id), name: (.identity.displayName // null),
          role: (if .admin then "admin" else "member" end),
