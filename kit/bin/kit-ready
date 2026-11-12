@@ -2,17 +2,29 @@
 # kit-ready - marks a draft pull request ready for review (kit verb: workflow)
 # ----------------------------------------------------------------------------------------------------------------------
 # Usage:
-#   kit ready [<number>]
+#   kit ready [<number>] [--report=<text> | --report-file=<path>]
 #
 # Marks the pull request ready for review, the last step of the workflow: the forge's own draft ends, or the stand-in
 # the repository chose for drafts in kit.yml is taken off, its label or its title's prefix. A forge without drafts, and
 # no stand-in, opened the pull request ready already, and kit ready says so.
 #
+# The pull request's body is the report of the work. It says what changed, what was checked and how, and what was
+# left out and why. With --report= or --report-file=, kit ready writes the report into the body first, on any forge,
+# and marks the pull request only after the report is written.
+#
+# The report replaces the text of the body, including an earlier report. kit ready keeps each line of the body that
+# only closes issues, such as Closes #7 or fixes AB#4521, and puts those lines under the report. kit work and
+# kit commit write such lines, and kit linked and kit settle read them, so the pull request still closes the same
+# issues. When the body cannot be read or written, kit ready leaves it unchanged, and the pull request stays a draft.
+#
 # Arguments:
-#   <number>   the pull request to mark; default: this checkout's
+#   <number>               the pull request to mark; default: this checkout's
+#   --report=<text>        the report, which kit ready writes into the pull request's body before it marks it
+#   --report-file=<path>   a file that holds the report, relative to the current directory
 #
 # Exits 0 when the pull request is ready for review, 1 when there is none to mark, the forge cannot say which this
-# checkout is working on, or it could not be marked, and 2 on a usage error.
+# checkout is working on, the report could not be written, or the pull request could not be marked, and 2 on a usage
+# error, such as an empty report or a report file that does not exist.
 #
 # see: modules/bash/forge.sh
 
@@ -30,6 +42,39 @@ then
   error "'${number}' is not a number; run: kit help ready"
   exit 2
 fi
+# The report is read before any call to the forge. A report that cannot be used then changes nothing there.
+reported=false
+report=''
+# shellcheck disable=SC2154  # syntax_options is set by guard:arguments, and kit_invoked_in exported by kit:enter
+if [[ -n "${syntax_options[--report]+x}" ]]
+then
+  reported=true
+  report=${syntax_options[--report]}
+elif [[ -n "${syntax_options[--report-file]+x}" ]]
+then
+  reported=true
+  file=${syntax_options[--report-file]}
+  [[ "${file}" == /* ]] || file="${kit_invoked_in}/${file}"
+  if [[ ! -f "${file}" ]]
+  then
+    error "'${syntax_options[--report-file]}' is not a file; run: kit help ready"
+    exit 2
+  fi
+  report=$(< "${file}")
+fi
+if [[ "${reported}" == true ]]
+then
+  # Trailing blank lines are cut from the report, so exactly one empty line separates it from the closing lines.
+  while [[ "${report}" == *[[:space:]] ]]
+  do
+    report=${report%[[:space:]]}
+  done
+  if [[ -z "${report}" ]]
+  then
+    error "the report is empty; say what changed, what was checked, and what was left out: kit help ready"
+    exit 2
+  fi
+fi
 forge:require || exit 1
 [[ -n "${number}" ]] || number=$(forge:pr-here) || exit 1
 if [[ -z "${number}" ]]
@@ -39,6 +84,16 @@ then
 fi
 IFS=$'\t' read -r sigil noun < <(forge:noun) || exit 1
 change="${noun} ${sigil}${number}"
+if [[ "${reported}" == true ]]
+then
+  if ! forge:pr-report "${number}" "${report}"
+  then
+    error "${change}'s body could not be written, so it is still a draft; write the report on the forge," \
+      "$(forge:pr-url "${number}")"
+    exit 1
+  fi
+  ok "${change}'s body is the report"
+fi
 status=0
 forge:pr-ready "${number}" || status=$?
 case "${status}" in

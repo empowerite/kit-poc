@@ -2,7 +2,7 @@
   "verb": "ready",
   "purpose": "marks a draft pull request ready for review",
   "usage": [
-    "kit ready [<number>]"
+    "kit ready [<number>] [--report=<text> | --report-file=<path>]"
   ],
   "syntax": [
     [
@@ -19,12 +19,41 @@
           ]
         ],
         "repeat": false
+      },
+      {
+        "kind": "group",
+        "optional": true,
+        "alternatives": [
+          [
+            {
+              "kind": "option",
+              "name": "report",
+              "value": "text",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "option",
+              "name": "report-file",
+              "value": "path",
+              "repeat": false
+            }
+          ]
+        ],
+        "repeat": false
       }
     ]
   ],
   "arguments": {
     "<number>": {
       "description": "the pull request to mark; default: this checkout's"
+    },
+    "--report": {
+      "description": "the report, which kit ready writes into the pull request's body before it marks it"
+    },
+    "--report-file": {
+      "description": "a file that holds the report, relative to the current directory"
     }
   }
 }

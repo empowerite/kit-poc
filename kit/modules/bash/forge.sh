@@ -913,6 +913,28 @@ forge:pr-closing-issues() {
   done
 }
 
+# forge:pr-report <n> <report> writes <report> as the body of pull request <n>. The new body is the report, an empty
+# line, and then each line of the old body that only closes issues, in the old order. A line only closes issues when
+# it holds nothing but closing keywords, each followed by a reference that has a digit in it: `Closes #7`,
+# `fixes AB#4521`, or `Closes #8, closes #9`. kit work and kit commit write such a line for each issue the forge does
+# not link by itself, and kit linked and kit settle read them, so the pull request closes the same issues after the
+# report is written. Every other line of the old body is dropped, including an earlier report. A closing line that
+# the report already contains is not added again. The function returns 1 and changes nothing when the body cannot be
+# read. It returns forge:pr-set-body's status when the body cannot be written.
+forge:pr-report() {
+  local number=$1 report=$2 body line kept=''
+  local reference='[^[:space:],;]*[0-9][^[:space:],;]*'
+  local closes="^[[:space:]]*((close[sd]?|fix(e[sd])?|resolve[sd]?):?[[:space:]]+${reference}[[:space:],;]*(and[[:space:]]+)?)+\$"
+  body=$(forge:pr-body "${number}") || return 1
+  while IFS= read -r line
+  do
+    line=${line%$'\r'}
+    [[ "${line,,}" =~ ${closes} ]] || continue
+    grep --quiet --line-regexp --fixed-strings -- "${line}" <<<"${report}" || kept+=$'\n'"${line}"
+  done <<<"${body}"
+  forge:pr-set-body "${number}" "${report}${kept:+$'\n'${kept}}"
+}
+
 # forge:open-prs prints the open changes, as the forge's snapshot keeps them, each drawn as a draft while the drafts
 # stand-in says it is one: it has the label, or its title the prefix, which the document then leaves off.
 forge:open-prs() {

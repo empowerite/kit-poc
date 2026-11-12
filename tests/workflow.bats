@@ -50,6 +50,8 @@ setup() {
   # every forge marks a change ready the one way, the draft's stand-in with it
   grep --quiet 'kit ready' .kit/workflow.md
   run ! grep --quiet 'glab mr update --ready' .kit/workflow.md
+  # the report the workflow asks for has a command that writes it, in the workflow's step and in the worker's
+  [ "$(grep --count 'kit ready --report-file=<path>' .kit/workflow.md)" -eq 2 ]
   run "${kit_checkout}/bin/kit" packages remove workflow
   [ "$status" -eq 0 ]
   [ ! -e .kit/workflow.md ]

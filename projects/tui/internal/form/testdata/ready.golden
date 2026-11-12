@@ -1,6 +1,10 @@
  kit ready - marks a draft pull request ready for review
 
-   <number>  the pull request to mark; default: this checkout's
+   <number>       the pull request to mark; default: this checkout's
+
+   one of
+   --report       the report, which kit ready writes into the pull request's body before it marks it
+   --report-file  a file that holds the report, relative to the current directory
 
 
  kit ready

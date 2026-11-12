@@ -25,8 +25,12 @@ repository's own rules in `AGENTS.md` apply as well. Where the two differ, `AGEN
    change a path another issue's lease holds; `kit commit` refuses it on the branch the lease is on. Claim the paths
    you will change with `kit leases take <N> <path>…`, and keep the branch's changes inside its own lease, as
    `kit policy` holds them in CI.
-4. Mark the pull request ready for review when the work is done: `kit ready`, on any forge, which also takes off the
-   draft's stand-in where `kit.yml` chooses one. The pull request body is the report. It states:
+4. Mark the pull request ready for review when the work is done, and give it the report:
+   `kit ready --report-file=<path>`, or `kit ready --report=<text>`, on any forge. It writes the report into the
+   pull request body, keeps the body's `Closes` lines under it, and then marks the pull request, which also takes
+   off the draft's stand-in where `kit.yml` chooses one. Never write the body with the forge's own tool: that
+   replaces the `Closes` lines, and the issues then stay open after the merge. The pull request body is the report.
+   It states:
    - what changed
    - what was checked, and how
    - what was left out, and why
@@ -51,7 +55,8 @@ A worker is whoever implements one issue, in the worktree named for that issue.
 5. Push as you go.
 6. Before you call anything done, run `kit gate`: the repository's gate (its own CI command, such as `just ci`)
    with the tools the chosen toolchain pins.
-7. Finish by marking the pull request ready for review with `kit ready`, with the report in the pull request body.
+7. Finish with `kit ready --report-file=<path>`: it writes the report into the pull request body and marks the pull
+   request ready for review.
 8. If the gate fails or the work is partial, leave the pull request as a draft and say why.
 9. Never merge.
 10. Report what ran and what it printed. Nothing more.

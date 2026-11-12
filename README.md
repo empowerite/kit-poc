@@ -242,8 +242,8 @@ Work here follows [.kit/workflow.md](.kit/workflow.md), from the `workflow` pack
    - `kit` with no verb opens the welcome guide. `kit help` opens a list of the verbs and a form for the one you
      pick. A verb run without an argument it needs opens the same form.
 4. Run the gate, `kit gate`. It runs `bin/ci`, which lists what it checks.
-5. Mark the pull request ready for review when the work is done: `gh pr ready` on GitHub, `glab mr update --ready`
-   on GitLab. The pull request body is the report.
+5. Mark the pull request ready for review when the work is done, with its report: `kit ready --report-file=<path>`,
+   on any forge. The pull request body is the report, and `kit ready` writes it there above the `Closes` lines.
 6. A person merges it. Then `kit tidy` removes the worktree and its branch.
 
 ## Maintaining

@@ -200,7 +200,8 @@ forge is named in the `forge` or `forges` setting, or found from a CI runner's o
 - A repository chooses a stand-in for a feature under `forge_settings.<forge>.stand_ins` in `kit.yml`, shared by
   everyone who clones it, and the seam then answers the feature itself, whether the forge has it or not: a draft as a
   label or a title prefix, the issues a change closes as its body names them, and marks on a timer. `kit ready` marks
-  a draft ready for review on every forge, its stand-in taken off.
+  a draft ready for review on every forge, its stand-in taken off. With `--report=` or `--report-file=`, it first
+  writes the report into the change's body, above the lines that close issues.
 - An open issue says its milestone, its iteration, and its swimlane, each a title or none. A forge gives the first two
   where it has them; no forge kit reaches has a swimlane it reads the same way. A stand-in gives any of the three to
   every forge alike: the rest of the issue's first label that starts with a prefix, else a default, as
