@@ -951,7 +951,7 @@ func TestTheGuidesSearchNarrowsChecksAndHighlightsPages(t *testing.T) {
 	if m = drive(m, tea.KeyPressMsg{Code: 'u', Mod: tea.ModCtrl}); m.search().Query != "" || !m.search().Focused {
 		t.Errorf("⌃U: %+v", m.search())
 	}
-	m = drive(m, testkit.Typed("zzz")...)
+	m = drive(m, testkit.Typed(first)...)
 	// esc gives the pane focus, what is typed kept; another step has a search of its own
 	if m = drive(m, tea.KeyPressMsg{Code: tea.KeyEscape}); m.search().Focused || m.search().Query == "" || !m.inPane {
 		t.Errorf("esc: %+v, the pane focused %v", m.search(), m.inPane)

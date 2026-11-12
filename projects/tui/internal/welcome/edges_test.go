@@ -173,3 +173,52 @@ func TestARunOfTheChecksThatAFixSupersededIsDropped(t *testing.T) {
 		t.Errorf("the superseded run was taken: %d checks, running %v", len(m.checks), m.checking.Running())
 	}
 }
+
+// The page keys, pgup, pgdown, home, and end, move over a step's rows, so a step that shows no check takes none.
+var pagingKeys = []tea.KeyPressMsg{pgdown, pgup, press(tea.KeyHome), press(tea.KeyEnd)}
+
+// A search that shows none of a step's checks gives the bar the keyboard when it is left, by any of its four keys,
+// since the pane has no row to take it; the page keys then do nothing, and the screen goes on.
+func TestASearchThatShowsNoCheckLeavesTheKeyboardOnTheBar(t *testing.T) {
+	for _, leave := range []tea.KeyPressMsg{enter, down, esc, tabKey} {
+		keys := append([]tea.Msg{stepKey(chains), down, press('/')}, testkit.Typed("zzzz")...)
+		m, _ := loaded(t, append(keys, leave)...)
+		if n := len(m.rows(m.step)); n != 0 || m.inPane || m.search().Focused {
+			t.Fatalf("after %s: %d rows, in the pane %v, in the search %v", leave, n, m.inPane, m.search().Focused)
+		}
+		for _, k := range pagingKeys {
+			if m = drive(m, k); m.inPane || !strings.Contains(view(m), "no check matches the search") {
+				t.Errorf("%s after %s: in the pane %v:\n%s", k, leave, m.inPane, view(m))
+			}
+		}
+	}
+	// a search that shows a check still gives its row the keyboard
+	m, _ := loaded(t, append(append([]tea.Msg{stepKey(chains), press('/')}, testkit.Typed("jq")...), enter)...)
+	if !m.inPane || m.cursor != 1 {
+		t.Errorf("a search that shows jq: in the pane %v, cursor %d", m.inPane, m.cursor)
+	}
+}
+
+// The pane can hold the keyboard with no row under it, where the checks are read again and none of the step's comes
+// back. The page keys do nothing there, and up gives the bar the keyboard.
+func TestThePageKeysDoNothingInAPaneLeftWithNoRow(t *testing.T) {
+	m, _ := atChains(t)
+	var setupOnly []kit.Check
+	for _, c := range m.checks {
+		if c.Step == "setup" {
+			setupOnly = append(setupOnly, c)
+		}
+	}
+	m = drive(m, source.Answer[[]kit.Check]{Name: "checks", Value: setupOnly})
+	if n := len(m.rows(m.step)); n != 0 || !m.inPane || m.step != chains {
+		t.Fatalf("after the checks were read again: %d rows, in the pane %v, step %d", n, m.inPane, m.step)
+	}
+	for _, k := range pagingKeys {
+		if m = drive(m, k); !m.inPane || m.cursor != 0 {
+			t.Errorf("%s: in the pane %v, cursor %d", k, m.inPane, m.cursor)
+		}
+	}
+	if m = drive(m, up); m.inPane {
+		t.Error("up did not give the bar the keyboard")
+	}
+}

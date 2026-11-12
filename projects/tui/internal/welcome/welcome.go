@@ -697,7 +697,7 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if s := m.search(); s.Focused {
 		// the search has the keyboard, as shell.SearchKey says: what it does not take, as the arrows but down, is
 		// nobody's; ctrl+r drops the searches remembered down; and what was typed is remembered when the search gives
-		// the pane focus
+		// the pane focus, or, on a step with checks that shows none of them, the bar: the pane has no row to take it
 		s, did := s.Key(k)
 		switch did {
 		case shell.Recalled:
@@ -705,7 +705,7 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case shell.Left:
 			m.recent = m.recent.Remember(s.Query)
-			m.inPane = true
+			m.inPane = !m.hasRows() || len(m.rows(m.step)) > 0
 		}
 		m.setSearch(s)
 		if did == shell.Left && m.gridded() {
@@ -1030,14 +1030,14 @@ func (m *Model) down(n int) {
 }
 
 // page moves the cursor n rows in a step with rows, or scrolls a page n lines, and never leaves the pane: it stops at
-// the first row and the last, and at the page's ends; on the bar it does nothing.
+// the first row and the last, and at the page's ends; on the bar, and in a step that shows no row, it does nothing.
 func (m *Model) page(n int) {
+	rows := m.rows(m.step)
 	switch {
 	case !m.inPane:
 	case !m.hasRows():
 		m.scroll(n)
-	default:
-		rows := m.rows(m.step)
+	case len(rows) > 0:
 		at := max(0, slices.Index(rows, m.cursor))
 		m.cursor = rows[min(max(at+n, 0), len(rows)-1)]
 	}
