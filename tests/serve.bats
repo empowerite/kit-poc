@@ -331,6 +331,22 @@ call() {
   [ ! -e .kit/styles/yaml.md ]
 }
 
+@test "the context tool, asked at the desk about a file in a worktree, answers from the worktree, and places nothing there" {
+  git add --all && git commit --quiet --message=init
+  git worktree add --quiet -b 7-fix-the-thing worktrees/7-fix-the-thing
+  git worktree add --quiet -b 8-other worktrees/8-other
+  (cd worktrees/7-fix-the-thing && "${kit_checkout}/bin/kit" hydrate) >/dev/null 2>&1
+  serve "$(call 1 context '{"path":["worktrees/7-fix-the-thing/.github/workflows/w.yml"],"json":true}')" \
+    "$(call 2 context '{"path":["worktrees/8-other/.github/workflows/w.yml"]}')"
+  answer 1 | jq --exit-status '.result.isError == false and (.result.content[0].text | fromjson
+    | .path == "worktrees/7-fix-the-thing/.github/workflows/w.yml" and .kinds == ["any", "text", "workflows", "yaml"]
+      and .rules == ["worktrees/7-fix-the-thing/.kit/rules/workflows.md", "worktrees/7-fix-the-thing/.kit/rules/bash.md"])'
+  # the server placed its own checkout alone, and a call places nothing: the refusal names the worktree and the remedy
+  answer 2 | jq --exit-status '.result.isError and (.result.content[0].text
+    | contains("worktrees/8-other && kit hydrate") and contains("worktrees/8-other, the checkout"))'
+  [ ! -e worktrees/8-other/.kit ]
+}
+
 @test "check, lint, toolchains, and tools say they run the repository's commands; a tool that reads only leaves it" {
   printf '# notes\n\n<!-- kit:generate x `touch ran; echo hi` -->\nhi\n<!-- kit:end x -->\n' > notes.md
   local before

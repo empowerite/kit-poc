@@ -26,6 +26,10 @@
 # context:claude gives the same answer in Claude Code's hook protocol. It names the rules but does not quote them,
 # so the agent still reads each rule itself, and a hook on Read can record that.
 #
+# A path in another checkout of the repository, the desk or a worktree, is governed by that checkout: its kinds are
+# matched against the path from its own root, and its rules are its own files. Both ask it (context:elsewhere,
+# context:asked-there), so a file in a worktree is answered at the desk as it is in the worktree.
+#
 # see: docs/context.md
 
 use yaml syntax settings
@@ -83,6 +87,65 @@ context:relative() {
   dir=$(cd "${dir:-/}" && pwd -P)
   path="${dir}/${rest}"
   printf '%s\n' "${path#"${root}"/}"
+}
+
+# context:elsewhere <path> prints the root of the checkout <path> is in when that is another checkout of this
+# repository than the one the command runs in: the desk or a worktree, as git worktree list names them. It prints
+# nothing for a path in this checkout, and nothing for one in a clone that is no checkout of this repository, such
+# as a submodule, which is governed from here as any other path is. <path> is as context:relative prints it, and the
+# working directory is the root. The checkout is found from the file system, as kit:clone-root finds it: the nearest
+# directory at or above the path's nearest existing directory that holds .git.
+context:elsewhere() {
+  local path=$1 here dir other line
+  here=$(pwd -P)
+  [[ "${path}" == /* ]] || path="${here}/${path}"
+  dir=${path%/*}
+  while [[ -n "${dir}" && ! -d "${dir}" ]]
+  do
+    dir=${dir%/*}
+  done
+  other=$(kit:clone-root "${dir:-/}") || return 0
+  [[ "${other}" != "${here}" ]] || return 0
+  while IFS= read -r line
+  do
+    [[ "${line}" == 'worktree '* ]] || continue
+    line=$(cd "${line#worktree }" 2>/dev/null && pwd -P) || continue
+    if [[ "${line}" == "${other}" ]]
+    then
+      printf '%s\n' "${other}"
+      return 0
+    fi
+  done < <(git worktree list --porcelain)
+}
+
+# context:asked-there <checkout> <path> [--json] prints what governs <path>, which is in <checkout>, another checkout
+# of this repository: that checkout's own kit context answers, on the release it pins, from its own kinds and rules,
+# and logs the ask. Each rule it names is written as this checkout reads it: under <checkout>'s path from this root,
+# or under its absolute path where it is not under this root. With --json it prints the one object, its path as
+# this checkout names it. It returns 1, naming the checkout, when that checkout cannot answer. <path> is as
+# context:relative prints it, and the working directory is the root.
+context:asked-there() {
+  local other=$1 path=$2 mode=${3:-} here absolute prefix answer rule
+  here=$(pwd -P)
+  absolute=${path}
+  [[ "${absolute}" == /* ]] || absolute="${here}/${path}"
+  prefix="${other}/"
+  prefix=${prefix#"${here}"/}
+  if ! answer=$(cd "${other}" && run kit context ${mode:+"${mode}"} "${absolute}")
+  then
+    error "${prefix%/}, the checkout ${path} is in, could not answer; see above"
+    return 1
+  fi
+  if [[ "${mode}" == --json ]]
+  then
+    jq --compact-output --arg path "${path}" --arg prefix "${prefix}" '.path = $path | .rules |= map($prefix + .)' \
+      <<<"${answer}"
+    return
+  fi
+  while IFS= read -r rule
+  do
+    [[ -z "${rule}" ]] || printf '%s%s\n' "${prefix}" "${rule}"
+  done <<<"${answer}"
 }
 
 # context:named <path>… fills context_named with the paths a command line names, root-relative, as context:relative
@@ -479,9 +542,10 @@ context:log() {
 }
 
 # context:render <path>… [--json] logs each path and prints the rules that govern the paths. Without --json, it
-# prints each rule's path once. With --json, it prints one object per path with its kinds and its rules.
+# prints each rule's path once. With --json, it prints one object per path with its kinds and its rules. A path in
+# another checkout of the repository is answered, and logged, by that checkout, as context:asked-there says.
 context:render() {
-  local json=false arg path rule
+  local json=false arg path rule other
   local -a paths=() rules
   local -A seen=()
   for arg in "$@"
@@ -497,7 +561,13 @@ context:render() {
   for path in "${paths[@]}"
   do
     path=$(context:relative "${path}")
-    context:log "${path}"
+    other=$(context:elsewhere "${path}")
+    if [[ -n "${other}" && "${json}" == true ]]
+    then
+      context:asked-there "${other}" "${path}" --json || return 1
+      continue
+    fi
+    [[ -n "${other}" ]] || context:log "${path}"
     if [[ "${json}" == true ]]
     then
       context:rules "${path}" | jq --raw-input --slurp --compact-output --arg path "${path}" \
@@ -506,7 +576,12 @@ context:render() {
            rules: [split("\n")[] | select(. != "")] }'
       continue
     fi
-    list:read rules context:rules "${path}" || return 1
+    if [[ -n "${other}" ]]
+    then
+      list:read rules context:asked-there "${other}" "${path}" || return 1
+    else
+      list:read rules context:rules "${path}" || return 1
+    fi
     for rule in "${rules[@]}"
     do
       [[ -n "${rule}" && -z "${seen[${rule}]:-}" ]] || continue
@@ -518,16 +593,24 @@ context:render() {
 
 # context:claude reads Claude Code's PreToolUse hook input on stdin and logs the file the tool is about to write.
 # It prints, as additional context, the paths of the rules that govern that file. It prints nothing when the tool
-# input has no file path or no rule governs the file.
+# input has no file path or no rule governs the file. The harness runs the hook where the session started, the desk,
+# and names the file by its absolute path, so a file in a worktree is answered by the worktree, as context:asked-there
+# says.
 context:claude() {
-  local input path rules text=''
+  local input path rules text='' other
   input=$(cat)
   path=$(jq --raw-output '.tool_input.file_path // empty' <<<"${input}")
   [[ -n "${path}" ]] || return 0
   cd "$(git rev-parse --show-toplevel)" || return 0
   path=$(context:relative "${path}")
-  context:log "${path}"
-  rules=$(context:rules "${path}" | paste -s -d ' ' -)
+  other=$(context:elsewhere "${path}")
+  if [[ -n "${other}" ]]
+  then
+    rules=$(context:asked-there "${other}" "${path}" | paste -s -d ' ' -)
+  else
+    context:log "${path}"
+    rules=$(context:rules "${path}" | paste -s -d ' ' -)
+  fi
   [[ -n "${rules}" ]] || return 0
   if [[ "${rules}" == *" "* ]]
   then

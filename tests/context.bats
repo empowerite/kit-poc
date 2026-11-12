@@ -162,6 +162,76 @@ setup() {
   [ -z "$output" ]
 }
 
+@test "a file in another checkout of the repository is governed by that checkout's rules, each named so it opens from where it was asked" {
+  git add --all && git commit --quiet --message=init
+  git worktree add --quiet -b 7-fix-the-thing worktrees/7-fix-the-thing
+  desk=$(pwd -P)
+  wt=worktrees/7-fix-the-thing
+  # the branch adds a kind and its rule, which the desk does not have
+  mkdir -p "${wt}/.kit/packages/toml/files/repo/.kit/kinds" "${wt}/.kit/packages/toml/files/repo/.kit/rules"
+  printf 'description: "The TOML kind and its rule"\ndepends:\n  - kit\n' > "${wt}/.kit/packages/toml/package.yml"
+  printf '# The TOML kind\nname: toml\npaths:\n  - "**/*.toml"\n' > "${wt}/.kit/packages/toml/files/repo/.kit/kinds/toml.yml"
+  printf -- '---\nkind:\n  - toml\n---\n# TOML\n' > "${wt}/.kit/packages/toml/files/repo/.kit/rules/toml.md"
+  (cd "${wt}" && "${kit_checkout}/bin/kit" packages add toml) >/dev/null 2>&1
+  # a workflow's glob is anchored at its checkout's root, and the worktree's own kind is no kind at the desk
+  run "${kit_checkout}/bin/kit" context "${wt}/.github/workflows/w.yml" "${wt}/Cargo.toml" Cargo.toml README.md
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "${wt}/.kit/rules/workflows.md" ]
+  [ "${lines[1]}" = "${wt}/.kit/rules/bash.md" ]
+  [ "${lines[2]}" = "${wt}/.kit/rules/toml.md" ]
+  [ "${lines[3]}" = ".kit/rules/markdown.md" ]
+  [ "${#lines[@]}" -eq 4 ]
+  # each ask is logged once, by the checkout that answered it
+  [ "$(cut -f 2 .git/kit/context.log | paste -s -d ' ' -)" = ".github/workflows/w.yml Cargo.toml Cargo.toml README.md" ]
+  run "${kit_checkout}/bin/kit" context --json "${wt}/.github/workflows/w.yml" README.md
+  [ "$status" -eq 0 ]
+  [ "$(jq -r .path <<<"${lines[0]}")" = "${wt}/.github/workflows/w.yml" ]
+  [ "$(jq -c .kinds <<<"${lines[0]}")" = '["any","text","workflows","yaml"]' ]
+  [ "$(jq -c .rules <<<"${lines[0]}")" = "[\"${wt}/.kit/rules/workflows.md\",\"${wt}/.kit/rules/bash.md\"]" ]
+  [ "$(jq -c .rules <<<"${lines[1]}")" = '[".kit/rules/markdown.md"]' ]
+  # the harness runs the hook at the desk, and names the file by its absolute path
+  input=$(printf '{"session_id":"s1","tool_name":"Write","tool_input":{"file_path":"%s/%s/.github/workflows/w.yml"}}' \
+    "${desk}" "${wt}")
+  run "${kit_checkout}/bin/kit" context --claude <<<"${input}"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r .hookSpecificOutput.additionalContext <<<"$output")" \
+    = "kit: ${wt}/.github/workflows/w.yml is governed by ${wt}/.kit/rules/workflows.md ${wt}/.kit/rules/bash.md; read each before this change." ]
+  # from the worktree, a file at the desk is the desk's, and neither path is under the worktree
+  cd "${wt}"
+  run "${kit_checkout}/bin/kit" context ../../README.md ../../Cargo.toml Cargo.toml
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "${desk}/.kit/rules/markdown.md" ]
+  [ "${lines[1]}" = ".kit/rules/toml.md" ]
+  [ "${#lines[@]}" -eq 2 ]
+}
+
+@test "a file in a clone that is no checkout of the repository is governed from where it was asked, and a checkout that cannot answer is named" {
+  git add --all && git commit --quiet --message=init
+  git init --quiet vendor/lib
+  run "${kit_checkout}/bin/kit" context vendor/lib/run.sh vendor/lib/.github/workflows/w.yml
+  [ "$status" -eq 0 ]
+  [ "$output" = ".kit/rules/bash.md" ]
+  # a worktree whose kinds cannot be read fails the ask, and the refusal says which checkout it was
+  git worktree add --quiet -b 7-fix-the-thing worktrees/7-fix-the-thing
+  wt=worktrees/7-fix-the-thing
+  mkdir -p "${wt}/.kit/packages/toml/files/repo/.kit/kinds"
+  printf 'description: "The TOML kind"\ndepends:\n  - kit\n' > "${wt}/.kit/packages/toml/package.yml"
+  printf 'name: toml\npaths:\n  - "**/*.toml"\n' > "${wt}/.kit/packages/toml/files/repo/.kit/kinds/toml.yml"
+  (cd "${wt}" && "${kit_checkout}/bin/kit" packages add toml) >/dev/null 2>&1
+  printf 'paths:\n  - "**/*.toml"\n' > "${wt}/.kit/packages/toml/files/repo/.kit/kinds/toml.yml"
+  run "${kit_checkout}/bin/kit" context "${wt}/Cargo.toml"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *".kit/kinds/toml.yml: a kind has no name:"* ]]
+  [[ "$output" == *"${wt}, the checkout ${wt}/Cargo.toml is in, could not answer"* ]]
+  run "${kit_checkout}/bin/kit" context --json "${wt}/Cargo.toml"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"${wt}, the checkout ${wt}/Cargo.toml is in, could not answer"* ]]
+  input=$(printf '{"session_id":"s1","tool_name":"Write","tool_input":{"file_path":"%s/%s/Cargo.toml"}}' "${PWD}" "${wt}")
+  run "${kit_checkout}/bin/kit" context --claude <<<"${input}"
+  [ "$status" -eq 1 ]
+  [[ "$output" != *hookSpecificOutput* ]]
+}
+
 @test "a kinds file is YAML: CRLF endings, a flow list, a quoted name, a comment after an item, and a leading --- all read" {
   mkdir -p .kit/packages/conf/files/repo/.kit/kinds .kit/packages/conf/files/repo/.kit/rules
   printf 'description: "Two configuration kinds in one file"\ndepends:\n  - kit\n' > .kit/packages/conf/package.yml

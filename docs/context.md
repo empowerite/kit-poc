@@ -9,6 +9,14 @@ kit context "${path}"
 
 - The output is the rule files to read, one per line. Given several paths, it prints each rule once.
 - `--json` prints one object per path, with that path's rules.
+- A path in another checkout of the repository, the desk or a worktree as `git worktree list` names them, is
+  governed by that checkout. Its kinds are matched against the path from its own root, and its rules are its own
+  files, so a branch that adds a kind or a rule is answered with them. That checkout's own `kit context` answers,
+  on the release it pins. Each rule is named by its path in that checkout, so it opens from where you asked: from
+  the desk, `kit context worktrees/7-fix-the-thing/.github/workflows/ci.yml` prints
+  `worktrees/7-fix-the-thing/.kit/rules/workflows.md`. From a worktree, a rule of the desk is named by its absolute
+  path. A path in a clone that is no checkout of the repository, such as a submodule, is governed from where you
+  asked.
 - Every call appends one line per path to the context log in git's common directory, `.git/kit/context.log` at the desk
   and the desk's `.git/kit/context.log` from a worktree: the epoch time and the path. `kit context --claude` and
   `kit new file` append to it too.
@@ -138,6 +146,10 @@ This command:
 
 It prints nothing when the tool input has no file path or no rule governs the file. Nothing is kept
 between calls except the log line.
+
+The harness runs the hook in the folder the session started in, usually the desk, and names the file by its
+absolute path. A file in a worktree is answered by the worktree, as above, so the agent is told the same rules
+wherever its session started.
 
 A harness that speaks the Model Context Protocol also has `context` as a tool of `kit serve`; see
 [serve.md](serve.md). A harness with no hook, and a person, run `kit context "${path}"` directly. `.kit/1st.md`
