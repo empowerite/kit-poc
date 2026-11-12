@@ -164,10 +164,12 @@ Left out: Command line 12 and 13 reach a checkout alone; a release has a `versio
   `README.md:94`, `kit/packages/kit/files/repo/.kit/welcome/2-before-toolchains.md:8`; the tests named below.
 - **Interfaces:**
   - `kit/bin/kit` tests `BASH_VERSINFO` as `1st.sh:21-25` does, before it sources `log.sh` (Delivery 26).
-  - `def offsets($literal)` in `template.jq`: where `$literal` starts in the input, in code points, overlapping
-    starts included; line 102 calls it for `indices`, which counts bytes before jq 1.8. When `("éx" |
-    indices("x")[0]) != 1`, it maps each byte offset to its code point by summing each code point's UTF-8 width:
-    1, 2, 3, or 4 bytes for a value under 128, 2048, 65536, or above (Delivery 6).
+  - Built in #312. `def offsets($literal; $points)` in `template.jq`: where `$literal` starts in the input, in code
+    points, overlapping starts included. `match` calls it where it called `indices`, `index`, and `rindex`, which
+    count bytes before jq 1.8. `in_bytes` is true when `("éx" | indices("x")[0]) == 2`; there, for a text that holds
+    more bytes than code points, `points` maps each byte offset to its code point by each code point's UTF-8 width:
+    1, 2, 3, or 4 bytes for a value under 128, 2048, 65536, or above (Delivery 6). The cases are in
+    `tests/jq/template.test`.
   - `welcome:git` holds git to 2.31 as `welcome:jq` holds jq: `git 2.30.1 is too old; kit needs git 2.31 or later`
     (Command line 28). `tests/welcome.bats:135` fakes `git version 2.30.1` as it fakes jq 1.6.
   - `guard:missing <tool>` in `1st.sh` replaces the six `run: mise install` texts (Command line 10), which

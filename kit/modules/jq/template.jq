@@ -140,6 +140,19 @@ def fits($kind; $text):
   elif $kind == "lines" then $text == "" or ($text | endswith("\n"))
   else true end;
 
+# points reads a text and gives what turns one of its byte offsets into a code point: the code point that starts at
+# each byte, and null at a byte within a code point of two, three, or four bytes.
+def points:
+  [foreach explode[] as $c (-1; . + 1;
+     ., (range(1; if $c < 128 then 1 elif $c < 2048 then 2 elif $c < 65536 then 3 else 4 end) | null))];
+
+# in_bytes is true where indices gives a string's offsets in bytes, as jq does before 1.8, and not in code points.
+def in_bytes: ("\u00e9x" | indices("x")[0]) == 2;
+
+# offsets($literal; $points) reads a text and gives each place $literal starts in it, in code points, overlapping
+# starts included. $points is the text's points where indices gives bytes, and null where it gives code points.
+def offsets($literal; $points): indices($literal) | if $points == null then . else map($points[.]) end;
+
 # match($text) reads a template's parts and matches $text against them. It gives {ok: true, values} when the text has
 # the template's shape, values each hole's text (an array for a name that appears more than once, and a region's under
 # region_<line>); otherwise {ok: false, line}, the template line where the text leaves the template, or null at its end.
@@ -148,6 +161,9 @@ def match($text):
   . as $parts
   | arrays as $arrays
   | reserved as $reserved
+  # A slice counts in code points on every jq, so a place indices gives in bytes is turned into its code point. A
+  # text that is all ASCII has one byte per code point, and needs no points.
+  | (if in_bytes and ($text | utf8bytelength > length) then $text | points else null end) as $points
   | reduce $parts[] as $p ({pos: 0, hole: null, values: {}, raws: [], line: null, ok: true};
       if (.ok | not) then .
       elif $p.kind == "block" then
@@ -166,7 +182,7 @@ def match($text):
               | first(range(0; length) as $k | select($have[$k] != .[$k]) | $k) // 0))
         end
       else .hole as $h | .pos as $from
-        | ([$text | indices($p.literal)[] | select(. >= $from)
+        | ([$text | offsets($p.literal; $points)[] | select(. >= $from)
             | select($h.kind != "lines" or . == $from or $text[. - 1:.] == "\n")] | first) as $at
         | if $at == null or (fits($h.kind; $text[$from:$at]) | not) then .ok = false
             # A literal that opens with the newline ending the line before is reported by the line its text is on.
@@ -176,10 +192,12 @@ def match($text):
             | if $at == null and $h.kind == "inline" then
                 ($p.literal | lines_of) as $want
                 | ($want[0] | rtrimstr("\n")) as $first
-                | ($text[$from:] | index("\n") // length) as $eol
-                | (if $first == "" then null else $text[$from:$from + $eol] | rindex($first) end) as $r
+                | (first($text | offsets("\n"; $points)[] | select(. >= $from)) // ($text | length)) as $eol
+                | (if $first == "" then null
+                   else [$text | offsets($first; $points)[]
+                         | select(. >= $from and . + ($first | length) <= $eol)] | last end) as $r
                 | if $r == null then .
-                  else ($text[$from + $r:] | lines_of) as $have
+                  else ($text[$r:] | lines_of) as $have
                     | .line = $p.line + (first(range(0; $want | length) as $k | select($have[$k] != $want[$k]) | $k)
                         // 0)
                   end
