@@ -22,7 +22,9 @@
 # where the kit is not installed yet, leaves the checkout's own kit.yml to say, as on the default branch.
 #
 # Arguments:
-#   <number>   the pull request to check; default: this checkout's
+#   <number>   the pull request to check; default: this checkout's, which on a CI runner is
+#              the one the run builds, as the CI system or the forge names it, and else the open
+#              one on the branch checked out
 #
 # Exits 0 when at least one linked issue counts or the author is exempt, 1 when neither holds, there is no pull
 # request to check, the forge cannot say which pull request this checkout is working on, the pull request's body

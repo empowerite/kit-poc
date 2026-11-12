@@ -34,12 +34,26 @@ run its pipeline elsewhere, on Jenkins, CircleCI, Buildkite, or Azure Pipelines.
   attempt, workflow, branch, tag, event, sha, title, state, age, took, url, jobs}`, each job `{name, state, took,
   step}`. Its enabling point would be a `ci` setting in `kit.yml`, else the code forge's own.
 
-`kit ci` itself runs on any CI system, but `kit linked` needs the change's number. `forge:pr-here` reads it from
-GitHub's event payload or GitLab's `CI_MERGE_REQUEST_IID`, else asks for the open change on the checked-out branch.
-Most external systems check out a detached HEAD, so a provider would read the system's own variable:
-`BUILDKITE_PULL_REQUEST`, `CIRCLE_PULL_REQUEST`, `SYSTEM_PULLREQUEST_PULLREQUESTNUMBER` (Azure Pipelines),
-`CODEBUILD_WEBHOOK_TRIGGER`, `CHANGE_ID` (Jenkins multibranch), `BITBUCKET_PR_ID`, `CI_COMMIT_PULL_REQUEST`
-(Woodpecker), or `DRONE_PULL_REQUEST`.
+`kit ci` itself runs on any CI system, but `kit linked` needs the change's number. Most external systems check out
+a detached HEAD, which has no branch to ask about, and name the change in a variable of their own. `forge:pr-here`
+reads that variable first, from the seam's table, `forge_ci_changes` in `kit/modules/bash/forge.sh`:
+
+| CI system | Variable | Its value |
+| --- | --- | --- |
+| Buildkite | `BUILDKITE_PULL_REQUEST` | the number, or `false` on a run for no change |
+| CircleCI | `CIRCLE_PULL_REQUEST` | the address of the change's page, which the number ends |
+| Jenkins, a multibranch pipeline | `CHANGE_ID` | the number |
+| Azure Pipelines, for a repository on GitHub | `SYSTEM_PULLREQUEST_PULLREQUESTNUMBER` | the number |
+| AWS CodeBuild | `CODEBUILD_WEBHOOK_TRIGGER` | `pr/` and the number |
+| Woodpecker | `CI_COMMIT_PULL_REQUEST` | the number |
+| Drone | `DRONE_PULL_REQUEST` | the number |
+
+A value that holds no number names no change. With none of them, the provider reads the forge's own runner,
+GitHub's event payload, GitLab's `CI_MERGE_REQUEST_IID`, or Azure DevOps' `SYSTEM_PULLREQUEST_PULLREQUESTID`, else
+asks for the open change on the checked-out branch. A runner that names no change, on a detached HEAD, has none,
+and `kit linked` refuses. Bitbucket Pipelines sets `BITBUCKET_PR_ID`, which kit does not read: it has no provider
+for Bitbucket. The number is all the table gives: `kit policy` still reads the change's branch and its base from
+GitHub's and GitLab's runners alone.
 
 ## Scope
 

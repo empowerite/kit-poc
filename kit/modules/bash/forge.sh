@@ -102,7 +102,10 @@
 #   pr-state <n>                  MERGED, CLOSED, or OPEN, a tab, and the merge commit when it is merged
 #   pr-state-for-branch <branch>  MERGED, CLOSED, or OPEN for the latest pull request on the branch, or nothing
 #   pr-head-for-branch <branch>   the head commit of the latest pull request on the branch, in any state, or nothing
-#   pr-here                       the number of the pull request this checkout is working on, or nothing
+#   pr-here                       the number of the pull request this checkout is working on, or nothing: the one a
+#                                 CI run builds, as the CI system's own variable names it, which the seam reads,
+#                                 as forge:ci-change says; else as the provider reads it, from its forge's own
+#                                 runner, or as the open one on the branch checked out
 #   pr-closing-issues <n>         one line per issue the pull request closes: "<number> <state> <owner/name>"
 #   open-prs                      one JSON object per open pull request, the documents kit flow draws, and kit
 #                                 changes' reviews and checks: modules/jq/forge.jq's header names their fields
@@ -891,7 +894,61 @@ forge:pr-last-for-branch()  { forge:call pr-last-for-branch "$@"; }
 forge:pr-state()            { forge:call pr-state "$@"; }
 forge:pr-state-for-branch() { forge:call pr-state-for-branch "$@"; }
 forge:pr-head-for-branch()  { forge:call pr-head-for-branch "$@"; }
-forge:pr-here()             { forge:call pr-here "$@"; }
+
+# forge_ci_changes is the table of the CI systems that are no forge's own: for each, the variable it sets to the
+# change a run builds, and how the variable's value reads as the change's number. number: the value is the number.
+# url: the number ends the address of the change's page, as https://github.com/o/r/pull/3. pr: the number follows
+# pr/, as pr/3. Bitbucket Pipelines sets BITBUCKET_PR_ID, which the table leaves out: kit has no provider for
+# Bitbucket, so that number names no change kit can read.
+declare -gra forge_ci_changes=(
+  'BUILDKITE_PULL_REQUEST number'                # Buildkite, which says false on a run for no change
+  'CIRCLE_PULL_REQUEST url'                      # CircleCI
+  'CHANGE_ID number'                             # Jenkins, in a multibranch pipeline
+  'SYSTEM_PULLREQUEST_PULLREQUESTNUMBER number'  # Azure Pipelines, for a repository on GitHub
+  'CODEBUILD_WEBHOOK_TRIGGER pr'                 # AWS CodeBuild, which says branch/ or tag/ on a run for no change
+  'CI_COMMIT_PULL_REQUEST number'                # Woodpecker
+  'DRONE_PULL_REQUEST number'                    # Drone
+)
+
+# forge:ci-change prints the number of the change the CI run here builds, as the first variable of forge_ci_changes
+# whose value reads as a number says, or nothing: off a runner, on a run for no change, or on a CI system the table
+# does not have.
+forge:ci-change() {
+  local row name how value
+  for row in "${forge_ci_changes[@]}"
+  do
+    read -r name how <<<"${row}"
+    value=${!name:-}
+    case "${how}" in
+      (url) value=${value##*/} ;;
+      (pr)
+        [[ "${value}" == pr/* ]] || continue
+        value=${value#pr/}
+        ;;
+    esac
+    [[ "${value}" =~ ^[0-9]+$ ]] || continue
+    printf '%s\n' "${value}"
+    return 0
+  done
+}
+
+# forge:pr-here prints the number of the change this checkout is working on, or nothing. A CI system that is no
+# forge's own mostly checks out a detached HEAD, which has no branch to ask about, and names the change it builds in
+# a variable of its own, so forge:ci-change is read first, before the branch is asked about. Otherwise the provider
+# answers: from its forge's own runner, else the open change on the branch checked out. A runner that names no
+# change, on a detached HEAD, has none, and the caller refuses. The number is the primary's forge's, so a primary
+# with no forge, or with a setting kit refuses, fails here as the provider's call would.
+forge:pr-here() {
+  local number
+  number=$(forge:ci-change)
+  if [[ -z "${number}" ]]
+  then
+    forge:call pr-here "$@"
+    return
+  fi
+  forge:provider >/dev/null || return 1
+  printf '%s\n' "${number}"
+}
 # forge:pr-closing-issues <n> prints the issues the change closes, as the forge says, or, with the closing-issues stand-in,
 # as its body says: each issue of the forge's own a closing keyword names, with its state, as the repository's.
 forge:pr-closing-issues() {

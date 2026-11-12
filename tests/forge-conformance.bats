@@ -445,6 +445,65 @@ named-afresh() {
   done
 }
 
+# here <NAME=value>… prints what forge:pr-here answers on a runner that sets those variables and no other that names a
+# change: a forge's own, or a CI system's.
+here() {
+  env -u GITHUB_EVENT_PATH -u CI_MERGE_REQUEST_IID -u SYSTEM_PULLREQUEST_PULLREQUESTID -u BUILDKITE_PULL_REQUEST \
+    -u CIRCLE_PULL_REQUEST -u CHANGE_ID -u SYSTEM_PULLREQUEST_PULLREQUESTNUMBER -u CODEBUILD_WEBHOOK_TRIGGER \
+    -u CI_COMMIT_PULL_REQUEST -u DRONE_PULL_REQUEST "$@" \
+    bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge && forge:pr-here'
+}
+
+@test "on a detached HEAD the change is the one the CI system's own variable names, on either forge, and none without one" {
+  git commit --quiet --allow-empty --message one
+  git checkout --quiet --detach
+  for forge in github gitlab
+  do
+    world "${forge}"
+    # Buildkite, Jenkins, Azure Pipelines over GitHub, Woodpecker, and Drone set the number; CircleCI the address of
+    # the change's page; CodeBuild pr/ and the number
+    for named in BUILDKITE_PULL_REQUEST=3 CHANGE_ID=3 SYSTEM_PULLREQUEST_PULLREQUESTNUMBER=3 CI_COMMIT_PULL_REQUEST=3 \
+      DRONE_PULL_REQUEST=3 CIRCLE_PULL_REQUEST=https://github.com/empowerite/example/pull/3 \
+      CODEBUILD_WEBHOOK_TRIGGER=pr/3
+    do
+      run --separate-stderr here "${named}"
+      [ "$status" -eq 0 ] || { echo "${forge} ${named}: ${stderr}"; false; }
+      [ "$output" = 3 ] || { echo "${forge} ${named}: ${output}"; false; }
+    done
+    # a value that holds no number names no change: a run for none, a branch's run, a change that is no number
+    for named in BUILDKITE_PULL_REQUEST=false CIRCLE_PULL_REQUEST= CODEBUILD_WEBHOOK_TRIGGER=branch/main \
+      CODEBUILD_WEBHOOK_TRIGGER=3 CHANGE_ID=I8f3a2c DRONE_PULL_REQUEST=
+    do
+      run --separate-stderr here "${named}"
+      [ "$status" -eq 0 ]
+      [ -z "$output" ] || { echo "${forge} ${named}: ${output}"; false; }
+    done
+    # a runner that sets none has none, and the caller refuses
+    run --separate-stderr here
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+  done
+  # the forge was never asked: no branch is checked out to ask about
+  ! grep --quiet '^pr list --head' "${FAKE_DIR}/gh.calls"
+  # the variable is read before the branch is asked about: Jenkins may check a branch of its own name out
+  world github
+  git switch --quiet --create PR-3
+  run --separate-stderr here CHANGE_ID=3
+  [ "$status" -eq 0 ]
+  [ "$output" = 3 ]
+  ! grep --quiet '^pr list --head' "${FAKE_DIR}/gh.calls"
+  # and with no variable the branch is asked about, as at a desk
+  git switch --quiet --create 7-fix-the-thing
+  run --separate-stderr here
+  [ "$output" = 3 ]
+  grep --quiet '^pr list --head 7-fix-the-thing' "${FAKE_DIR}/gh.calls"
+  # a primary with no forge has no change, whatever a variable says
+  printf 'forge: none\n' > kit.yml
+  run --separate-stderr here DRONE_PULL_REQUEST=3
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+}
+
 @test "with push naming a fork, every provider opens the change from the fork's branch, and a fork with no owner is refused" {
   for forge in github gitlab
   do

@@ -17,7 +17,9 @@
 # pull request was closed.
 #
 # Arguments:
-#   <number>   the pull request to settle; default: this checkout's
+#   <number>   the pull request to settle; default: this checkout's, which on a CI runner is
+#              the one the run builds, as the CI system or the forge names it, and else the open
+#              one on the branch checked out
 #
 # Exits 0 when every issue is settled, 1 when the forge or the trackers in kit.yml cannot be read or an issue could not
 # be settled, and 2 on a usage error.

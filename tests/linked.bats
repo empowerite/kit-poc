@@ -19,6 +19,29 @@ setup() {
   [[ "$output" == *"kit linked <number>"* ]]
 }
 
+@test "on a detached HEAD, as a CI system that is no forge's own checks one out, linked finds the change it names" {
+  fake-tools gh
+  fixture repo.json <<<'{"nameWithOwner": "empowerite/example", "url": "https://github.com/empowerite/example"}'
+  fixture pr.json <<<'{"body": ""}'
+  fixture closing.json <<'JSON'
+{"data": {"repository": {"pullRequest": {"closingIssuesReferences": {"nodes": [
+  {"number": 7, "state": "OPEN", "repository": {"nameWithOwner": "empowerite/example"}}]}}}}}
+JSON
+  route gh 'repo view*' repo.json
+  route gh 'pr view 3 --json *' pr.json
+  route gh 'api graphql*' closing.json
+  git commit --quiet --allow-empty --message one
+  git checkout --quiet --detach
+  # Drone names the change it builds
+  DRONE_PULL_REQUEST=3 run env -u GITHUB_EVENT_PATH "${kit_checkout}/bin/kit" linked
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"pull request #3 is linked to #7"* ]]
+  # a runner that names none is still refused
+  run env -u GITHUB_EVENT_PATH -u DRONE_PULL_REQUEST "${kit_checkout}/bin/kit" linked
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"name the change: kit linked <number>"* ]]
+}
+
 @test "linked fails, naming the read, when the forge cannot say which pull request this checkout is working on" {
   PATH=$(shims gh) run env -u GITHUB_EVENT_PATH "${kit_checkout}/bin/kit" linked
   [ "$status" -eq 1 ]
