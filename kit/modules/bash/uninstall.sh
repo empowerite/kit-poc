@@ -81,10 +81,10 @@ uninstall:left() {
 # .kit/ that differs from the release's file was edited by the repository: it is named and left as it is. It fails
 # when place:remove cannot take the path's content out.
 uninstall:path() {
-  local dry=$1 base=$2 path=$3 src=$4 dest kind
-  dest=$(release:dest "${base}" "${path}")
+  local dry=$1 base=$2 path=$3 src=$4 dest kind target
+  release:dest "${base}" "${path}" dest || return 1
   [[ -e "${dest}" || -L "${dest}" ]] || return 0
-  kind=$(place:kind "${src}" "${dest}")
+  place:kind "${src}" "${dest}" kind
   if place:edited "${base}" "${path}" "${src}"
   then
     warn "${dest}: edited since the kit placed it; it is left as it is"
@@ -106,7 +106,8 @@ uninstall:path() {
     (merge) step "${dest}: the kit's entries would be taken out" ;;
     (region)
       # A file that holds no region has nothing to take out; one region:has refuses is refused before this.
-      if region:has "${dest}" "$(release:target "${dest}")"
+      release:target "${dest}" target || return 1
+      if region:has "${dest}" "${target}"
       then
         step "${dest}: the kit's region would be taken out"
       fi

@@ -101,61 +101,142 @@ then
   exit 1
 fi
 
-# recorded-digest <base> <path> prints the digest the manifest records for the path. When it records none, as in a
-# fresh clone or bin/refresh's export, where the manifest is not committed, it prints the base release's digest of
-# the path, read from base_delivered, when that release delivers it. A path with neither is new in this release.
-recorded-digest() {
-  local recorded src
-  recorded=$(manifest:recorded "$1" "$2")
-  if [[ -z "${recorded}" && -n "${base_delivered}" ]]
+# read-base <base> reads, in this shell, what the loops below ask about each path the base delivers, so they start no
+# process for one path. It fills:
+#
+#   delivered     the rows "<path>\t<source>" this release delivers under the base (place:delivered)
+#   root_of       the base's root, which a path is joined to, as release:dest joins them: empty for repo
+#   base_key      the key place_source keeps the base release's sources under, or empty without a base release
+#   kind_of       each path's kind, as place:kind names it
+#   digest_of     the digest the manifest records for each path. When it records none, as in a fresh clone or
+#                 bin/refresh's export, where the manifest is not committed, the base release's digest of the path,
+#                 when that release delivers it. A path with neither is new in this release.
+#   installed_of  the digest of the file at each copied path outside .kit/ that has one. A path the batch could not
+#                 digest, as when a file cannot be read, is left out, and digested on its own where it is asked about.
+#
+# Every digest is taken by one process for the base, before anything is written. It fails when a list it reads cannot
+# be read.
+read-base() {
+  local base=$1 row path src dest kind i
+  local -a unrecorded=() sources=() copies=() dests=() digests=()
+  list:read delivered place:delivered "${kit_root}" "${base}" "${packages[@]}" || return 1
+  release:dest "${base}" '' root_of
+  base_key=''
+  if [[ -n "${base_root}" ]]
   then
-    src=$(awk -F '\t' -v p="$2" '$1 == p { print $2 }' <<<"${base_delivered}")
-    [[ -z "${src}" ]] || recorded=$(file:digest < "${src}")
+    place:delivered "${base_root}" "${base}" "${packages[@]}" >/dev/null || return 1
+    place:key base_key "${base_root}" "${base}" "${packages[@]}"
   fi
-  printf '%s\n' "${recorded}"
+  manifest:records digest_of "${base}" || return 1
+  kind_of=() installed_of=()
+  for row in "${delivered[@]}"
+  do
+    IFS=$'\t' read -r path src <<<"${row}"
+    [[ -n "${path}" ]] || continue
+    dest=${root_of}${path}
+    place:kind "${src}" "${dest}" kind
+    kind_of[${path}]=${kind}
+    if [[ -z "${digest_of[${path}]+x}" && -n "${base_key}" && -n "${place_source[${base_key}${path}]+x}" ]]
+    then
+      unrecorded+=("${path}")
+      sources+=("${place_source[${base_key}${path}]}")
+    fi
+    if [[ "${kind}" == copy && -f "${dest}" ]] && ! materialize:owned "${base}" "${path}"
+    then
+      copies+=("${path}")
+      dests+=("${dest}")
+    fi
+  done
+  if (( ${#unrecorded[@]} > 0 )) && ! file:digests digests "${sources[@]}" 2>/dev/null
+  then
+    # One the batch could not read is digested on its own, and one that cannot be read at all records nothing.
+    digests=()
+    for src in "${sources[@]}"
+    do
+      digests+=("$(file:digest < "${src}")")
+    done
+  fi
+  for i in "${!unrecorded[@]}"
+  do
+    digest_of[${unrecorded[i]}]=${digests[i]}
+  done
+  if (( ${#copies[@]} > 0 )) && file:digests digests "${dests[@]}" 2>/dev/null
+  then
+    for i in "${!copies[@]}"
+    do
+      installed_of[${copies[i]}]=${digests[i]}
+    done
+  fi
+}
+
+# installed-digest <src> <dest> <path> prints the digest of the repository's copy of the release's content at <dest>,
+# from installed_of, or, for a path read-base left out, read now.
+installed-digest() {
+  if [[ -n "${installed_of[$3]:-}" ]]
+  then printf '%s\n' "${installed_of[$3]}"
+  else place:installed "$1" "$2" | file:digest
+  fi
+}
+
+# judge-owned <base> puts in owned_state each materialized path's state, and in owned_ok whether it is in that state,
+# for every one the base delivers, all judged at once before any is changed, as materialize:all judges them.
+# shellcheck disable=SC2034  # owned_source is read by materialize:judge, through a reference
+judge-owned() {
+  local row path src state
+  local -a owned=()
+  local -A owned_source=()
+  owned_state=() owned_ok=()
+  for row in "${delivered[@]}"
+  do
+    IFS=$'\t' read -r path src <<<"${row}"
+    [[ -n "${path}" && "${kind_of[${path}]:-}" == copy ]] || continue
+    materialize:owned "$1" "${path}" || continue
+    owned+=("${path}")
+    owned_source[${path}]=${src}
+    materialize:state state "${src}" "${root_of}${path}"
+    owned_state[${path}]=${state}
+  done
+  (( ${#owned[@]} == 0 )) || materialize:judge owned_ok owned_state owned_source "${owned[@]}"
 }
 
 # lacks-base <base> <path> <src> is true when updating the path needs the base release, and the base release is
-# missing.
+# missing. It reads what read-base filled for the base.
 lacks-base() {
-  local base=$1 path=$2 src=$3 dest recorded kind
-  dest=$(release:dest "${base}" "${path}")
-  recorded=$(recorded-digest "${base}" "${path}")
-  [[ -n "${recorded}" ]] || return 1
+  local base=$1 path=$2 src=$3 dest=${root_of}$2 kind=${kind_of[$2]}
+  [[ -n "${digest_of[${path}]:-}" ]] || return 1
   # A materialized path is brought to its state from this release alone.
-  if materialize:owned "${base}" "${path}" && [[ "$(place:kind "${src}" "${dest}")" == copy ]]
+  if materialize:owned "${base}" "${path}" && [[ "${kind}" == copy ]]
   then
     return 1
   fi
-  [[ -z "${base_root}" || -z "$(place:source-of "${base_root}" "${base}" "${path}" "${packages[@]}")" ]] || return 1
-  kind=$(place:kind "${src}" "${dest}")
+  [[ -z "${base_root}" || -z "${place_source[${base_key}${path}]:-}" ]] || return 1
   [[ "${kind}" == merge ]] && return 0
   [[ "${kind}" != region ]] && place:installed "${src}" "${dest}" >/dev/null 2>&1 \
-    && [[ "${recorded}" != "$(place:installed "${src}" "${dest}" | file:digest)" ]]
+    && [[ "${digest_of[${path}]}" != "$(installed-digest "${src}" "${dest}" "${path}")" ]]
 }
 
+declare -A digest_of=() kind_of=() installed_of=() owned_state=() owned_ok=()
+root_of='' base_key='' did=''
 # Find every path that lacks its base, and every region a write would refuse, before writing anything, so an update
 # is all or nothing.
 skipped=0
 refused=0
-base_delivered=""
 for base in $(release:bases)
 do
-  [[ -z "${base_root}" ]] || base_delivered=$(place:delivered "${base_root}" "${base}" "${packages[@]}")
-  list:read delivered place:delivered "${kit_root}" "${base}" "${packages[@]}" || exit 1
+  read-base "${base}" || exit 1
   for row in "${delivered[@]}"
   do
     IFS=$'\t' read -r path src <<<"${row}"
     [[ -n "${path}" ]] || continue
     if lacks-base "${base}" "${path}" "${src}"
     then
-      error "$(release:dest "${base}" "${path}") cannot be updated without the base release ${previous};" \
+      error "${root_of}${path} cannot be updated without the base release ${previous};" \
         "set KIT_BASE to a copy of it"
       skipped=$(( skipped + 1 ))
     fi
   done
-  count=$(place:delivered "${kit_root}" "${base}" "${packages[@]}" | cut -f 1 \
-    | place:refusals "${base}" "${packages[@]}")
+  printf -v wanted '%s\n' "${delivered[@]%%$'\t'*}"
+  count=$(place:refusals "${base}" "${packages[@]}" <<<"${wanted}")
   refused=$(( refused + count ))
 done
 if (( skipped > 0 ))
@@ -174,27 +255,28 @@ fi
 conflicts=0
 for base in $(release:bases)
 do
-  [[ -z "${base_root}" ]] || base_delivered=$(place:delivered "${base_root}" "${base}" "${packages[@]}")
-  list:read delivered place:delivered "${kit_root}" "${base}" "${packages[@]}" || exit 1
+  read-base "${base}" || exit 1
+  judge-owned "${base}"
   for row in "${delivered[@]}"
   do
     IFS=$'\t' read -r path src <<<"${row}"
     [[ -n "${path}" ]] || continue
-    dest=$(release:dest "${base}" "${path}")
-    recorded=$(recorded-digest "${base}" "${path}")
-    if [[ -z "${recorded}" ]]
+    dest=${root_of}${path}
+    known=${digest_of[${path}]:-}
+    if [[ -z "${known}" ]]
     then
       place:new "${src}" "${dest}" "new in ${current}" || conflicts=$(( conflicts + 1 ))
       continue
     fi
     previous_src=""
-    [[ -n "${base_root}" ]] && previous_src=$(place:source-of "${base_root}" "${base}" "${path}" "${packages[@]}")
-    kind=$(place:kind "${src}" "${dest}")
-    if materialize:owned "${base}" "${path}" && [[ "${kind}" == copy ]]
+    [[ -z "${base_root}" ]] || previous_src=${place_source[${base_key}${path}]:-}
+    kind=${kind_of[${path}]}
+    if [[ -n "${owned_state[${path}]+x}" ]]
     then
       # A materialized path is a link to its source or a copy of the release's file, brought to that state, never
       # merged: an edit under .kit/ is nobody's to keep.
-      case "$(materialize:one "${src}" "${dest}")" in
+      materialize:bring did "${src}" "${dest}" "${owned_state[${path}]}" "${owned_ok[${path}]:-}" || exit 1
+      case "${did}" in
         (kept) step "${dest}: as ${current} has it" ;;
         (placed) step "${dest}: placed from ${current}" ;;
         (replaced) step "${dest}: replaced from ${current}"
@@ -214,7 +296,7 @@ do
     then
       step "${dest}: missing, written"
       place:content "${src}" "${dest}"
-    elif [[ "${recorded}" == "$(place:installed "${src}" "${dest}" | file:digest)" ]]
+    elif [[ "${known}" == "$(installed-digest "${src}" "${dest}" "${path}")" ]]
     then
       step "${dest}: unchanged since ${previous}, replaced"
       place:content "${src}" "${dest}"

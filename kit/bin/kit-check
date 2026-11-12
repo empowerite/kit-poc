@@ -81,7 +81,7 @@ do
       then
         error "${dest} has no kit region; run: kit update"
         findings=$(( findings + 1 ))
-      elif host=$(region:host "${src}") && [[ -n "${host}" ]]
+      elif region:host "${src}" host && [[ -n "${host}" ]]
       then
         rest=${host##*/packages/}
         if ! line=$(template:leaves "${host}" "${dest}")

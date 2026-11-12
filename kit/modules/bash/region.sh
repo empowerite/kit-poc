@@ -12,44 +12,43 @@
 
 use release resolve render file
 
-# region:name <dest> prints the region's name: the path relative to the base's root.
+# region:name <dest> <name> puts in the variable <name> the region's name: the path relative to the base's root.
 region:name() {
-  local home
-  home=$(release:base-root home)
-  if [[ "$1" == "${home}"/* ]]
-  then printf '%s\n' "${1#"${home}"/}"
-  else printf '%s\n' "$1"
-  fi
+  local region_name_home region_name_of=$1
+  release:base-root home region_name_home
+  [[ "$1" != "${region_name_home}"/* ]] || region_name_of=${1#"${region_name_home}"/}
+  printf -v "$2" '%s' "${region_name_of}"
 }
 
-# region:command <dest> prints the command that generates the region. Under the repository it prints
-# nothing, because the bare directive means `kit region <name>`. Under the home directory it prints
+# region:command <dest> <name> puts in the variable <name> the command that generates the region. Under the
+# repository it is empty, because the bare directive means `kit region <name>`. Under the home directory it is
 # `kit region --home <name>`, which the bare form cannot express.
 region:command() {
-  local home
-  home=$(release:base-root home)
-  if [[ "$1" == "${home}"/* ]]
-  then printf 'kit region --home %s\n' "${1#"${home}"/}"
-  fi
+  local region_command_home region_command_of=''
+  release:base-root home region_command_home
+  [[ "$1" != "${region_command_home}"/* ]] || region_command_of="kit region --home ${1#"${region_command_home}"/}"
+  printf -v "$2" '%s' "${region_command_of}"
 }
 
-# region:markers <dest> prints the region's two marker lines in the file's comment syntax, chosen by
-# extension: an HTML comment, //, --, or #. The first line is the directive, `kit:generate <name>`, followed by
-# the command in backticks when there is one. The second is the end marker, `kit:end <name>`. A kind of file with
-# no comment syntax the kit knows is rejected earlier, by render:all, when it reads the package.
+# region:markers <dest> <begin> <end> puts the region's two marker lines, in the file's comment syntax, in the
+# variables <begin> and <end>, with no fork. The syntax is chosen by extension: an HTML comment, //, --, or #. The
+# directive is `kit:generate <name>`, followed by the command in backticks when there is one. The end marker is the
+# line `kit:end <name>`. A kind of file with no comment syntax the kit knows is rejected earlier, by render:all, when
+# it reads the package.
 region:markers() {
-  local open close name command
+  local region_markers_open region_markers_close region_markers_name region_markers_command
   case "${1##*.}" in
-    (md | markdown | html | htm | xml | svg) open='<!-- ' close=' -->' ;;
+    (md | markdown | html | htm | xml | svg) region_markers_open='<!-- ' region_markers_close=' -->' ;;
     (js | mjs | cjs | ts | tsx | jsx | go | rs | c | h | cc | cpp | hpp | java | kt | swift | cs | scala)
-      open='// ' close='' ;;
-    (sql | lua | hs) open='-- ' close='' ;;
-    (*) open='# ' close='' ;;
+      region_markers_open='// ' region_markers_close='' ;;
+    (sql | lua | hs) region_markers_open='-- ' region_markers_close='' ;;
+    (*) region_markers_open='# ' region_markers_close='' ;;
   esac
-  name=$(region:name "$1")
-  command=$(region:command "$1")
-  printf '%skit:generate %s%s%s\n%skit:end %s%s\n' "${open}" "${name}" "${command:+ \`${command}\`}" "${close}" \
-    "${open}" "${name}" "${close}"
+  region:name "$1" region_markers_name
+  region:command "$1" region_markers_command
+  printf -v "$2" '%skit:generate %s%s%s' "${region_markers_open}" "${region_markers_name}" \
+    "${region_markers_command:+ \`${region_markers_command}\`}" "${region_markers_close}"
+  printf -v "$3" '%skit:end %s%s' "${region_markers_open}" "${region_markers_name}" "${region_markers_close}"
 }
 
 # region:known <path> succeeds when the kit knows the file's comment syntax, so a region can be marked in
@@ -75,7 +74,7 @@ region:known() {
 region:has() {
   local path=${2:-$1} begin end status=0
   [[ -f "${path}" ]] || return 1
-  { read -r begin; read -r end; } < <(region:markers "$1")
+  region:markers "$1" begin end
   region_begin=${begin} region_end=${end} awk '
     BEGIN { b = ENVIRON["region_begin"]; e = ENVIRON["region_end"] }
     $0 == b { opens++; opened = NR }
@@ -101,23 +100,25 @@ region:has() {
 region:read() {
   local path=$1 begin end
   region:has "$1" || return $?
-  { read -r begin; read -r end; } < <(region:markers "$1")
+  region:markers "$1" begin end
   awk -v b="${begin}" -v e="${end}" '$0 == e { on = 0 } on { print } $0 == b { on = 1 }' "${path}"
 }
 
-# region:host <content-file> prints the host template of the region whose rendered source is <content-file>: the file
-# at the same path under the package's hosts/<base>/, which states the shape of the file that holds the region. It
-# prints nothing when the package has none.
+# region:host <content-file> <name> puts in the variable <name> the host template of the region whose rendered source
+# is <content-file>, with no fork: the file at the same path under the package's hosts/<base>/, which states the shape
+# of the file that holds the region. It is empty when the package has none, or cannot be found.
 region:host() {
-  local rest package base path host
-  rest=${1##*/packages/}
-  package=${rest%%/regions/*}
-  rest=${rest#*/regions/}
-  base=${rest%%/*}
-  path=${rest#*/}
-  host="$(resolve:home "${kit_root}" "${package}")/packages/${package}/hosts/${base}/${path}"
-  [[ -f "${host}" ]] && printf '%s\n' "${host}"
-  return 0
+  local region_host_rest region_host_package region_host_base region_host_at=''
+  region_host_rest=${1##*/packages/}
+  region_host_package=${region_host_rest%%/regions/*}
+  region_host_rest=${region_host_rest#*/regions/}
+  region_host_base=${region_host_rest%%/*}
+  if resolve:locate "${kit_root}" "${region_host_package}"
+  then
+    region_host_at="${resolve_home}/packages/${region_host_package}/hosts/${region_host_base}/${region_host_rest#*/}"
+    [[ -f "${region_host_at}" ]] || region_host_at=''
+  fi
+  printf -v "$2" '%s' "${region_host_at}"
 }
 
 # region:host-insert <dest> <host> <begin> <end> writes <dest> with the region's directive and end marker placed where
@@ -175,9 +176,9 @@ region:host-inserted() {
 # A file whose markers region:has refuses is left as it is, and region:write fails.
 region:write() {
   local path content=$2 begin end status=0 host
-  path=$(release:target "$1")
-  { read -r begin; read -r end; } < <(region:markers "$1")
-  host=$(region:host "${content}")
+  release:target "$1" path || return 1
+  region:markers "$1" begin end
+  region:host "${content}" host
   region:has "$1" "${path}" || status=$?
   (( status == 2 )) && return 1
   if [[ -n "${host}" ]] && (( status == 1 ))
@@ -223,16 +224,16 @@ region:filled() {
 # defaults, when <content-file> names the region's source and its package states a host. A file with no region, or
 # none at all, is left as it is. A file whose markers region:has refuses is left as it is, and region:remove fails.
 region:remove() {
-  local path begin end host made stripped status=0
-  path=$(release:target "$1")
+  local path begin end host='' made stripped status=0
+  release:target "$1" path || return 1
   region:has "$1" "${path}" || status=$?
   (( status != 2 )) || return 1
   (( status == 0 )) || return 0
-  { read -r begin; read -r end; } < <(region:markers "$1")
+  region:markers "$1" begin end
   # The x keeps the trailing newlines a command substitution would drop.
   stripped=$(region:strip "${begin}" "${end}" < "${path}" && printf x) || return 1
   stripped=${stripped%x}
-  host=$( [[ -n "${2:-}" ]] && region:host "$2" )
+  [[ -z "${2:-}" ]] || region:host "$2" host
   if [[ -n "${host}" ]]
   then
     use template

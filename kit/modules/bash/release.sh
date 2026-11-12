@@ -55,25 +55,32 @@ release:update-command() {
 # templates/, and regions/.
 release:bases() { printf 'repo\nhome\n'; }
 
-# release:base-root <base> prints the directory a base's files are copied to: `.` (the repository root, where the
-# verbs run) for repo, and the home directory for home. KIT_HOME, when set, replaces the home directory, so a test
-# can use a stand-in.
+# release:base-root <base> [<name>] prints the directory a base's files are copied to, or, with <name>, puts it in
+# that variable, with no fork: `.` (the repository root, where the verbs run) for repo, and the home directory for
+# home. KIT_HOME, when set, replaces the home directory, so a test can use a stand-in.
 release:base-root() {
+  local release_base_root_at
   case "$1" in
-    (repo) printf '.\n' ;;
-    (home) printf '%s\n' "${KIT_HOME:-${HOME}}" ;;
+    (repo) release_base_root_at=. ;;
+    (home) release_base_root_at=${KIT_HOME:-${HOME}} ;;
     (*)
       error "'$1' is not a base; the bases are: $(release:bases | paste -s -d ' ' -)"
       return 2
   esac
+  if [[ -n "${2:-}" ]]
+  then printf -v "$2" '%s' "${release_base_root_at}"
+  else printf '%s\n' "${release_base_root_at}"
+  fi
 }
 
 # release:dest <base> <path> [<name>] prints where a delivered path is written, or, with <name>, puts it in that
-# variable, so a loop over many paths starts no subshell for one under the repository.
+# variable, so a loop over many paths starts no subshell for one. It fails, and names the base, when it is none.
 release:dest() {
   local release_dest_at=$2
   if [[ "$1" != repo ]]
-  then release_dest_at="$(release:base-root "$1")/$2"
+  then
+    release:base-root "$1" release_dest_at || return $?
+    release_dest_at+=/$2
   fi
   if [[ -n "${3:-}" ]]
   then printf -v "$3" '%s' "${release_dest_at}"
@@ -81,13 +88,17 @@ release:dest() {
   fi
 }
 
-# release:target <path> prints the file that a write to <path> changes: the path itself, or the target of a
-# symlink there. A repository that keeps AGENTS.md or a settings file as a link into another directory keeps the
-# link.
+# release:target <path> [<name>] prints the file that a write to <path> changes, or, with <name>, puts it in that
+# variable, starting no process for a path that is no link: the path itself, or the target of a symlink there. A
+# repository that keeps AGENTS.md or a settings file as a link into another directory keeps the link.
 release:target() {
+  local release_target_at=$1
   if [[ -L "$1" ]]
-  then readlink -f "$1"
-  else printf '%s\n' "$1"
+  then release_target_at=$(readlink -f "$1") || return 1
+  fi
+  if [[ -n "${2:-}" ]]
+  then printf -v "$2" '%s' "${release_target_at}"
+  else printf '%s\n' "${release_target_at}"
   fi
 }
 

@@ -96,7 +96,7 @@ package:matches() {
 # the files they deliver, and rewrites the manifests. A package named here is no longer excluded. When a different
 # file is already at a delivered path, it is named and left alone, no manifest is written, and it returns 1.
 package:add() {
-  local package base path refused=0 names
+  local package base path src dest refused=0 names
   local -a named active excluded wanted paths
   guard:require tool:jq || return 1
   # The sources' roots are read here, in this shell, so the subshells below inherit them: read in one, they are read
@@ -120,8 +120,9 @@ package:add() {
     for path in "${paths[@]}"
     do
       [[ -n "${path}" ]] || continue
-      place:new "$(place:source-of "${kit_root}" "${base}" "${path}" "${wanted[@]}")" \
-        "$(release:dest "${base}" "${path}")" "placed" || refused=$(( refused + 1 ))
+      place:source src "${kit_root}" "${base}" "${path}" "${wanted[@]}" || return 1
+      release:dest "${base}" "${path}" dest || return 1
+      place:new "${src}" "${dest}" "placed" || refused=$(( refused + 1 ))
     done
   done
   if (( refused > 0 ))
@@ -202,8 +203,8 @@ package:remove() {
       for path in "${paths[@]}"
       do
         [[ -n "${path}" ]] || continue
-        src=$(place:source-of "${kit_root}" "${base}" "${path}" "${active[@]}")
-        dest=$(release:dest "${base}" "${path}")
+        place:source src "${kit_root}" "${base}" "${path}" "${active[@]}" || return 1
+        release:dest "${base}" "${path}" dest || return 1
         if place:edited "${base}" "${path}" "${src}"
         then
           warn "${dest}: edited since the kit placed it; it is left as it is"

@@ -113,11 +113,18 @@ place:sorted() {
 
 # place:source-of <root> <base> <path> <package>… prints the release file behind one delivered path, or nothing.
 place:source-of() {
-  local root=$1 base=$2 path=$3 key
-  shift 3
-  place:delivered "${root}" "${base}" "$@" >/dev/null || return 1
-  place:key key "${root}" "${base}" "$@"
-  [[ -z "${place_source[${key}${path}]+x}" ]] || printf '%s\n' "${place_source[${key}${path}]}"
+  local src
+  place:source src "$@" || return 1
+  [[ -z "${src}" ]] || printf '%s\n' "${src}"
+}
+
+# place:source <name> <root> <base> <path> <package>… puts in the variable <name> the release file behind one
+# delivered path, or nothing, so a loop over many paths starts no subshell for one.
+place:source() {
+  local place_source_root=$2 place_source_base=$3 place_source_path=$4 place_source_key
+  place:delivered "${place_source_root}" "${place_source_base}" "${@:5}" >/dev/null || return 1
+  place:key place_source_key "${place_source_root}" "${place_source_base}" "${@:5}"
+  printf -v "$1" '%s' "${place_source[${place_source_key}${place_source_path}]:-}"
 }
 
 # place:beyond <root> <base> <before> <after> prints the paths under the base that the package set <after>
@@ -146,7 +153,7 @@ place:merged() { [[ "$1" == *.json && "$1" != *.schema.json ]]; }
 # with comments, is named, left as it was, and fails.
 place:json-write() {
   local path filter=$2 dir=.
-  path=$(release:target "$1")
+  release:target "$1" path || return 1
   shift 2
   [[ "${path}" != */* ]] || dir=${path%/*}
   [[ -d "${dir:-/}" ]] || mkdir -p "${dir}"
@@ -169,7 +176,7 @@ place:json-holds() {
 # writes the region for a region source, brings a materialized path under .kit/ to its state (materialize:owned), and
 # otherwise copies the file, keeping the source's mode.
 place:content() {
-  local src=$1 path=$2 base=${3:-/dev/null} kind
+  local src=$1 path=$2 base=${3:-/dev/null} kind target
   place:kind "${src}" "${path}" kind
   case "${kind}" in
     (merge)
@@ -183,7 +190,8 @@ place:content() {
       then
         materialize:one "${src}" "${path}" >/dev/null
       else
-        file:copy "${src}" "$(release:target "${path}")"
+        release:target "${path}" target || return 1
+        file:copy "${src}" "${target}"
       fi
   esac
 }
@@ -264,7 +272,7 @@ place:all() {
   place:delivered "${root}" "${base}" "$@" >/dev/null || return 1
   place:key key "${root}" "${base}" "$@"
   # release:dest joins the base's root and the path, so the root is read once, as the empty path's destination.
-  root_of=$(release:dest "${base}" '') || return 1
+  release:dest "${base}" '' root_of || return 1
   readarray -t rows <<<"${place_delivered[${key}]}"
   for row in "${rows[@]}"
   do
@@ -280,7 +288,7 @@ place:all() {
 # left as it is, and nothing is said of it. It fails when it cannot take the content out, as for a region whose
 # markers region:has refuses, and the file is left as it is.
 place:remove() {
-  local src=$1 path=$2 status=0 kind
+  local src=$1 path=$2 status=0 kind target
   place:kind "${src}" "${path}" kind
   case "${kind}" in
     (merge)
@@ -289,7 +297,8 @@ place:remove() {
       place:json-write "${path}" 'merge::remove(.; $base[0])' --slurpfile base "${src}"
       ;;
     (region)
-      region:has "${path}" "$(release:target "${path}")" || status=$?
+      release:target "${path}" target || return 1
+      region:has "${path}" "${target}" || status=$?
       (( status != 2 )) || return 1
       (( status == 0 )) || return 0
       region:remove "${path}" "${src}" || return $?
@@ -315,7 +324,7 @@ place:remove() {
 # .kit/ is the kit's own, so it is never edited.
 place:edited() {
   local base=$1 path=$2 src=$3 dest kind
-  dest=$(release:dest "${base}" "${path}")
+  release:dest "${base}" "${path}" dest || return 1
   [[ -e "${dest}" || -L "${dest}" ]] || return 1
   place:kind "${src}" "${dest}" kind
   [[ "${kind}" == copy ]] || return 1
@@ -328,7 +337,7 @@ place:edited() {
 # before it takes anything out. region:has names each file it refuses. It prints how many it refuses, and fails,
 # printing nothing, when the paths the release delivers cannot be read.
 place:refusals() {
-  local base=$1 key root_of line row path src kind dest status refused=0
+  local base=$1 key root_of line row path src kind dest target status refused=0
   local -a lines rows
   local -A wanted=()
   shift
@@ -340,7 +349,7 @@ place:refusals() {
     [[ -z "${line}" ]] || wanted[${line}]=1
   done
   # release:dest joins the base's root and the path, so the root is read once, as the empty path's destination.
-  root_of=$(release:dest "${base}" '') || return 1
+  release:dest "${base}" '' root_of || return 1
   readarray -t rows <<<"${place_delivered[${key}]}"
   for row in "${rows[@]}"
   do
@@ -350,7 +359,8 @@ place:refusals() {
     [[ "${kind}" == region ]] || continue
     dest=${root_of}${path}
     status=0
-    region:has "${dest}" "$(release:target "${dest}")" || status=$?
+    release:target "${dest}" target || return 1
+    region:has "${dest}" "${target}" || status=$?
     (( status != 2 )) || refused=$(( refused + 1 ))
   done
   printf '%s\n' "${refused}"
@@ -392,7 +402,7 @@ place:retire() {
     candidates+=("${path}")
   done
   # release:dest joins the base's root and the path, so the root is read once, as the empty path's destination.
-  root_of=$(release:dest "${base}" '') || return 1
+  release:dest "${base}" '' root_of || return 1
   for path in "${candidates[@]}"
   do
     dest=${root_of}${path}

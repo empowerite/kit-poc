@@ -21,7 +21,7 @@ manifest:path() { release:dest "$1" .kit/manifest; }
 # the machine. It is written when these packages deliver to home. When they do not, it drops the lines whose paths
 # no longer exist, and removes the file once no line is left.
 manifest:write() {
-  local base=$1 excluded=$2 manifest path src delivered kept
+  local base=$1 excluded=$2 manifest path src delivered kept dest
   local -a paths
   shift 2
   manifest=$(manifest:path "${base}")
@@ -39,7 +39,8 @@ manifest:write() {
     # A path that is gone, or that grep does not find, keeps no line.
     kept=$(for path in "${paths[@]}"
       do
-        [[ -n "${path}" && -e "$(release:dest "${base}" "${path}")" ]] && grep -F "  ${path}" "${manifest}"
+        [[ -n "${path}" ]] && release:dest "${base}" "${path}" dest && [[ -e "${dest}" ]] \
+          && grep -F "  ${path}" "${manifest}"
       done; true)
     if [[ -z "${kept}" ]]
     then
