@@ -265,16 +265,18 @@ func (m *Model) keep(saved []table.Preset, what string) bool {
 }
 
 // keepStarred keeps the person's views of the selected stage, as keep does, and their favorites as starred names them,
-// but those that name a view no longer there.
+// but those that name a view no longer there. The picture then holds both as the file does, another kittui's among
+// them.
 func (m *Model) keepStarred(saved []table.Preset, starred []string, what string) bool {
 	name, v := m.stages[m.stage].name, m.viewsOf(m.stage)
 	v.Saved, v.Starred = saved, starred
-	all, err := table.KeepPresets(m.presetsPath, name, saved, v.Favorites())
+	all, favorites, err := table.KeepPresets(m.presetsPath, name, table.Kept{Saved: m.saved[name],
+		Favorites: m.starred[name]}, table.Kept{Saved: saved, Favorites: v.Favorites()})
 	if err != nil {
 		m.note.Text, m.note.Done = fmt.Sprintf("%s the preset could not be %s: %v", Failed, what, err), false
 		return false
 	}
-	m.saved, m.starred[name] = all, v.Favorites()
+	m.saved, m.starred[name] = all, favorites
 	return true
 }
 
@@ -288,12 +290,13 @@ func (m *Model) starPreset(k int) {
 // favor keeps the selected stage's favorites as given, as table.KeepFavorites does, a view starred, no longer, or moved
 // among them, saying what it did to the view, or why it could not.
 func (m *Model) favor(name string, starred []string) {
-	did := table.Favored(m.viewsOf(m.stage), name, starred)
-	if err := table.KeepFavorites(m.presetsPath, m.stages[m.stage].name, starred); err != nil {
+	did, stage := table.Favored(m.viewsOf(m.stage), name, starred), m.stages[m.stage].name
+	kept, err := table.KeepFavorites(m.presetsPath, stage, m.starred[stage], starred)
+	if err != nil {
 		m.note.Text, m.note.Done = fmt.Sprintf("%s the preset could not be %s: %v", Failed, did, err), false
 		return
 	}
-	m.starred[m.stages[m.stage].name] = starred
+	m.starred[stage] = kept
 	m.done(Starring + " " + did + " the preset " + name)
 }
 

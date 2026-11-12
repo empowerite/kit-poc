@@ -131,14 +131,15 @@ func (m *Model) renameTeam(from, to string) bool {
 	if err = table.WriteTeam(m.teamDir, stage, p); err == nil && table.Slug(from) != table.Slug(to) {
 		err = table.RemoveTeam(m.teamDir, stage, from)
 	}
+	starred := v.Renamed(from, to)
 	if err == nil {
-		err = table.KeepFavorites(m.presetsPath, stage, v.Renamed(from, to))
+		starred, err = table.KeepFavorites(m.presetsPath, stage, v.Starred, starred)
 	}
 	if err != nil {
 		m.note.Text, m.note.Done = fmt.Sprintf("%s the preset could not be renamed: %v", Failed, err), false
 		return false
 	}
 	m.team[stage], _ = table.ReadTeam(m.teamDir, stage)
-	m.starred[stage] = v.Renamed(from, to)
+	m.starred[stage] = starred
 	return true
 }

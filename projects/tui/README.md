@@ -308,8 +308,11 @@ Each screen reads what it shows from kit as JSON. A form reads `kit syntax <verb
   stages' tables. A `Sheet`, in `sheet.go`, is one table on a screen, whole, the host of its own controls: a screen
   gives it a catalog's table and its records, places it in a pane, hands it the keys and the clicks the pane takes,
   and draws its lines and its layers; it keeps the person's presets of it in the presets file under its catalog's
-  name for it, beside every other table's. Each screen saves a table's presets with `KeepPresets`, which reads the
-  file again first, so what another screen saved since stays.
+  name for it, beside every other table's. Each screen saves what it did to a table's presets and favorites with
+  `KeepPresets`: it gives them as it last read or wrote them and as it wants them now, and the store reads the file
+  again and does to the table's lists there what the screen did to its own. What another kittui saved, starred, or
+  deleted since stays as that kittui left it, in the same table as in every other, and the screen then holds what
+  the file holds.
 - `internal/kit/` runs the `kit` CLI for the other packages.
 - `internal/source/` reads kit for a screen. A load is a read the screen shows, as each of `kit flow`'s stages is: a
   read started again supersedes and ends the one before, the copy kit kept stands in, stale, while the first runs,

@@ -11,6 +11,8 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"reflect"
+	"slices"
 )
 
 // PresetsVersion is the version of the presets file.
@@ -114,26 +116,76 @@ func writeFile(path string, file presetsFile) error {
 	return os.Rename(tmp, path)
 }
 
-// KeepPresets keeps one table's presets in the file, and its favorites, the person's presets and favorites of every
-// other table as the file holds them now: it reads the file again, so what another screen saved since it was first read
-// stays, sets the table's presets and favorites under its name, and writes the file whole. A table's favorites are given
-// as they stand, those that name a view since gone already dropped, so saving drops them. It gives every table's
-// presets, as written. A file that is not there yet is written new; one that does not read is the error, and nothing
-// is written.
-func KeepPresets(path, name string, saved []Preset, favorites []string) (map[string][]Preset, error) {
+// Kept is one table's presets and its favorites, as a screen holds them.
+type Kept struct {
+	Saved     []Preset
+	Favorites []string
+}
+
+// KeepPresets keeps what a screen did to one table's presets and favorites in the file. The screen gives them as it
+// last read or wrote them, was, and as it wants them, now. The store reads the file again and does to the table's
+// lists there what the screen did to its own, as merged says, so what another kittui saved, starred, or deleted since
+// the screen read the file stays as that kittui left it, in this table as in every other; then it writes the file
+// whole. A table's favorites are given as they stand, those that name a view since gone already dropped, so saving
+// drops them. It gives every table's presets and the table's favorites, as written, which the screen then holds. A
+// file that is not there yet, or none named, holds nothing another kittui did: the table's lists are then as the
+// screen wants them, and the file is written new. A file that does not read is the error, and nothing is written.
+func KeepPresets(path, name string, was, now Kept) (map[string][]Preset, []string, error) {
 	file, err := readFile(path)
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return nil, err
+	switch {
+	case path == "" || errors.Is(err, os.ErrNotExist):
+		file.Stages[name], file.Favorites[name] = was.Saved, was.Favorites
+	case err != nil:
+		return nil, nil, err
 	}
-	file.Stages[name] = saved
+	file.Stages[name] = merged(was.Saved, now.Saved, file.Stages[name], func(p Preset) string { return p.Name },
+		func(a, b Preset) bool { return reflect.DeepEqual(a, b) })
+	favorites := merged(was.Favorites, now.Favorites, file.Favorites[name], func(n string) string { return n },
+		func(a, b string) bool { return a == b })
 	file.Favorites[name] = favorites
 	if len(favorites) == 0 {
 		delete(file.Favorites, name)
 	}
 	if err := writeFile(path, file); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return file.Stages, nil
+	return file.Stages, favorites, nil
+}
+
+// merged gives one of a table's lists as the file is to hold it: the list the file holds now, with what a screen did
+// to its own copy, from was to now, done to it. An item is known by its key. One the screen added or changed is the
+// screen's. One the screen left as it was is the file's: as the file holds it now, and gone where the file no longer
+// holds it, because another kittui deleted it. One the file alone holds stays where the screen never held it, because
+// another kittui added it, and is gone where the screen held it and took it away. The screen's items stand first, in
+// its order, then those another kittui added, in the file's, so with no other writer the list is the screen's, now,
+// as given.
+func merged[T any](was, now, file []T, key func(T) string, same func(a, b T) bool) []T {
+	find := func(list []T, k string) (T, bool) {
+		at := slices.IndexFunc(list, func(t T) bool { return key(t) == k })
+		if at < 0 {
+			var none T
+			return none, false
+		}
+		return list[at], true
+	}
+	var out []T
+	for _, mine := range now {
+		before, known := find(was, key(mine))
+		theirs, held := find(file, key(mine))
+		switch {
+		case !known || !same(before, mine):
+			out = append(out, mine)
+		case held:
+			out = append(out, theirs)
+		}
+	}
+	for _, theirs := range file {
+		_, mine := find(now, key(theirs))
+		if _, known := find(was, key(theirs)); !mine && !known {
+			out = append(out, theirs)
+		}
+	}
+	return out
 }
 
 // ReadLast gives the panel each table was last left as, by table, a map never nil, each named by the view it was set
@@ -154,12 +206,14 @@ func KeepLast(path, name string, last Preset) error {
 	return writeFile(path, file)
 }
 
-// KeepFavorites keeps one table's favorites in the file, as KeepPresets does, its presets as the file holds them.
-func KeepFavorites(path, name string, favorites []string) error {
+// KeepFavorites keeps what a screen did to one table's favorites in the file, from was to now, as KeepPresets does,
+// the table's presets as the file holds them. It gives the table's favorites, as written.
+func KeepFavorites(path, name string, was, now []string) ([]string, error) {
 	file, err := readFile(path)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
+		return nil, err
 	}
-	_, err = KeepPresets(path, name, file.Stages[name], favorites)
-	return err
+	saved := file.Stages[name]
+	_, favorites, err := KeepPresets(path, name, Kept{Saved: saved, Favorites: was}, Kept{Saved: saved, Favorites: now})
+	return favorites, err
 }

@@ -913,20 +913,22 @@ func (s *Sheet) rename() {
 }
 
 // keep writes the person's presets of the table as they are given, under its store, into the file as it stands, as
-// KeepPresets does, so another screen's saved since are kept; and says whether it could. When it could not, the notice
-// says why, and nothing changes.
+// KeepPresets does, so what another kittui did to them since is kept; and says whether it could. When it could not,
+// the notice says why, and nothing changes.
 func (s *Sheet) keep(saved []Preset, what string) bool { return s.keepStarred(saved, s.starred, what) }
 
 // keepStarred keeps the person's presets, as keep does, and their favorites as starred names them, but those that name
-// a view no longer there.
+// a view no longer there. The sheet then holds both as the file does, another kittui's among them.
 func (s *Sheet) keepStarred(saved []Preset, starred []string, what string) bool {
 	v := s.Views()
 	v.Saved, v.Starred = saved, starred
-	if _, err := KeepPresets(s.path, s.store, saved, v.Favorites()); err != nil {
+	all, favorites, err := KeepPresets(s.path, s.store, Kept{Saved: s.saved, Favorites: s.starred},
+		Kept{Saved: saved, Favorites: v.Favorites()})
+	if err != nil {
 		s.note.Text, s.note.Done = fmt.Sprintf("%s the preset could not be %s: %v", Failed, what, err), false
 		return false
 	}
-	s.saved, s.starred = saved, v.Favorites()
+	s.saved, s.starred = all[s.store], favorites
 	return true
 }
 
@@ -941,11 +943,12 @@ func (s *Sheet) star(k int) {
 // what it did to the view, or why it could not.
 func (s *Sheet) favor(name string, starred []string) {
 	did := Favored(s.Views(), name, starred)
-	if err := KeepFavorites(s.path, s.store, starred); err != nil {
+	kept, err := KeepFavorites(s.path, s.store, s.starred, starred)
+	if err != nil {
 		s.note.Text, s.note.Done = fmt.Sprintf("%s the preset could not be %s: %v", Failed, did, err), false
 		return
 	}
-	s.starred = starred
+	s.starred = kept
 	s.note = s.note.Did(Starring + " " + did + " the preset " + name)
 }
 

@@ -830,11 +830,13 @@ func TestTwoWritersOfThePresetsFileKeepEachOthersPresets(t *testing.T) {
 		t.Fatalf("both writers' presets: %v %+v", err, all)
 	}
 	// a writer that keeps its own presets keeps what is there, and a file that does not read is not written over
-	if got, err := KeepPresets(path, "third", []Preset{{Name: "x"}}, nil); err != nil || len(got) != 3 {
+	x := Kept{Saved: []Preset{{Name: "x"}}}
+	if got, _, err := KeepPresets(path, "third", Kept{}, x); err != nil || len(got) != 3 {
 		t.Errorf("a third writer: %v %+v", err, got)
 	}
 	// favorites are kept beside the presets, each table's, and saving a table's presets keeps another's
-	if err := KeepFavorites(path, "third", []string{"x"}); err != nil || !slices.Equal(ReadFavorites(path)["third"], []string{"x"}) {
+	if got, err := KeepFavorites(path, "third", nil, []string{"x"}); err != nil || !slices.Equal(got, []string{"x"}) ||
+		!slices.Equal(ReadFavorites(path)["third"], got) {
 		t.Errorf("third's favorites: %v %q", err, ReadFavorites(path))
 	}
 	a.saveAs("ours again")
@@ -845,23 +847,25 @@ func TestTwoWritersOfThePresetsFileKeepEachOthersPresets(t *testing.T) {
 		len(ReadFavorites(path)["third"]) != 1 {
 		t.Errorf("writing the presets dropped the favorites: %v", err)
 	}
-	if _, err := KeepPresets(path, "third", nil, nil); err != nil || len(ReadFavorites(path)) != 0 {
+	x.Favorites = []string{"x"}
+	if _, got, err := KeepPresets(path, "third", x, Kept{}); err != nil || len(got) != 0 ||
+		len(ReadFavorites(path)) != 0 {
 		t.Errorf("no favorites left: %v %q", err, ReadFavorites(path))
 	}
 	// the panel a table was last left as is kept beside them, and saving presets keeps it
 	if err := KeepLast(path, "third", Preset{Name: "x"}); err != nil || ReadLast(path)["third"].Name != "x" {
 		t.Errorf("third's last panel: %v %+v", err, ReadLast(path))
 	}
-	if _, err := KeepPresets(path, "third", nil, nil); err != nil || ReadLast(path)["third"].Name != "x" {
+	if _, _, err := KeepPresets(path, "third", Kept{}, Kept{}); err != nil || ReadLast(path)["third"].Name != "x" {
 		t.Errorf("saving dropped the last panel: %v", err)
 	}
 	if err := os.WriteFile(path, []byte("{"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := KeepPresets(path, "third", nil, nil); err == nil {
+	if _, _, err := KeepPresets(path, "third", Kept{}, Kept{}); err == nil {
 		t.Error("kept over a file that does not read")
 	}
-	if KeepFavorites(path, "third", []string{"x"}) == nil || ReadFavorites(path) == nil {
+	if _, err := KeepFavorites(path, "third", nil, []string{"x"}); err == nil || ReadFavorites(path) == nil {
 		t.Error("favorites kept over a file that does not read")
 	}
 	if KeepLast(path, "third", Preset{Name: "x"}) == nil || ReadLast(path) == nil {
@@ -876,7 +880,7 @@ func TestTwoWritersOfThePresetsFileKeepEachOthersPresets(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chmod(locked, 0o700) })
-	if _, err := KeepPresets(filepath.Join(locked, "presets.json"), "third", nil, nil); err == nil {
+	if _, _, err := KeepPresets(filepath.Join(locked, "presets.json"), "third", Kept{}, Kept{}); err == nil {
 		t.Error("kept in a directory that cannot be written to")
 	}
 }
@@ -1263,5 +1267,109 @@ func TestTheFieldsDialogOfASheetWithoutRowsAndOfOneReloaded(t *testing.T) {
 	}
 	if got := s.cols.Card(&s).Field; got != listed[len(listed)-1] {
 		t.Errorf("the field under the keyboard after the reload: %q of %q", got, listed)
+	}
+}
+
+// Two sheets of one table on one file, as two kittui have it, each read before the other wrote: what either saves,
+// renames, deletes, stars, or stars no longer is done to the table's presets and favorites as the file holds them
+// now, so neither drops what the other did since, and each then holds what the file holds.
+func TestTwoSheetsOfOneTableKeepEachOthersPresetsAndFavorites(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "presets.json")
+	names := func(ps []Preset) []string {
+		var out []string
+		for _, p := range ps {
+			out = append(out, p.Name)
+		}
+		return out
+	}
+	held := func() ([]string, []string) {
+		all, err := ReadPresets(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return names(all["things"]), ReadFavorites(path)["things"]
+	}
+	star := func(s *Sheet, name string) {
+		s.star(slices.IndexFunc(PresetItems(s), func(it shell.Item) bool { return it.Name == name }))
+	}
+	a, b := sheet(path), sheet(path)
+	a.saveAs("from a")
+	b.saveAs("from b")
+	if saved, _ := held(); !slices.Equal(saved, []string{"from b", "from a"}) || !slices.Equal(names(b.saved), saved) {
+		t.Fatalf("a saved, then b: the file holds %q, and b %q", saved, names(b.saved))
+	}
+	star(&a, "Compact")
+	star(&b, Default)
+	if _, starred := held(); !slices.Equal(starred, []string{Default, "Compact"}) || !slices.Equal(b.starred, starred) {
+		t.Fatalf("a starred Compact, then b Default: the file holds %q, and b %q", starred, b.starred)
+	}
+	// a, which read the file before b saved or starred, renames its own preset and stars it: b's stay, and a has them
+	a.tbl.SavingAs, a.tbl.Renaming, a.tbl.Naming = true, "from a", "of a"
+	a.rename()
+	star(&a, "of a")
+	saved, starred := held()
+	if !slices.Equal(saved, []string{"of a", "from b"}) ||
+		!slices.Equal(starred, []string{"Compact", Default, "of a"}) ||
+		!slices.Equal(names(a.saved), saved) || !slices.Equal(a.starred, starred) {
+		t.Fatalf("a renamed and starred its own: the file holds %q and %q, and a %q and %q", saved, starred,
+			names(a.saved), a.starred)
+	}
+	// b deletes its own preset, and stars Compact no longer: a's rename and a's star stay, though b never read them
+	b.managed(ManageDo{Act: ManageDelete, Name: "from b"})
+	star(&b, "Compact")
+	if saved, starred := held(); !slices.Equal(saved, []string{"of a"}) ||
+		!slices.Equal(starred, []string{Default, "of a"}) {
+		t.Fatalf("b deleted its own and unstarred Compact: the file holds %q and %q", saved, starred)
+	}
+	// a, which still holds from b, saves another: from b, which b deleted since, stays deleted
+	a.saveAs("more of a")
+	if saved, _ := held(); !slices.Equal(saved, []string{"of a", "more of a"}) || !slices.Equal(names(a.saved), saved) {
+		t.Errorf("a saved after b deleted: the file holds %q, and a %q", saved, names(a.saved))
+	}
+	// a preset both changed since either read is as the one that saved last has it
+	b.SetPanel(b.Panel().Placed("note", grid.Hidden))
+	b.saveAs("of a")
+	all, _ := ReadPresets(path)
+	if got := all["things"][0]; got.Name != "of a" || got.Fields["note"].Placement != PlaceHidden {
+		t.Errorf("b saved over a's preset: %+v", got)
+	}
+	a.saveAs("last of a")
+	if all, _ := ReadPresets(path); all["things"][0].Fields["note"].Placement != PlaceHidden ||
+		!slices.Equal(names(all["things"]), []string{"of a", "more of a", "last of a"}) {
+		t.Errorf("a saved another after b changed of a: %+v", all["things"])
+	}
+}
+
+// The store does to a table's list in the file what a screen did to its own copy of it. Here an item is a letter, its
+// key, and a version after it: what the screen added or changed is the screen's, what it left alone is as the file
+// holds it now, what either took away is gone, and what another kittui added follows the screen's own.
+func TestTheStoreDoesToTheFilesListWhatTheScreenDidToItsOwn(t *testing.T) {
+	list := func(s string) []string { return strings.Fields(s) }
+	for _, c := range []struct{ says, was, now, file, want string }{
+		{"no other writer: the screen's list, in its order", "a1 b1 c1", "c1 a2 d1", "a1 b1 c1", "c1 a2 d1"},
+		{"another kittui added e and f", "a1 b1", "a1 b1 c1", "a1 b1 e1 f1", "a1 b1 c1 e1 f1"},
+		{"another kittui deleted b, and changed a", "a1 b1", "a1 b1 c1", "a2", "a2 c1"},
+		{"both changed a: the screen's, which saves last", "a1", "a2", "a3", "a2"},
+		{"the screen deleted a, which another kittui changed", "a1 b1", "b1", "a2 b1", "b1"},
+		{"the screen changed a, which another kittui deleted", "a1 b1", "a2 b1", "b1", "a2 b1"},
+		{"both added c: the screen's", "a1", "a1 c1", "a1 c2", "a1 c1"},
+		{"nothing held, nothing wanted, nothing in the file", "", "", "", ""},
+	} {
+		got := merged(list(c.was), list(c.now), list(c.file), func(s string) string { return s[:1] },
+			func(a, b string) bool { return a == b })
+		if !slices.Equal(got, list(c.want)) {
+			t.Errorf("%s: %q, want %q", c.says, got, list(c.want))
+		}
+	}
+	// with no file named, the screen's lists are kept nowhere and given back as it wants them
+	was := Kept{Saved: []Preset{{Name: "x"}, {Name: "y"}}, Favorites: []string{"x"}}
+	now := Kept{Saved: []Preset{{Name: "y"}, {Name: "z"}}, Favorites: []string{"z", "y"}}
+	all, favorites, err := KeepPresets("", "things", was, now)
+	if err != nil || !reflect.DeepEqual(all["things"], now.Saved) || !slices.Equal(favorites, now.Favorites) {
+		t.Errorf("no file named: %v %+v %q", err, all, favorites)
+	}
+	if got, err := KeepFavorites("", "things", was.Favorites, now.Favorites); err != nil ||
+		!slices.Equal(got, now.Favorites) {
+		t.Errorf("favorites, no file named: %v %q", err, got)
 	}
 }
