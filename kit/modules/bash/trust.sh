@@ -19,46 +19,91 @@
 
 use yaml file
 
-# trust:asks <clone> prints what the clone at <clone> asks kit to run, one line each: the release it pins, and whether
-# that is the clone's own kit/; each bash_path entry that loads bash from outside the release; its gate; each source
-# it brings packages from, or fetches tools from, by its kind and url; the tools it has kit download and run; and
-# each lint: command a rule or a style names, of the kit's packages or the clone's own, once each. It prints nothing for a clone that asks for none of them. It reads
-# kit.yml and the frontmatter with yq, and runs nothing the clone names.
+# trust:pinned <value> <from> <clone> puts in the variable <value> the release the clone at <clone> pins, read as
+# bin/kit, the loader, reads it, by the same two sed programs: the first line of kit.yml that starts with version:,
+# without quotes and without a comment beside it, and where that gives nothing, the version .kit/manifest records. It
+# puts in <from> the words that name where the release was read, for the line kit trust shows. yq is not asked: a
+# version it finds and the loader does not, as under a key in quotes, is not the release that runs.
+trust:pinned() {
+  local pinned='' pinned_from='version:'
+  if [[ -f "$3/kit.yml" ]]
+  then
+    pinned=$(sed -n -e '/^version:/{' -e 's/^version:[[:space:]]*//' -e 's/^#.*$//' \
+      -e 's/[[:space:]]\{1,\}#.*$//' -e 's/[[:space:]]*$//' -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/" \
+      -e p -e q -e '}' "$3/kit.yml")
+  fi
+  if [[ -z "${pinned}" && -f "$3/.kit/manifest" ]]
+  then
+    pinned=$(sed -n 's/^version //p' "$3/.kit/manifest")
+    pinned_from='version in .kit/manifest:'
+  fi
+  printf -v "$1" '%s' "${pinned}"
+  printf -v "$2" '%s' "${pinned_from}"
+}
+
+# trust:ask <format> <value>… prints one line of what a clone asks: printf's <format>, a newline, with each value
+# whole on that line. A newline in a value is printed as \n, and any other control character as ?, so a value the
+# clone wrote starts no line of its own and moves nothing on the screen.
+trust:ask() {
+  local format=$1 value
+  local -a values=()
+  shift
+  for value in "$@"
+  do
+    value=${value//$'\n'/\\n}
+    values+=("${value//[[:cntrl:]]/?}")
+  done
+  # shellcheck disable=SC2059  # the format is this module's own text, and the values are its arguments
+  printf "${format}\n" "${values[@]}"
+}
+
+# trust:asks <clone> prints what the clone at <clone> asks kit to run, one line each, as trust:ask prints one: the
+# release it pins, trust:pinned's, and whether that is the clone's own kit/, which unreleased names whether or not
+# the clone holds one yet; each bash_path entry that loads bash from outside the release; its gate; each source it
+# brings packages from, or fetches tools from, by its kind and url; the tools it has kit download and run; and each
+# lint: command a rule or a style names, of the kit's packages or the clone's own, once each. It prints nothing for
+# a clone that asks for none of them. A folder outside a clone pins no release: the loader chooses one in a clone
+# alone, and runs the kit you installed elsewhere. It reads the rest of kit.yml, and the frontmatter, with yq, and
+# runs nothing the clone names.
 trust:asks() {
-  local clone=$1 version entry gate file lint name kind url
+  local clone=$1 version='' from='' entry gate file lint name kind url
   local -a entries=() sources=() tools=() files=()
   local -A said=()
+  [[ ! -e "${clone}/.git" ]] || trust:pinned version from "${clone}"
+  if [[ "${version}" == unreleased && -x "${clone}/kit/bin/kit" && -f "${clone}/kit/modules/bash/1st.sh" ]]
+  then
+    trust:ask 'run its own kit, kit/ in the clone, for every kit command there (%s %s)' "${from}" "${version}"
+  elif [[ "${version}" == unreleased ]]
+  then
+    trust:ask 'run its own kit, kit/ in the clone, for every kit command there, once the clone holds one (%s %s)' \
+      "${from}" "${version}"
+  elif [[ -n "${version}" ]]
+  then
+    trust:ask 'run kit %s, downloaded from its release and checked against its digest (%s %s)' \
+      "${version}" "${from}" "${version}"
+  fi
   if [[ -f "${clone}/kit.yml" ]]
   then
-    version=$(yaml:value "${clone}/kit.yml" version) || return 1
-    if [[ "${version}" == unreleased && -x "${clone}/kit/bin/kit" && -f "${clone}/kit/modules/bash/1st.sh" ]]
-    then
-      printf 'run its own kit, kit/ in the clone, for every kit command there (version: unreleased)\n'
-    elif [[ -n "${version}" && "${version}" != unreleased ]]
-    then
-      printf 'run kit %s, downloaded from its release and checked against its digest (version: %s)\n' \
-        "${version}" "${version}"
-    fi
     list:read entries yaml:list "${clone}/kit.yml" bash_path || return 1
     for entry in "${entries[@]}"
     do
-      [[ "${entry}" == kit:* ]] || printf 'load bash into every kit command from %s (bash_path)\n' "${entry}"
+      [[ "${entry}" == kit:* ]] || trust:ask 'load bash into every kit command from %s (bash_path)' "${entry}"
     done
     gate=$(yaml:value "${clone}/kit.yml" gate) || return 1
-    [[ -z "${gate}" ]] || printf 'run %s for kit gate (gate)\n' "${gate}"
+    [[ -z "${gate}" ]] || trust:ask 'run %s for kit gate (gate)' "${gate}"
     list:read sources yaml:records "${clone}/kit.yml" sources name kind url || return 1
     for entry in "${sources[@]}"
     do
       IFS=$'\x1f' read -r name kind url <<<"${entry}"
       case "${kind}" in
-        ('' | kit-packages) printf 'bring packages from the source %s (sources)\n' "${name}" ;;
-        (*) printf 'fetch its tools from the %s source %s, at %s (sources)\n' "${kind}" "${name}" "${url}"
+        ('' | kit-packages) trust:ask 'bring packages from the source %s (sources)' "${name}" ;;
+        (*) trust:ask 'fetch its tools from the %s source %s, at %s (sources)' "${kind}" "${name}" "${url}"
       esac
     done
     list:read tools yaml:eval "${clone}/kit.yml" tool-names '(.tools // {}) | keys | .[]' || return 1
     if (( ${#tools[@]} ))
     then
-      printf 'download and run the tools it pins, from the URLs it names: %s (tools)\n' "$(trust:joined "${tools[@]}")"
+      trust:ask 'download and run the tools it pins, from the URLs it names: %s (tools)' "$(trust:joined "${tools[@]}")"
     fi
   fi
   for file in "${clone}"/.kit/{rules,styles}/*.md "${clone}"/.kit/packages/{,*/}*/files/repo/.kit/{rules,styles}/*.md
@@ -70,7 +115,7 @@ trust:asks() {
     lint=$(yaml:value "${file}" lint) || return 1
     [[ -n "${lint}" && -z "${said[${lint}]+x}" ]] || continue
     said[${lint}]=1
-    printf 'run %s for kit lint (lint: in %s)\n' "${lint}" "${file#"${clone}"/}"
+    trust:ask 'run %s for kit lint (lint: in %s)' "${lint}" "${file#"${clone}"/}"
   done
 }
 

@@ -500,6 +500,82 @@ answering() {
   [ "$status" -eq 2 ]
 }
 
+@test "kit trust shows the release the loader will run, read as the loader reads it: kit.yml's first version: line, then .kit/manifest" {
+  own-kit
+  rm kit.yml
+  mkdir .kit
+  printf 'version unreleased\n' > .kit/manifest
+  own='run its own kit, kit/ in the clone, for every kit command there (version in .kit/manifest: unreleased)'
+  # no kit.yml, and a manifest that records unreleased: the clone's own kit/
+  run "${kit}" trust --asks
+  [ "$status" -eq 0 ]
+  [ "$output" = "${own}" ]
+  # a version the loader does not read, a key in quotes or in a flow mapping, leaves the manifest's
+  printf '"version": 9.9.9\n' > kit.yml
+  run "${kit}" trust --asks
+  [ "$output" = "${own}" ]
+  printf '{version: 9.9.9}\n' > kit.yml
+  run "${kit}" trust --asks
+  [ "$output" = "${own}" ]
+  run "${kit}" trust --yes
+  [[ "$output" == *"  - ${own}"* ]]
+  run "${kit}" kinds x
+  [ -e "${BATS_TEST_TMPDIR}/ran" ]
+  rm "${BATS_TEST_TMPDIR}/ran"
+  # the digest holds both lines the loader reads: a change to either asks again
+  printf '{version: 9.9.8}\n' > kit.yml
+  run "${kit}" trust --check
+  [ "$status" -eq 1 ]
+  "${kit}" trust --yes
+  printf 'version 9.9.8\n' > .kit/manifest
+  run "${kit}" trust --check
+  [ "$status" -eq 1 ]
+  # a key written twice: the first line, which the loader takes, on one line
+  later-release "${XDG_CACHE_HOME}/kit/kit-9.9.9" 9.9.9
+  printf 'version: 9.9.9\nversion: unreleased\n' > kit.yml
+  run "${kit}" trust --asks
+  [ "$output" = 'run kit 9.9.9, downloaded from its release and checked against its digest (version: 9.9.9)' ]
+  "${kit}" trust --yes
+  run "${kit}" version
+  [ "$output" = 9.9.9 ]
+  [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
+  # outside a clone the loader runs the kit you installed, whatever a kit.yml there names, and kit trust shows none
+  mkdir "${BATS_TEST_TMPDIR}/unpacked"
+  cd "${BATS_TEST_TMPDIR}/unpacked"
+  printf 'version: 9.9.9\n' > kit.yml
+  run "${kit}" trust --asks
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  "${kit}" trust --yes
+  run "${kit}" version
+  [ "$output" = unreleased ]
+}
+
+@test "a clone that declares unreleased is shown to run its own kit/ before it holds one, so a pull that brings one runs what you were shown" {
+  printf 'version: unreleased\n' > kit.yml
+  run "${kit}" trust --yes
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"  - run its own kit, kit/ in the clone, for every kit command there, once the clone holds one (version: unreleased)"* ]]
+  own-kit
+  run "${kit}" trust --check
+  [ "$status" -eq 0 ]
+  run "${kit}" trust --asks
+  [ "$output" = 'run its own kit, kit/ in the clone, for every kit command there (version: unreleased)' ]
+  run "${kit}" kinds x
+  [ -e "${BATS_TEST_TMPDIR}/ran" ]
+}
+
+@test "each line of what a clone asks holds one value whole: a newline or a control character in a value starts no line of its own" {
+  printf 'gate: |\n  bin/ci\n  run nothing else\n' > kit.yml
+  mkdir -p .kit/rules
+  printf -- '---\nkind:\n  - text\nlint: "true\\n\\e[2Krun nothing"\n---\n' > .kit/rules/text.md
+  run "${kit}" trust --asks
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 2 ]
+  [ "${lines[0]}" = 'run bin/ci\nrun nothing else for kit gate (gate)' ]
+  [ "${lines[1]}" = 'run true\n?[2Krun nothing for kit lint (lint: in .kit/rules/text.md)' ]
+}
+
 @test "in a clone you have not trusted, every git command a verb runs there ignores the clone's hooks and fsmonitor" {
   git commit --quiet --allow-empty --message init
   printf '#!/bin/sh\n: > "%s/fsmonitor"\n' "${BATS_TEST_TMPDIR}" > "${BATS_TEST_TMPDIR}/monitor"

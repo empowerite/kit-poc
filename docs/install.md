@@ -114,6 +114,9 @@ kit runs nothing in a clone until you trust it.
 - `kit trust` shows what the clone asks kit to run: its pinned release, the bash it loads, its gate, the sources and
   tools it downloads, and the `lint:` command of each rule and style. Then it asks you, and remembers your answer for
   the clone and all its worktrees, with a digest of what it asks.
+- The release it shows is the one the loader runs: the first `version:` line of `kit.yml`, or else the version
+  `.kit/manifest` records. `version: unreleased` names the clone's own `kit/`, and `kit trust` shows it whether or
+  not the clone holds a `kit/` yet.
 - In a terminal, the first kit command in a clone you have not trusted asks the same question, and runs after a yes.
   Bare `kit` and `kit tui` open kittui, which asks in a dialog before it reads anything: Trust, or Not now, which
   leaves the clone untrusted and opens the help palette. A plain click takes either. `kit syntax`, which the palette

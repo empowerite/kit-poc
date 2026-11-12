@@ -317,6 +317,8 @@ trusted() {
 
 # pinned <clone> prints the release <clone>'s kit.yml declares: its top-level version: line, without quotes and
 # without a comment beside it. Without one, it prints the version .kit/manifest records, or nothing.
+# modules/bash/trust.sh's trust:pinned reads the same two files with the same two sed programs, so kit trust shows
+# the release this loader runs: a change to one is a change to both.
 pinned() {
   pinned_value=''
   if [ -f "$1/kit.yml" ]

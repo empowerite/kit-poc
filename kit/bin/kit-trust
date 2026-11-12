@@ -10,10 +10,11 @@
 #
 # kit runs nothing in a clone until you trust it: in a clone you do not trust, bin/kit, the loader, runs kit help,
 # kit version, and kit trust alone, on the kit you installed, and every other verb refuses. kit trust shows what the
-# clone asks kit to run: the release it pins, and whether that is the clone's own kit/; the bash it loads; its gate;
-# the sources it brings packages from; the tools it has kit download; and the lint: command of each rule and style.
-# Then it asks you, and records your answer for the clone and every worktree of it, with the digest of what it asks.
-# A folder, written with a / at its end, trusts every clone under it.
+# clone asks kit to run: the release it pins, read as the loader reads it, and whether that is the clone's own kit/,
+# which version: unreleased names whether or not the clone holds one yet; the bash it loads; its gate; the sources
+# it brings packages from; the tools it has kit download; and the lint: command of each rule and style. Each is one
+# line, with its value whole. Then it asks you, and records your answer for the clone and every worktree of it, with
+# the digest of what it asks. A folder, written with a / at its end, trusts every clone under it.
 #
 # Outside a clone, a folder that holds a kit.yml is held to the same trust, by its own path: an unpacked archive of
 # a repository is one. Until you trust it, kit reads no bash_path there and runs nothing its kit.yml names, and kit
