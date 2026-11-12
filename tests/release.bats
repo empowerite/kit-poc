@@ -55,8 +55,8 @@ setup() {
   version=9.9.9
   run "${repo_bin}/release" pack "release/${version}" "${work}"
   [ "$status" -eq 0 ]
-  [ -f "kit-${version}.tar.gz.sha256" ]
-  grep --quiet "  kit-${version}.tar.gz$" "kit-${version}.tar.gz.sha256"
+  [[ "$(cat "kit-${version}.tar.gz.sha256")" =~ ^[0-9a-f]{64}\ \ kit-9\.9\.9\.tar\.gz$ ]]
+  shasum --algorithm 256 --check --status "kit-${version}.tar.gz.sha256"
   mkdir unpacked && tar --extract --gzip --file "kit-${version}.tar.gz" --directory unpacked
   [ "$(ls unpacked)" = "kit-${version}" ]
   [ -x "unpacked/kit-${version}/bin/kit" ]
@@ -74,6 +74,52 @@ setup() {
   [ "$status" -eq 0 ]
   [ "$("${work}/unpacked/kit-${version}/bin/kit" version)" = "${version}" ]
   grep --quiet "^version: ${version}$" kit.yml
+}
+
+@test "pack refuses, and leaves neither file, when no digest comes back" {
+  printf '%s\n' '#!/usr/bin/env bash' > "${fakes}/sha256sum"
+  cp "${fakes}/sha256sum" "${fakes}/shasum"
+  chmod +x "${fakes}/sha256sum" "${fakes}/shasum"
+  run "${repo_bin}/release" pack release/9.9.9 "${work}"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit-9.9.9.tar.gz has no sha256 digest; nothing is packed"* ]]
+  [ -z "$(ls "${work}")" ]
+}
+
+@test "the loader fetches the release pack wrote: its digest holds, and the release runs as its version" {
+  export FAKE_RELEASES="${work}/releases"
+  mkdir -p "${FAKE_RELEASES}"
+  run "${repo_bin}/release" pack release/9.9.5 "${FAKE_RELEASES}"
+  [ "$status" -eq 0 ]
+  ln -s "${BATS_TEST_DIRNAME}/fakes/fake-curl" "${fakes}/curl"
+  mkdir clone && git -C clone init --quiet --initial-branch=main
+  cd clone
+  printf 'version: 9.9.5\n' > kit.yml
+  run "${kit_checkout}/bin/kit" version
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Fetching kit 9.9.5 from its release"* ]]
+  [ "${lines[-1]}" = 9.9.5 ]
+  [ -x "${XDG_CACHE_HOME}/kit/kit-9.9.5/bin/kit" ]
+}
+
+@test "fetch takes the published release through the loader, and refuses one whose bytes are not the digest's" {
+  export FAKE_RELEASES="${work}/releases"
+  mkdir -p "${FAKE_RELEASES}"
+  "${repo_bin}/release" pack release/9.9.5 "${FAKE_RELEASES}"
+  ln -s "${BATS_TEST_DIRNAME}/fakes/fake-curl" "${fakes}/curl"
+  run "${repo_bin}/release" fetch release/9.9.5
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"kit 9.9.5 fetches from its release, with the digest published beside it, and runs as 9.9.5"* ]]
+  grep -q '/releases/download/release/9\.9\.5/kit-9\.9\.5\.tar\.gz\.sha256$' "${FAKE_RELEASES}/curl.calls"
+  [ ! -e "${XDG_CACHE_HOME}/kit/kit-9.9.5" ]
+  printf 'x' >> "${FAKE_RELEASES}/kit-9.9.5.tar.gz"
+  run "${repo_bin}/release" fetch release/9.9.5
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"not the "*" its release publishes; it is not unpacked"* ]]
+  [[ "$output" == *"kit 9.9.5 cannot be fetched from its release, so no machine can install it"* ]]
+  run "${repo_bin}/release" fetch v9.9.5
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"is not a release tag"* ]]
 }
 
 @test "publish uploads the tarball, kittui inside it, and its digest, and nothing beside them" {

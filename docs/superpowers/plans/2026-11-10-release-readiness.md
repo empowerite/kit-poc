@@ -65,15 +65,15 @@ Left out: Command line 12 and 13 reach a checkout alone; a release has a `versio
 - **Interfaces:** line 114 calls `release:digest`, which exists nowhere, so `.sha256` holds no digest and `pack`
   exits 0 (Infrastructure 1). `file:digest [<path>]` (`kit/modules/bash/file.sh:150`) comes with `use release`. `pack`
   holds the digest to `^[0-9a-f]{64}$`, and otherwise removes both files and exits 1.
-- [ ] **Step 1: Write the failing tests.** Line 59's `grep` becomes `[[ "$(cat "kit-${version}.tar.gz.sha256")" =~
+- [x] **Step 1: Write the failing tests.** Line 59's `grep` becomes `[[ "$(cat "kit-${version}.tar.gz.sha256")" =~
   ^[0-9a-f]{64}\ \ kit-9\.9\.9\.tar\.gz$ ]]` and `shasum --algorithm 256 --check --status
   "kit-${version}.tar.gz.sha256"`. A new test, "pack refuses, and leaves neither file, when no digest comes back",
   puts a `sha256sum` and a `shasum` that print nothing in `${fakes}`: `pack release/9.9.9 "${work}"` exits 1 with
   `kit-9.9.9.tar.gz has no sha256 digest; nothing is packed`, and `ls "${work}"` prints nothing.
-- [ ] **Step 2: Run `tests/release.bats`.** Expected: both fail; the first prints `release:digest: command not found`.
-- [ ] **Step 3: Write the digest into a variable with `file:digest`,** and the `.sha256` line only when it holds.
-- [ ] **Step 4: Run it again.** Expected: 5 pass.
-- [ ] **Step 5: Commit:** `#1 release: pack writes the tarball's sha256, and refuses when none comes back`
+- [x] **Step 2: Run `tests/release.bats`.** Expected: both fail; the first prints `release:digest: command not found`.
+- [x] **Step 3: Write the digest into a variable with `file:digest`,** and the `.sha256` line only when it holds.
+- [x] **Step 4: Run it again.** Expected: 5 pass.
+- [x] **Step 5: Commit:** `#1 release: pack writes the tarball's sha256, and refuses when none comes back`
 
 ### Task 2: The gate is green at HEAD
 

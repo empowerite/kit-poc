@@ -1,6 +1,6 @@
 # release.yml - pushing a release tag publishes the kit as a GitHub release
 # ----------------------------------------------------------------------------------------------------------------------
-# Pushing a tag such as release/0.1.0 runs this workflow. It has two steps, and each step is one kit command, so
+# Pushing a tag such as release/0.1.0 runs this workflow. It has three steps, and each step is one kit command, so
 # the same thing can be run on a laptop:
 #
 #   bin/release verify    checks the tag. A release tag, release/0.1.0, must point at a commit on main. A
@@ -11,6 +11,9 @@
 #                         libexec/, and publishes it as a GitHub release named by that version. A version with a
 #                         suffix is published as a pre-release. The pinned tools come first, through the kit
 #                         toolchain, for Go.
+#   bin/release fetch     downloads the release just published as any machine does, through the loader, checks it
+#                         against the digest published beside it, and runs kit version in it. A release that no
+#                         machine can fetch fails the run here, where a pre-release finds it before the release.
 #
 # GitHub does not let a published release change, so a version is tagged once and never again. A release is
 # published here and nowhere else: bin/release publish refuses a release tag anywhere but on the runner, so a
@@ -62,5 +65,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: bin/release publish "${GITHUB_REF_NAME}"
+
+      - name: fetch
+        run: bin/release fetch "${GITHUB_REF_NAME}"
 
 # ----------------------------------------------------------------------------------------------------------------------

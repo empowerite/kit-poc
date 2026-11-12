@@ -320,12 +320,14 @@ editor you run tests from as developer tools; that saves up to about 5 percent o
 is not higher than every release on the primary remote needs `--lower`. `kit flow releases` lists what the code forge
 published.
 
-The release workflow runs two commands:
+The release workflow runs three commands:
 
 1. `bin/release verify` rejects a tag that is not `release/<version>`, and a release tag on a commit not on `main`.
 2. `bin/release publish` packs `kit/` (`bin/`, `modules/`, and `packages/`), `version`, and `libexec/` into
-   `kit-<version>.tar.gz` and publishes it. `libexec/` holds `kittui`, built from `projects/tui/` for Linux and
-   macOS on amd64 and arm64.
+   `kit-<version>.tar.gz` and publishes it, with a `.sha256` that holds the tarball's digest. `libexec/` holds
+   `kittui`, built from `projects/tui/` for Linux and macOS on amd64 and arm64.
+3. `bin/release fetch` downloads the published release as any machine does, through the loader, checks it against
+   that digest, and runs `kit version` in it. A release that cannot be fetched fails the run.
 
 `bin/release pack` builds the same tarball locally. `bin/release publish` refuses to publish a release anywhere but
 the CI runner, so only the workflow publishes releases. A pre-release can be published from a developer machine.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# release - verifies a release tag, packs kit/ as a release, publishes it, and retires pre-releases
+# release - verifies a release tag, packs kit/ as a release, publishes it, fetches it back, and retires pre-releases
 # ----------------------------------------------------------------------------------------------------------------------
-# bin/release verify <tag> | pack <tag> [<directory>] | publish <tag> | retire [<branch>]
+# bin/release verify <tag> | pack <tag> [<directory>] | publish <tag> | fetch <tag> | retire [<branch>]
 #
 # Releases the kit itself, so it is this repository's command, not one of the kit's verbs: no repository that
 # installs the kit has a release of the kit to make. The release workflows and the root checkout (the desk) run the
@@ -14,10 +14,15 @@
 #                             directory). The tarball holds one directory, kit-<version>/, with bin/,
 #                             modules/, packages/, a version file, and libexec/, which holds kit-call, the call the
 #                             loader runs, and kittui, the binary kit tui runs, built from projects/tui/ with go for
-#                             linux and darwin on amd64 and arm64.
+#                             linux and darwin on amd64 and arm64. The .sha256 holds the tarball's sha256; where none
+#                             comes back, pack leaves neither file.
 #   publish <tag>             packs, then creates a GitHub release with both files. A tag with a suffix is marked
 #                             pre-release. Only a runner publishes a release, from the release workflow that a
 #                             pushed tag starts. A desk may publish a pre-release.
+#   fetch <tag>               fetches the published release as any machine does: the loader, bin/kit, downloads it
+#                             into a cache of its own, checks it against the digest published beside it, and runs
+#                             kit version in it, which must print the tag's version. The release workflow runs it
+#                             after publish, so a release no machine can fetch fails the run that published it.
 #   retire [<branch>]         deletes every pre-release whose commit no remaining branch reaches. It runs after
 #                             <branch> is deleted. Default: the branch in the runner's delete event. A pre-release
 #                             tagged on the default branch, or merged into it by a merge commit, stays reachable,
@@ -34,7 +39,9 @@ source "$(dirname "${self}")/../kit/modules/bash/1st.sh"
 kit:enter
 use git release releases
 
-usage() { echo "usage: bin/release verify <tag> | pack <tag> [<directory>] | publish <tag> | retire [<branch>]" >&2; }
+usage() {
+  echo "usage: bin/release verify <tag> | pack <tag> [<directory>] | publish <tag> | fetch <tag> | retire [<branch>]" >&2
+}
 
 # build-kittui <version> <directory> builds kittui, the binary kit tui runs, from projects/tui/ for the four platforms
 # the lock covers, static and stripped with the version written in, each as <directory>/kittui-<goos>-<goarch>. The
@@ -73,7 +80,7 @@ tag-version() {
 verb=${1:-}
 case "${verb}" in
   (--help | '') usage; exit 0 ;;
-  (verify | pack | publish | retire) ;;
+  (verify | pack | publish | fetch | retire) ;;
   (*) usage; exit 2
 esac
 shift
@@ -113,8 +120,15 @@ case "${verb}" in
     fi
     printf '%s\n' "${version}" > "${staging}/kit-${version}/version"
     tar --create --gzip --file "${into}/kit-${version}.tar.gz" --directory "${staging}" "kit-${version}"
-    printf '%s  kit-%s.tar.gz\n' "$(release:digest < "${into}/kit-${version}.tar.gz")" "${version}" \
-      > "${into}/kit-${version}.tar.gz.sha256"
+    # A .sha256 without the digest is a release no machine can fetch, so the digest is held to its shape first.
+    digest=$(file:digest "${into}/kit-${version}.tar.gz") || digest=''
+    if [[ ! "${digest}" =~ ^[0-9a-f]{64}$ ]]
+    then
+      rm -f "${into}/kit-${version}.tar.gz" "${into}/kit-${version}.tar.gz.sha256"
+      error "kit-${version}.tar.gz has no sha256 digest; nothing is packed"
+      exit 1
+    fi
+    printf '%s  kit-%s.tar.gz\n' "${digest}" "${version}" > "${into}/kit-${version}.tar.gz.sha256"
     ok "packed kit ${version}: ${into}/kit-${version}.tar.gz and its .sha256"
     ;;
   (publish)
@@ -139,6 +153,23 @@ case "${verb}" in
       --title "kit ${version}" --notes "${notes}" "${flags[@]}"
     ok "released kit ${version}"
     summary "✅ Released kit ${version}."
+    ;;
+  (fetch)
+    (( $# == 1 )) || { usage; exit 2; }
+    tag=$1
+    version=$(tag-version "${tag}")
+    cache=$(mktemp -d)
+    # shellcheck disable=SC2064  # expanded now on purpose: the path is fixed from here on
+    trap "rm -rf '${cache}'" EXIT
+    # In the cache's own directory, which is in no clone, the loader chooses the release by KIT_VERSION alone.
+    fetched=$(cd "${cache}" && env -u KIT_VERSION_ROOT XDG_CACHE_HOME="${cache}" KIT_VERSION="${version}" \
+      "${kit_root}/bin/kit" version) || fetched=''
+    if [[ "${fetched}" != "${version}" ]]
+    then
+      refuse-tag "kit ${version} cannot be fetched from its release, so no machine can install it; see above"
+    fi
+    ok "kit ${version} fetches from its release, with the digest published beside it, and runs as ${version}"
+    summary "✅ kit ${version} fetches from its release, and runs as ${version}."
     ;;
   (retire)
     (( $# <= 1 )) || { usage; exit 2; }
