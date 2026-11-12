@@ -144,7 +144,7 @@ top, such as markdownlint-cli2 in `package.json`. Each is a dependency provider,
 | Provider | Usable when | Installs with | Puts on `PATH` | Pins |
 | --- | --- | --- | --- | --- |
 | `npm` | `npm` is on `PATH`, and `package.json` and `package-lock.json` are here | `npm ci` | `node_modules/.bin` | what `package.json` names, at the lock's versions |
-| `uv` | `uv` is on `PATH`, and `pyproject.toml` and `uv.lock` are here | `uv sync --frozen` | `.venv/bin` | every package in the lock but the project |
+| `uv` | `uv` is on `PATH`, and `pyproject.toml` and `uv.lock` are here | `uv sync --frozen` | `.venv/bin` | what `uv sync --frozen` would have in `.venv`: the lock's packages but the project, less those this platform or the default groups leave out |
 
 - A run uses one tool manager, but every usable dependency provider.
 - A provider is looked for with the tool manager's directories first on `PATH`, so a node it pins counts.

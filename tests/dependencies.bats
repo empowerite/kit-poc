@@ -116,17 +116,66 @@ $(pwd -P)/node_modules/.bin" ]
   [ "$output" = $'left-pad\t1.3.0\t\nmarkdownlint-cli2\t0.18.1\t' ]
 }
 
-@test "uv pins every locked package but the project, each by its normal name" {
+@test "with no plan from uv, uv pins every locked package but the project, each by its normal name" {
   uv-here
   run kit-bash 'use dependencies && dependencies:call uv pins'
   [ "$status" -eq 0 ]
   [ "$output" = $'ruff\t0.14.3\t\npyyaml\t6.0.3\t6.0.3' ]
-  # with no .venv, nothing is installed, and uv is not asked
+  # with no .venv, nothing is installed, and uv is not asked what is
   rm -r .venv
   : > "${FAKE_DIR}/uv.calls"
   run kit-bash 'use dependencies && dependencies:call uv pins'
   [ "$output" = $'ruff\t0.14.3\t\npyyaml\t6.0.3\t' ]
-  [ ! -s "${FAKE_DIR}/uv.calls" ]
+  run ! grep --quiet 'pip list' "${FAKE_DIR}/uv.calls"
+}
+
+@test "uv pins what uv sync would have in .venv: no package a marker or an extra leaves out, and one of two versions" {
+  uv-here
+  # the lock is for every platform and every extra: colorama is click's on win32 alone, and numpy has a version for
+  # each of two Pythons
+  cat >> uv.lock <<'TOML'
+
+[[package]]
+name = "colorama"
+version = "0.4.6"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "numpy"
+version = "2.0.2"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "numpy"
+version = "2.3.4"
+source = { registry = "https://pypi.org/simple" }
+TOML
+  # uv's plan: ruff is still to install, and so is the newer numpy, in place of an older one .venv holds
+  fixture pip-list.json <<<'[{"name": "PyYAML", "version": "6.0.3"}, {"name": "numpy", "version": "1.26.4"}]'
+  fixture plan.json <<<'{"schema": {"version": "preview"}, "sync": {"changes": [
+    {"name": "numpy", "version": "1.26.4", "action": "uninstalled"},
+    {"name": "numpy", "version": "2.3.4", "action": "installed"},
+    {"name": "Ruff", "version": "0.14.3", "action": "installed"}]}, "dry_run": true}'
+  route uv 'sync --frozen --dry-run --offline --output-format json' plan.json
+  run kit-bash 'use dependencies && dependencies:call uv pins'
+  [ "$status" -eq 0 ]
+  [ "$output" = $'ruff\t0.14.3\t\npyyaml\t6.0.3\t6.0.3\nnumpy\t2.3.4\t1.26.4' ]
+  run kit-bash 'use dependencies && dependencies:installed uv'
+  [ "$status" -eq 1 ]
+  # with nothing left to install, every pin is installed, and the welcome guide's judgement holds
+  fixture pip-list.json <<<'[{"name": "PyYAML", "version": "6.0.3"}, {"name": "numpy", "version": "2.3.4"},
+    {"name": "ruff", "version": "0.14.3"}]'
+  fixture plan.json <<<'{"schema": {"version": "preview"}, "sync": {"changes": []}, "dry_run": true}'
+  run kit-bash 'use dependencies && dependencies:call uv pins'
+  [ "$output" = $'ruff\t0.14.3\t0.14.3\npyyaml\t6.0.3\t6.0.3\nnumpy\t2.3.4\t2.3.4' ]
+  run kit-bash 'use dependencies && dependencies:installed uv'
+  [ "$status" -eq 0 ]
+  # the plan is asked for offline, and as a dry run
+  grep --quiet --line-regexp 'sync --frozen --dry-run --offline --output-format json' "${FAKE_DIR}/uv.calls"
+  # a plan that is not in the form kit reads says nothing, so every package in the lock is listed, as when uv gives none
+  fixture plan.json <<<'{"schema": {"version": "2"}, "changes": []}'
+  run kit-bash 'use dependencies && dependencies:call uv pins | cut -f 1,2'
+  [ "$output" = $'ruff\t0.14.3\npyyaml\t6.0.3\ncolorama\t0.4.6\nnumpy\t2.0.2\nnumpy\t2.3.4' ]
 }
 
 @test "uv reads a lock larger than a command line may be" {
