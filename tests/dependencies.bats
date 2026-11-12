@@ -129,6 +129,26 @@ $(pwd -P)/node_modules/.bin" ]
   [ ! -s "${FAKE_DIR}/uv.calls" ]
 }
 
+@test "uv reads a lock larger than a command line may be" {
+  uv-here
+  # 500 packages of 12 wheels each, about 1.5 MB as JSON: over macOS's limit for a command line, and Linux's for one
+  # argument
+  awk 'BEGIN {
+    for (p = 0; p < 500; p++) {
+      printf "\n[[package]]\nname = \"big-%d\"\nversion = \"1.0.0\"\n", p
+      printf "source = { registry = \"https://pypi.org/simple\" }\nwheels = [\n"
+      for (w = 0; w < 12; w++)
+        printf "    { url = \"https://files.example/packages/%064d/big_%d-1.0.0-cp3%d-none-any.whl\", hash = \"sha256:%064d\", size = %d },\n", w, p, w, p, w
+      printf "]\n"
+    }
+  }' >> uv.lock
+  run kit-bash 'use dependencies && dependencies:call uv pins'
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 502 ]
+  [ "${lines[1]}" = $'pyyaml\t6.0.3\t6.0.3' ]
+  [ "${lines[501]}" = $'big-499\t1.0.0\t' ]
+}
+
 @test "kit tools lists the toolchain's pins, then each provider's, each table headed by its name" {
   touch mise.toml
   fixture ls.json <<<'{"jq": [{"version": "1.8.0", "requested_version": "1.8", "installed": true}]}'

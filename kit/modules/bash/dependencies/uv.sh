@@ -27,17 +27,20 @@ dependencies/uv:outdated() {
 
 dependencies/uv:path() { printf '%s/.venv/bin\n' "${PWD}"; }
 
-# dependencies/uv:pins never reaches the network. With no .venv, nothing is installed.
+# dependencies/uv:pins never reaches the network. With no .venv, nothing is installed. jq reads the lock and the
+# installed list on stdin: a lock names every wheel of every package, so it is soon larger than a command line, or one
+# argument of it, may be.
 dependencies/uv:pins() {
   local lock installed='[]'
   lock=$(yq --input-format toml --output-format json uv.lock) || return 1
   [[ ! -x .venv/bin/python ]] \
     || installed=$(uv pip list --format json --python .venv/bin/python 2>/dev/null) || installed='[]'
-  jq --null-input --raw-output --argjson lock "${lock}" --argjson installed "${installed}" '
+  jq --slurp --raw-output '
     def normal: ascii_downcase | gsub("[-_.]+"; "-");
-    ($installed | map({key: (.name | normal), value: .version}) | from_entries) as $have
+    . as [$lock, $installed]
+    | ($installed | map({key: (.name | normal), value: .version}) | from_entries) as $have
     | $lock.package[] | select(.source.virtual == null and .source.editable == null)
-    | [(.name | normal), .version, ($have[.name | normal] // "")] | @tsv'
+    | [(.name | normal), .version, ($have[.name | normal] // "")] | @tsv' <<<"${lock}"$'\n'"${installed}"
 }
 
 # dependencies/uv:update moves every package to the latest pyproject.toml allows, then installs it.
