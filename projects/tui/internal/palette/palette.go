@@ -3,6 +3,7 @@
 // its command, and its description, as verbs.json, the catalog, says; its Default preset groups the rows by group, the
 // groups in kit help's order, workflow first, then a group it does not name and other, and sorts them by command,
 // ascending, and the description shows its first line, the verb's purpose as kit lists it.
+// A click on a verb's name opens its form, as Enter on its row does.
 // Opening a row, the right arrow or a click on its ▸, shows the rest of the description: the purpose's lines past its
 // first, then the verb's page, kit help <verb> past its first line, which says the purpose again. The page is asked for
 // as the row opens, once while it is on its way, and a dim … stands in its place meanwhile; a page kit could not give
@@ -98,6 +99,7 @@ type Model struct {
 	interrupted   bool
 	appMenu       shell.Menu      // the app's menu, internal/shell's, which has the keyboard while it is open
 	books         shell.BooksMenu // the menu bar's workspace menu, which has the keyboard while it is open
+	clicked       *string         // the verb whose name a click fell on, the table's link, until click takes it
 }
 
 // New opens the palette on the verbs, leaving out tui itself, the person's presets of its table read from the presets
@@ -105,7 +107,13 @@ type Model struct {
 func New(verbs []kit.Verb, r kit.Runner) Model {
 	m := Model{runner: r, pages: map[string]string{}, asked: map[string]bool{}, failed: map[string]string{}, width: 100,
 		height: 30, appMenu: shell.Menu{Here: shell.Help},
-		sheet: table.NewSheet(catalog[verbsTable], "verbs", color, table.PresetsPath())}
+		sheet: table.NewSheet(catalog[verbsTable], "verbs", color, table.PresetsPath()), clicked: new(string)}
+	// a verb's name leads to its form: the table gives the palette the link a click falls on, and opens nothing
+	clicked := m.clicked
+	m.sheet.SetBrowse(func(verb string) error {
+		*clicked = verb
+		return table.Followed
+	})
 	for _, v := range verbs {
 		if v.Name != "tui" {
 			m.verbs = append(m.verbs, v)
@@ -132,7 +140,8 @@ func (m Model) records() []table.Record {
 	for _, v := range m.verbs {
 		first, rest, _ := strings.Cut(v.Purpose, "\n")
 		out = append(out, table.Record{Row: grid.Row{Key: v.Name, Detail: m.detail(v.Name, rest)},
-			Values: map[string]table.Value{"group": table.One(groupOf(v)), "command": table.One(v.Name),
+			Values: map[string]table.Value{"group": table.One(groupOf(v)),
+				"command":     {Raw: []string{v.Name}, Link: v.Name},
 				"description": table.Some(first)}})
 	}
 	return out
@@ -429,7 +438,8 @@ func (m *Model) paste(text string) {
 }
 
 // click takes a click: on an open menu, or a layer of the table; on the search, its Recall glyph, the workspace menu,
-// or the screen's name; else on the table, whose rows, or control line, then have the keyboard where it took it.
+// or the screen's name; else on the table, whose rows, or control line, then have the keyboard where it took it, and
+// one on a verb's name asks for its form.
 func (m Model) click(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case m.sheet.Layered():
@@ -460,6 +470,11 @@ func (m Model) click(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 	case m.sheet.Click(msg):
 		if m.sheet.Focused() {
 			m.search.Focused = false
+		}
+		if verb := *m.clicked; verb != "" {
+			// the click fell on a verb's name, which opens its form, as enter on its row does
+			*m.clicked, m.refusal = "", ""
+			return m, func() tea.Msg { return OpenMsg{Verb: verb} }
 		}
 	}
 	return m, nil

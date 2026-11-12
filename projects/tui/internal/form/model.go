@@ -34,7 +34,7 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/syntax"
 )
 
-// BackMsg asks the palette to take the form back: esc on a form opened from the palette.
+// BackMsg asks the palette to take the form back: esc, or a click on the way back, on a form opened from the palette.
 type BackMsg struct{}
 
 // FindMsg asks for the palette's search, with focus, in the form's place: a click on the form's search field, or /.
@@ -176,8 +176,19 @@ func (m *Model) chose(c shell.Choice) tea.Cmd {
 	return nil
 }
 
-// click takes a click on the menu bar: an open menu's, the kit menu's =, the workspace menu, or the search field.
-// Anywhere else it does nothing.
+// backLabel is the way back to the palette, as the form draws it on its first line: a click on it goes back, as esc
+// does.
+const backLabel = "‹ verbs"
+
+// onBack says whether a cell of the screen is on the way back, where the frame draws it.
+func (m Model) onBack(x, y int) bool {
+	lines := m.frame()
+	return m.back && y >= 0 && y < len(lines) && strings.HasPrefix(ansi.Strip(lines[y]), " "+backLabel) && x >= 1 &&
+		x <= ansi.StringWidth(backLabel)
+}
+
+// click takes a click on the menu bar: an open menu's, the kit menu's =, the workspace menu, or the search field; and
+// one on the way back, which goes back to the palette. Anywhere else it does nothing.
 func (m *Model) click(msg tea.MouseClickMsg) tea.Cmd {
 	booksAt := m.menuBar().WorkspaceAt()
 	switch {
@@ -197,6 +208,8 @@ func (m *Model) click(msg tea.MouseClickMsg) tea.Cmd {
 		m.books = m.books.Opened()
 	case msg.Y == shell.Top && msg.X >= m.menuBar().SearchAt(m.width):
 		return func() tea.Msg { return FindMsg{} }
+	case m.onBack(msg.X, msg.Y):
+		return func() tea.Msg { return BackMsg{} }
 	}
 	return nil
 }

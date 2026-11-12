@@ -229,12 +229,38 @@ func TestEnterOpensTheVerbUnderTheCursor(t *testing.T) {
 			x, y = ansi.StringWidth(l[:i]), k
 		}
 	}
-	m, _ = drive(m, slash, testkit.Click(x, y))
-	if cursorOn(m) != "version" || m.search.Focused {
-		t.Errorf("a click on version: under the cursor %q, search focused %v", cursorOn(m), m.search.Focused)
+	// a click on the row, off the verb's name, puts the cursor there and opens nothing
+	m, produced = drive(m, slash, testkit.Click(x+len("version")+4, y))
+	if cursorOn(m) != "version" || m.search.Focused || len(produced) != 0 {
+		t.Errorf("a click beside version: under the cursor %q, search focused %v, %v", cursorOn(m), m.search.Focused,
+			produced)
 	}
 	if _, produced = drive(m, enter); len(produced) == 0 || produced[len(produced)-1] != tea.Msg(OpenMsg{Verb: "version"}) {
 		t.Errorf("enter on version: %v", produced)
+	}
+}
+
+// A plain click on a verb's name opens its form, as Enter on its row does, from wherever the cursor is, and takes
+// kit's line about a verb that did not open away.
+func TestAClickOnAVerbsNameOpensItsForm(t *testing.T) {
+	m := listing(t).Refuse("kit refused")
+	x, y := -1, -1
+	for k, l := range strings.Split(screen(m), "\n") {
+		if i := strings.Index(l, "version"); i >= 0 && strings.Contains(l, "prints") {
+			x, y = ansi.StringWidth(l[:i]), k
+		}
+	}
+	if y < 0 || cursorOn(m) == "version" {
+		t.Fatalf("no row of version off the cursor:\n%s", screen(m))
+	}
+	m, produced := drive(m, testkit.Click(x, y))
+	if len(produced) != 1 || produced[0] != tea.Msg(OpenMsg{Verb: "version"}) || cursorOn(m) != "version" ||
+		m.refusal != "" {
+		t.Errorf("a click on version's name: %v, under the cursor %q, refusal %q", produced, cursorOn(m), m.refusal)
+	}
+	// the next click, off a name, opens nothing more
+	if _, produced = drive(m, testkit.Click(x+len("version")+4, y)); len(produced) != 0 {
+		t.Errorf("a click beside the name after one on it: %v", produced)
 	}
 }
 

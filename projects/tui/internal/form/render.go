@@ -72,7 +72,7 @@ func Layout(spec syntax.Spec, fields []Field, o Options) (content string, header
 	d := drawer{spec: spec, fields: fields, width: o.Width, focus: o.Focus, cursor: o.Cursor, st: o.Styles, o: o,
 		column: labelColumn(fields), first: -1, last: -1, at: -1}
 	if o.Back {
-		d.b.WriteString(" " + o.Styles.Off("‹ verbs") + "\n\n")
+		d.b.WriteString(" " + o.Styles.Off(backLabel) + "\n\n")
 	}
 	width := o.Width
 	header = d.count()
