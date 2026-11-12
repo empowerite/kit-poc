@@ -20,7 +20,8 @@
       "run_shell_command(git branch -D)",
       "run_shell_command(git checkout main)",
       "run_shell_command(git switch main)",
-      "run_shell_command(git reset --hard)"
+      "run_shell_command(git reset --hard)",
+      "run_shell_command(kit trust)"
     ]
   }
 }

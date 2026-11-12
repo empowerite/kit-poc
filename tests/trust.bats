@@ -264,9 +264,27 @@ answering() {
   [[ "$output" == *"  - load bash into every kit command from lib/bash/ (bash_path)"* ]]
   [[ "$output" == *"  - run bin/ci for kit gate (gate)"* ]]
   [[ "$output" == *"  - bring packages from the source house (sources)"* ]]
-  [[ "$output" == *"there is no terminal to ask; to trust it without asking, run: cd "*" && kit trust --yes $(pwd -P)"* ]]
   [ ! -s "${trusted}" ]
   [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
+}
+
+@test "with no terminal, kit trust says the trust is a person's to give, and never names the option that gives it unasked" {
+  run "${kit}" trust </dev/null
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"there is no terminal to ask, and the trust is a person's to give; ask them to run: cd "*" && kit trust $(pwd -P)" ]]
+  [[ "$output" != *--yes* ]]
+  [[ "$output" != *"kit help trust"* ]]
+  # on a runner, where a job trusts its own checkout, it points at the page that says how, and still names no option
+  run env GITHUB_ACTIONS=true "${kit}" trust </dev/null
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"ask them to run: cd "*" && kit trust $(pwd -P); a job on a runner trusts its own checkout, as kit help trust says"* ]]
+  [[ "$output" != *--yes* ]]
+  for marker in GITLAB_CI TF_BUILD
+  do
+    run env "${marker}=true" "${kit}" trust </dev/null
+    [[ "$output" == *"as kit help trust says"* ]]
+  done
+  [ ! -s "${trusted}" ]
 }
 
 @test "kit trust --yes records the clone, and kit runs there then, its own kit/ included" {

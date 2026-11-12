@@ -102,6 +102,18 @@ claude-prefixes() {
   [ "$(jq --raw-output '.tools.exclude[]' .gemini/settings.json | sort)" = "${expected}" ]
 }
 
+@test "the trust is the person's to give: the AGENTS.md region tells an agent to ask them, and the deny lists refuse kit trust" {
+  kit install agents/claude agents/gemini
+  # the region is in a fresh clone before anything is hydrated, where .kit/1st.md is not; it names no option
+  region=$(sed -n '/kit:generate AGENTS.md/,/kit:end AGENTS.md/p' AGENTS.md)
+  [[ "${region}" == *'stop and ask the person to run `kit trust`'* ]]
+  [[ "${region}" == *'Never run `kit trust` yourself'* ]]
+  [[ "${region}" != *--yes* ]]
+  grep --quiet --fixed-strings 'An agent never runs `kit trust`' .kit/1st.md
+  jq --exit-status '.permissions.deny | index("Bash(kit trust *)")' .claude/settings.json >/dev/null
+  jq --exit-status '.tools.exclude | index("run_shell_command(kit trust)")' .gemini/settings.json >/dev/null
+}
+
 @test "each agents package merges the kit's MCP server beside the repository's own, tells the person once, and remove takes only the kit's out" {
   printf '{"mcpServers": {"ours": {"command": "ours"}}}\n' > .mcp.json
   run kit install agents/claude

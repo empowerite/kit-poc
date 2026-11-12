@@ -1,8 +1,9 @@
 # The agents/generic package
 
 Adapts the kit for any agent that reads `AGENTS.md`. Most harnesses do on their own: Codex, Cursor, GitHub Copilot,
-Gemini CLI when told to, and Claude Code through an import. The package delivers one region in `AGENTS.md`, the
-sentence that sends the agent to `.kit/1st.md`. The region starts at a `kit:generate` directive, and `kit generate`
+Gemini CLI when told to, and Claude Code through an import. The package delivers one region in `AGENTS.md`: the
+sentence that sends the agent to `.kit/1st.md`, and the rule that the trust of a clone is the person's to give, which
+an agent must find before anything is hydrated. The region starts at a `kit:generate` directive, and `kit generate`
 fills it. The rest of `AGENTS.md` belongs to the repository.
 
 Its host template gives `AGENTS.md` its shape: a title, a blank line, the region, then the repository's own

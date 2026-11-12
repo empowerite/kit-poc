@@ -15,7 +15,8 @@ a `kit:generate` directive, and `kit generate` fills it. As a result:
 The package also merges two entries into `.claude/settings.json`, by key. The repository's own entries stay as they
 are.
 
-`permissions.deny` lists the git commands that `.kit/1st.md` forbids an agent. Each has a kit command in its place:
+`permissions.deny` lists the commands that `.kit/1st.md` forbids an agent. Each git command has a kit command in its
+place:
 
 | Denied | Instead |
 | --- | --- |
@@ -26,6 +27,7 @@ are.
 | `git worktree remove`, `git branch -D` | `kit tidy` |
 | `git checkout main`, `git switch main`, `git reset --hard` | none: an agent leaves the desk as it is |
 | `git push --force`, `git push -f` | none: `kit submit` never forces |
+| `kit trust` | none: the trust is the person's to give, so the agent asks them to run it |
 
 `hooks.PreToolUse` runs `kit context --claude` before each `Write`, `Edit`, and `MultiEdit`. It shows the agent the
 rules that govern the file; see [docs/context.md](../../context.md).

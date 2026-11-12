@@ -22,6 +22,9 @@
 # alone, so a folder below it, and a folder in no clone that holds no kit.yml, is asked nothing and has nothing to
 # record.
 #
+# The trust is a person's to give. With no terminal to ask on, and no --yes, kit trust records nothing and says so:
+# an agent that meets it asks the person to run kit trust, and never runs it for them.
+#
 # Trusting a clone means you accept code from whoever can push to it. kit does not check each pull; review and signed
 # commits do. The trust holds while the clone asks kit to run what it asked: a pull that changes its kit.yml's
 # version, bash_path, gate, sources, or tools, or a rule's or a style's frontmatter, withdraws it, and kit asks again.
@@ -158,7 +161,14 @@ if [[ -z "${syntax_options[--yes]+x}" ]]
 then
   if [[ ! -t 0 || ! -t 2 ]]
   then
-    error "there is no terminal to ask; to trust it without asking, run: kit trust --yes ${record}"
+    # The trust is a person's to give, so the remedy is theirs to run, and names no option: an agent, or a script,
+    # that follows it asks the person. A job on a runner, by the markers modules/bash/targets.sh's targets:runner
+    # reads, is sent to the page that says how it trusts its own checkout.
+    runner=''
+    [[ -z "${GITHUB_ACTIONS:-}${GITLAB_CI:-}${TF_BUILD:-}" ]] \
+      || runner='; a job on a runner trusts its own checkout, as kit help trust says'
+    error "there is no terminal to ask, and the trust is a person's to give; ask them to run: kit trust" \
+      "${record}${runner}"
     exit 1
   fi
   answer=''
