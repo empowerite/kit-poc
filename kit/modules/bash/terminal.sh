@@ -271,18 +271,25 @@ terminal:ask() {
 # terminal:collect <fd> <judge-ms> <drain-ms> reads the terminal's answers from <fd> until the answer to the primary
 # attributes, ESC [ ? … c, comes. Where it came within <judge-ms> milliseconds, it prints all that came, what the
 # person typed before it among it; later, it prints nothing, as a terminal that did not answer, and reads on until that
-# answer or <drain-ms>, so a late answer never lands in the person's shell.
+# answer or <drain-ms>, so a late answer never lands in the person's shell. The time is the clock's where the shell
+# has EPOCHREALTIME; bash before 5 has none, and there it is counted, 50 milliseconds for each read that timed out.
 terminal:collect() {
-  local fd=$1 judge=$2 drain=$3 got='' chunk start elapsed status
+  local fd=$1 judge=$2 drain=$3 got='' chunk start='' elapsed=0 status
   local end_re=$'\e''\[\?[0-9;]*c'
-  start=${EPOCHREALTIME/[.,]/}
+  [[ -z "${EPOCHREALTIME:-}" ]] || start=${EPOCHREALTIME/[.,]/}
   while true
   do
     chunk=''
     status=0
     IFS= read -r -s -d '' -n 64 -t 0.05 -u "${fd}" chunk || status=$?
     got+=${chunk}
-    elapsed=$(( (${EPOCHREALTIME/[.,]/} - start) / 1000 ))
+    if [[ -n "${start}" ]]
+    then
+      elapsed=$(( (${EPOCHREALTIME/[.,]/} - start) / 1000 ))
+    elif (( status > 128 ))
+    then
+      elapsed=$(( elapsed + 50 ))
+    fi
     if [[ "${got}" =~ ${end_re} ]]
     then
       (( elapsed > judge )) || printf '%s' "${got}"

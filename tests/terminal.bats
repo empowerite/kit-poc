@@ -667,6 +667,35 @@ answering() {
   within 3
 }
 
+# bash has EPOCHREALTIME only from 5.0, and a verb runs under nounset, so on bash 4.4, which kit accepts, the name
+# alone would end the probe after it had asked. Unset under nounset, the variable is as it is there, and the time is
+# counted by the reads that timed out.
+@test "without EPOCHREALTIME, as on bash 4.4, an answer within the half second is all read" {
+  answering 0.2 'cd src\e[?1u\e[5;3R\e[5;2R\e[?62;22c'
+  clock-start
+  run kit-bash 'set -o nounset; unset EPOCHREALTIME; exec 3<"${BATS_TEST_TMPDIR}/tty"
+    terminal:parse "$(terminal:collect 3 500 2000)" | jq -c "[.answered, .kitty_keyboard, .emoji_width]"'
+  [ "$output" = '[true,true,2]' ]
+  within 2
+}
+
+@test "without EPOCHREALTIME, an answer after the half second is not judged, and is read to its end" {
+  answering 1.2 '\e[?1u\e[5;3R\e[5;2R\e[?62;22c'
+  run kit-bash 'set -o nounset; unset EPOCHREALTIME; exec 3<"${BATS_TEST_TMPDIR}/tty"
+    got=$(terminal:collect 3 500 2000); left=""
+    IFS= read -r -d "" -t 0.2 -u 3 left || true; printf "%s|%s" "${#got}" "${#left}"'
+  [ "$output" = '0|0' ]
+}
+
+@test "without EPOCHREALTIME, a terminal that never answers is read for the drain's seconds, and no longer" {
+  answering 5 ''
+  clock-start
+  run kit-bash 'set -o nounset; unset EPOCHREALTIME; exec 3<"${BATS_TEST_TMPDIR}/tty"
+    terminal:collect 3 500 1000 | wc -c'
+  [ "$(tr -d ' ' <<<"$output")" = 0 ]
+  within 3
+}
+
 @test "a reader cut at a second leaves nothing behind that holds kit's output, and nothing in the person's TMPDIR" {
   mkdir -p bash/terminal
   printf 'bash_path:\n  - kit:modules/bash/\n  - bash/\n' > kit.yml
