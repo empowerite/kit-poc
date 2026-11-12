@@ -90,6 +90,22 @@ func (a Answers) values(key string) []string {
 // has says whether the key was answered at all.
 func (a Answers) has(key string) bool { return len(a.values(key)) > 0 }
 
+// alternatives gives the alternatives of the group at a path of the grammar, as Answers says a path: a verb's usage
+// lines for "", and else the group each pair of indexes leads to, an alternative and a node of it.
+func alternatives(spec syntax.Spec, path string) [][]syntax.Node {
+	found := spec.Syntax
+	if path == "" {
+		return found
+	}
+	parts := strings.Split(path, "/")
+	for k := 0; k+1 < len(parts); k += 2 {
+		alternative, _ := strconv.Atoi(parts[k])
+		node, _ := strconv.Atoi(parts[k+1])
+		found = found[alternative][node].Alternatives
+	}
+	return found
+}
+
 // walker builds the fields along the grammar, consuming the literals given in order.
 type walker struct {
 	spec     syntax.Spec

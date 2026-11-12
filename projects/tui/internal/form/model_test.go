@@ -106,7 +106,7 @@ func TestKeyboardLandsOnTheFirstEmptyRequiredField(t *testing.T) {
 	if m.focus != 1 {
 		t.Errorf("focus = %d", m.focus)
 	}
-	m, _ = drive(t, m, keys("tab", "space")...)
+	m, _ = drive(t, m, keys("space")...)
 	m, _ = drive(t, m, keys("down")...)
 	m, _ = drive(t, m, testkit.Typed("#1 tui: x")...)
 	if got := strings.Join(m.CommandLine(), "\x00"); got != "--message=#1 tui: x" {
@@ -152,16 +152,16 @@ func TestOneOfTabsAndChoosesOnTheSpace(t *testing.T) {
 	// kit flow's owner row, under the picture's line, is optional, so backspace clears it.
 	m = newForm(t, "flow", Answers{Chosen: map[string]int{"": 0}}, false)
 	m, _ = drive(t, m, keys("down", "down", "down", "tab", "space")...)
-	if m.fields[3].Chosen != 0 {
-		t.Fatalf("the space on the owner row: %+v", m.fields[3])
+	if m.fields[3].Chosen != 1 {
+		t.Fatalf("tab and the space on the owner row: %+v", m.fields[3])
 	}
 	m, _ = drive(t, m, keys("backspace")...)
-	if m.fields[3].Chosen != -1 {
-		t.Errorf("backspace on an optional row: %+v", m.fields[3])
+	if m.fields[3].Chosen != -1 || m.cursor != 0 {
+		t.Errorf("backspace on an optional row: %+v, cursor %d", m.fields[3], m.cursor)
 	}
-	// with no option under the cursor, the space chooses none; up leaves the row for the field before it
-	if m, _ = drive(t, m, keys("space")...); m.fields[3].Chosen != -1 || m.focus != 3 {
-		t.Errorf("the space with no option under the cursor: %+v", m.fields[3])
+	// the cursor is back on the first option, which the space chooses; up leaves the row for the field before it
+	if m, _ = drive(t, m, keys("space")...); m.fields[3].Chosen != 0 || m.focus != 3 {
+		t.Errorf("the space after backspace: %+v", m.fields[3])
 	}
 	if m, _ = drive(t, m, keys("up")...); m.focus != 2 {
 		t.Errorf("up on the owner row: focus %d", m.focus)
@@ -172,7 +172,7 @@ func TestAnyOfSpace(t *testing.T) {
 	// flow's owner row, under the picture's line, its second alternative chosen, opens an any-of row of --mine and
 	// --others
 	m := newForm(t, "flow", Answers{Chosen: map[string]int{"": 0}}, false)
-	m, _ = drive(t, m, keys("down", "down", "down", "tab", "tab", "space", "down", "space", "tab", "space")...)
+	m, _ = drive(t, m, keys("down", "down", "down", "tab", "space", "down", "space", "tab", "space")...)
 	if got := strings.Join(m.CommandLine(), " "); got != "--mine --others" {
 		t.Errorf("toggled: %q", got)
 	}
@@ -185,7 +185,7 @@ func TestAnyOfSpace(t *testing.T) {
 func TestJSONAndJQAreOneOrTheOther(t *testing.T) {
 	// the picture's output row is --text | --json | --jq: the space chooses along it, so one flag stands at a time
 	m := newForm(t, "flow", Answers{Chosen: map[string]int{"": 0}}, false)
-	m, _ = drive(t, m, keys("down", "down", "tab", "tab", "space")...)
+	m, _ = drive(t, m, keys("down", "down", "tab", "space")...)
 	if got := strings.Join(m.CommandLine(), " "); got != "--json" {
 		t.Errorf("the output row on --json: %q", got)
 	}
@@ -362,7 +362,7 @@ func TestHintsWrapAtFiftyColumns(t *testing.T) {
 		keys []string
 	}{
 		{"lint", Answers{}, []string{"down"}},
-		{"commit", Answers{}, []string{"tab", "space", "down"}},
+		{"commit", Answers{}, []string{"space", "down"}},
 		{"packages", Answers{Literals: []string{"select"}, Chosen: map[string]int{"": 1}}, nil},
 	} {
 		m := newForm(t, c.verb, c.a, false)
@@ -481,8 +481,8 @@ func TestTheKeysBarIsTheLastLineWhereverTheKeyboardIs(t *testing.T) {
 			command bool   // the keyboard on the command line, with a long refusal under it
 			want    string // the bar, at 50 columns
 		}{
-			{"commit", Answers{}, []string{"tab", "space", "down"}, false, clipped}, // --message's lines, with their hint
-			{"lint", Answers{}, []string{"down"}, false, many},                      // a list of 3000 rows, with its count
+			{"commit", Answers{}, []string{"space", "down"}, false, clipped}, // --message's lines, with their hint
+			{"lint", Answers{}, []string{"down"}, false, many},               // a list of 3000 rows, with its count
 			{"packages", Answers{Literals: []string{"select"}, Chosen: map[string]int{"": 1}}, nil, false, many},
 			{"flow", Answers{}, nil, true, command},
 		} {
@@ -505,7 +505,7 @@ func TestTheKeysBarIsTheLastLineWhereverTheKeyboardIs(t *testing.T) {
 	// at 80 columns the bar is whole; a height not yet known draws the form, a gap, and the bar
 	m := newForm(t, "commit", Answers{}, true)
 	m, _ = drive(t, m, tea.WindowSizeMsg{Width: 80, Height: 0}, disambiguates)
-	m, _ = drive(t, m, keys("tab", "space", "down")...)
+	m, _ = drive(t, m, keys("space", "down")...)
 	lines := screen(m)
 	if lines[len(lines)-1] != text || lines[len(lines)-2] != "" || !strings.Contains(lines[len(lines)-3], "kit commit") {
 		t.Errorf("with no height, the last lines: %q", lines[len(lines)-3:])
@@ -553,7 +553,7 @@ func TestTheKeysBarNamesOnlyTheKeysTheFieldTakes(t *testing.T) {
 
 func TestQIsTypedNotAQuit(t *testing.T) {
 	m := newForm(t, "commit", Answers{}, true)
-	m, _ = drive(t, m, keys("tab", "space", "down")...)
+	m, _ = drive(t, m, keys("space", "down")...)
 	m, produced := drive(t, m, testkit.Typed("q")...)
 	if len(produced) != 0 || m.input != "q" {
 		t.Errorf("q: %v, input %q", produced, m.input)

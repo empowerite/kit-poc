@@ -1,7 +1,8 @@
 // The live form: a Bubble Tea model over the fields, the runner, and the keyboard. Up and down move between fields, as
 // tab and shift-tab do but along a row of options, whose options are the stops on its line: there they move between
 // the options, and on to the field after the last or before the first; space toggles, picks, or chooses the option
-// under the cursor, backspace erases, Enter takes the next
+// under the cursor, which is the first of a one-of row with nothing chosen, and a character typed there chooses an
+// option that takes a value and starts the value; backspace erases, Enter takes the next
 // field or line and, on the command line, runs; shift-Enter runs from anywhere a terminal reports it, and the keys bar
 // names it only where the terminal said it does; esc goes back
 // to the palette and never quits; ctrl-q quits, and ctrl-c quits as interrupted. In a list, page down and page up move the cursor a page,
@@ -247,9 +248,11 @@ func (m Model) bottom() string { return m.keys().Line(m.width) }
 // or, opened on its own, whose ctrl-q quits, as esc never does; up and down move between fields, and enter takes the next field; and the field under the keyboard, with
 // the keys its kind takes: the arrows across a row of options, the space where it toggles, backspace where it erases
 // or clears, and the page keys on a list. On a list, enter is named take while it takes an answer, as takes says, and
-// backspace clear while it takes one back, as clears says. On the command line, enter runs. Tab, which moves as down
-// and up do, is left unnamed. Shift-Enter is named only where the terminal answered Bubble Tea's ask for the kitty keyboard protocol;
-// elsewhere, Terminal.app among them, it arrives as Enter, and the way to run is Enter on the command line.
+// backspace clear while it takes one back, as clears says. On a one-of row, enter is named choose, beside the space,
+// while it chooses, as chooses says, and the row says that typing gives the option's value where it does, as valued
+// says. On the command line, enter runs. Tab, which moves as down and up do, is left unnamed. Shift-Enter is named
+// only where the terminal answered Bubble Tea's ask for the kitty keyboard protocol; elsewhere, Terminal.app among
+// them, it arrives as Enter, and the way to run is Enter on the command line.
 func (m Model) keys() shell.Path {
 	if m.appMenu.Open || m.books.Open {
 		return shell.Path{shell.MenuKeys()}
@@ -281,8 +284,14 @@ func (m Model) keys() shell.Path {
 	case OneOf:
 		field.Bindings = append(field.Bindings, shell.Bind("⇥·⇧⇥", "option", "tab", "shift+tab"),
 			shell.Bind("␣", "choose", "space"))
+		if m.chooses(f) {
+			field.Bindings = append(field.Bindings, shell.Bind("⏎", "choose", "enter"))
+		}
 		if !f.Required {
 			field.Bindings = append(field.Bindings, shell.Bind("⌫", "clear", "backspace"))
+		}
+		if m.valued(f) {
+			field.Bindings = append(field.Bindings, shell.Bind("", "type its value"))
 		}
 	case Text, Lines, Wildcard:
 		field.Types = true
@@ -400,7 +409,7 @@ func (m *Model) key(k tea.KeyPressMsg) tea.Cmd {
 	case Pick, PickMany:
 		return m.list(k, s)
 	case OneOf, AnyOf:
-		return m.row(s)
+		return m.row(k, s)
 	}
 	return m.toggle(s)
 }
@@ -429,7 +438,8 @@ func (m *Model) enter() tea.Cmd {
 			m.input = f.Values[0]
 		}
 	case OneOf:
-		m.cursor = f.Chosen
+		// the cursor is on the row's choice, or on its first option while it has none
+		m.cursor = max(f.Chosen, 0)
 	case Pick, PickMany:
 		if m.lists[f.Key] == nil || m.stale[f.Key] {
 			return m.fetch(f.Key, "")
@@ -460,10 +470,12 @@ func (m *Model) toggle(s string) tea.Cmd {
 
 // row takes a key on a row of options, whose options are the stops on its line: tab and shift-tab move the cursor
 // between them, and past the last or the first to the next field or the one before; space toggles the option under
-// the cursor, or chooses it on a one-of row, and enter chooses it too and goes on; backspace clears an optional
-// one-of row; up and down move between fields. Moving the cursor never chooses, so tabbing through a row changes
-// nothing.
-func (m *Model) row(s string) tea.Cmd {
+// the cursor, or chooses it on a one-of row, and enter chooses it too, where chooses says, and goes on; backspace
+// clears an optional one-of row, the cursor back on its first option; up and down move between fields. Moving the
+// cursor never chooses, so tabbing through a row changes nothing. A character typed on a one-of row whose option
+// under the cursor takes a value, as valued says, chooses the option, gives its value the keyboard, and is typed
+// there, so a row the form opens on is answered by typing.
+func (m *Model) row(k tea.KeyPressMsg, s string) tea.Cmd {
 	f := &m.fields[m.focus]
 	switch s {
 	case "tab":
@@ -480,11 +492,11 @@ func (m *Model) row(s string) tea.Cmd {
 		m.pickOption(f)
 	case "backspace":
 		if f.Kind == OneOf && !f.Required {
-			f.Chosen, m.cursor = -1, -1
+			f.Chosen, m.cursor = -1, 0
 			m.changed(f.Key)
 		}
 	case "enter":
-		if f.Kind == OneOf && f.Chosen != m.cursor {
+		if m.chooses(*f) {
 			m.pickOption(f)
 		}
 		return m.move(1)
@@ -492,16 +504,36 @@ func (m *Model) row(s string) tea.Cmd {
 		return m.move(1)
 	case "up":
 		return m.move(-1)
+	default:
+		if k.Text != "" && k.Mod&(tea.ModCtrl|tea.ModAlt) == 0 && m.valued(*f) {
+			if f.Chosen != m.cursor {
+				m.pickOption(f)
+			}
+			return tea.Batch(m.move(1), m.key(k))
+		}
 	}
 	return nil
 }
 
-// pickOption toggles the option under the cursor on an any-of row, or chooses it on a one-of row; with no option
-// under the cursor, it does nothing.
-func (m *Model) pickOption(f *Field) {
-	if m.cursor < 0 || m.cursor >= len(f.Options) {
-		return
+// chooses says whether Enter on the row chooses the option under the cursor before it goes on: on a one-of row, an
+// option that is not the row's choice. On an optional row with nothing chosen, the first option is where the cursor
+// starts, not where the person moved it, and Enter there only goes on, so walking a form with Enter turns nothing on.
+func (m Model) chooses(f Field) bool {
+	return f.Kind == OneOf && f.Chosen != m.cursor && (f.Required || f.Chosen >= 0 || m.cursor > 0)
+}
+
+// valued says whether the option under the cursor of a one-of row takes a value that is typed: its alternative opens
+// with an option or an operand, as --message or <reference>, whose field follows the row once the option is chosen.
+func (m Model) valued(f Field) bool {
+	if f.Kind != OneOf {
+		return false
 	}
+	alternative := alternatives(m.spec, f.Path)[m.cursor]
+	return len(alternative) > 0 && (alternative[0].Kind == "option" || alternative[0].Kind == "operand")
+}
+
+// pickOption toggles the option under the cursor on an any-of row, or chooses it on a one-of row.
+func (m *Model) pickOption(f *Field) {
 	switch f.Kind {
 	case AnyOf:
 		option := f.Options[m.cursor]
