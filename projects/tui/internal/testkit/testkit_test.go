@@ -244,3 +244,19 @@ func TestAClockFiresWhenTheTestSays(t *testing.T) {
 		t.Errorf("fired %v, left %v", got, c.Timers())
 	}
 }
+
+// Glyphs gives the pictographs and symbols of a text, a variation selector left out, and not the arrows, the line art,
+// or the letters.
+func TestGlyphsAreThePictographsAndSymbolsOfAText(t *testing.T) {
+	got := Glyphs("= ↑ ─ abc 🏭 ⭐ ❌ ⏸️ 📦️ ✅")
+	for _, want := range []string{"🏭", "⭐", "❌", "⏸", "📦", "✅"} {
+		if !got[want] {
+			t.Errorf("no %q in %v", want, got)
+		}
+	}
+	for _, not := range []string{"=", "↑", "─", "a"} {
+		if got[not] {
+			t.Errorf("%q is no glyph", not)
+		}
+	}
+}

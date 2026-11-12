@@ -138,8 +138,7 @@ func (m Model) keys() shell.Path {
 	if path, ok := m.layers().Keys(m); ok {
 		return path
 	}
-	legend := shell.Bind("?", "legend", "?", "f1")
-	screen := shell.WorkspaceScreenKeys(shell.CrumbOf(m.appMenu.Crumb, legend)...)
+	screen := shell.WorkspaceScreenKeys(shell.CrumbOf(m.appMenu.Crumb)...)
 	if len(m.stages) == 0 {
 		return shell.Path{screen}
 	}

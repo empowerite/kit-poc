@@ -32,6 +32,7 @@ import (
 
 	"github.com/empowerite/kit/projects/tui/internal/grid"
 	"github.com/empowerite/kit/projects/tui/internal/kit"
+	"github.com/empowerite/kit/projects/tui/internal/legend"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/style"
 	"github.com/empowerite/kit/projects/tui/internal/table"
@@ -82,6 +83,7 @@ type Model struct {
 	verbs         []kit.Verb
 	runner        kit.Runner
 	sheet         table.Sheet
+	legend        legend.Legend     // the legend, which F1 and ? show and hide, and the corner it stands in
 	search        shell.Search      // the search, internal/shell's, which narrows the rows to its text
 	recent        shell.Recent      // the searches remembered, every screen's, and their dropdown
 	pages         map[string]string // the pages kit gave, by verb
@@ -416,6 +418,7 @@ func (m Model) click(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case m.sheet.Layered():
 		m.sheet.Click(msg)
+	case m.legend.Open && m.legend.Click(msg.X, msg.Y, m.legendSpec()):
 	case msg.Button != tea.MouseLeft:
 	case m.appMenu.Open:
 		var c shell.Choice
@@ -493,6 +496,9 @@ func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 	}
+	if m.legend.Key(key) {
+		return m, nil
+	}
 	if verb, ok := m.highlighted(); ok && key == "enter" && m.sheet.InRows() {
 		m.refusal = ""
 		return m, func() tea.Msg { return OpenMsg{Verb: verb} }
@@ -516,6 +522,8 @@ func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 	case "/":
 		m.focusSearch()
+	case "?", "f1":
+		m.legend.Toggle()
 	}
 	return m, nil
 }

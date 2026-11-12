@@ -19,14 +19,14 @@ var rows = Segment{Bindings: []Binding{Bind("↑↓", "move", "up", "down"), Bin
 
 // A screen with a workspace menu names - after =, in the title's order, then the search and its own keys.
 func TestAWorkspaceScreenNamesMinusAfterEquals(t *testing.T) {
-	if got := ansi.Strip(Path{WorkspaceScreenKeys(Bind("?", "legend"))}.Line(80)); got !=
+	if got := ansi.Strip(Path{WorkspaceScreenKeys()}.Line(80)); got !=
 		" = menu - workspace / search ? legend" {
 		t.Errorf("the bar: %q", got)
 	}
 }
 
 func TestEachControlsKeysStandBetweenRules(t *testing.T) {
-	path := Path{ScreenKeys(Bind("?", "legend")), {}, rows}
+	path := Path{ScreenKeys(), {}, rows}
 	if got := ansi.Strip(path.Line(80)); got != " = menu / search ? legend │ ↑↓ move ␣ select" {
 		t.Errorf("the bar: %q", got)
 	}
@@ -40,7 +40,7 @@ func TestEachControlsKeysStandBetweenRules(t *testing.T) {
 // What stands at the bar's right end ends a cell short of the screen's edge, and gives way to the keys: too narrow for
 // both, the keys stand alone, whole.
 func TestTheRightEndStandsAfterTheKeysWhereBothFit(t *testing.T) {
-	path := Path{ScreenKeys(Bind("?", "legend")), {}, rows}
+	path := Path{ScreenKeys(), {}, rows}
 	keys := ansi.Strip(path.Line(80))
 	got := ansi.Strip(path.LineWith(60, "🐙 4871/5000"))
 	if !strings.HasPrefix(got, keys) || !strings.HasSuffix(got, "🐙 4871/5000") || ansi.StringWidth(got) != 59 {
@@ -61,9 +61,9 @@ func TestADeeperControlHidesTheKeysItTakes(t *testing.T) {
 		want string
 	}{
 		{"a press it names", Path{ScreenKeys(), {Bindings: []Binding{Bind("=", "equals")}}},
-			"/ search │ = equals"},
+			"/ search ? legend │ = equals"},
 		{"a press it takes unnamed", Path{ScreenKeys(), {Takes: []string{"/"}, Bindings: []Binding{Bind("x", "ex")}}},
-			"= menu │ x ex"},
+			"= menu ? legend │ x ex"},
 		{"what types", Path{ScreenKeys(Bind("esc", "quit")), SearchKeys("rows", "co", true)},
 			"⏎ rows type to search ⌃U clear ⌃R recent"},
 		{"every press", Path{ScreenKeys(Bind("1-9", "jump", Digits...)), MenuKeys()},
@@ -87,13 +87,13 @@ func TestTooNarrowTheBarKeepsTheScreensKeysAndDropsTheControlsBetween(t *testing
 		width int
 		want  string
 	}{
-		{80, " = menu / search │ ←→ tab │ ↑↓ move ␣ select"},
-		{44, " = menu / search │ ←→ tab │ ↑↓ move ␣ select"},
-		{43, " = menu / search │ … │ ↑↓ move ␣ select"},
-		{39, " = menu / search │ … │ ↑↓ move ␣ select"},
-		{38, " = menu / search │ … │ ↑↓ move ␣ sele…"},
-		{23, " = menu / search │ … │…"},
-		{22, " … │ ↑↓ move ␣ select"},
+		{80, " = menu / search ? legend │ ←→ tab │ ↑↓ move ␣ select"},
+		{53, " = menu / search ? legend │ ←→ tab │ ↑↓ move ␣ select"},
+		{52, " = menu / search ? legend │ … │ ↑↓ move ␣ select"},
+		{48, " = menu / search ? legend │ … │ ↑↓ move ␣ select"},
+		{47, " = menu / search ? legend │ … │ ↑↓ move ␣ sele…"},
+		{32, " = menu / search ? legend │ … │…"},
+		{29, " … │ ↑↓ move ␣ select"},
 		{19, " … │ ↑↓ move ␣ sel…"},
 		{1, ""},
 	} {

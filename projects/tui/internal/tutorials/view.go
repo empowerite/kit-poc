@@ -67,11 +67,17 @@ const lead = "  "
 // View draws the screen on the alternate screen, the menu bar's rule under it, with the mouse on for the control line
 // and the cards, the table's layers over them.
 func (m Model) View() tea.View {
-	lines := append([]string{m.menuBar().Line(m.width), shell.RuleLine(m.width, ""), m.control()}, m.pane()...)
+	lines := m.legend.Over(m.frame(), m.legendSpec())
 	lines = m.sheet.Over(lines)
 	lines = m.recent.Overlay(append(lines, ""), m.recallAt(), m.width)
 	lines = m.appMenu.Overlay(lines, m.width)
 	return shell.View(lines, m.height, m.bottom())
+}
+
+// frame gives the screen's lines over its last, before the legend and the layers are drawn over them: the menu bar and
+// its rule, the control line, and the pane.
+func (m Model) frame() []string {
+	return append([]string{m.menuBar().Line(m.width), shell.RuleLine(m.width, ""), m.control()}, m.pane()...)
 }
 
 // control gives the table's control line, as the table draws it: the heading over the groups and the preset line,

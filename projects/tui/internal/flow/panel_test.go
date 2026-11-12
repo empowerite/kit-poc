@@ -199,7 +199,7 @@ func TestThePanelWithoutStagesDoesNothing(t *testing.T) {
 	if m.inPanel {
 		t.Error("the search took the keyboard without a stage")
 	}
-	if m = drive(m, press('?')); m.legend.open {
+	if m = drive(m, press('?')); m.legend.Open {
 		t.Error("? showed a legend without a stage")
 	}
 }

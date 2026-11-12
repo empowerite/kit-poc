@@ -32,6 +32,7 @@ import (
 
 	"github.com/empowerite/kit/projects/tui/internal/grid"
 	"github.com/empowerite/kit/projects/tui/internal/kit"
+	"github.com/empowerite/kit/projects/tui/internal/legend"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/style"
 	"github.com/empowerite/kit/projects/tui/internal/table"
@@ -51,6 +52,9 @@ const appLabel = "kit workspaces"
 
 // Failed starts kit's line, when it refused.
 const Failed = "❌"
+
+// Column is the favorite column's label in the table's header.
+const Column = "★"
 
 // fades is how long what kit did stands in place of the keys, short of a key.
 var fades = table.Fades
@@ -117,6 +121,7 @@ type Model struct {
 	appMenu  shell.Menu
 	group    shell.Dropdown // the group's menu, which Workspace… drops down over the app's menu, open
 	books    shell.BooksMenu
+	legend   legend.Legend // the legend, which F1 and ? show and hide, and the corner it stands in
 	prompt   prompt
 	search   shell.Search // the search, every screen's, which narrows the rows to its text
 	note     shell.Notice
@@ -243,7 +248,7 @@ func records(list kit.WorkspaceList) []table.Record {
 }
 
 // place puts the table under the title line, over the keys bar.
-func (m *Model) place() { m.sheet.Place(2, max(1, m.height-3), m.width, m.height) }
+func (m *Model) place() { m.sheet.Place(tableTop, max(1, m.height-3), m.width, m.height) }
 
 // current gives the group under the cursor, and whether there is one.
 func (m Model) current() (kit.ListedGroup, bool) {
@@ -546,10 +551,16 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 	}
+	if m.legend.Key(k.String()) {
+		return m, nil
+	}
 	switch k.String() {
 	case "/":
 		m.search.Focused = true
 		m.sheet.Blur()
+		return m, nil
+	case "?", "f1":
+		m.legend.Toggle()
 		return m, nil
 	case "=":
 		m.appMenu.Dropdown = m.menu().Opened().Dropdown
@@ -597,6 +608,8 @@ func (m Model) click(c tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 		var picked string
 		m.books, picked = m.books.Click(c.X, c.Y, m.booksAt(), m.width)
 		return m, shell.Pick(picked)
+	case m.legend.Open && m.legend.Click(c.X, c.Y, m.legendSpec()):
+		return m, nil
 	case shell.OnApp(c.X, c.Y, appLabel):
 		m.appMenu.Dropdown = m.menu().Opened().Dropdown
 		return m, nil
@@ -655,6 +668,27 @@ func (m Model) keys() shell.Path {
 // View draws the screen: the menu bar and its rule, the table, or kit's line while it lists none, and the keys bar, or
 // what kit did in its place; the table's layers, the menus, and the prompt over them.
 func (m Model) View() tea.View {
+	lines := m.legend.Over(m.frame(), m.legendSpec())
+	if m.listed() {
+		lines = m.sheet.Over(lines)
+	}
+	lines = m.menu().Overlay(lines, m.width)
+	if m.group.Open {
+		box, l, top := m.groupBox()
+		lines = shell.Over(lines, box, top, l)
+	}
+	lines = m.books.Overlay(lines, m.booksAt(), m.width)
+	lines = m.prompt.overlay(lines, m.width)
+	return shell.View(lines, m.height, m.bottom())
+}
+
+// listed says whether the screen draws the groups' table: kit listed some, and did not refuse.
+func (m Model) listed() bool { return m.refusal == "" && len(m.list.Workspaces) > 0 }
+
+// frame gives the screen's lines over its last, before the legend and the layers are drawn over them: the menu bar and
+// its rule, the table, or kit's line while it lists none; the lines reach the keys bar before anything drops down over
+// them, so a menu over the few lines of no group, or of reading them, is drawn whole.
+func (m Model) frame() []string {
 	lines := []string{m.menuBar().Line(m.width), shell.RuleLine(m.width, "")}
 	switch {
 	case m.refusal != "":
@@ -665,24 +699,18 @@ func (m Model) View() tea.View {
 		lines = append(lines, "   "+style.Off("no group yet; n makes one, as the menu's "+New+" does"))
 	default:
 		lines = append(lines, m.sheet.View()...)
-		lines = m.sheet.Over(lines)
 	}
-	// the screen's lines reach the keys bar before anything drops down over them, so a menu over the few lines of no
-	// group, or of reading them, is drawn whole
 	lines = append(lines, "")
 	for len(lines) < m.height-1 {
 		lines = append(lines, "")
 	}
-	lines = m.menu().Overlay(lines, m.width)
-	if m.group.Open {
-		box, l, top := m.groupBox()
-		lines = shell.Over(lines, box, top, l)
-	}
-	lines = m.books.Overlay(lines, m.booksAt(), m.width)
-	lines = m.prompt.overlay(lines, m.width)
-	bottom := m.keys().Line(m.width)
+	return lines
+}
+
+// bottom gives the screen's last line: the keys bar, or what kit did in its place.
+func (m Model) bottom() string {
 	if m.note.Text != "" {
-		bottom = " " + m.note.Text
+		return " " + m.note.Text
 	}
-	return shell.View(lines, m.height, bottom)
+	return m.keys().Line(m.width)
 }

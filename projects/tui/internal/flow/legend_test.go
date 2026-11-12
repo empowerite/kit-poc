@@ -16,6 +16,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/empowerite/kit/projects/tui/internal/grid"
+	"github.com/empowerite/kit/projects/tui/internal/legend"
 	"github.com/empowerite/kit/projects/tui/internal/pane"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/style"
@@ -51,18 +52,6 @@ func helpOf(t *testing.T, stage string) string {
 		return legendOf(t, "kit-"+verb)
 	}
 	return legendText(t)
-}
-
-// glyphsOf gives the glyphs in a text: the pictographs and symbols, and the media symbols as 🛑, not the arrows, the
-// line art, the ellipsis, or ⏎. A glyph's variation selector is left out, so 🏭 is 🏭.
-func glyphsOf(text string) map[string]bool {
-	out := map[string]bool{}
-	for _, r := range text {
-		if r >= 0x1F000 || r >= 0x2600 && r <= 0x27BF || r >= 0x2B00 && r <= 0x2BFF || r >= 0x23E9 && r <= 0x23FA {
-			out[string(r)] = true
-		}
-	}
-	return out
 }
 
 func TestEveryGlyphIsInTheLegend(t *testing.T) {
@@ -112,7 +101,7 @@ func TestEveryGlyphDrawnIsInTheHeaderLegendAndInItsStagesLegend(t *testing.T) {
 	text := legendText(t)
 	for i, name := range five {
 		m := opened(t, i)
-		for g := range glyphsOf(raw(m)) {
+		for g := range testkit.Glyphs(raw(m)) {
 			// the bar's numbers are the tabs', and the panel's glyphs its controls', not the picture's
 			if !strings.Contains(text, g) && !isMarker(g) && !isControl(g) {
 				t.Errorf("%s draws %s, which kit help flow's legend lacks", name, g)
@@ -121,18 +110,18 @@ func TestEveryGlyphDrawnIsInTheHeaderLegendAndInItsStagesLegend(t *testing.T) {
 		// the stage's own glyphs: its rows', and the glyph beside its name
 		own := map[string]bool{}
 		for _, e := range legends[name] {
-			maps.Copy(own, glyphsOf(e.glyph))
+			maps.Copy(own, testkit.Glyphs(e.glyph))
 		}
 		if name == "changes" {
 			for _, e := range states {
-				maps.Copy(own, glyphsOf(e.glyph))
+				maps.Copy(own, testkit.Glyphs(e.glyph))
 			}
 		}
 		var pane []string
 		for _, l := range m.lines() {
 			pane = append(pane, ansi.Strip(l.Text))
 		}
-		for g := range glyphsOf(strings.Join(pane, "\n") + stageGlyphs[name]) {
+		for g := range testkit.Glyphs(strings.Join(pane, "\n") + stageGlyphs[name]) {
 			// issues draw a pull request's state as changes does, and changes' legend names it
 			if _, state := stateGlyphs[stateOf(g)]; !own[g] && !(own[Change] && state) {
 				t.Errorf("%s draws %s, which its legend lacks", name, g)
@@ -177,7 +166,7 @@ func TestTheLegendFloatsInACornerWithTheGlyphsOnTheScreen(t *testing.T) {
 			if i > 0 {
 				m = drive(m, tab)
 			}
-			box, top, left := m.legendBox()
+			box, top, left := m.legend.Box(m.legendSpec())
 			drawn := m.drawn()
 			if !strings.Contains(ansi.Strip(box[0]), name+" legend") || left+ansi.StringWidth(box[0]) != width ||
 				top+len(box) != m.height-1 {
@@ -200,28 +189,28 @@ func TestTheLegendFloatsInACornerWithTheGlyphsOnTheScreen(t *testing.T) {
 		}
 	}
 	m := loaded(t, options(), press('?'))
-	box, top, left := m.legendBox()
-	arrow := func(c corner) int { return left + cellOf(box[0], arrows[c]) }
-	for _, c := range []corner{topLeft, topRight, bottomLeft, bottomRight} {
-		box, top, left = m.legendBox()
-		if m = drive(m, testkit.Click(arrow(c), top)); m.legend.at != c || !m.legend.open {
-			t.Errorf("the %s arrow: at %d", arrows[c], m.legend.at)
+	box, top, left := m.legend.Box(m.legendSpec())
+	arrow := func(k int) int { return left + cellOf(box[0], legend.Arrows[k]) }
+	for k, c := range []legend.Corner{legend.TopLeft, legend.TopRight, legend.BottomLeft, legend.BottomRight} {
+		box, top, left = m.legend.Box(m.legendSpec())
+		if m = drive(m, testkit.Click(arrow(k), top)); m.legend.At != c || !m.legend.Open {
+			t.Errorf("the %s arrow: at %d", legend.Arrows[k], m.legend.At)
 		}
-		box, top, left = m.legendBox()
-		if c == topLeft && (top != m.top() || left != 0) || c == bottomRight && left+ansi.StringWidth(box[0]) != m.width {
+		box, top, left = m.legend.Box(m.legendSpec())
+		if c == legend.TopLeft && (top != m.top() || left != 0) || c == legend.BottomRight && left+ansi.StringWidth(box[0]) != m.width {
 			t.Errorf("the legend in corner %d: %d, %d", c, top, left)
 		}
 	}
 	// a click on the legend off its arrows does nothing; one off it, the screen takes; F1 hides it
 	before := m.stages[m.stage].Cursor
-	if m = drive(m, testkit.Click(left+2, top+1)); !m.legend.open || m.legend.at != bottomRight || m.stages[m.stage].Cursor != before {
-		t.Errorf("a click on the legend: open %v, at %d", m.legend.open, m.legend.at)
+	if m = drive(m, testkit.Click(left+2, top+1)); !m.legend.Open || m.legend.At != legend.BottomRight || m.stages[m.stage].Cursor != before {
+		t.Errorf("a click on the legend: open %v, at %d", m.legend.Open, m.legend.At)
 	}
-	if m = drive(m, tea.KeyPressMsg{Code: tea.KeyF1}); m.legend.open || strings.Contains(view(m), "issues legend") {
+	if m = drive(m, tea.KeyPressMsg{Code: tea.KeyF1}); m.legend.Open || strings.Contains(view(m), "issues legend") {
 		t.Errorf("F1 kept the legend:\n%s", view(m))
 	}
 	// with no stage, there is no legend to show
-	if m = loaded(t, Options{}, press('?')); m.legend.open {
+	if m = loaded(t, Options{}, press('?')); m.legend.Open {
 		t.Error("a legend with no stage")
 	}
 }
@@ -229,7 +218,18 @@ func TestTheLegendFloatsInACornerWithTheGlyphsOnTheScreen(t *testing.T) {
 // explains says whether a legend's line, in one of its columns, says what the entry says: its glyph, then its meaning,
 // and after it nothing but a mark, the gap before the next column, or the box's edge.
 func explains(line string, e entry) bool {
-	plain, want := ansi.Strip(line), pane.Pad(e.glyph, 2, false)+" "+e.meaning
+	plain := ansi.Strip(line)
+	// a glyph's second meaning stands under its first, without the glyph
+	for _, want := range []string{pane.Pad(e.glyph, 2, false) + " " + e.meaning, "   " + e.meaning} {
+		if endsAs(plain, want) {
+			return true
+		}
+	}
+	return false
+}
+
+// endsAs says whether a line holds want, followed by nothing but a mark, the gap before the next column, or the box's edge.
+func endsAs(plain, want string) bool {
 	for at := strings.Index(plain, want); at >= 0; {
 		rest := plain[at+len(want):]
 		for _, end := range []string{"  ", " │", " " + ToPage, " " + ToRow} {
@@ -327,13 +327,13 @@ func TestEveryAppVerbsTabHasItsGlyphAndALegendOfWhatItDraws(t *testing.T) {
 			}
 			own := map[string]bool{}
 			for _, e := range legends[name] {
-				maps.Copy(own, glyphsOf(e.glyph))
+				maps.Copy(own, testkit.Glyphs(e.glyph))
 			}
 			var pane []string
 			for _, l := range m.lines() {
 				pane = append(pane, ansi.Strip(l.Text))
 			}
-			for g := range glyphsOf(strings.Join(pane, "\n")) {
+			for g := range testkit.Glyphs(strings.Join(pane, "\n")) {
 				if !own[g] {
 					t.Errorf("%s draws %s, which its legend lacks", name, g)
 				}
@@ -345,7 +345,7 @@ func TestEveryAppVerbsTabHasItsGlyphAndALegendOfWhatItDraws(t *testing.T) {
 						continue
 					}
 					glyph, _, _ := strings.Cut(ansi.Strip(c.Values[0]), " ")
-					if len(glyphsOf(glyph)) == 0 {
+					if len(testkit.Glyphs(glyph)) == 0 {
 						continue
 					}
 					drawn[glyph] = ToPage
@@ -433,7 +433,7 @@ func TestTheTitlesGlyphIsTheWorkspaces(t *testing.T) {
 func TestTheLegendExplainsEveryGlyphOnTheScreenInOrder(t *testing.T) {
 	m := loaded(t, viewing(""), tea.WindowSizeMsg{Width: 120, Height: 40}, press('?'))
 	var order []string
-	for _, l := range m.legendLines() {
+	for _, l := range legendLines(m) {
 		order = append(order, ansi.Strip(l))
 	}
 	want := []string{shell.App + "  kit menu", shell.Workspaces + "  workspace menu", grid.Search + " search: / or click",
@@ -455,7 +455,7 @@ func TestTheLegendExplainsEveryGlyphOnTheScreenInOrder(t *testing.T) {
 	}
 	// a screen too narrow to show a glyph, its stages still loading and their headers hidden, says it shows none
 	m = drive(New(runner(t), bare()), tea.WindowSizeMsg{Width: 3, Height: 24}, press('?'))
-	if got := m.legendLines(); len(got) != 1 || ansi.Strip(got[0]) != "no glyph on the screen" {
+	if got := legendLines(m); len(got) != 1 || ansi.Strip(got[0]) != "no glyph on the screen" {
 		t.Errorf("the legend of a screen without a glyph: %q", got)
 	}
 }
@@ -467,19 +467,19 @@ func TestTheLegendsCornerKeysMoveItAsItsArrowsDo(t *testing.T) {
 	m := loaded(t, options(), press('?'))
 	for _, c := range []struct {
 		key  tea.KeyPressMsg
-		want corner
+		want legend.Corner
 	}{
-		{key(tea.KeyPgUp), topRight}, {key(tea.KeyPgUp), topRight}, {key(tea.KeyPgDown), bottomRight},
-		{key(tea.KeyHome), topLeft}, {key(tea.KeyPgDown), bottomLeft}, {key(tea.KeyPgUp), topLeft},
-		{key(tea.KeyEnd), bottomRight}, {key(tea.KeyPgDown), bottomRight},
+		{key(tea.KeyPgUp), legend.TopRight}, {key(tea.KeyPgUp), legend.TopRight}, {key(tea.KeyPgDown), legend.BottomRight},
+		{key(tea.KeyHome), legend.TopLeft}, {key(tea.KeyPgDown), legend.BottomLeft}, {key(tea.KeyPgUp), legend.TopLeft},
+		{key(tea.KeyEnd), legend.BottomRight}, {key(tea.KeyPgDown), legend.BottomRight},
 	} {
-		if m = drive(m, c.key); m.legend.at != c.want || !m.legend.open {
-			t.Errorf("%s: at %s, want %s", c.key, arrows[m.legend.at], arrows[c.want])
+		if m = drive(m, c.key); m.legend.At != c.want || !m.legend.Open {
+			t.Errorf("%s: at %s, want %s", c.key, legend.Arrows[arrowOf(m.legend.At)], legend.Arrows[arrowOf(c.want)])
 		}
 	}
 	m = drive(m, tea.KeyPressMsg{Code: tea.KeyF1}, key(tea.KeyHome))
-	if m.legend.at != bottomRight {
-		t.Errorf("home moved the hidden legend to %s", arrows[m.legend.at])
+	if m.legend.At != legend.BottomRight {
+		t.Errorf("home moved the hidden legend to %s", legend.Arrows[arrowOf(m.legend.At)])
 	}
 }
 
@@ -487,21 +487,21 @@ func TestTheLegendsCornerKeysMoveItAsItsArrowsDo(t *testing.T) {
 // sortable column's on the rule, drawn as the rule draws it, and only there.
 func TestTheLegendListsTheDotOnlyAsASortableColumnOnTheRule(t *testing.T) {
 	m := loaded(t, options(), press('?'))
-	var dots []part
+	var dots []legend.Part
 	for _, p := range m.parts(m.height - 1) {
-		if slices.Contains(p.glyphs, "·") {
+		if slices.Contains(p.Glyphs, "·") {
 			dots = append(dots, p)
 		}
 	}
-	if len(dots) != 1 || dots[0].glyphs[0] != Sortable || dots[0].meaning != "sortable: click to sort" {
+	if len(dots) != 1 || dots[0].Glyphs[0] != Sortable || dots[0].Meaning != "sortable: click to sort" {
 		t.Fatalf("the legend's dots: %+v", dots)
 	}
 	for y := range m.height {
-		if on := dots[0].on(y); on != (y >= m.top() && y < m.height-1 && (m.onRule(y) || m.controls() && y == m.top()+1)) {
+		if on := dots[0].On(y); on != (y >= m.top() && y < m.height-1 && (m.onRule(y) || m.controls() && y == m.top()+1)) {
 			t.Errorf("the dot is explained on line %d: %v", y, on)
 		}
 	}
-	for _, l := range m.legendLines() {
+	for _, l := range legendLines(m) {
 		if strings.Contains(ansi.Strip(l), "separator") {
 			t.Errorf("the legend names a separator: %q", l)
 		}
@@ -517,7 +517,7 @@ func TestTheLegendListsASortAsTheRaisedOrLoweredDigitTheRuleDraws(t *testing.T) 
 	m = drive(m, press('?'))
 	rule := ansi.Strip(lines(m)[ruleY(m)])
 	var got []string
-	for _, l := range m.legendLines() {
+	for _, l := range legendLines(m) {
 		got = append(got, ansi.Strip(l))
 	}
 	for _, want := range []string{"¹  ascending, its place: click to reverse", "₂  descending, its place: click to clear",
@@ -534,4 +534,18 @@ func TestTheLegendListsASortAsTheRaisedOrLoweredDigitTheRuleDraws(t *testing.T) 
 			t.Errorf("a triangle as a sort: %q", l)
 		}
 	}
+}
+
+// legendLines gives the legend's lines, a glyph's meanings each on a line of their own.
+func legendLines(m Model) []string {
+	var out []string
+	for _, g := range m.legendSpec().Lines() {
+		out = append(out, g...)
+	}
+	return out
+}
+
+// arrowOf gives the index of a corner's arrow on the legend's top edge.
+func arrowOf(c legend.Corner) int {
+	return slices.Index([]legend.Corner{legend.TopLeft, legend.TopRight, legend.BottomLeft, legend.BottomRight}, c)
 }

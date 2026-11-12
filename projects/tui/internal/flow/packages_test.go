@@ -220,8 +220,8 @@ func TestADialogIsTitledByTheTabAlone(t *testing.T) {
 	if title := ansi.Strip(box[0]); !strings.Contains(title, "─ packages fields ─") {
 		t.Errorf("the fields dialog's title: %q", title)
 	}
-	m.legend.open = true
-	box, _, _ = m.legendBox()
+	m.legend.Open = true
+	box, _, _ = m.legend.Box(m.legendSpec())
 	if title := ansi.Strip(box[0]); !strings.Contains(title, "─ packages legend ") {
 		t.Errorf("the legend's title: %q", title)
 	}

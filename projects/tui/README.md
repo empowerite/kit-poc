@@ -160,15 +160,11 @@ Each screen reads what it shows from kit as JSON. A form reads `kit syntax <verb
     in, and Repeated emoji, which shows an emoji every row has instead of dropping it, are kittui's settings, in
     = Settings…, every view's alike. The Settings dialog opens over the menu, which stays open, its own Settings…
     lying over the menu's line; esc closes it back to the menu.
-  - The legend, in `legend.go`, floats over the rows while F1 or ? shows it: what each glyph on the screen under it
-    means, the menu bar's, the tab bar's, the control line's, the rule's, the rows', and the status bar's, in the order
-    each first appears, reading from the top left, and nothing of a glyph the screen does not show, each glyph a click
-    leads somewhere from marked. A glyph means what the line it stands on says: a plain · between items, in the menu bar
-    or a heading, is not explained, only the · on the rule, a column that can sort and is not sorted; ▼ is the presets'
-    menu on the control line and says it is not a sort, a sort being a raised ¹ or a lowered ₁ and never a triangle. A
-    legend taller than the room under the tab bar stands in columns. It opens in the bottom right corner; the arrows on
-    its top edge, ↖ ↗ ↙ ↘, move it to another, the one it stands in dim. It takes no other key or click, so the rows
-    under it go on as they were.
+  - The legend, in `legend.go`, says which glyphs `kit flow` draws and on which of its lines each stands: the menu bar's,
+    the tab bar's, the control line's, the rule's, the rows', and the status bar's. A glyph means what the line it
+    stands on says: a plain · between items, in the menu bar or a heading, is not explained, only the · on the rule, a
+    column that can sort and is not sorted; ▼ is the presets' menu on the control line and says it is not a sort, a sort
+    being a raised ¹ or a lowered ₁ and never a triangle. `internal/legend/` draws it.
   - A field's card, in `popover.go`, holds every setting of one field. A click on a column's name opens it under the
     name, its title over the name, as ='s and :'s menus hang around theirs, and a second click on the name closes it:
     its sort, a radio, Ascending, Descending, or Unsorted, which takes it out of the keys, as a shift-click on its sort
@@ -276,6 +272,16 @@ Each screen reads what it shows from kit as JSON. A form reads `kit syntax <verb
   command; Compact hides the settings and the commands. The text before the first heading stands over the table,
   where the pane has room for it.
 - `internal/tutorials/` draws `kit tutorials`: a card for each tutorial, one tab for each audience.
+- `internal/legend/` is the legend, which every screen has, on every tab: F1 or ? floats it over the rows, and again
+  hides it. It says what each glyph the screen shows under it means, in the order each first appears, reading from the
+  top left, and nothing of a glyph the screen does not show; a glyph a click leads somewhere from is marked. A glyph
+  that means more than one thing on the screen is listed once, its meanings under it, in the order each first appears;
+  a legend taller than the room under the tab bar stands in columns, a glyph's meanings in one. It opens in the bottom
+  right corner; the arrows on its top edge, ↖ ↗ ↙ ↘, and home, end, page up, and page down move it to another, the one it
+  stands in dim. It takes no other key or click, so the rows under it go on as they were. Each screen says which glyphs
+  it draws and on which lines, as `legend.go` of its package does, from the parts `frame.go` gives every screen: the menu
+  bar's, the tab bar's, and the table's. In a field that types, as the search or a form's text, ? is typed, and F1 shows
+  the legend.
 - `internal/tabs/` is the tab bar `kit flow`, `kit welcome`, and `kit tutorials` share: three lines of numbered tabs,
   and the keys and the clicks that select them.
 - `internal/table/` is what a table is made of, whatever its rows hold: the catalog's fields and presets, read from

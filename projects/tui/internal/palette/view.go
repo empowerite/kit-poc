@@ -52,23 +52,35 @@ func (m Model) top() []string {
 // layers, the searches remembered, and the menus over them; and the keys bar last, one line clipped to the width, so
 // neither searching nor a refusal moves it, or what the table did, or why not, in its place while it says so.
 func (m Model) View() tea.View {
+	drawn := m.legend.Over(m.frame(), m.legendSpec())
+	drawn = m.sheet.Over(drawn)
+	drawn = m.recent.Overlay(drawn, m.recallAt(), m.width)
+	drawn = m.appMenu.Overlay(drawn, m.width)
+	drawn = m.books.Overlay(drawn, m.booksAt(), m.width)
+	return shell.View(drawn, m.height, m.bottom())
+}
+
+// frame gives the screen's lines over its last, before the legend and the layers are drawn over them: the lines over
+// the table, then the table's pane, each clipped at the screen's edge, and a gap.
+func (m Model) frame() []string {
 	var drawn []string
 	for _, l := range append(m.top(), m.sheet.View()...) {
 		drawn = append(drawn, pane.Clip(l, m.width))
 	}
-	drawn = m.sheet.Over(append(drawn, ""))
-	drawn = m.recent.Overlay(drawn, m.recallAt(), m.width)
-	drawn = m.appMenu.Overlay(drawn, m.width)
-	drawn = m.books.Overlay(drawn, m.booksAt(), m.width)
-	bottom := m.keys().Line(m.width)
+	return append(drawn, "")
+}
+
+// bottom gives the screen's last line: the keys bar, one line clipped to the width, so neither searching nor a refusal
+// moves it, or what the table did, or why not, in its place while it says so.
+func (m Model) bottom() string {
 	switch n := m.sheet.Notice(); {
 	case n.Text == "":
+		return m.keys().Line(m.width)
 	case n.Done:
-		bottom = " " + pane.Clip(n.Text, m.width-1)
+		return " " + pane.Clip(n.Text, m.width-1)
 	default:
-		bottom = " " + style.Refusal(pane.Clip(n.Text, m.width-1))
+		return " " + style.Refusal(pane.Clip(n.Text, m.width-1))
 	}
-	return shell.View(drawn, m.height, bottom)
 }
 
 // keys gives the path to the keyboard, which the keys bar is drawn from: the screen; then the search, as every

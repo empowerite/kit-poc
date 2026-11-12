@@ -24,6 +24,7 @@ import (
 
 	"github.com/empowerite/kit/projects/tui/internal/fix"
 	"github.com/empowerite/kit/projects/tui/internal/kit"
+	"github.com/empowerite/kit/projects/tui/internal/legend"
 	"github.com/empowerite/kit/projects/tui/internal/pane"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/style"
@@ -62,6 +63,7 @@ type Model struct {
 	spec    syntax.Spec
 	runner  kit.Runner
 	back    bool
+	legend  legend.Legend // the legend, which F1 shows and hides, and ? where no text is typed, and the corner it stands in
 	fields  []Field
 	focus   int    // the field with the keyboard; len(fields) is the command line
 	cursor  int    // the option in a row, or the row in a list
@@ -183,6 +185,7 @@ func (m *Model) click(msg tea.MouseClickMsg) tea.Cmd {
 		var picked string
 		m.books, picked = m.books.Click(msg.X, msg.Y, booksAt, m.width)
 		return shell.Pick(picked)
+	case m.legend.Open && m.legend.Click(msg.X, msg.Y, m.legendSpec()):
 	case shell.OnApp(msg.X, msg.Y, appLabel):
 		m.appMenu = m.appMenu.Opened()
 	case m.books.On(msg.X, msg.Y, booksAt):
@@ -208,6 +211,15 @@ func (m Model) typing() bool {
 // View draws the form on the alternate screen, clipped to the terminal's lines so the way back and the focused field
 // stay in sight, with the keys bar on the last line, which nothing above it moves.
 func (m Model) View() tea.View {
+	lines := m.legend.Over(m.frame(), m.legendSpec())
+	lines = m.appMenu.Overlay(lines, m.width)
+	lines = m.books.Overlay(lines, m.menuBar().WorkspaceAt(), m.width)
+	return shell.View(lines, m.height, m.bottom())
+}
+
+// frame gives the screen's lines over its last, before the legend and the menus are drawn over them: the menu bar and
+// its rule, and the form clipped to the terminal's lines.
+func (m Model) frame() []string {
 	focus := m.focus
 	if focus >= len(m.fields) {
 		focus = -1
@@ -220,11 +232,11 @@ func (m Model) View() tea.View {
 		room = max(1, m.height-4) // the menu bar and its rule over the form, and the gap and the status bar under it
 	}
 	lines := strings.Split(strings.TrimSuffix(window(content, room, header, first, last, at), "\n"), "\n")
-	lines = append([]string{m.menuBar().Line(m.width), shell.RuleLine(m.width, "")}, lines...)
-	lines = m.appMenu.Overlay(lines, m.width)
-	lines = m.books.Overlay(lines, m.menuBar().WorkspaceAt(), m.width)
-	return shell.View(lines, m.height, m.keys().Line(m.width))
+	return append([]string{m.menuBar().Line(m.width), shell.RuleLine(m.width, "")}, lines...)
 }
+
+// bottom gives the screen's last line, the keys bar, which nothing above it moves.
+func (m Model) bottom() string { return m.keys().Line(m.width) }
 
 // keys gives the path to the keyboard, which the key hints are drawn from, the form's own first, as a field may type
 // =, -, and /, which the menu bar's glyphs show: the form, whose esc goes back to the palette,
@@ -246,6 +258,7 @@ func (m Model) keys() shell.Path {
 	if m.shift {
 		form.Bindings = append(form.Bindings, shell.Bind("⇧⏎", "run", "shift+enter"))
 	}
+	form.Bindings = append(form.Bindings, m.legendKeys())
 	if m.focus >= len(m.fields) {
 		// the command line is the last: up moves back, down has nowhere to go, and enter runs
 		return shell.Path{form, {Takes: []string{"down"}, Bindings: []shell.Binding{shell.Bind("↑", "move", "up"),
@@ -281,6 +294,14 @@ func (m Model) keys() shell.Path {
 	return shell.Path{form, field}
 }
 
+// legendKeys gives the binding of the legend: ? or F1, F1 alone where a field types what is pressed.
+func (m Model) legendKeys() shell.Binding {
+	if m.typing() {
+		return shell.Bind("F1", "legend", "f1")
+	}
+	return shell.Bind("?", "legend", "?", "f1")
+}
+
 // key takes a key press.
 func (m *Model) key(k tea.KeyPressMsg) tea.Cmd {
 	s := k.String()
@@ -297,7 +318,13 @@ func (m *Model) key(k tea.KeyPressMsg) tea.Cmd {
 			return shell.Pick(picked)
 		}
 	}
+	if m.legend.Key(s) {
+		return nil
+	}
 	switch s {
+	case "f1":
+		m.legend.Toggle()
+		return nil
 	case "ctrl+c":
 		m.interrupted, m.done = true, true
 		return tea.Quit
@@ -324,6 +351,9 @@ func (m *Model) key(k tea.KeyPressMsg) tea.Cmd {
 		return nil
 	case s == "/":
 		return func() tea.Msg { return FindMsg{} }
+	case s == "?":
+		m.legend.Toggle()
+		return nil
 	}
 	if m.focus >= len(m.fields) {
 		switch s {
@@ -952,7 +982,7 @@ func (m Model) drawList(b *strings.Builder, f Field, indent string) int {
 		b.WriteString(pane.More(len(rows)-end) + "\n")
 	}
 	glyphs := ""
-	if named := legend(all, f.Values, planned); states && named != "" {
+	if named := statesLegend(all, f.Values, planned); states && named != "" {
 		glyphs = named + " · "
 	}
 	switch {
@@ -978,9 +1008,9 @@ func (m Model) drawList(b *strings.Builder, f Field, indent string) int {
 	return at
 }
 
-// legend names, once, each state glyph the list's rows draw, active then excluded: in a list kit calls a set, among
+// statesLegend names, once, each state glyph the list's rows draw, active then excluded: in a list kit calls a set, among
 // the marks plan gives, whose ➕ and ➖ the counts name; else among the states state gives.
-func legend(all []kit.Choice, values []string, planned bool) string {
+func statesLegend(all []kit.Choice, values []string, planned bool) string {
 	drawn := map[string]bool{}
 	for _, row := range all {
 		if planned {

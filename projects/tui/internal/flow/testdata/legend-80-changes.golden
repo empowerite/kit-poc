@@ -15,18 +15,18 @@
     ▸ 🔀 #4   Lint every …  bob     🔥     25h  ❌                      4-lint…
 
                   ╭─ changes legend ────────────────────────────────── ↖ ↗ ↙ ↘ ╮
-                  │ =  kit menu                    ▼  presets menu, not a sort │
-                  │ -  workspace menu              ·  sortable: click to sort  │
-                  │ 🔎 search: / or click          ▸  closed: click to open    │
-                  │ ➀  tab: click to select        ×  list: click to flatten   │
-                  │ ➋  selected tab                🔀 pull request 🔗          │
+                  │ =  kit menu                    📇 fields dialog            │
+                  │ -  workspace menu              ▼  presets menu, not a sort │
+                  │ 🔎 search: / or click          ·  sortable: click to sort  │
+                  │ ➀  tab: click to select        ▸  closed: click to open    │
+                  │ ➋  selected tab                ×  list: click to flatten   │
                   │ 🎫 issues stage                🏁 ready 🔗                 │
                   │ 🔀 changes stage               ✅ passed                   │
-                  │ :  tab menu                    🔨 draft 🔗                 │
-                  │ 🏭 builds stage                🏃 running                  │
-                  │ 🛬 incoming stage              💬 unresolved threads       │
-                  │ ▹  more tabs: click to scroll  💬 comments:open 🔗         │
-                  │ ▾  open: click to close        🔥 failing:gate 🔗          │
-                  │ 📇 fields dialog               ❌ failed                   │
+                  │    pull request 🔗             🔨 draft 🔗                 │
+                  │ :  tab menu                    🏃 running                  │
+                  │ 🏭 builds stage                💬 unresolved threads       │
+                  │ 🛬 incoming stage                 comments:open 🔗         │
+                  │ ▹  more tabs: click to scroll  🔥 failing:gate 🔗          │
+                  │ ▾  open: click to close        ❌ failed                   │
                   ╰────────────────────────────────────────────────────────────╯
  = menu - workspace / search ? legend │ ⇥·⇧⇥ tab ↓ groups 1-5 jump : tab menu

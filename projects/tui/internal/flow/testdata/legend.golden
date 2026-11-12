@@ -8,17 +8,17 @@
     ·────────·──────────────·─────────────
   ▾ github · empowerite 7
                         ╭─ issues legend ───────────────────────────── ↖ ↗ ↙ ↘ ╮
-      ▸ id   status  ass│ =  kit menu              ▼  presets menu, not a sort │
-        ·────·───────×·─│ -  workspace menu        ·  sortable: click to sort  │
-    ▾ jig 1             │ 🔎 search: / or click    ▸  closed: click to open    │
-      ▸ #7   💤      ada│ ➊  selected tab          ×  list: click to flatten   │
-    ▾ kit 6             │ ➁  tab: click to select  💤 backlog                  │
-      ▸ #1   🛫      jef│ 🎫 issues stage          🎫 issue 🔗                 │
+      ▸ id   status  ass│ =  kit menu              ▾  open: click to close     │
+        ·────·───────×·─│ -  workspace menu        📇 fields dialog            │
+    ▾ jig 1             │ 🔎 search: / or click    ▼  presets menu, not a sort │
+      ▸ #7   💤      ada│ ➊  selected tab          ·  sortable: click to sort  │
+    ▾ kit 6             │ ➁  tab: click to select  ▸  closed: click to open    │
+      ▸ #1   🛫      jef│ 🎫 issues stage          ×  list: click to flatten   │
+      ▸ #8   🛫         │    issue 🔗              💤 backlog                  │
       ▸ #8   🛫         │ :  tab menu              🛫 underway                 │
-      ▸ #8   🛫         │ 🔀 changes stage         🔀 pull request †           │
-      ▸ #46  💤      jef│ 🏭 builds stage          🌿 branch or worktree †     │
-      ▸ #31  🛫      ada│ 🛬 incoming stage        👤 assignees or author      │
-      ▸ #45  💤         │ ▾  open: click to close  🌱 local branch             │
-                        │ 📇 fields dialog                                     │
+      ▸ #46  💤      jef│ 🔀 changes stage         🌿 branch or worktree †     │
+      ▸ #31  🛫      ada│    pull request †        👤 assignees or author      │
+      ▸ #45  💤         │ 🏭 builds stage          🌱 local branch             │
+                        │ 🛬 incoming stage                                    │
                         ╰──────────────────────────────────────────────────────╯
  = menu - workspace / search ? legend │ ⇥·⇧⇥ tab ↓ groups 1-5 jump : tab menu

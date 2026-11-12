@@ -31,6 +31,7 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/fix"
 	"github.com/empowerite/kit/projects/tui/internal/grid"
 	"github.com/empowerite/kit/projects/tui/internal/kit"
+	"github.com/empowerite/kit/projects/tui/internal/legend"
 	"github.com/empowerite/kit/projects/tui/internal/pane"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/source"
@@ -197,7 +198,7 @@ type Model struct {
 	hide          bool                      // whether the tables keep the columns no row holds a value in from showing, as kittui's settings say
 	glyphs        bool                      // whether the tables draw an emoji every row shown shares, as kittui's settings say
 	cols          table.Columns             // the columns dialog, while it is open
-	legend        legend                    // the legend, which F1 and ? show and hide, and the corner it stands in
+	legend        legend.Legend             // the legend, which F1 and ? show and hide, and the corner it stands in
 	noHeaders     bool                      // whether the stages' headers are hidden, as a test of the rows alone asks
 	noPresets     bool                      // whether the stages' tables have no preset line
 	recent        shell.Recent              // the searches remembered, every screen's, and their dropdown
@@ -258,7 +259,7 @@ func open(r kit.Runner, o Options, w Words) Model {
 func New(r kit.Runner, o Options) Model {
 	m := Model{app: o.App, runner: r, limit: deadline, origin: o.Origin, noFetch: o.NoFetch, fresh: o.Fresh,
 		filters: o.Filters, width: 80, height: 24, browse: browser, handOver: fix.HandOver, appMenu: shell.Menu{Here: o.App},
-		books: shell.BooksMenu{Fallback: o.Origin.Repo}, fold: true, hide: true, legend: legend{at: bottomRight}}
+		books: shell.BooksMenu{Fallback: o.Origin.Repo}, fold: true, hide: true}
 	m.ctx, m.cancel = context.WithCancel(context.Background())
 	m.clock = o.Clock
 	m.quota = source.NewPoll("quota", QuotaEvery, r.Quota)
@@ -458,7 +459,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.recent = m.recent.Opened()
 			return m, nil
 		}
-		if m.legend.open && !m.tabMenu.Open && !m.appMenu.Open && m.ask == nil && m.legendClick(msg.X, msg.Y) {
+		if m.legend.Open && !m.tabMenu.Open && !m.appMenu.Open && m.ask == nil && m.legendClick(msg.X, msg.Y) {
 			return m, nil
 		}
 		switch {

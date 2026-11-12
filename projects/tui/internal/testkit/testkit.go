@@ -193,3 +193,15 @@ func Golden(t T, path, got string) {
 		t.Errorf("%s differs:\n%s", path, got)
 	}
 }
+
+// Glyphs gives the glyphs in a text: the pictographs and symbols, and the media symbols as 🛑, not the arrows, the line
+// art, the ellipsis, or ⏎. A glyph's variation selector is left out, so 🏭 is 🏭.
+func Glyphs(text string) map[string]bool {
+	out := map[string]bool{}
+	for _, r := range text {
+		if r >= 0x1F000 || r >= 0x2600 && r <= 0x27BF || r >= 0x2B00 && r <= 0x2BFF || r >= 0x23E9 && r <= 0x23FA {
+			out[string(r)] = true
+		}
+	}
+	return out
+}

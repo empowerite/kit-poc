@@ -60,6 +60,7 @@ import (
 
 	"github.com/empowerite/kit/projects/tui/internal/grid"
 	"github.com/empowerite/kit/projects/tui/internal/kit"
+	"github.com/empowerite/kit/projects/tui/internal/legend"
 	"github.com/empowerite/kit/projects/tui/internal/pane"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/source"
@@ -157,12 +158,13 @@ type Model struct {
 	reading source.Load[kit.Catalogue] // kit tutorials --json: loading until kit answers
 	refusal string                     // kit's line, when it did not print the catalogue
 	catalog kit.Catalogue
-	sheet   table.Sheet // the tutorials' table, whose control line stands over the cards and whose rows they follow
-	read    reader      // the tutorial in the kit open in place of the cards, while one is
-	inPane  bool        // whether the screen gives the cards the keyboard, which they have while there are some
-	cursor  int         // the card under the cursor, an index into the cards
-	offset  int         // the first band of the pane it shows, a heading or a row of cards
-	wheeled bool        // whether the wheel scrolled the pane, which leaves the cursor's card until a key moves it
+	legend  legend.Legend // the legend, which F1 and ? show and hide, and the corner it stands in
+	sheet   table.Sheet   // the tutorials' table, whose control line stands over the cards and whose rows they follow
+	read    reader        // the tutorial in the kit open in place of the cards, while one is
+	inPane  bool          // whether the screen gives the cards the keyboard, which they have while there are some
+	cursor  int           // the card under the cursor, an index into the cards
+	offset  int           // the first band of the pane it shows, a heading or a row of cards
+	wheeled bool          // whether the wheel scrolled the pane, which leaves the cursor's card until a key moves it
 	width   int
 	height  int
 	appMenu shell.Menu   // the app's menu, internal/shell's, which has the keyboard while it is open
@@ -512,7 +514,14 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 	}
+	if m.legend.Key(k.String()) {
+		return m, nil
+	}
 	if m.read.open && !m.search.Focused {
+		if key := k.String(); key == "?" || key == "f1" {
+			m.legend.Toggle()
+			return m, nil
+		}
 		return m.paging(k)
 	}
 	if m.controlled() {
@@ -535,6 +544,9 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "/":
 		m.search.Focused = true
+		return m, nil
+	case "?", "f1":
+		m.legend.Toggle()
 		return m, nil
 	}
 	n := len(m.cards())
@@ -611,6 +623,8 @@ func (m Model) click(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 	case m.sheet.Layered():
 		m.sheet.Click(msg)
 		m.settle()
+		return m, nil
+	case m.legend.Open && m.legend.Click(msg.X, msg.Y, m.legendSpec()):
 		return m, nil
 	case msg.Button != tea.MouseLeft:
 		return m, nil

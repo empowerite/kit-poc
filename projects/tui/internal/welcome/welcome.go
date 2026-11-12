@@ -36,6 +36,7 @@ import (
 
 	"github.com/empowerite/kit/projects/tui/internal/fix"
 	"github.com/empowerite/kit/projects/tui/internal/kit"
+	"github.com/empowerite/kit/projects/tui/internal/legend"
 	"github.com/empowerite/kit/projects/tui/internal/pane"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/source"
@@ -169,6 +170,7 @@ type Model struct {
 	exec      fix.Exec                 // hands the terminal to a fix: fix.HandOver but in tests
 	workspace kit.Workspace            // the workspace kittui opened the screen on, zero while unknown
 	books     shell.BooksMenu          // the title's workspace menu, which has the keyboard while open
+	legend    legend.Legend            // the legend, which F1 and ? show and hide, and the corner it stands in
 	tabs      []tab                    // the steps, in order: the known ones until the pages are read
 	step      int                      // the selected step
 	inPane    bool                     // whether the pane, a check's row or the page, has the keyboard
@@ -425,6 +427,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case m.gridded() && m.sheet().Layered():
 			return m.sheetClick(msg)
+		case m.legend.Open && m.legend.Click(msg.X, msg.Y, m.legendSpec()):
+			return m, nil
 		case msg.Button == tea.MouseLeft && m.onMenu(msg.X, msg.Y):
 			m.openMenu()
 			return m, nil
@@ -711,6 +715,9 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 	}
+	if m.legend.Key(k.String()) {
+		return m, nil
+	}
 	if m.gridded() && (m.inPane || m.sheet().Layered()) {
 		// the step's table takes what it answers first, a layer of its every key
 		before := m.sheet().Notice()
@@ -732,6 +739,9 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "/":
 		m.focusSearch(true)
+		return m, nil
+	case "?", "f1":
+		m.legend.Toggle()
 		return m, nil
 	}
 	// > and < show a level more and less of the step's table from the bar too, as from a stage's tab bar in flow

@@ -85,13 +85,7 @@ func (m Model) slid(lines []line) []string {
 // banner, and the pane; the selected step's table's layers over its pane, the tab's menu while it is open, and what
 // the table did, or why not, in place of the keys while it says it.
 func (m Model) View() tea.View {
-	lines := []string{m.menuBar().Line(m.width)}
-	if m.maximized {
-		lines = append(lines, m.banner())
-	} else {
-		lines = append(lines, strings.Split(m.bar().View(), "\n")...)
-	}
-	lines = append(lines, m.pane()...)
+	lines := m.legend.Over(m.frame(), m.legendSpec())
 	if m.gridded() {
 		lines = m.sheet().Over(lines)
 	}
@@ -102,6 +96,24 @@ func (m Model) View() tea.View {
 	lines = m.recent.Overlay(append(lines, ""), m.recallAt(), m.width)
 	lines = m.appMenu.Overlay(lines, m.width)
 	lines = m.books.Overlay(lines, m.booksAt(), m.width)
+	return shell.View(lines, m.height, m.bottom())
+}
+
+// frame gives the screen's lines over its last, before the legend and the layers are drawn over them: the title, the
+// bar, or, maximized, the banner, and the pane.
+func (m Model) frame() []string {
+	lines := []string{m.menuBar().Line(m.width)}
+	if m.maximized {
+		lines = append(lines, m.banner())
+	} else {
+		lines = append(lines, strings.Split(m.bar().View(), "\n")...)
+	}
+	return append(lines, m.pane()...)
+}
+
+// bottom gives the screen's last line: the keys bar, or what the table did, or why not, or the link to open, in its
+// place.
+func (m Model) bottom() string {
 	bottom := m.keys().Line(m.width)
 	if notice := m.sheetNotice(); notice != "" {
 		bottom = notice
@@ -109,7 +121,7 @@ func (m Model) View() tea.View {
 	if notice := m.linkNotice(); notice != "" {
 		bottom = notice
 	}
-	return shell.View(lines, m.height, bottom)
+	return bottom
 }
 
 // bar gives the steps' tab bar, from the screen's second line: each step's glyph, name, and count, the count in red
