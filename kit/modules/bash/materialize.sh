@@ -18,6 +18,10 @@ use release place manifest settings render file trust
 # kit serve resolves each pass afresh.
 declare -gA materialize_real=()
 
+# materialize_left holds each path the last materialize:all left alone because it holds the repository's own file, so
+# kit hydrate can say how many there are, and fail.
+declare -ga materialize_left=()
+
 # materialize:owned <base> <path> succeeds for a path the kit materializes: one under .kit/ in the repository, with no
 # . or .. segment, other than the repository's own packages. Such a path is a link to its source when the source is
 # inside the worktree, and otherwise a copy without the write bit. .kit/.gitignore names every one, so git never sees
@@ -247,6 +251,41 @@ materialize:judge() {
   fi
 }
 
+# materialize:foreign <foreign-map> <recorded-map> <source-map> <path>… puts in <foreign-map> each of the
+# materialized paths that holds the repository's own file, as materialize:all judges one: something is at the path,
+# <recorded-map>, the manifest's records, has nothing for it, and it is not in its state. <source-map> gives each
+# path's source. The paths are judged together, as materialize:judge judges them, so the manifest is written with no
+# process for a path.
+# shellcheck disable=SC2034  # materialize_foreign_out is the caller's map, filled through the reference
+materialize:foreign() {
+  local -n materialize_foreign_out=$1 materialize_foreign_recorded=$2 materialize_foreign_source=$3
+  local -a materialize_foreign_paths=()
+  local -A materialize_foreign_state=() materialize_foreign_ok=()
+  local path state
+  shift 3
+  for path in "$@"
+  do
+    [[ -e "${path}" || -L "${path}" ]] || continue
+    [[ -z "${materialize_foreign_recorded[${path}]:-}" ]] || continue
+    materialize:state state "${materialize_foreign_source[${path}]}" "${path}"
+    materialize_foreign_state[${path}]=${state}
+    materialize_foreign_paths+=("${path}")
+  done
+  (( ${#materialize_foreign_paths[@]} > 0 )) || return 0
+  materialize:judge materialize_foreign_ok materialize_foreign_state materialize_foreign_source \
+    "${materialize_foreign_paths[@]}"
+  for path in "${materialize_foreign_paths[@]}"
+  do
+    if [[ -z "${materialize_foreign_ok[${path}]:-}" ]]
+    then
+      materialize_foreign_ok[${path}]=false
+      ! materialize:ok "${materialize_foreign_source[${path}]}" "${path}" "${materialize_foreign_state[${path}]}" \
+        || materialize_foreign_ok[${path}]=true
+    fi
+    [[ "${materialize_foreign_ok[${path}]}" == true ]] || materialize_foreign_out["${path}"]=1
+  done
+}
+
 # materialize:list <dir>… prints what each directory holds, one level down, in byte order.
 materialize:list() {
   { find "$@" -mindepth 1 -maxdepth 1 || true; } | LC_ALL=C sort  # a directory find cannot read lists what it can
@@ -270,7 +309,8 @@ materialize:ignore-text() {
 # materialize:all [--check] <package>… brings every path the packages deliver under .kit/ to its state and writes
 # .kit/.gitignore, keeping the clone's trust across it, as trust:keeping does. It says what it changed, one line per
 # path. A path the manifest never recorded that holds a
-# different file is the repository's: it is left alone and named, as kit install names it. It warns about a file
+# different file is the repository's: it is left alone and named, as kit install names it, and kept in
+# materialize_left; manifest:text writes no record for it, so it stays the repository's. It warns about a file
 # under a delivered directory that no active package delivers, and about a delivered path git still tracks, both of
 # which a person settles; an empty directory left behind by a removed package is removed without a word. A path under
 # a link in .kit/, or a .kit that is a link, it neither writes nor removes, and names, and then it fails. With
@@ -295,6 +335,7 @@ materialize:all() {
     return 1
   fi
   materialize_real=()
+  [[ "${check}" == true ]] || materialize_left=()
   list:read rows place:delivered "${kit_root}" repo "$@" || return 1
   for row in "${rows[@]}"
   do
@@ -363,6 +404,7 @@ materialize:all() {
       if [[ ( -e "${path}" || -L "${path}" ) && -z "${recorded[${path}]:-}" && "${ok[${path}]}" == false ]]
       then
         warn "${path}: a different file is there already; move it aside, or remove it if it is not yours"
+        materialize_left+=("${path}")
         continue
       fi
       materialize:bring did "${src}" "${path}" "${state}" "${ok[${path}]}"
@@ -507,8 +549,10 @@ materialize:hydrated() {
 # with --full, as kit hydrate calls it, it always does the whole job and says what it finds. It returns 1 when kit.yml
 # cannot be read, before it places anything, and when a package cannot be rendered or placed. It warns when this
 # release is not the declared one, since what it places is this release's. It rewrites .kit/manifest, so what the
-# declaration added is recorded, and a later release's change to it is kit's to replace. Where the declaration still
-# sits on the manifest's lines, from a release before it, it moves into kit.yml first.
+# declaration added is recorded, and a later release's change to it is kit's to replace. It places nothing outside
+# .kit/, so a path there keeps the digest the manifest records, and kit update still sees what is there as what kit
+# placed. Where the declaration still sits on the manifest's lines, from a release before it, it moves into kit.yml
+# first.
 #
 # Under kit serve, kit_serve_hydrated is set for every tool's verb, and it does not place anything: the server placed
 # .kit/ already, and places it again when kit.yml changes, so a tool reads and never writes.
@@ -542,10 +586,11 @@ materialize:hydrate() {
   trust:keeping materialize:hydrate-write "${packages[@]}"
 }
 
-# materialize:hydrate-write <package>… places what the packages deliver under .kit/, and rewrites .kit/manifest.
+# materialize:hydrate-write <package>… places what the packages deliver under .kit/, and rewrites .kit/manifest: a
+# record for each path it placed, none for one it left alone, and every other path's record as it was.
 materialize:hydrate-write() {
   materialize:all "$@" || return 1
-  manifest:write repo '' "$@"
+  manifest:write --keep repo '' "$@"
 }
 
 # ----------------------------------------------------------------------------------------------------------------------

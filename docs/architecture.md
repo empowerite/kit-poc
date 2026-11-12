@@ -79,10 +79,12 @@ Each base has a manifest:
   declaration in `kit.yml` instead.
 - `~/.kit/manifest` on a developer machine, when a package delivers to the home directory.
 
-The repository's manifest records the release's digest of every delivered path. The version and the active packages
-are declared in `kit.yml`, the three keys the kit writes there. Home's manifest, with no settings file
-beside it, records its version and packages itself. `kit update` compares a file against its digest to tell whether
-the repository edited it.
+The repository's manifest records, for every delivered path, the digest of the release's content kit placed there.
+A verb that did not place a path keeps its record: `kit hydrate` places nothing outside `.kit/`, so a file there
+keeps its digest until `kit update` replaces it. A path under `.kit/` that holds the repository's own file has no
+record, and kit leaves it alone. The version and the active packages are declared in `kit.yml`, the three keys the
+kit writes there. Home's manifest, with no settings file beside it, records its version and packages itself.
+`kit update` compares a file against its digest to tell whether the repository edited it.
 
 ## Finding a file's rules
 

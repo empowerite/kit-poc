@@ -132,7 +132,7 @@ package:add() {
     return 1
   fi
   list:read excluded resolve:exclusions "${excluded[*]}" "${wanted[@]}" || return 1
-  manifest:write-all "${excluded[*]}" "${wanted[@]}" || return 1
+  manifest:write-all --keep "${excluded[*]}" "${wanted[@]}" || return 1
   materialize:all "${wanted[@]}" || return 1
   ok "packages: ${wanted[*]}"
   release:say-unmet "${wanted[@]}" || return 1
@@ -220,7 +220,7 @@ package:remove() {
       "kit packages remove ${named[*]}"
     return 1
   fi
-  manifest:write-all "${excluded[*]}" "${remaining[@]}" || return 1
+  manifest:write-all --keep "${excluded[*]}" "${remaining[@]}" || return 1
   materialize:all "${remaining[@]}" || return 1
   ok "packages: ${remaining[*]:-none}"
 }

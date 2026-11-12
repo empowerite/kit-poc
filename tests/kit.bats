@@ -163,6 +163,30 @@ tree-digest() {
   [ ! -e OWNER ]
 }
 
+@test "an answer changed in kit.yml reaches the delivered file through update, whatever verb ran in between" {
+  "${kit_checkout}/bin/kit" install github/ci
+  grep --quiet '^    runs-on: "ubuntu-latest"$' .github/workflows/kit-ci.yml
+  recorded=$(grep '  .github/workflows/kit-ci.yml$' .kit/manifest)
+  printf 'answers:\n  ci_runner: macos-latest\n' >> kit.yml
+  # a verb that hydrates, as an agent's hook does, and one that rewrites the manifests: neither placed the workflow,
+  # so its record stays the digest of what is there
+  printf 'x\n' > x.md
+  run "${kit_checkout}/bin/kit" context x.md
+  [ "$status" -eq 0 ]
+  [ "$(grep '  .github/workflows/kit-ci.yml$' .kit/manifest)" = "${recorded}" ]
+  run "${kit_checkout}/bin/kit" packages add style/json
+  [ "$status" -eq 0 ]
+  [ "$(grep '  .github/workflows/kit-ci.yml$' .kit/manifest)" = "${recorded}" ]
+  grep --quiet '  .kit/styles/json.md$' .kit/manifest
+  run "${kit_checkout}/bin/kit" update
+  [ "$status" -eq 0 ]
+  [[ "$output" == *".github/workflows/kit-ci.yml: unchanged since unreleased, replaced"* ]]
+  grep --quiet '^    runs-on: "macos-latest"$' .github/workflows/kit-ci.yml
+  [ "$(grep '  .github/workflows/kit-ci.yml$' .kit/manifest)" != "${recorded}" ]
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 0 ]
+}
+
 @test "a package whose metadata has a key the schema does not know is refused, naming the key" {
   later-release "${repo}.later"
   printf 'description: "x"\ndependz:\n  - kit\n' > "${repo}.later/packages/hooks/lefthook/package.yml"
@@ -670,6 +694,13 @@ tree-digest() {
   printf 'mine\n' > .kit/rules/toml.md
   run env KIT_BASE="${kit_checkout}" "${repo}.later/bin/kit" update
   [ "$status" -eq 1 ]
+  [[ "$output" == *".kit/rules/toml.md: a different file is there already"* ]]
+  [ "$(cat .kit/rules/toml.md)" = "mine" ]
+  # the path kit did not place has no record, so the next verb leaves it too
+  run ! grep --quiet 'rules/toml.md' .kit/manifest
+  printf 'x\n' > x.md
+  run "${repo}.later/bin/kit" context x.md
+  [ "$status" -eq 0 ]
   [[ "$output" == *".kit/rules/toml.md: a different file is there already"* ]]
   [ "$(cat .kit/rules/toml.md)" = "mine" ]
 }

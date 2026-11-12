@@ -110,6 +110,52 @@ setup() {
   [[ "$output" == *".kit/rules/bash.md is tracked by git"* ]]
 }
 
+@test "a repository's own file at a delivered path under .kit/ stays its own: hydrate names it and fails, and no verb records or replaces it" {
+  "${kit_checkout}/bin/kit" install
+  # a clone that carries a file of its own where the kit delivers one: nothing kit placed or recorded is there yet
+  chmod -R u+w .kit && rm .kit/manifest .kit/.gitignore
+  printf 'MY OWN RULE\n' > .kit/rules/bash.md
+  run "${kit_checkout}/bin/kit" hydrate
+  [ "$status" -eq 1 ]
+  [[ "$output" == *".kit/rules/bash.md: a different file is there already"* ]]
+  [[ "$output" == *"1 path(s) under .kit/ hold a file kit did not place"* ]]
+  [[ "$output" != *"hydrated .kit/"* ]]
+  run ! grep --quiet 'rules/bash.md' .kit/manifest
+  grep --quiet '  .kit/rules/json.md$' .kit/manifest
+  # the next verb warns again, and leaves the file as it is
+  printf 'x\n' > x.md
+  run "${kit_checkout}/bin/kit" context x.md
+  [ "$status" -eq 0 ]
+  [[ "$output" == *".kit/rules/bash.md: a different file is there already"* ]]
+  [ "$(cat .kit/rules/bash.md)" = "MY OWN RULE" ]
+  # kit update takes the path for the repository's too: neither release placed what is there
+  run "${kit_checkout}/bin/kit" update
+  [ "$status" -eq 1 ]
+  [[ "$output" == *".kit/rules/bash.md: a different file is there already"* ]]
+  [[ "$output" == *"1 file(s) need a hand"* ]]
+  [ "$(cat .kit/rules/bash.md)" = "MY OWN RULE" ]
+  run ! grep --quiet 'rules/bash.md' .kit/manifest
+  # without its write bit the file passes the quick look, and a verb that rewrites the manifest still records nothing
+  chmod a-w .kit/rules/bash.md
+  run "${kit_checkout}/bin/kit" packages add style/json
+  [ "$status" -eq 0 ]
+  run ! grep --quiet 'rules/bash.md' .kit/manifest
+  run "${kit_checkout}/bin/kit" hydrate
+  [ "$status" -eq 1 ]
+  [ "$(cat .kit/rules/bash.md)" = "MY OWN RULE" ]
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 1 ]
+  [[ "$output" == *".kit/rules/bash.md holds a different file"* ]]
+  # moved aside, the kit's file takes the path, with its record
+  rm -f .kit/rules/bash.md
+  run "${kit_checkout}/bin/kit" hydrate
+  [ "$status" -eq 0 ]
+  [[ "$output" == *".kit/rules/bash.md: placed"* ]]
+  grep --quiet '  .kit/rules/bash.md$' .kit/manifest
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 0 ]
+}
+
 @test "kit hydrate refuses a repository that declares no kit version, and a reading verb does nothing there" {
   run "${kit_checkout}/bin/kit" hydrate
   [ "$status" -eq 1 ]

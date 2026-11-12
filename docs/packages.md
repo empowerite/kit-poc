@@ -130,6 +130,9 @@ Each kind of source file is placed differently:
   repository's own packages are, and otherwise a copy without the write bit. `.kit/.gitignore`, which kit writes,
   names each one, so git never sees them; it and `.kit/manifest` have no write bit either. `kit hydrate` brings them
   to that state from the declaration, and every verb that reads a delivered file does the same first.
+- A path under `.kit/` that already holds a different file, which `.kit/manifest` never recorded, is the repository's
+  own. Every verb names it and leaves it as it is, no verb records it, and `kit hydrate` and `kit check` fail until
+  it is moved aside or removed.
 - Every other destination outside `.kit/` is a copy.
 - Where two active packages deliver the same path, the later package in dependency order wins.
 

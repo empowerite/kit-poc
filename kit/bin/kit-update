@@ -16,7 +16,8 @@
 #   - a merged JSON file is merged by key
 #   - a region is regenerated
 #   - a missing file is written
-#   - a path under .kit/ is brought to its state: a link to its source, or a readonly copy
+#   - a path under .kit/ is brought to its state: a link to its source, or a readonly copy; one that holds a file
+#     kit never placed is the repository's own, and is refused
 #   - any other file unchanged since the previous release is replaced
 #   - any other file edited since the previous release gets a three-way merge, which leaves conflict markers on a
 #     conflict
@@ -111,6 +112,7 @@ fi
 #   digest_of     the digest the manifest records for each path. When it records none, as in a fresh clone or
 #                 bin/refresh's export, where the manifest is not committed, the base release's digest of the path,
 #                 when that release delivers it. A path with neither is new in this release.
+#   from_base     each path whose digest is the base release's, the manifest recording none
 #   installed_of  the digest of the file at each copied path outside .kit/ that has one. A path the batch could not
 #                 digest, as when a file cannot be read, is left out, and digested on its own where it is asked about.
 #
@@ -128,7 +130,7 @@ read-base() {
     place:key base_key "${base_root}" "${base}" "${packages[@]}"
   fi
   manifest:records digest_of "${base}" || return 1
-  kind_of=() installed_of=()
+  kind_of=() installed_of=() from_base=()
   for row in "${delivered[@]}"
   do
     IFS=$'\t' read -r path src <<<"${row}"
@@ -159,6 +161,7 @@ read-base() {
   for i in "${!unrecorded[@]}"
   do
     digest_of[${unrecorded[i]}]=${digests[i]}
+    from_base[${unrecorded[i]}]=1
   done
   if (( ${#copies[@]} > 0 )) && file:digests digests "${dests[@]}" 2>/dev/null
   then
@@ -215,7 +218,7 @@ lacks-base() {
     && [[ "${digest_of[${path}]}" != "$(installed-digest "${src}" "${dest}" "${path}")" ]]
 }
 
-declare -A digest_of=() kind_of=() installed_of=() owned_state=() owned_ok=()
+declare -A digest_of=() kind_of=() installed_of=() from_base=() owned_state=() owned_ok=()
 root_of='' base_key='' did=''
 # Find every path that lacks its base, and every region a write would refuse, before writing anything, so an update
 # is all or nothing.
@@ -274,7 +277,16 @@ do
     if [[ -n "${owned_state[${path}]+x}" ]]
     then
       # A materialized path is a link to its source or a copy of the release's file, brought to that state, never
-      # merged: an edit under .kit/ is nobody's to keep.
+      # merged: an edit under .kit/ is nobody's to keep. One the manifest never recorded is kit's when it holds what
+      # this release places, or what the base release placed. Anything else there is the repository's own file: it
+      # is named and stays, as materialize:all leaves it.
+      if [[ -n "${from_base[${path}]+x}" && "${owned_ok[${path}]:-}" != true ]] \
+        && [[ -e "${dest}" || -L "${dest}" ]] && [[ ! -f "${dest}" || "${known}" != "$(file:digest "${dest}")" ]]
+      then
+        error "${dest}: a different file is there already; move it aside, or remove it if it is not yours"
+        conflicts=$(( conflicts + 1 ))
+        continue
+      fi
       materialize:bring did "${src}" "${dest}" "${owned_state[${path}]}" "${owned_ok[${path}]:-}" || exit 1
       case "${did}" in
         (kept) step "${dest}: as ${current} has it" ;;
@@ -312,7 +324,8 @@ do
   place:retire "${base_root}" "${base}" "${previous}" "${current}" "${packages[@]}"
 done
 
-# Before the manifest is rewritten, so a path the loop refused to overwrite is still unrecorded, and stays as it is.
+# Before the manifest is rewritten, so a path under .kit/ the loop refused to overwrite is still unrecorded, and stays
+# as it is. The manifest then records every path but that one: the loop placed each.
 materialize:all "${packages[@]}"
 manifest:write-all "${excluded[*]}" "${packages[@]}"
 if (( conflicts > 0 ))

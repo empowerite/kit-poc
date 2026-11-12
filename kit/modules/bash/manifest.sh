@@ -4,25 +4,34 @@
 # shellcheck disable=SC2154  # kit_root is exported by modules/bash/1st.sh
 #
 # Each base has a manifest, written beside what kit placed and ignored like it: one line per delivered path, the
-# release's digest of its content and the path. kit update compares a file against its digest to tell whether the
-# repository edited it. Home's manifest, with no settings file beside it, carries the version and the packages as
-# well, and is shared by every repository on the machine.
+# digest of the release's content kit placed there and the path. kit update compares a file against its digest to tell
+# whether the repository edited it. A record says kit placed the path, so a path kit did not place keeps the record it
+# had, and a path under .kit/ that holds the repository's own file has none. Home's manifest, with no settings file
+# beside it, carries the version and the packages as well, and is shared by every repository on the machine.
 #
 # see: docs/packages.md
 
-use release place settings file trust
+use release place materialize settings file trust
 
 # manifest:path <base> prints the base's manifest: .kit/manifest in the repository, ~/.kit/manifest for home.
 manifest:path() { release:dest "$1" .kit/manifest; }
 
-# manifest:write <base> <excluded> <package>… writes the base's manifest: the digest of the release's file
-# for every path delivered under the base, and under home, which has no settings file, the version and the active
-# packages as well. The repository's manifest is always written. Home's manifest is shared by every repository on
-# the machine. It is written when these packages deliver to home. When they do not, it drops the lines whose paths
-# no longer exist, and removes the file once no line is left.
+# manifest:write [--keep] <base> <excluded> <package>… writes the base's manifest: a record for every path delivered
+# under the base, as manifest:text prints them, and under home, which has no settings file, the version and the active
+# packages as well. A caller that placed every path, as kit install and kit update do, records the release's digest
+# for each. A caller that did not, as a verb that hydrates and kit packages do, passes --keep, and a path it did not
+# place keeps the digest the manifest records. The repository's manifest is always written. Home's manifest is shared
+# by every repository on the machine. It is written when these packages deliver to home. When they do not, it drops
+# the lines whose paths no longer exist, and removes the file once no line is left.
 manifest:write() {
-  local base=$1 excluded=$2 manifest path src delivered kept dest
+  local keep=false base excluded manifest path src delivered kept dest
   local -a paths
+  if [[ "$1" == --keep ]]
+  then
+    keep=true
+    shift
+  fi
+  base=$1 excluded=$2
   shift 2
   manifest=$(manifest:path "${base}")
   if [[ "${base}" == repo && -L "${manifest%/*}" ]]
@@ -51,7 +60,7 @@ manifest:write() {
     return 0
   fi
   # The manifest has no write bit, as every file kit places under .kit/ has none.
-  file:replace --read-only "${manifest}" manifest:text "${base}" "${excluded}" "${delivered}" "$@"
+  file:replace --read-only "${manifest}" manifest:text "${keep}" "${base}" "${excluded}" "${delivered}" "$@"
 }
 
 # manifest:kept-text <manifest> <kept> prints home's manifest with its header lines and the record lines in <kept>.
@@ -60,14 +69,19 @@ manifest:kept-text() {
   printf '%s\n' "$2"
 }
 
-# manifest:text <base> <excluded> <delivered> <package>… prints a manifest: its header; under home, the
-# version, the packages, and the excludes; and one record per "<path>\t<source>" line of <delivered>, the source's
-# digest and the path. The sources are digested together, by one process. It returns 1, having printed the header
-# alone, when a source cannot be read.
+# manifest:text <keep> <base> <excluded> <delivered> <package>… prints a manifest: its header; under home, the
+# version, the packages, and the excludes; and one record per "<path>\t<source>" line of <delivered>, a digest and
+# the path. The digest is the source's, which is what kit placed. With <keep> true it is the digest the manifest
+# records already, for a path that has one and that kit does not materialize: the caller did not place that path, and
+# what is there is still what the record says. A materialized path that holds the repository's own file, as
+# materialize:foreign finds it, has no record, in either case, so materialize:all goes on leaving it alone. The
+# sources are digested together, by one process. It returns 1, having printed the header alone, when the manifest or
+# a source cannot be read.
 manifest:text() {
-  local base=$1 excluded=$2 delivered=$3 path src row i
-  local -a rows paths=() srcs=() digests
-  shift 3
+  local keep=$1 base=$2 excluded=$3 delivered=$4 path src row i kind
+  local -a rows paths=() digests=() fresh=() srcs=() found owned=()
+  local -A recorded=() source=() materialized=() foreign=()
+  shift 4
   printf '# .kit/manifest - written by kit, not by hand\n'
   if [[ "${base}" != repo ]]
   then
@@ -79,35 +93,69 @@ manifest:text() {
     fi
     [[ -z "${excluded}" ]] || printf 'excludes %s\n' "${excluded}"
   fi
+  manifest:records recorded "${base}" || return 1
   readarray -t rows <<<"${delivered}"
   for row in "${rows[@]}"
   do
     IFS=$'\t' read -r path src <<<"${row}"
     [[ -n "${path}" ]] || continue
-    paths+=("${path}")
-    srcs+=("${src}")
+    source[${path}]=${src}
+    place:kind "${src}" "${path}" kind
+    if [[ "${kind}" == copy ]] && materialize:owned "${base}" "${path}"
+    then
+      materialized[${path}]=1
+      owned+=("${path}")
+    fi
   done
-  file:digests digests "${srcs[@]}" || return 1
+  (( ${#owned[@]} == 0 )) || materialize:foreign foreign recorded source "${owned[@]}"
+  for row in "${rows[@]}"
+  do
+    path=${row%%$'\t'*}
+    [[ -n "${path}" && -z "${foreign[${path}]+x}" ]] || continue
+    if [[ "${keep}" == true && -n "${recorded[${path}]:-}" && -z "${materialized[${path}]+x}" ]]
+    then
+      # A path recorded twice keeps its first digest.
+      digests+=("${recorded[${path}]%%$'\n'*}")
+    else
+      digests+=('')
+      fresh+=("${#paths[@]}")
+      srcs+=("${source[${path}]}")
+    fi
+    paths+=("${path}")
+  done
+  file:digests found "${srcs[@]}" || return 1
+  for i in "${!fresh[@]}"
+  do
+    digests[fresh[i]]=${found[i]}
+  done
   for i in "${!paths[@]}"
   do
     printf '%s  %s\n' "${digests[i]}" "${paths[i]}"
   done
 }
 
-# manifest:write-all <excluded> <package>… writes every base's manifest, then the repository's declaration in
-# kit.yml, keeping the clone's trust across it, as trust:keeping does. <excluded> is the excluded packages as a
-# space-separated list, empty when there are none.
+# manifest:write-all [--keep] <excluded> <package>… writes every base's manifest, as manifest:write does, with
+# --keep when the caller did not place every path, then the repository's declaration in kit.yml, keeping the clone's
+# trust across it, as trust:keeping does. <excluded> is the excluded packages as a space-separated list, empty when
+# there are none.
 manifest:write-all() {
-  local excluded=$1 base
+  local excluded base
+  local -a keep=()
   if [[ -z "${trust_keeping:-}" ]]
   then
     trust:keeping manifest:write-all "$@"
     return
   fi
+  if [[ "$1" == --keep ]]
+  then
+    keep=(--keep)
+    shift
+  fi
+  excluded=$1
   shift
   for base in $(release:bases)
   do
-    manifest:write "${base}" "${excluded}" "$@"
+    manifest:write "${keep[@]}" "${base}" "${excluded}" "$@"
   done
   settings:declare "$(release:version)" "${excluded}" "$@"
 }
