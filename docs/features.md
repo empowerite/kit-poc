@@ -81,7 +81,9 @@ root checkout on the human's machine. The human at the desk is not bound by thes
 delivers these steps to agents as `.kit/workflow.md`; a repository that leaves it out writes its own in `AGENTS.md`.
 
 1. `kit work <N>` creates the worktree `worktrees/<N>-<slug>`, a branch linked to the issue, and a draft pull
-   request. It moves any uncommitted work on the desk into the new worktree, and never switches the desk's branch.
+   request. At a terminal, or with `--sweep`, it moves any uncommitted work on the desk into the new worktree; with
+   `--no-sweep`, which an agent gives, that work stays on the desk; without a terminal and without either flag, it
+   refuses a desk that has uncommitted work, and names both. It never switches the desk's branch.
    It refuses an issue whose branch the desk has checked out, before it assigns, stashes, or commits anything. When
    it stops before the worktree has the swept work, the work goes back to the desk, staged work staged; when the
    work conflicts in the worktree, it stays in the stash, and `kit work` names the command that applies it.

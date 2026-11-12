@@ -129,7 +129,7 @@ func TestAnIssueUnderwayIsActedOnByItsNumberOnce(t *testing.T) {
 func TestStartForEachRunsKitWorkOncePerIssue(t *testing.T) {
 	m, record := selecting(t)
 	choose(t, m, "Start Local Work for Each")
-	if got := acted(t, record); !slices.Equal(got, []string{"work #46", "work #45"}) {
+	if got := acted(t, record); !slices.Equal(got, []string{"work --sweep #46", "work --sweep #45"}) {
 		t.Errorf("the calls: %q", got)
 	}
 }
@@ -158,7 +158,7 @@ func TestAClosingActionListsTheIssuesAndRunsOnlyOnYes(t *testing.T) {
 
 func TestAnActionThatAsksTakesTheTypedAnswer(t *testing.T) {
 	for _, c := range []struct{ name, answer, want string }{
-		{"Start Local Work Together…", "The plan", "work --title=The plan #46 #45"},
+		{"Start Local Work Together…", "The plan", "work --sweep --title=The plan #46 #45"},
 		{"Gather Under a Parent…", "The plan", "gather --title=The plan #46 #45"},
 		{"Assign to…", "bob", "assign --to=bob #46 #45"},
 		{"Close as Duplicate of…", "#7", "close --duplicate-of=#7 #46 #45"},

@@ -50,6 +50,8 @@
 #     anything; kit_serve_hydrated tells the verb so. While a changed kit.yml cannot be placed, every call and read
 #     is refused with -32603, which names kit hydrate, and the server places again before each message.
 #   - kit flow is always given --no-fetch, so incoming reads the refs as they are.
+#   - kit work is always given --no-sweep, and --sweep is never offered, so the desk's uncommitted work stays on the
+#     desk, where the human left it.
 #   - A word that acts is never offered: packages, toolchains, and tools are listings only, and context's hook mode,
 #     --claude, is the harness's own. An operand's value that is a word of the verb's syntax is refused, offered or
 #     not, and so is a value off its property's enum.
@@ -129,9 +131,11 @@ declare -grA serve_listing_acts=(
 # The words a tool does not offer for another reason: context's hook mode is the harness's own, and flow's desk and
 # worktrees are no stages, only kit workspace worktrees named, nor are its backlog and underway, only kittui's presets
 # of the issues stage. A workspace, which reads other clones, is a kit option, before the verb, so no tool offers one.
+# work's --sweep moves the desk's uncommitted work, which is the human's to ask for, at a terminal.
 declare -grA serve_hidden=(
   [context]='--claude'
   [flow]='desk worktrees backlog underway'
+  [work]='--sweep'
 )
 
 # The tools whose operands are paths. A call to one is refused when a word it makes, but a flag, leads outside the
@@ -144,9 +148,11 @@ declare -gra serve_checkout_tools=(check context kinds lint)
 serve_worktree='the checkout to run in, by its path: a worktree of this repository, such as worktrees/7-fix-the-thing,'
 serve_worktree+=' whose root the paths are then read from; default: the checkout the server runs in'
 
-# The flags the server gives a tool's verb itself, on any line that takes them, and never offers: flow never fetches.
+# The flags the server gives a tool's verb itself, on any line that takes them, and never offers: flow never fetches,
+# and work never sweeps the desk's uncommitted work into the worktree it makes.
 declare -grA serve_implied=(
   [flow]='no-fetch'
+  [work]='no-sweep'
 )
 
 # The name of the property that holds a line's leading word, where the verb has such lines.

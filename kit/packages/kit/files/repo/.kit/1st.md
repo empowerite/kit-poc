@@ -27,6 +27,11 @@ no worktree has checked out.
 An agent never checks out, resets, rebases, or otherwise changes the desk in place. An agent works in a worktree,
 which `kit work` makes. Work reaches the default branch only through a merged pull request.
 
+Uncommitted work on the desk is the human's to move. At a terminal, `kit work` sweeps it into the new worktree. An
+agent runs `kit work --no-sweep <N>`, which leaves it on the desk, and gives `--sweep` only when the human asks for
+that work to be moved. Without a terminal and without either flag, `kit work` refuses a desk that has uncommitted
+work, and names both. The `work` tool of `kit serve` never sweeps.
+
 ## The workflow
 
 How work moves from an issue to a merged pull request is the repository's to say. With the `workflow` package active,

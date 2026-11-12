@@ -320,6 +320,17 @@ call() {
     | length == 7 and all(.readOnlyHint and (.destructiveHint | not))'
 }
 
+@test "the work tool never sweeps the desk: the server gives --no-sweep itself, and offers neither flag" {
+  serve "$(modern 1 tools/list)" "$(call 2 work '{"reference":["7"]}')" \
+    "$(call 3 work '{"reference":["7"],"sweep":true}')" "$(call 4 work '{"reference":["7"],"no-sweep":true}')"
+  answer 1 | jq --exit-status '.result.tools[] | select(.name == "work")
+    | (.inputSchema.properties | has("sweep") or has("no-sweep") | not) and (.description | contains("sweep") | not)'
+  [ "$(grep --count ' kit work 7 --no-sweep$' .kit/logs/mcp-*.log)" -eq 1 ]
+  run ! grep --quiet ' kit work .*--sweep' .kit/logs/mcp-*.log
+  answer 3 | jq --exit-status '.error.code == -32602 and (.error.message | contains("unknown argument sweep"))'
+  answer 4 | jq --exit-status '.error.code == -32602 and (.error.message | contains("unknown argument no-sweep"))'
+}
+
 @test "a listing-only tool refuses an action given as an operand's value, and a value off its enum, unrun" {
   local before
   before=$(cksum kit.yml)

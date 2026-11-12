@@ -30,7 +30,10 @@
 #
 # Uncommitted work is handled by where it is:
 #
-#   - in the root checkout (the desk, which belongs to the human): moved into the new worktree, still uncommitted.
+#   - in the root checkout (the desk, which belongs to the human): the human's to move. Given --sweep first, or at
+#     a terminal, issue:start sweeps it; given --no-sweep first, it leaves it, and the desk, as they are; given
+#     neither, without a terminal, it refuses a desk that has uncommitted work, before it creates or assigns an
+#     issue, and names both flags. Swept work is moved into the new worktree, still uncommitted.
 #     The desk is left clean, and is fast-forwarded when it is on the default branch. If the work cannot be
 #     applied in the worktree, it stays in the stash and the command stops. When the command stops before the
 #     worktree has the work, by a refusal, a failed command, or an interrupt, the work goes back to the desk. Work a
@@ -684,13 +687,18 @@ issue:link-in-body() {
   fi
 }
 
-# issue:start (<reference>… | --title <title> [<reference>…] | --pr <change> <reference>…) does what the file header
-# describes; with --title alone, it creates the issue first. When the require_signing setting is true, it fails before writing anything if git has no signing key
-# configured.
+# issue:start [--sweep | --no-sweep] (<reference>… | --title <title> [<reference>…]), or issue:start --pr <change>
+# <reference>…, does what the file header describes; with --title alone, it creates the issue first. When the
+# require_signing setting is true, it fails before writing anything if git has no signing key configured.
 issue:start() {
   local n primary title default_branch main_root desk desk_branch branch wt stash="" pr created sigil noun new_title=''
-  local remote
+  local remote sweep=''
   local -a refs=() in_body=()
+  if [[ "${1:-}" == --sweep || "${1:-}" == --no-sweep ]]
+  then
+    sweep=${1#--}
+    shift
+  fi
   if [[ "${1:-}" == --pr ]]
   then
     shift
@@ -706,6 +714,20 @@ issue:start() {
   if [[ "$(settings:value require_signing)" == true ]]
   then
     guard:require signing-key || return 1
+  fi
+  main_root=$(git:main-root)
+  desk=$(git rev-parse --show-toplevel)
+  desk_branch=$(git -C "${desk}" rev-parse --abbrev-ref HEAD)
+  # The desk's uncommitted work is the human's to move: a terminal is where the human is, and a flag is a choice.
+  if [[ -z "${sweep}" && -t 0 && -t 2 ]]
+  then
+    sweep=sweep
+  elif [[ -z "${sweep}" && "${desk}" == "${main_root}" ]] && ! git:clean "${desk}"
+  then
+    error "refusing to start work: ${desk_branch} on the desk has uncommitted work, and there is no terminal, where" \
+      "kit work sweeps it; run kit work again with --sweep, which moves that work into the new worktree, or with" \
+      "--no-sweep, which leaves it on the desk"
+    return 1
   fi
   if (( $# == 0 ))
   then
@@ -729,9 +751,6 @@ issue:start() {
   remote=$(forge:push-remote) || return 1
   git fetch --quiet --prune --end-of-options "${remote}"
   default_branch=$(git:default-branch) || return 1
-  main_root=$(git:main-root)
-  desk=$(git rev-parse --show-toplevel)
-  desk_branch=$(git -C "${desk}" rev-parse --abbrev-ref HEAD)
   title=$(tracker:of "${primary}" title) || return 1
   section "Starting ${primary}: ${title}"
 
@@ -751,7 +770,7 @@ issue:start() {
   fi
   issue:assign "$@" \
     || warn "the work starts without every assignment; each issue that could not be assigned is named above"
-  if [[ "${desk}" == "${main_root}" ]] && ! git:clean "${desk}"
+  if [[ "${sweep}" == sweep && "${desk}" == "${main_root}" ]] && ! git:clean "${desk}"
   then
     step "Sweeping the uncommitted work on ${desk_branch} into the worktree"
     stash=$(issue:sweep-push "${desk}" "kit work ${primary} → ${branch}") || return

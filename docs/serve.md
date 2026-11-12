@@ -56,7 +56,9 @@ Each says so in its annotations: `readOnlyHint` is false, `destructiveHint` is t
 `idempotentHint` is true for all but `gather`, which creates an issue each time, and `leases`, whose take and renew
 move a lease's expiry each time, and `openWorldHint` is true, as each asks the code forge or, for `leases`, pushes to
 the primary remote. A client can then ask before it calls one. `work` is the one tool that writes the repository: it
-makes a branch, a worktree, which it places `.kit/` in, and a draft pull request. `leases` writes the clone's refs
+makes a branch, a worktree, which it places `.kit/` in, and a draft pull request. It never sweeps the desk's
+uncommitted work into that worktree: the server gives it `--no-sweep`, and does not offer `--sweep`, so the work
+stays where the human left it. Run `kit work --sweep` in a terminal to move it. `leases` writes the clone's refs
 under `refs/kit/`, which no file git sees holds.
 
 Each tool is described and typed from the verb's header, by the functions `kit help` and `kit syntax` use. So the

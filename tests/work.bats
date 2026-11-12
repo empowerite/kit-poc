@@ -280,7 +280,7 @@ desk-world() {
   desk-world
   printf 'mine\n' > notes.txt
   printf 'scratch\n' > scratch.txt
-  run "${kit_checkout}/bin/kit" work 7
+  run "${kit_checkout}/bin/kit" work --sweep 7
   [ "$status" -eq 0 ]
   [[ "$output" == *"Sweeping the uncommitted work on main into the worktree"* ]]
   [[ "$output" == *"Swept the work into "*"worktrees/7-fix-the-thing, uncommitted"* ]]
@@ -292,6 +292,57 @@ desk-world() {
   [ -z "$(git stash list)" ]
 }
 
+@test "without a terminal, kit work refuses a desk with uncommitted work, naming both flags, before it makes or assigns an issue" {
+  desk-world
+  printf 'mine\n' > notes.txt
+  printf 'scratch\n' > scratch.txt
+  run "${kit_checkout}/bin/kit" work 7
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"refusing to start work: main on the desk has uncommitted work, and there is no terminal"* ]]
+  [[ "$output" == *"with --sweep, which moves that work into the new worktree, or with --no-sweep, which leaves it"* ]]
+  [[ "$output" != *"Sweeping"* ]]
+  run "${kit_checkout}/bin/kit" work --title='A new thing'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"refusing to start work: main on the desk has uncommitted work"* ]]
+  run ! grep --quiet --extended-regexp 'add-assignee|^issue create' "${FAKE_DIR}/gh.calls"
+  [ ! -e worktrees ]
+  [ "$(git status --porcelain | sort)" = "$(printf ' M notes.txt\n?? scratch.txt')" ]
+  [ -z "$(git stash list)" ]
+  # the two flags are one choice
+  run "${kit_checkout}/bin/kit" work --sweep --no-sweep 7
+  [ "$status" -eq 2 ]
+  # a clean desk has nothing to choose
+  git restore notes.txt && rm scratch.txt
+  run "${kit_checkout}/bin/kit" work 7
+  [ "$status" -eq 0 ]
+}
+
+@test "kit work --no-sweep leaves the desk's uncommitted work on the desk, staged work staged, and the worktree has none" {
+  desk-world
+  printf 'mine\n' > notes.txt && git add notes.txt
+  printf 'scratch\n' > scratch.txt
+  run "${kit_checkout}/bin/kit" work --no-sweep 7
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"Sweeping"* && "$output" != *"Swept"* ]]
+  [ "$(git status --porcelain | sort)" = "$(printf '?? scratch.txt\nM  notes.txt')" ]
+  [ -z "$(git stash list)" ]
+  [ "$(cat worktrees/7-fix-the-thing/notes.txt)" = notes ]
+  [ ! -e worktrees/7-fix-the-thing/scratch.txt ]
+  [ -z "$(git -C worktrees/7-fix-the-thing status --porcelain)" ]
+  [ "$(git -C worktrees/7-fix-the-thing log --format=%s -1)" = "#7 start: Fix the thing" ]
+}
+
+@test "at a terminal, kit work with neither flag sweeps the desk's uncommitted work, as --sweep does anywhere" {
+  desk-world
+  printf 'mine\n' > notes.txt
+  run pty "'${kit_checkout}/bin/kit' work 7"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Sweeping the uncommitted work on main into the worktree"* ]]
+  [ "$(cat worktrees/7-fix-the-thing/notes.txt)" = mine ]
+  [ -z "$(git status --porcelain)" ]
+  [ -z "$(git stash list)" ]
+}
+
 @test "a sweep that conflicts in the worktree keeps the stash, names the command that applies it, and stops" {
   desk-world
   # the branch on origin changes notes.txt one way, and the desk another
@@ -299,7 +350,7 @@ desk-world() {
   git push --quiet --force origin theirs:7-fix-the-thing
   git switch --quiet main && git branch --quiet --delete --force theirs
   printf 'mine\n' > notes.txt
-  run "${kit_checkout}/bin/kit" work 7
+  run "${kit_checkout}/bin/kit" work --sweep 7
   [ "$status" -eq 1 ]
   stash=$(git rev-parse 'stash@{0}')
   [[ "$output" == *"the swept work conflicts in "*"worktrees/7-fix-the-thing. It is kept in the stash: "* ]]
@@ -317,7 +368,7 @@ desk-world() {
   printf 'mine\n' > notes.txt
   head=$(git rev-parse HEAD)
   origin_head=$(git -C "${repo}.origin.git" rev-parse 7-fix-the-thing)
-  run "${kit_checkout}/bin/kit" work 7
+  run "${kit_checkout}/bin/kit" work --sweep 7
   [ "$status" -eq 1 ]
   [ "$(git status --porcelain)" = " M notes.txt" ]
   [ -z "$(git stash list)" ]
@@ -334,7 +385,7 @@ desk-world() {
   printf 'staged\n' > staged.txt && git add staged.txt
   # a leftover directory where the worktree goes, which is not a worktree, stops kit work after the sweep
   mkdir -p worktrees/7-fix-the-thing
-  run "${kit_checkout}/bin/kit" work 7
+  run "${kit_checkout}/bin/kit" work --sweep 7
   [ "$status" -eq 1 ]
   [[ "$output" == *"The swept work is back on main."* ]]
   [ "$(cat notes.txt)" = mine ]
@@ -356,7 +407,7 @@ desk-world() {
   git add idea.txt
   git stash push --quiet --message 'an old idea'
   printf 'wip\n' >> lib/l
-  run "${kit_checkout}/bin/kit" work 7
+  run "${kit_checkout}/bin/kit" work --sweep 7
   [ "$status" -eq 0 ]
   [[ "$output" == *"Nothing to sweep"* ]]
   [ "$(git stash list --format=%gs)" = "On main: an old idea" ]
@@ -450,7 +501,7 @@ SHIM
   [ "$(git -C "${repo}.origin.git" rev-parse 7-fix-the-thing)" = "$(git -C "${repo}.origin.git" rev-parse main)" ]
   [ "$(git -C worktrees/7-fix-the-thing rev-parse --abbrev-ref '@{upstream}')" = upstream/7-fix-the-thing ]
   printf 'push: nowhere\n' >> kit.yml
-  run "${kit_checkout}/bin/kit" work 7
+  run "${kit_checkout}/bin/kit" work --sweep 7
   [ "$status" -eq 1 ]
   [[ "$output" == *"push 'nowhere' in kit.yml is not a remote; the remotes are: origin upstream"* ]]
 }
@@ -597,7 +648,7 @@ issue-call() {
 @test "kit work refuses a worktree policy.worktree refuses before it assigns, and warns of a branch that exists" {
   desk-world
   printf "policy:\n  worktree: '^wt/'\n  branch: '^x'\n" >> kit.yml
-  run "${kit_checkout}/bin/kit" work 7
+  run "${kit_checkout}/bin/kit" work --sweep 7
   [ "$status" -eq 1 ]
   [[ "$output" == *"branch '7-fix-the-thing' does not match policy.branch: ^x; kit policy refuses it in CI"* ]]
   [[ "$output" == *"refusing to check 7-fix-the-thing out: the worktree kit work makes, worktree"* ]]
@@ -631,7 +682,7 @@ issue-call() {
 @test "a start commit no subject of kit work's passes is refused before anything is assigned, naming the pattern" {
   desk-world
   printf "policy:\n  commit_subject: '^never'\n" >> kit.yml
-  run "${kit_checkout}/bin/kit" work 7
+  run "${kit_checkout}/bin/kit" work --sweep 7
   [ "$status" -eq 1 ]
   [[ "$output" == *"refusing to start #7: the start commit kit work makes, commit subject '#7 start: Fix the thing'"* ]]
   [[ "$output" == *"does not match policy.commit_subject: ^never; set policy.commit_subject in kit.yml to allow it"* ]]

@@ -2,8 +2,8 @@
 # kit-work - starts or resumes work on issues (kit verb: workflow)
 # ----------------------------------------------------------------------------------------------------------------------
 # Usage:
-#   kit work <reference>…
-#   kit work --title=<text> [<reference>…]
+#   kit work <reference>… [--sweep | --no-sweep]
+#   kit work --title=<text> [<reference>…] [--sweep | --no-sweep]
 #   kit work --pr=<number> <reference>…
 #
 # Starts work on issues, or resumes it. kit work makes each of these, and reuses any that already exists:
@@ -32,11 +32,17 @@
 # the issue's, that the policy refuses are warned of instead.
 #
 # The desk, the root checkout, is the human's. kit work refuses an issue whose branch the desk has checked out,
-# before it assigns, stashes, or commits anything. Uncommitted work on the desk is swept into the new worktree. When
-# the swept work conflicts there, it stays in the stash, kit work names the command that applies it, and stops. When
-# kit work stops before the worktree has that work otherwise, the work goes back to the desk, staged work staged.
-# When another session's stash lands on top of the sweep's, kit work sweeps nothing, and names the stash that holds
-# the desk's work.
+# before it assigns, stashes, or commits anything.
+#
+# Uncommitted work on the desk is the human's to move. At a terminal, or with --sweep, kit work sweeps it into the
+# new worktree. With --no-sweep, it stays on the desk, which kit work leaves as it is. Without a terminal and
+# without either flag, kit work refuses a desk that has uncommitted work, before it creates or assigns an issue, and
+# names both flags. An agent gives --no-sweep, and gives --sweep only when the human asks for the work to be moved.
+#
+# When the swept work conflicts in the worktree, it stays in the stash, kit work names the command that applies it,
+# and stops. When kit work stops before the worktree has that work otherwise, the work goes back to the desk, staged
+# work staged. When another session's stash lands on top of the sweep's, kit work sweeps nothing, and names the
+# stash that holds the desk's work.
 #
 # 7 and #7 name an issue on the forge, the service that hosts the repository: GitHub or GitLab. AB#4521 names an
 # Azure DevOps work item, when kit.yml declares that tracker. kit work asks nothing itself; kit tui asks for the
@@ -45,6 +51,8 @@
 # Arguments:
 #   <reference>…     the issues, each named with its tracker: 7, #7, or AB#4521; the first is the primary, and the
 #                    one pull request closes them all
+#   --sweep          moves the desk's uncommitted work into the new worktree, as kit work does at a terminal
+#   --no-sweep       leaves the desk's uncommitted work on the desk
 #   --title=<text>   creates an issue with that title and starts it; with references, creates it as their parent,
 #                    as kit gather does, and starts it with them
 #   --pr=<number>    adds the issues to one of the caller's own open pull requests instead: each is assigned to the
@@ -62,15 +70,19 @@ kit:enter
 use issue
 
 guard:arguments work "$@" || exit $?
+sweep=()
+# shellcheck disable=SC2154  # syntax_operands and syntax_options are set by guard:arguments
+[[ -z "${syntax_options[--sweep]+x}" ]] || sweep=(--sweep)
+[[ -z "${syntax_options[--no-sweep]+x}" ]] || sweep=(--no-sweep)
 # shellcheck disable=SC2154  # syntax_operands and syntax_options are set by guard:arguments
 if [[ -n "${syntax_options[--pr]+x}" ]]
 then
   issue:start --pr "${syntax_options[--pr]}" "${syntax_operands[@]}"
 elif [[ -n "${syntax_options[--title]+x}" ]]
 then
-  issue:start --title "${syntax_options[--title]}" "${syntax_operands[@]}"
+  issue:start "${sweep[@]}" --title "${syntax_options[--title]}" "${syntax_operands[@]}"
 else
-  issue:start "${syntax_operands[@]}"
+  issue:start "${sweep[@]}" "${syntax_operands[@]}"
 fi
 
 # ----------------------------------------------------------------------------------------------------------------------

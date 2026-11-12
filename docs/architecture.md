@@ -127,9 +127,12 @@ in place.
 Work starts from an issue:
 
 1. `kit work <N>` creates `worktrees/<N>-<slug>`, hydrated, a branch linked to the issue, a start commit, and a
-   draft pull request. If the desk has uncommitted work, `kit work` moves it into the new worktree and says so.
-   Then, when the desk is on the default branch, it also fast-forwards it. It does not change anything else on the
-   desk. It refuses an issue whose branch the desk has checked out, before it assigns, stashes, or commits anything.
+   draft pull request. If the desk has uncommitted work, `kit work` at a terminal, or with `--sweep`, moves it into
+   the new worktree and says so. Then, when the desk is on the default branch, it also fast-forwards it. It does not
+   change anything else on the desk. With `--no-sweep`, which an agent gives and the `work` tool of `kit serve`
+   always has, the work stays on the desk, and the desk is left as it is. Without a terminal and without either
+   flag, it refuses a desk that has uncommitted work, before it creates or assigns an issue, and names both flags.
+   It refuses an issue whose branch the desk has checked out, before it assigns, stashes, or commits anything.
    When it stops before the worktree has the swept work, it gives the work back to the desk, staged work staged;
    when the work conflicts in the worktree, it stays in the stash, and `kit work` names the command that applies it.
 2. In the worktree:

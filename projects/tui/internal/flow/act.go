@@ -296,16 +296,18 @@ func (m *Model) act(name string) tea.Cmd {
 			return trackersMsg{trackers, err}
 		}
 	case "Start Local Work for Each":
+		// The person at the screen chose this, and kit work has no terminal to see that by, so the flag says it: the
+		// desk's uncommitted work is swept into the first worktree made, as kit work does at a terminal.
 		var calls []call
 		for _, g := range groups {
 			for _, r := range g.refs {
-				calls = append(calls, call{g.dir, []string{"work", r}})
+				calls = append(calls, call{g.dir, []string{"work", "--sweep", r}})
 			}
 		}
 		return m.run(calls)
 	case "Start Local Work Together…":
 		question("Title of the parent issue", func(t string) []call {
-			return one(append([]string{"work", "--title=" + t}, refs...)...)
+			return one(append([]string{"work", "--sweep", "--title=" + t}, refs...)...)
 		})
 	case "Add to Pull Request…":
 		numbers, lines := m.mine()

@@ -9,7 +9,9 @@ repository's own rules in `AGENTS.md` apply as well. Where the two differ, `AGEN
 ## From an issue to a merged pull request
 
 1. Start from an issue. A change without an issue has not started.
-2. `kit work <N>` creates the following, and never switches the checkout you run it from:
+2. `kit work --no-sweep <N>` never switches the checkout you run it from. `--no-sweep` leaves the desk's uncommitted
+   work on the desk: it is the human's, and `--sweep` moves it into the new worktree only when the human asks for
+   that. `kit work` creates the following:
    - the worktree `worktrees/<N>-<slug>`, hydrated: what the kit delivers under `.kit/` is in place before your
      first command there
    - a branch, linked to the issue under Development
