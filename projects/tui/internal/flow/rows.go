@@ -279,7 +279,7 @@ func entries(records []record) []table.Record {
 }
 
 // rows gives a stage's rows from what it loaded, laid out for the width, as its panel lets them through; nothing while
-// it loads or after a refusal.
+// it loads or after a refusal, but the heading over the groups, as build says.
 func (m Model) rows(i int) []row { return m.shown(i).rows }
 
 // offered gives the columns a stage's panel lists in its editor, as filled says, kept as its rows are.
@@ -308,10 +308,21 @@ type shown struct {
 }
 
 // build gives a stage's rows from what it loaded, as its panel lets them through, and what the panel shows of them,
-// as table.Build builds them.
+// as table.Build builds them. A stage that loads, or that kit refused, gives no row, whatever it holds of the load
+// before: the pane draws the line that says so in their place, and no key, click, or action reaches a row behind it.
+// A refused stage whose rows grouped keeps the heading over the groups alone, with nothing folded under it, so the
+// refusal stands under the control line the rows stood under.
 func (m Model) build(i int) shown {
 	s, p := m.stages[i], m.filter(i)
 	b := table.Build(catalog[s.name], entries(m.records(s)), p, m.names(i), m.paneWidth())
+	switch {
+	case s.refusal != "" && table.BarText(b.Rows) != "":
+		over := b.Rows[0]
+		over.Folded = nil
+		b.Rows = []row{over}
+	case s.refusal != "" || s.src.Loading:
+		b.Rows = nil
+	}
 	return shown{b.Rows, b.Names, b.Levels, b.All, b.Drawn}
 }
 

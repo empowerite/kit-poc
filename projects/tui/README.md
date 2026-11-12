@@ -64,7 +64,10 @@ not `marked`, as People's three, Trust's controls and waivers, and Issues' itera
 read again on Refresh only. A calendar day, as a due, start, or end, draws as its UTC day. A tab of a stage that reads
 the forge reads the rate limits again as it loads; any tab reads them as it loads while the app has none, so every app
 draws them, Platform's too. A tab kit read only part of, as a capped list, counts what it drew with a +, `50+`; a
-feature the forge has off here, as secret scanning, says so, dim, under the rows, and is no failure.
+feature the forge has off here, as secret scanning, says so, dim, under the rows, and is no failure. A tab whose read
+fails, the first or a later one, shows kit's line in place of its rows, under the heading over its groups where the
+rows grouped. The rows of the read before are gone until the tab is read again, so no key, click, or action reaches
+one behind the line.
 A link to a row of a tab the app does not have opens the app built around that tab's entity.
 
 Each screen reads what it shows from kit as JSON. A form reads `kit syntax <verb>`, the picture reads
