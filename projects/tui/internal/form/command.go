@@ -11,10 +11,10 @@ import (
 )
 
 // Collect gathers the answers the fields hold, as Fields takes them: a toggle on and each flag of an any-of row as
-// ["1"], a one-of row's choice by its ordinal, a wildcard's --x=y lines as options, and every value by its key.
+// ["1"], a one-of row's choice by its path, a wildcard's --x=y lines as options, and every value by its key. A row
+// that is no longer among the fields has no choice here, so it does not come back chosen.
 func Collect(fields []Field) Answers {
-	a := Answers{Options: map[string][]string{}, Values: map[string][]string{}, Chosen: map[int]int{}}
-	ordinal := 0
+	a := Answers{Options: map[string][]string{}, Values: map[string][]string{}, Chosen: map[string]int{}}
 	for _, f := range fields {
 		switch f.Kind {
 		case Toggle:
@@ -26,8 +26,7 @@ func Collect(fields []Field) Answers {
 				a.Options[key] = []string{"1"}
 			}
 		case OneOf:
-			a.Chosen[ordinal] = f.Chosen
-			ordinal++
+			a.Chosen[f.Path] = f.Chosen
 		case Wildcard:
 			for _, line := range f.Values {
 				key, value, _ := strings.Cut(line, "=")
@@ -51,9 +50,9 @@ func Collect(fields []Field) Answers {
 func CommandLine(spec syntax.Spec, fields []Field) []string {
 	e := &emitter{spec: spec, answers: Collect(fields)}
 	if len(spec.Syntax) == 1 {
-		e.sequence(spec.Syntax[0])
+		e.sequence(spec.Syntax[0], under("", 0))
 	} else {
-		e.group(syntax.Node{Kind: "group", Alternatives: spec.Syntax})
+		e.group(syntax.Node{Kind: "group", Alternatives: spec.Syntax}, "")
 	}
 	return e.words
 }
@@ -63,14 +62,14 @@ type emitter struct {
 	spec    syntax.Spec
 	answers Answers
 	words   []string
-	groups  int
 }
 
-func (e *emitter) sequence(nodes []syntax.Node) {
-	for _, n := range nodes {
+// sequence writes the words of one sequence, at its path in the grammar, as Fields walks it.
+func (e *emitter) sequence(nodes []syntax.Node, path string) {
+	for i, n := range nodes {
 		switch n.Kind {
 		case "group":
-			e.group(n)
+			e.group(n, under(path, i))
 		case "literal":
 			e.words = append(e.words, n.Name)
 		case "flag":
@@ -91,17 +90,15 @@ func (e *emitter) sequence(nodes []syntax.Node) {
 	}
 }
 
-// group walks the alternative chosen for the group, as Collect recorded it by the group's ordinal; a group of one
+// group walks the alternative chosen for the group, as Collect recorded it by the group's path; a group of one
 // alternative is walked as it stands.
-func (e *emitter) group(n syntax.Node) {
+func (e *emitter) group(n syntax.Node, path string) {
 	if len(n.Alternatives) == 1 {
-		e.sequence(n.Alternatives[0])
+		e.sequence(n.Alternatives[0], under(path, 0))
 		return
 	}
-	chosen, ok := e.answers.Chosen[e.groups]
-	e.groups++
-	if ok && chosen >= 0 && chosen < len(n.Alternatives) {
-		e.sequence(n.Alternatives[chosen])
+	if chosen, ok := e.answers.Chosen[path]; ok && chosen >= 0 && chosen < len(n.Alternatives) {
+		e.sequence(n.Alternatives[chosen], under(path, chosen))
 	}
 }
 

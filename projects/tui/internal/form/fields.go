@@ -8,6 +8,7 @@ package form
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/empowerite/kit/projects/tui/internal/syntax"
@@ -37,9 +38,11 @@ func (k FieldKind) String() string { return kindNames[k] }
 // (a toggle's on state is ["1"], a row's the keys on, a one-of's nothing: Chosen is its alternative, -1 for none).
 // Choices is closed, open, or empty, for a pick. Required is a part the command line needs; Repeat whether the field
 // takes several values. Refusal is the line the verb would print about the answer as it stands. Group is the index
-// of the one-of field whose chosen alternative holds this field, -1 at the top.
+// of the one-of field whose chosen alternative holds this field, -1 at the top. Path is a one-of row's place in the
+// grammar, as Answers keys its choice.
 type Field struct {
 	Key, Label, Description string
+	Path                    string
 	Kind                    FieldKind
 	Choices                 string
 	Options                 []string
@@ -51,12 +54,24 @@ type Field struct {
 }
 
 // Answers is what the person has given so far: the sorted command line, as kit syntax --match gives it, and the
-// alternative chosen in each one-of row, by the row's ordinal in the walk, when nothing given decides it.
+// alternative chosen in each one-of row, when nothing given decides it, by the row's path: the place of its group in
+// the grammar, which no other row has, so a choice stays with its row whatever the rows before it choose. A path is
+// the indexes that lead to the group, joined by /: a usage line, a node of it, an alternative of that group, a node
+// of it, and so on. The row of a verb's several usage lines is "", and a group that is the second node of a verb's
+// one line is "0/1".
 type Answers struct {
 	Literals []string
 	Options  map[string][]string
 	Values   map[string][]string
-	Chosen   map[int]int
+	Chosen   map[string]int
+}
+
+// under gives the path of the i-th part of what a path names: a group's alternative, or an alternative's node.
+func under(path string, i int) string {
+	if path == "" {
+		return strconv.Itoa(i)
+	}
+	return path + "/" + strconv.Itoa(i)
 }
 
 // FromMatch takes the answers from a judged command line.
@@ -75,13 +90,12 @@ func (a Answers) values(key string) []string {
 // has says whether the key was answered at all.
 func (a Answers) has(key string) bool { return len(a.values(key)) > 0 }
 
-// walker builds the fields along the grammar, consuming the literals given in order and counting one-of rows.
+// walker builds the fields along the grammar, consuming the literals given in order.
 type walker struct {
 	spec     syntax.Spec
 	answers  Answers
 	fields   []Field
 	literals int
-	groups   int
 }
 
 // Fields gives the form's fields for the spec and the answers so far, in the usage line's order.
@@ -91,9 +105,9 @@ func Fields(spec syntax.Spec, a Answers) ([]Field, error) {
 	}
 	w := &walker{spec: spec, answers: a}
 	if len(spec.Syntax) == 1 {
-		w.sequence(spec.Syntax[0], -1, true)
+		w.sequence(spec.Syntax[0], -1, true, under("", 0))
 	} else {
-		w.group(syntax.Node{Kind: "group", Alternatives: spec.Syntax}, -1, true)
+		w.group(syntax.Node{Kind: "group", Alternatives: spec.Syntax}, -1, true, "")
 	}
 	return w.fields, nil
 }
@@ -104,9 +118,10 @@ func (w *walker) describe(key string) (string, string) {
 	return a.Description, a.Choices
 }
 
-// sequence walks one sequence, folding runs of optional lone flags into one any-of row. Its nodes are required when
-// the command line needs the sequence: at the top, or in an alternative chosen, but not inside [ ].
-func (w *walker) sequence(nodes []syntax.Node, group int, required bool) {
+// sequence walks one sequence, at its path in the grammar, folding runs of optional lone flags into one any-of row.
+// Its nodes are required when the command line needs the sequence: at the top, or in an alternative chosen, but not
+// inside [ ].
+func (w *walker) sequence(nodes []syntax.Node, group int, required bool, path string) {
 	for i := 0; i < len(nodes); i++ {
 		n := nodes[i]
 		if flag, ok := loneFlag(n); ok {
@@ -129,7 +144,7 @@ func (w *walker) sequence(nodes []syntax.Node, group int, required bool) {
 		}
 		switch n.Kind {
 		case "group":
-			w.group(n, group, required)
+			w.group(n, group, required, under(path, i))
 		case "literal":
 			// a literal is fixed by its alternative; at the top it names the operand that follows it, as kit new's file
 			// <path>, and in a row's alternative the row already shows it
@@ -228,8 +243,9 @@ func (w *walker) wildcardValues() []string {
 // group adds a one-of row for a group of alternatives, and walks the chosen alternative after it, whose nodes the
 // command line then needs. A group of one alternative has no row: its nodes stand on their own, optional inside [ ].
 // At the top, an alternative that adds no word, every node of it inside [ ], as kit flow's picture with its options,
-// makes the row optional: it is chosen while no other is, and named by the command it leaves, kit and the verb.
-func (w *walker) group(n syntax.Node, parent int, required bool) {
+// makes the row optional: it is chosen while no other is, and named by the command it leaves, kit and the verb. The
+// row's choice is the answers' for the group's path, so it is this row's own.
+func (w *walker) group(n syntax.Node, parent int, required bool, path string) {
 	required = required && !n.Optional
 	if len(n.Alternatives) == 1 {
 		if n.Optional {
@@ -239,23 +255,21 @@ func (w *walker) group(n syntax.Node, parent int, required bool) {
 				return
 			}
 		}
-		w.sequence(n.Alternatives[0], parent, required)
+		w.sequence(n.Alternatives[0], parent, required, under(path, 0))
 		return
 	}
-	ordinal := w.groups
-	w.groups++
 	bare := -1
 	if parent < 0 {
 		bare = bareAlternative(n.Alternatives)
 	}
-	f := Field{Kind: OneOf, Required: required && bare < 0, Chosen: -1, Group: parent}
+	f := Field{Kind: OneOf, Required: required && bare < 0, Chosen: -1, Group: parent, Path: path}
 	f.Options = labels(n.Alternatives)
 	if bare >= 0 {
 		f.Options[bare] = "kit " + w.spec.Verb
 	}
 	f.Key = strings.Join(f.Options, " | ")
 	f.Label = f.Key
-	if f.Chosen = w.choose(n.Alternatives, ordinal); f.Chosen < 0 {
+	if f.Chosen = w.choose(n.Alternatives, path); f.Chosen < 0 {
 		f.Chosen = bare
 	}
 	switch {
@@ -268,7 +282,7 @@ func (w *walker) group(n syntax.Node, parent int, required bool) {
 	index := len(w.fields)
 	w.fields = append(w.fields, f)
 	if f.Chosen >= 0 {
-		w.sequence(n.Alternatives[f.Chosen], index, true)
+		w.sequence(n.Alternatives[f.Chosen], index, true, under(path, f.Chosen))
 	}
 }
 
@@ -282,12 +296,13 @@ func bareAlternative(alternatives [][]syntax.Node) int {
 	return -1
 }
 
-// choose picks the alternative the answers select: the one chosen by hand for this row, else the one the next
-// literal given opens, else the one that holds an answered key, else -1. A literal that opens the alternative itself
-// is consumed here; one that opens it through a group it starts with is left for that group's row to consume.
-func (w *walker) choose(alternatives [][]syntax.Node, ordinal int) int {
-	if chosen, ok := w.answers.Chosen[ordinal]; ok {
-		if chosen >= 0 && chosen < len(alternatives) && len(alternatives[chosen]) > 0 && alternatives[chosen][0].Kind == "literal" {
+// choose picks the alternative the answers select: the one chosen by hand for the row at this path, when the row has
+// it, else the one the next literal given opens, else the one that holds an answered key, else -1. A literal that
+// opens the alternative itself is consumed here; one that opens it through a group it starts with is left for that
+// group's row to consume.
+func (w *walker) choose(alternatives [][]syntax.Node, path string) int {
+	if chosen, ok := w.answers.Chosen[path]; ok && chosen < len(alternatives) {
+		if chosen >= 0 && len(alternatives[chosen]) > 0 && alternatives[chosen][0].Kind == "literal" {
 			w.literals++
 		}
 		return chosen

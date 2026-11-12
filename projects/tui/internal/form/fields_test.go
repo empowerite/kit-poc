@@ -94,7 +94,7 @@ func TestCommitEmptyAndPrefilled(t *testing.T) {
 func TestPackagesLiteralChoosesItsAlternative(t *testing.T) {
 	// kit packages opens with a one-of row over its two usage lines; with the acting line chosen, the literal add
 	// opens its word in the row that follows, and the packages come after it
-	fields, err := Fields(specs(t)["packages"], Answers{Literals: []string{"add"}, Chosen: map[int]int{0: 1}})
+	fields, err := Fields(specs(t)["packages"], Answers{Literals: []string{"add"}, Chosen: map[string]int{"": 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +145,7 @@ func TestPackagesLiteralChoosesItsAlternative(t *testing.T) {
 
 func TestStatusRowsAndTheOwnerGroup(t *testing.T) {
 	// kit flow opens with a one-of row over its seven usage lines; the picture's line, chosen, brings its rows
-	fields, err := Fields(specs(t)["flow"], Answers{Chosen: map[int]int{0: 0}})
+	fields, err := Fields(specs(t)["flow"], Answers{Chosen: map[string]int{"": 0}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -292,7 +292,7 @@ func TestARequiredFieldIsTaggedUntilItHasAnAnswer(t *testing.T) {
 	if view = RenderStatic(commit, fields, 100); !strings.Contains(view, "\n   one of required\n   --message  the message") {
 		t.Errorf("commit: the row is not headed by the tag:\n%s", view)
 	}
-	fields, _ = Fields(commit, Answers{Chosen: map[int]int{0: 0}})
+	fields, _ = Fields(commit, Answers{Chosen: map[string]int{"0/1": 0}})
 	if view = RenderStatic(commit, fields, 100); strings.Contains(view, "required") {
 		t.Errorf("commit --message: a tag with the alternative chosen:\n%s", view)
 	}
@@ -304,7 +304,7 @@ func TestARequiredFieldIsTaggedUntilItHasAnAnswer(t *testing.T) {
 	if view = RenderStatic(flags, fields, 100); !strings.Contains(view, "\n   --up   --down required  goes up") {
 		t.Errorf("a row of flags:\n%s", view)
 	}
-	fields, _ = Fields(flags, Answers{Chosen: map[int]int{0: 1}})
+	fields, _ = Fields(flags, Answers{Chosen: map[string]int{"0/0": 1}})
 	if view = RenderStatic(flags, fields, 100); !strings.Contains(view, "\n   --up   *--down*           goes down") {
 		t.Errorf("a row of flags, one chosen, keeps its column:\n%s", view)
 	}
@@ -312,7 +312,7 @@ func TestARequiredFieldIsTaggedUntilItHasAnAnswer(t *testing.T) {
 
 func TestAChosenRequiredFlagDrawsNoValueUnderItsName(t *testing.T) {
 	spec := specs(t)["context"]
-	fields, err := Fields(spec, Answers{Chosen: map[int]int{0: 1}})
+	fields, err := Fields(spec, Answers{Chosen: map[string]int{"": 1}})
 	if err != nil {
 		t.Fatal(err)
 	}

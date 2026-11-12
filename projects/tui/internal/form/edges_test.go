@@ -14,7 +14,7 @@ import (
 // row of --mine and --others, and gives the form and the row's index.
 func anyOf(t *testing.T) (Model, int) {
 	t.Helper()
-	m := newForm(t, "flow", Answers{Chosen: map[int]int{0: 0}}, false)
+	m := newForm(t, "flow", Answers{Chosen: map[string]int{"": 0}}, false)
 	m = send(m, key("down"), key("down"), key("down"), key("tab"), key("tab"), key("space"))
 	i := slices.IndexFunc(m.fields, func(f Field) bool { return f.Kind == AnyOf && slices.Contains(f.Options, "--others") })
 	if i < 0 {
@@ -108,7 +108,7 @@ func TestAListKitRefusedTakesWhatIsTyped(t *testing.T) {
 // In a list kit calls a set, the hint counts what the command line adds and what it removes: an active row turned off
 // is one to remove, and a row not active turned on one to add.
 func TestASetCountsWhatTheLineAddsAndRemoves(t *testing.T) {
-	m := newForm(t, "packages", Answers{Literals: []string{"select"}, Chosen: map[int]int{0: 1}}, true)
+	m := newForm(t, "packages", Answers{Literals: []string{"select"}, Chosen: map[string]int{"": 1}}, true)
 	i := slices.IndexFunc(m.fields, func(f Field) bool { return f.Kind == PickMany })
 	m = focusOn(m, i)
 	if !m.sets[m.fields[i].Key] {

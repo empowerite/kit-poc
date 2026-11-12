@@ -143,14 +143,14 @@ func TestOneOfTabsAndChoosesOnTheSpace(t *testing.T) {
 		t.Errorf("backspace: %+v", m.fields)
 	}
 	// kit commit needs one of its lines, so backspace leaves the choice where it is.
-	m = newForm(t, "commit", Answers{Chosen: map[int]int{0: 0}}, false)
+	m = newForm(t, "commit", Answers{Chosen: map[string]int{"0/1": 0}}, false)
 	m.focus = slices.IndexFunc(m.fields, func(f Field) bool { return f.Kind == OneOf })
 	m, _ = drive(t, m, keys("backspace")...)
 	if f := m.fields[m.focus]; f.Kind != OneOf || f.Chosen != 0 {
 		t.Errorf("backspace on a required row: %+v", f)
 	}
 	// kit flow's owner row, under the picture's line, is optional, so backspace clears it.
-	m = newForm(t, "flow", Answers{Chosen: map[int]int{0: 0}}, false)
+	m = newForm(t, "flow", Answers{Chosen: map[string]int{"": 0}}, false)
 	m, _ = drive(t, m, keys("down", "down", "down", "tab", "space")...)
 	if m.fields[3].Chosen != 0 {
 		t.Fatalf("the space on the owner row: %+v", m.fields[3])
@@ -171,7 +171,7 @@ func TestOneOfTabsAndChoosesOnTheSpace(t *testing.T) {
 func TestAnyOfSpace(t *testing.T) {
 	// flow's owner row, under the picture's line, its second alternative chosen, opens an any-of row of --mine and
 	// --others
-	m := newForm(t, "flow", Answers{Chosen: map[int]int{0: 0}}, false)
+	m := newForm(t, "flow", Answers{Chosen: map[string]int{"": 0}}, false)
 	m, _ = drive(t, m, keys("down", "down", "down", "tab", "tab", "space", "down", "space", "tab", "space")...)
 	if got := strings.Join(m.CommandLine(), " "); got != "--mine --others" {
 		t.Errorf("toggled: %q", got)
@@ -184,7 +184,7 @@ func TestAnyOfSpace(t *testing.T) {
 
 func TestJSONAndJQAreOneOrTheOther(t *testing.T) {
 	// the picture's output row is --text | --json | --jq: the space chooses along it, so one flag stands at a time
-	m := newForm(t, "flow", Answers{Chosen: map[int]int{0: 0}}, false)
+	m := newForm(t, "flow", Answers{Chosen: map[string]int{"": 0}}, false)
 	m, _ = drive(t, m, keys("down", "down", "tab", "tab", "space")...)
 	if got := strings.Join(m.CommandLine(), " "); got != "--json" {
 		t.Errorf("the output row on --json: %q", got)
@@ -217,7 +217,7 @@ func TestPickManyFilterAndCount(t *testing.T) {
 }
 
 func TestStatefulPickIsSeededAndANoteUndoesTheFlip(t *testing.T) {
-	m := newForm(t, "packages", Answers{Literals: []string{"select"}, Chosen: map[int]int{0: 1}}, false)
+	m := newForm(t, "packages", Answers{Literals: []string{"select"}, Chosen: map[string]int{"": 1}}, false)
 	m, _ = drive(t, m)
 	if m.focus != 2 || strings.Join(m.fields[2].Values, " ") != "a b" {
 		t.Fatalf("seeded with the active rows: focus %d, %+v", m.focus, m.fields[2])
@@ -264,7 +264,7 @@ func TestEscGoesBackAndCtrlQCancels(t *testing.T) {
 func TestNarrowWidthGoesVertical(t *testing.T) {
 	// the picture's output row draws its names side by side at 80 columns, and one per line at 40, where its names
 	// would not fit; the line's own name, the usage line whole, is the one line that may still say --json and --jq
-	m := newForm(t, "flow", Answers{Chosen: map[int]int{0: 0}}, false)
+	m := newForm(t, "flow", Answers{Chosen: map[string]int{"": 0}}, false)
 	if view := stripANSI(m.View().Content); !strings.Contains(view, "--text   --json   --jq") {
 		t.Fatalf("not one row at 80 columns:\n%s", view)
 	}
@@ -343,7 +343,7 @@ func stripANSI(s string) string {
 }
 
 func TestAddStartsEmptyAndDrawsEachRowsStateBesideItsBox(t *testing.T) {
-	m := newForm(t, "packages", Answers{Literals: []string{"add"}, Chosen: map[int]int{0: 1}}, false)
+	m := newForm(t, "packages", Answers{Literals: []string{"add"}, Chosen: map[string]int{"": 1}}, false)
 	m, _ = drive(t, m)
 	if len(m.fields[2].Values) != 0 || strings.Join(m.CommandLine(), " ") != "add" {
 		t.Fatalf("add was seeded: %+v, %q", m.fields[2], m.CommandLine())
@@ -363,7 +363,7 @@ func TestHintsWrapAtFiftyColumns(t *testing.T) {
 	}{
 		{"lint", Answers{}, []string{"down"}},
 		{"commit", Answers{}, []string{"tab", "space", "down"}},
-		{"packages", Answers{Literals: []string{"select"}, Chosen: map[int]int{0: 1}}, nil},
+		{"packages", Answers{Literals: []string{"select"}, Chosen: map[string]int{"": 1}}, nil},
 	} {
 		m := newForm(t, c.verb, c.a, false)
 		m, _ = drive(t, m, tea.WindowSizeMsg{Width: 50, Height: 40})
@@ -483,7 +483,7 @@ func TestTheKeysBarIsTheLastLineWhereverTheKeyboardIs(t *testing.T) {
 		}{
 			{"commit", Answers{}, []string{"tab", "space", "down"}, false, clipped}, // --message's lines, with their hint
 			{"lint", Answers{}, []string{"down"}, false, many},                      // a list of 3000 rows, with its count
-			{"packages", Answers{Literals: []string{"select"}, Chosen: map[int]int{0: 1}}, nil, false, many},
+			{"packages", Answers{Literals: []string{"select"}, Chosen: map[string]int{"": 1}}, nil, false, many},
 			{"flow", Answers{}, nil, true, command},
 		} {
 			t.Setenv("FAKE_KIT_ROWS", "")
@@ -698,7 +698,7 @@ func TestAListsWindowSaysHowManyRowsItHides(t *testing.T) {
 	}
 	// a list that fits shows neither line
 	t.Setenv("FAKE_KIT_ROWS", "")
-	m := newForm(t, "packages", Answers{Literals: []string{"select"}, Chosen: map[int]int{0: 1}}, false)
+	m := newForm(t, "packages", Answers{Literals: []string{"select"}, Chosen: map[string]int{"": 1}}, false)
 	m, _ = drive(t, m, tea.WindowSizeMsg{Width: 80, Height: 40})
 	if got := hidden(screen(m)); len(got) != 0 || m.focus != 2 {
 		t.Errorf("a list of 3 rows: %q", got)
