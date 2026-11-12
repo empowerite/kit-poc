@@ -5,7 +5,8 @@ once no other active package depends on it. It is then listed under `excludes:` 
 it out. It delivers:
 
 - `.kit/1st.md`, the entry file every agent reads. The `agents/generic` package points the repository's
-  `AGENTS.md` to it; see [agents/generic.md](agents/generic.md).
+  `AGENTS.md` to it; see [agents/generic.md](agents/generic.md). With no agents package active, nothing sends an
+  agent there, and the last line of `kit install` and of `kit update` names the command that adds one.
 - `.kit/README.md`, the directory explained to the person at the desk: what is committed, what is placed, and how to
   change what kit adds.
 - `.kit/welcome/`, the pages of `kit welcome`, one per step: the introduction, toolchains, setup, customize, and

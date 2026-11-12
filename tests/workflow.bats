@@ -13,15 +13,36 @@ setup() {
   fresh-repo
 }
 
-@test "install's last line names the file the workflow is in: .kit/workflow.md with the package, else none" {
-  run "${kit_checkout}/bin/kit" install workflow
+@test "install's last line names the file the workflow is in with the package, and says whether an agent is sent to .kit/1st.md" {
+  run "${kit_checkout}/bin/kit" install workflow agents/generic
   [ "$status" -eq 0 ]
   [[ "${lines[${#lines[@]} - 1]}" == *"The workflow is in .kit/workflow.md." ]]
   run "${kit_checkout}/bin/kit" uninstall
+  # no agents package: nothing sends an agent to the entry file, and the line names the command that adds one
+  run "${kit_checkout}/bin/kit" install workflow
+  [ "$status" -eq 0 ]
+  [[ "${lines[${#lines[@]} - 1]}" == *"The workflow is in .kit/workflow.md. No agent is sent to .kit/1st.md yet; run: kit packages add agents/generic"* ]]
+  run "${kit_checkout}/bin/kit" uninstall
   run "${kit_checkout}/bin/kit" install
   [ "$status" -eq 0 ]
+  [ ! -e AGENTS.md ]
   [[ "$output" != *"The workflow is in"* ]]
+  [[ "$output" != *"Every agent reads"* ]]
+  [[ "${lines[${#lines[@]} - 1]}" == *"ignored. No agent is sent to .kit/1st.md yet; run: kit packages add agents/generic"* ]]
+  # the command it names makes an agent read the entry file, and the line then says so
+  run "${kit_checkout}/bin/kit" packages add agents/generic
+  [ "$status" -eq 0 ]
+  grep --quiet '\.kit/1st\.md' AGENTS.md
+  run "${kit_checkout}/bin/kit" update
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"No agent is sent"* ]]
   [[ "${lines[${#lines[@]} - 1]}" == *"Every agent reads .kit/1st.md first." ]]
+  # without the kit package there is no entry file, and the line names none
+  run "${kit_checkout}/bin/kit" packages remove agents/generic kit
+  [ "$status" -eq 0 ]
+  run "${kit_checkout}/bin/kit" update
+  [ "$status" -eq 0 ]
+  [[ "${lines[${#lines[@]} - 1]}" == *"what it placed under .kit/ is ignored." ]]
 }
 
 @test "kit install alone delivers the entry file without the workflow, the worker contract, or a forge's command" {

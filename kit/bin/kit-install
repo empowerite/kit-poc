@@ -15,6 +15,9 @@
 # kit install names it and leaves it alone; it writes no manifest until every path is clear. A repository whose
 # kit.yml already declares a kit version is refused: run kit update.
 #
+# Its last line says what to commit. With an agents package among the active ones, it names .kit/1st.md, the entry
+# file every agent then reads. With none, nothing sends an agent there, and the line names the command that adds one.
+#
 # Arguments:
 #   <package>…   more packages to activate, by name or glob such as 'style/*'
 #

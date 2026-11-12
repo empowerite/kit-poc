@@ -96,8 +96,10 @@ what a team can change. It also names terminal settings that make kittui slower 
 ## Take the kit
 
 1. Run `kit install` with the packages you want. With no names, it installs the `kit` package: the entry file and
-   the rules. `kit packages remove kit` removes it once no other active package depends on it, and lists it under
-   `excludes:` so `kit update` leaves it out. The optional packages are:
+   the rules. That alone sends no agent to the entry file: an `agents/<harness>` package does, and until one is
+   active the last line of `kit install` says so and names the command that adds one. `kit packages remove kit`
+   removes the `kit` package once no other active package depends on it, and lists it under `excludes:` so
+   `kit update` leaves it out. The optional packages are:
 
    | Package | Delivers |
    | --- | --- |

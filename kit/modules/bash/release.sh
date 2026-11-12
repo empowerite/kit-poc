@@ -159,15 +159,25 @@ release:fetch() {
   printf '%s\n' "${cache}"
 }
 
-# release:finish <package>… reports a finished install or update. It names where the workflow is when the workflow
-# package delivers it, and otherwise the entry file every agent reads.
+# release:finish <package>… reports a finished install or update. Its last line names where the workflow is when the
+# workflow package delivers it, and otherwise the entry file every agent reads, when an agents package is active: each
+# sends its agent there. With the kit package, which delivers the entry file, and no agents package, the line says
+# that no agent is sent there yet, and names the command that adds the package that sends one.
 release:finish() {
-  local read=' Every agent reads .kit/1st.md first.'
+  local read='' agent=''
   ok "kit $(release:version) is installed, packages: ${*:-none}; kit.yml declares them."
   release:say-unmet "$@" || return 1
   release:say-notices "$@" || return 1
+  if [[ " $* " == *" agents/"* ]]
+  then
+    read=' Every agent reads .kit/1st.md first.'
+  elif [[ " $* " == *" kit "* ]]
+  then
+    agent=' No agent is sent to .kit/1st.md yet; run: kit packages add agents/generic, which sends any agent that'
+    agent+=' reads AGENTS.md, or add the adapter of yours, which kit packages lists.'
+  fi
   [[ " $* " != *" workflow "* ]] || read=' The workflow is in .kit/workflow.md.'
-  step "Commit kit.yml and what kit changed outside .kit/; what it placed under .kit/ is ignored.${read}"
+  step "Commit kit.yml and what kit changed outside .kit/; what it placed under .kit/ is ignored.${read}${agent}"
 }
 
 # release:say-notices <package>… prints each notice of the packages whose path this process placed afresh, or merged
