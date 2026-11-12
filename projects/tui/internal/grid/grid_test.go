@@ -1768,3 +1768,44 @@ func TestASortIsAlwaysARaisedOrLoweredNumber(t *testing.T) {
 		t.Error("the digits the legend lists")
 	}
 }
+
+// Values that the natural order holds equal and that differ all the same, as Bug and bug do, or v7 and v07, stand
+// under a heading each, with a key of its own, however their rows alternate as they came: the exact text orders the
+// values the natural order ties, the upper case first, and descending turns that round too.
+func TestValuesTheNaturalOrderTiesStandUnderAHeadingEach(t *testing.T) {
+	columns := []string{"id", "label"}
+	row := func(id, label string) Row { return Row{Key: id, Cells: []Cell{one(id), one(label)}} }
+	rows := []Row{row("#1", "Bug"), row("#2", "bug"), row("#3", "Bug"), row("#4", "bug"), row("#5", "v7"),
+		row("#6", "v07"), row("#7", "v7"), row("#8", "v07")}
+	texts := func(p Panel) []string {
+		var out []string
+		keys := map[string]bool{}
+		for _, r := range p.group(rows, columns) {
+			text := r.Key
+			if r.Aside {
+				if keys[r.Key] {
+					t.Errorf("two headings share the key %q", r.Key)
+				}
+				keys[r.Key], text = true, ansi.Strip(r.Cells[0].first())
+			}
+			out = append(out, text)
+		}
+		return out[1:]
+	}
+	p := Panel{Groupable: map[string]bool{"label": true}}.Grouped("label", false)
+	want := []string{"▾ Bug 2", "#1", "#3", "▾ bug 2", "#2", "#4", "▾ v07 2", "#6", "#8", "▾ v7 2", "#5", "#7"}
+	if got := texts(p); !slices.Equal(got, want) {
+		t.Errorf("up: %q, want %q", got, want)
+	}
+	p.Fields["label"] = Field{Placement: Group, Depth: 1, Sort: Descending}
+	want = []string{"▾ v7 2", "#5", "#7", "▾ v07 2", "#6", "#8", "▾ bug 2", "#2", "#4", "▾ Bug 2", "#1", "#3"}
+	if got := texts(p); !slices.Equal(got, want) {
+		t.Errorf("down: %q, want %q", got, want)
+	}
+	// a given order lists Bug alone: bug, which it does not list, follows it, apart
+	p = Panel{Groupable: p.Groupable, Given: map[string][]string{"label": {"v7", "Bug"}}}.Grouped("label", false)
+	want = []string{"▾ v7 2", "#5", "#7", "▾ Bug 2", "#1", "#3", "▾ bug 2", "#2", "#4", "▾ v07 2", "#6", "#8"}
+	if got := texts(p); !slices.Equal(got, want) {
+		t.Errorf("given: %q, want %q", got, want)
+	}
+}

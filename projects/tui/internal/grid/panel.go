@@ -444,7 +444,9 @@ const (
 const Joined = "·"
 
 // ranked compares two of a group's values: by their places in its given order, where it has one, a value it does not
-// list after those it does; else, and between two it does not list, naturally.
+// list after those it does; else, and between two it does not list, naturally, and then by their exact text, so that
+// only a value and itself compare equal. Two values the natural order ties, Bug and bug, or v7 and v07, are two
+// groups, and the rows of each stand together.
 func ranked(rank map[string]int, a, b string) int {
 	x, inX := rank[a]
 	y, inY := rank[b]
@@ -456,7 +458,7 @@ func ranked(rank map[string]int, a, b string) int {
 	case inY:
 		return 1
 	}
-	return natural(a, b)
+	return cmp.Or(natural(a, b), strings.Compare(a, b))
 }
 
 // GroupMark gives what stands for a field the rows are grouped by at a depth: the grouping glyph and the depth as a

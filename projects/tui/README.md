@@ -237,7 +237,10 @@ Each screen reads what it shows from kit as JSON. A form reads `kit syntax <verb
     With the first level closed, nothing shows. A ▸ opens its level and every level over it; a value's heading shown
     shows what it holds alone, as Show does. A click on a column's name there drops the column's own menu, in
     `heading.go`, as a name in the header does. A field of several values, as assignees or labels, groups too: a row
-    stands under each of its values, the same row, its selection one.
+    stands under each of its values, the same row, its selection one. A group's values stand in their natural order,
+    each run of digits by its number and letters without regard to case; two values that order ties, `Bug` and `bug`,
+    or `v7` and `v07`, are two groups, in the order of their exact text, the upper case first, each with every row of
+    its value.
   - The column names and the rule under them, with each sort's mark, start at the first column. They stand under the
     headings of the outermost levels that have one value alone, the rows' context, and over the first item of the
     first level of more than one value, or over the first row, a blank line apart from those headings, as from the
