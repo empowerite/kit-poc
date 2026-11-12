@@ -266,12 +266,12 @@ func (m Model) pane() []string {
 	return out
 }
 
-// lines gives the selected step's lines: a step with checks has its page and its checks, setup then the members of the
-// workspace's group with no checkout, and any other step its page.
+// lines gives the selected step's lines: a step with checks has its page's title, its checks, setup then the members
+// of the workspace's group with no checkout, and the rest of its page under them; any other step has its page.
 func (m Model) lines() []line {
 	switch {
 	case m.hasRows():
-		return append(m.stepLines(), m.notCloned()...)
+		return m.footed(append(m.stepLines(), m.notCloned()...))
 	}
 	return m.pageText(m.step)
 }
@@ -315,10 +315,18 @@ func (m Model) pageText(i int) []line {
 		add(lead + style.Off("reading…"))
 		return out
 	}
+	return m.drawn(i, m.tabs[i].page, "")
+}
+
+// drawn gives a part of the step i's page as lines: its markdown drawn to the width, what the step's search finds in
+// it highlighted, each link where it stands, and each code block and table whole, a block of the step's, named under
+// the part.
+func (m Model) drawn(i int, md, part string) []line {
+	var out []line
 	query := m.searches[m.tabs[i].id].Query
-	lines, blocks, links := wide(m.tabs[i].page, m.width-len(lead)-1)
+	lines, blocks, links := wide(md, m.width-len(lead)-1)
 	for _, l := range lines {
-		add(strings.TrimRight(lead+shell.Found(l, query), " "))
+		out = append(out, line{row: -1, text: strings.TrimRight(lead+shell.Found(l, query), " ")})
 	}
 	for _, l := range links {
 		l.Col += len(lead)
@@ -326,14 +334,50 @@ func (m Model) pageText(i int) []line {
 	}
 	for _, b := range blocks {
 		for k := b.From; k < b.To; k++ {
-			out[k].block, out[k].lead = m.tabs[i].id+"/"+b.ID, len(lead)
+			out[k].block, out[k].lead = m.tabs[i].id+"/"+part+b.ID, len(lead)
 		}
 	}
 	return out
 }
 
-// stepLines gives the lines of a step with checks: its page, kit's refusal, its checks, and each failed one's fix and
-// where to read more under it, as the toolchains check's other choices.
+// split gives a page's markdown in two: up to its title, a `# ` heading that is its first line of text, after any
+// comments, and the rest. A page that starts with anything else has no title, and is all rest.
+func split(md string) (title, rest string) {
+	at, comment := 0, false
+	for _, raw := range strings.SplitAfter(md, "\n") {
+		text := strings.TrimSpace(raw)
+		at += len(raw)
+		switch {
+		case comment || strings.HasPrefix(text, "<!--"):
+			comment = !strings.Contains(text, "-->")
+		case text == "":
+		case pageTitle.MatchString(text):
+			return md[:at], md[at:]
+		default:
+			return "", md
+		}
+	}
+	return "", md
+}
+
+// stepFoot gives the lines a step with checks has under its checks: the rest of its page, after its title.
+func (m Model) stepFoot() []line {
+	_, rest := split(m.tabs[m.step].page)
+	return m.drawn(m.step, rest, "")
+}
+
+// footed gives a step's lines with its foot under them, a blank line between; a page that is its title alone adds
+// nothing.
+func (m Model) footed(out []line) []line {
+	foot := m.stepFoot()
+	if len(foot) > 0 && len(out) > 0 && out[len(out)-1].text != "" {
+		out = append(out, line{row: -1})
+	}
+	return append(out, foot...)
+}
+
+// stepLines gives the lines of a step with checks, over its foot: its page's title, kit's refusal, its checks, and
+// each failed one's fix and where to read more under it, as the toolchains check's other choices.
 func (m Model) stepLines() []line {
 	w := m.width - 1
 	out := m.stepHead()
@@ -355,14 +399,15 @@ func (m Model) stepLines() []line {
 	return append(out, m.stepTail(rows)...)
 }
 
-// stepHead gives the lines a step with checks starts with: its page, what the search finds in it highlighted, and kit's
-// refusal.
+// stepHead gives the lines a step with checks starts with: its page's title, what the search finds in it highlighted,
+// and kit's refusal. A page with no title starts with its checks.
 func (m Model) stepHead() []line {
 	w := m.width - 1
 	var out []line
 	add := func(row int, text string) { out = append(out, line{row: row, text: pane.Clip(text, w)}) }
-	if t := m.tabs[m.step]; t.missing == "" && t.page != "" {
-		out = append(out, m.pageText(m.step)...)
+	title, _ := split(m.tabs[m.step].page)
+	if head := m.drawn(m.step, title, "title/"); len(head) > 0 {
+		out = append(out, head...)
 		add(-1, "")
 	}
 	if m.refusal != "" {

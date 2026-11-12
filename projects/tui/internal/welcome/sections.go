@@ -13,6 +13,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/charmbracelet/x/ansi"
+
 	"github.com/empowerite/kit/projects/tui/internal/pane"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/style"
@@ -259,14 +261,41 @@ func (m *Model) placeSheets() {
 	}
 }
 
-// sheetPane gives the pane of the selected step drawn as a table: the lead, then the table's lines, each clipped to
-// the screen.
+// sheetPane gives the pane of the selected step drawn as a table: the lead, then the table's lines, and, under the
+// setup step's, its foot, as sheetFoot places it.
 func (m Model) sheetPane() []string {
-	out := m.leadLines(m.step)
+	view := m.sheetView()
+	at, foot := m.sheetFoot(view)
+	for k, l := range foot {
+		view[at+k] = pane.Clip(l.text, m.width-1)
+	}
+	return append(m.leadLines(m.step), view...)
+}
+
+// sheetView gives the lines of the selected step's table, each clipped to the screen.
+func (m Model) sheetView() []string {
+	var out []string
 	for _, l := range m.sheet().View() {
 		out = append(out, pane.Clip(l, m.width-1))
 	}
 	return out
+}
+
+// sheetFoot gives the foot of the setup step's table, the rest of the step's page after its title, and the line of
+// the table's lines it starts on: a line under the table's last line that is not blank, where the lines left blank
+// under that hold all of it. It gives none for any other step's table, and none where the table leaves no such room.
+func (m Model) sheetFoot(view []string) (int, []line) {
+	if m.tabs[m.step].id != setupID {
+		return 0, nil
+	}
+	foot, used := m.stepFoot(), len(view)
+	for used > 0 && strings.TrimSpace(ansi.Strip(view[used-1])) == "" {
+		used--
+	}
+	if used+1+len(foot) > len(view) {
+		return 0, nil
+	}
+	return used + 1, foot
 }
 
 // sheetNotice gives the keys bar's line in place of the keys while the selected step's table says what it did, or why

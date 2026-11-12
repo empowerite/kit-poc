@@ -1,11 +1,13 @@
 // Package welcome is kit welcome on a terminal: a step per page as tabs along the top, the step's content below, and
 // the keys bar last. The steps are the pages under .kit/welcome/, as kit welcome --text finds and orders them: each has
 // an id, which kit's checks name as their step, a glyph, a name, and its page. A page kit knows keeps its glyph, its
-// name, and its checks; any other, as a house package adds, is a plain page. A step with checks draws its page, then
-// its checks, one row each; the setup step, where kit names each check's folder, draws them as one table, as setup.go
-// says. A check with a fix offers the fix's pair on the cursor's row, as internal/fix draws it: ⧉, or c, puts the fix
-// on the clipboard, and ▶️, or r, where kit runs the fix, runs kit welcome --fix=<id> with the terminal handed over,
-// then reads the checks again. A fix kit only shows, as one that must run in the person's own shell, offers ⧉ alone. A
+// name, and its checks; any other, as a house package adds, is a plain page. A step with checks draws its page's
+// title, then its checks, one row each, then the rest of its page, so it opens with its checks on the screen. The
+// setup step, where kit names each check's folder, draws its checks as one table, as setup.go says, with the rest of
+// its page under the table where the table leaves it room. A check with a fix offers the fix's pair on the cursor's
+// row, as internal/fix draws it: ⧉, or c, puts the fix on the clipboard, and ▶️, or r, where kit runs the fix, runs
+// kit welcome --fix=<id> with the terminal handed over, then reads the checks again. A fix kit only shows, as one
+// that must run in the person's own shell, offers ⧉ alone. A
 // terminal's failed finding offers ⧉ and keep, its fix shown under it and never run: keep, or k, runs kit welcome
 // --keep=<id> and takes the check kit says, so it holds from then on. A terminal's findings that hold, not kept, are drawn on no row: its
 // heading says the terminal, and what failed or is kept stands under it. The other steps are markdown pages drawn as
@@ -15,7 +17,8 @@
 // The steps are a tab bar, internal/tabs. While it has the keyboard, tab and shift-tab move between the steps; a step's
 // number, or a click on the bar, selects it from anywhere and gives the bar the keyboard. Down, or enter, gives the
 // pane the keyboard: a step's rows, where up on the first gives it back, or its page,
-// which up and down then scroll, and up at the top gives it back; a click on a check's line puts the cursor there. The
+// which up and down then scroll, and up at the top gives it back; a click on a check's line puts the cursor there. On
+// a step's last row, down, page down, and end scroll on to the rest of its page, and up brings the rows back. The
 // mouse wheel scrolls the pane under it, or the step's table, the keyboard and the cursor left where they are. Esc gives
 // the bar the keyboard back. Ctrl-c quits with 130 from anywhere, and ctrl-q quits with 0; esc never
 // quits. The screen opens on the introduction while the checks run, and stays there when they answer. A step with
@@ -775,14 +778,23 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "up":
 		m.up(1)
 	case "down":
+		if m.past(1) {
+			return m, nil
+		}
 		m.down(1)
 	case "pgup":
 		m.page(-max(1, m.paneHeight()-1))
 	case "pgdown":
+		if m.past(max(1, m.paneHeight()-1)) {
+			return m, nil
+		}
 		m.page(max(1, m.paneHeight()-1))
 	case "home":
 		m.page(-ends)
 	case "end":
+		if m.past(ends) {
+			return m, nil
+		}
 		m.page(ends)
 	case "enter":
 		if !m.inPane {
@@ -1053,6 +1065,18 @@ func (m *Model) page(n int) {
 		at := max(0, slices.Index(rows, m.cursor))
 		m.cursor = rows[min(max(at+n, 0), len(rows)-1)]
 	}
+}
+
+// past scrolls the pane n lines on from a step's last row, and says whether it did: with the cursor on that row, down,
+// page down, and end have no row to go to, so they scroll to the rest of the step's page, under its checks. The pane
+// stays there until the cursor moves or the screen is fitted again, which brings the cursor's row back into view.
+func (m *Model) past(n int) bool {
+	rows := m.rows(m.step)
+	if !m.inPane || !m.hasRows() || len(rows) == 0 || m.cursor != rows[len(rows)-1] {
+		return false
+	}
+	m.scroll(n)
+	return true
 }
 
 // ends is more lines or rows than a step ever has, so a page of it reaches the first or the last, as home and end do.

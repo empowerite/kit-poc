@@ -90,6 +90,9 @@ toolchains; see [toolchains.md](toolchains.md):
   subject names, and `kit policy` uses it in CI to read the pull request.
 - For an Azure DevOps tracker: `az`, the Azure CLI.
 
+kit checks bash each time it starts. It finds a missing git, jq, or yq only when it first runs that tool.
+`kit welcome` checks all four at once.
+
 ## Which release runs
 
 kit uses the first of these that is set:

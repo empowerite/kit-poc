@@ -1,26 +1,18 @@
 <!-- kit:generated -- kit welcome's third step, setup, from the kit package -->
 <!-- see: "Changing what kit adds" in .kit/1st.md, to replace it -->
-# Setup — kit checks this machine once, then each folder of the workspace on its own
+# Setup — this machine's logins, then each folder of the workspace
 
-With kit's own tools in place and the machine's package manager settled, this step checks the rest. Each folder is
-checked on its own, since each [branch](kittui:welcome/terms/branch) can have a `kit.yml` or none, and pin its own kit:
+This step checks what the work in a repository needs. On this machine, it checks the command-line tool of each
+[code forge](kittui:welcome/terms/code%20forge) your repositories use, and your login there. Then it checks each
+folder of the [workspace](kittui:welcome/terms/workspace) on its own, the [desk](kittui:welcome/terms/desk) first
+and then each [worktree](kittui:welcome/terms/worktree). In a folder, it checks kit and the files it places, the git
+hooks, the tools and linters, and `kit check`.
 
-- This machine: for each [code forge](kittui:welcome/terms/code%20forge) among the folders' remotes, its command-line
-  tool, installed and logged in, once
-  per host.
-- Each folder, by [repository](kittui:welcome/terms/repository), its [desk](kittui:welcome/terms/desk) first, then
-  each [worktree](kittui:welcome/terms/worktree): kit installed, with the version its `kit.yml`
-  declares; `.kit/` in place; the git hooks installed; its tool manager; the hooks' runner and the linters the
-  rules run; and `kit check` clean, run by the kit that folder pins.
+When a check fails, the line under it gives the command that fixes it, or says where to read more. Run the command
+yourself, or have kit run it and check again. kit runs nothing until you ask. A folder's fix runs in that folder.
 
-The [workspace](kittui:welcome/terms/workspace) is the one `kit workspaces --current` names, or the one `kit
---workspace=<workspace> welcome` names: a
-repository, its desk and its worktrees; a group, every member's. With no workspace, only the machine is checked.
-
-A missing tool's fix in a folder is `kit tools install`, which installs what its tool manager pins. With no
-tool manager, the fix is the package manager's command. With neither, the check says where to get the tool.
-
-A failed check shows the command that fixes it. Nothing runs until you say so. Run the command yourself, or let kit
-run it and check again. A folder's fix runs in that folder.
+A check drawn 💡 is an offer: it holds, and you can leave it. Outside a repository, with no workspace, only the
+machine is checked. For how kit finds the folders, read
+[docs/workspaces.md](https://github.com/empowerite/kit/blob/main/docs/workspaces.md).
 
 `kit welcome --checks`

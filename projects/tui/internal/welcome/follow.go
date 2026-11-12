@@ -124,8 +124,8 @@ func (m *Model) pressed(msg tea.MouseClickMsg) (tea.Cmd, bool) {
 	return nil, false
 }
 
-// setupLead gives the lines the setup table has over it: its page, kit's refusal, and, while the checks run again,
-// what they are on.
+// setupLead gives the lines the setup table has over it: its page's title, kit's refusal, and, while the checks run
+// again, what they are on. The blank line under them is leadLines'.
 func (m Model) setupLead() []string {
 	var out []string
 	for _, l := range m.stepHead() {
@@ -136,5 +136,23 @@ func (m Model) setupLead() []string {
 		m.addChecking(add)
 		out = append(out, "")
 	}
+	if n := len(out); n > 0 {
+		// the head and the checking each end with a blank line
+		out = out[:n-1]
+	}
 	return out
+}
+
+// setupLinkAt gives where the link at a cell of the screen leads, over the setup step's table: on its lead, the
+// page's title, or on its foot, the rest of the page; "" where there is none.
+func (m Model) setupLinkAt(x, y int) string {
+	row, lead := y-m.paneTop(), m.leadLines(m.step)
+	if head := m.stepHead(); row >= 0 && row < len(head) && len(lead) > 0 {
+		return linkIn(head[row].links, x)
+	}
+	at, foot := m.sheetFoot(m.sheetView())
+	if k := row - len(lead) - at; k >= 0 && k < len(foot) {
+		return linkIn(foot[k].links, x)
+	}
+	return ""
 }

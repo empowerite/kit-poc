@@ -248,10 +248,10 @@ see: [architecture.md](architecture.md#the-workflow-and-the-gate)
 kit's screens and what each shows, Flow first, how work moves from an issue to a release, are a tutorial that ships
 with the kit, `kit tutorials applications`; see [tutorials.md](tutorials.md).
 
-- On a terminal, it opens in kittui, on the introduction. A step's tab counts its failed checks in red. A failed
-  check offers its fix on the row under the cursor: ⧉, or `c`, copies it, and ▶️, or `r`, runs it where kit can. A
-  folder's fix is shown and copied with `cd <folder> &&` in front, as every remedy kit prints is, so it runs wherever
-  it is pasted.
+- On a terminal, it opens in kittui, on the introduction. A step's tab counts its failed checks in red. A step with
+  checks shows its page's title, then its checks, then the rest of its page. A failed check offers its fix on the
+  row under the cursor: ⧉, or `c`, copies it, and ▶️, or `r`, runs it where kit can. A folder's fix is shown and
+  copied with `cd <folder> &&` in front, as every remedy kit prints is, so it runs wherever it is pasted.
 - Without a terminal, or with `--text`, it prints each page with its checks, and does not run anything. It exits 1
   when a check fails.
 - A check that holds can still offer a fix: an offer, drawn 💡, which needs no attention and fails nothing. kit runs in

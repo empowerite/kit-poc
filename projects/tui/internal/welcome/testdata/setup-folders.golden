@@ -4,9 +4,6 @@
   ────────────────────╰───────────────────╯               ╰─────────────────╰─────────────╰─────────────────────────────
    Setup — kit checks this machine, then each folder
 
-   Each line is a check. When one fails and kit knows the fix, choose now to run it or later to move on.
-
-
   ▾ repository ▾ 6                                                                               📇 Fields  Default ▼
     ──────────────
       folder                  branch       kit    git  installed  .kit  hooks  toolchain  tools  check
@@ -25,6 +22,9 @@
          💡 kit is not installed here; it runs on what it infers
             cd /code/a/worktrees/7-the-topic && kit install
   ▾ github.com/o/b 1
-↓¹¹
+    ▾ 💻 b                    main         0.2.0  ✅   ✅         ✅    ·      ❌         ❌     ❌
+         ❌ several tool managers are usable for the project: mise, brew; choose one
+            cd /code/b && kit toolchains use mise
+↓⁸
 
  = menu - workspace / search ? legend │ ⇥·⇧⇥ tab ↓ folders 1-5 jump : tab menu
