@@ -870,27 +870,35 @@ guard:unknown-verb() {
 # guard:arguments <verb> <argument>… judges a verb's arguments against its syntax, read from its header, so every verb
 # refuses in one place and in the same words: an unknown flag or argument, an option without its value, two
 # alternatives of one group together, or a required argument missing, each in one line that points to kit help <verb>.
-# A --help or -h among the arguments, before any --, is answered with that page in this process's place, so every
-# verb has the --help a person types first. A verb short of a required argument hands off instead, when stdin,
-# stdout, and stderr are all terminals and kittui can be found (modules/bash/tui.sh): it execs kit tui -- <verb>
-# <argument>…, whose form asks for the rest. It returns 2 on a refusal, 1 when the verb's usage cannot be read to
-# judge a --jq, and 0 when the arguments complete the syntax, which the verb then parses itself; with --jq beside a
-# --json the verb takes, guard:jq runs it in this process's place.
-# shellcheck disable=SC2154  # syntax_literals, syntax_missing, and syntax_refusal are set by modules/bash/syntax.sh
+# A --help or -h among the arguments, before any -- and before the first word of a command the verb runs, is answered
+# with that page in this process's place, so every verb has the --help a person types first; one after a command's
+# first word is the command's, as in kit tools run prettier --help. A verb short of a required argument hands off
+# instead, when stdin, stdout, and stderr are all terminals and kittui can be found (modules/bash/tui.sh): it execs
+# kit tui -- <verb> <argument>…, whose form asks for the rest. It returns 2 on a refusal, 1 when the verb's usage
+# cannot be read to judge a --jq, and 0 when the arguments complete the syntax, which the verb then parses itself;
+# with --jq beside a --json the verb takes, guard:jq runs it in this process's place.
+# shellcheck disable=SC2154  # the syntax_ variables it reads are set by modules/bash/syntax.sh
 guard:arguments() {
-  local verb=$1 status=0 argument usage form line
+  local verb=$1 status=0 argument usage form line help='' at=0
   shift
   for argument in "$@"
   do
     [[ "${argument}" != -- ]] || break
     if [[ "${argument}" == --help || "${argument}" == -h ]]
     then
-      exec "${kit_root}/bin/kit-help" "${verb}"
+      help=${at}
+      break
     fi
+    at=$(( at + 1 ))
   done
   guard:require tool:jq || return 2
   use syntax || return 2
   syntax:match "${verb}" "$@" || status=$?
+  # only the match knows where a command's own words begin
+  if [[ -n "${help}" ]] && (( help < ${syntax_command:-$#} ))
+  then
+    exec "${kit_root}/bin/kit-help" "${verb}"
+  fi
   if (( status == 0 ))
   then
     # --jq beside --json is --json read through jq ., where the form the words take, by its literals, offers --json;

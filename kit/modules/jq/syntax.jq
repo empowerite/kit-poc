@@ -154,11 +154,14 @@ def walk_sequence($nodes; $st):
 # is kept in spans; an option given with no = is refused, naming the --name=<value> form, as is one written once and
 # given twice; -- ends the flags; every other word is kept in order with its index, a dash-word tentatively, for a
 # repeated operand to take or the walk to refuse. A wildcard option may be empty: a hole may be filled with nothing.
+# The word at $st.command, a command's first, ends the sorting as -- does: every word after it is kept as typed, a --
+# among them.
 def lex($words; $i; $st; $by_key; $wild):
   if $st.refusal != null or $i >= ($words | length) then $st
   else $words[$i] as $w
   | if $st.plain or ($w | startswith("-") | not) or $w == "-" then
-      lex($words; $i + 1; $st | .pos += [{word: $w, dash: false, at: $i}]; $by_key; $wild)
+      lex($words; $i + 1; $st | .pos += [{word: $w, dash: false, at: $i}] | .plain = (.plain or $i == .command);
+        $by_key; $wild)
     elif $w == "--" then lex($words; $i + 1; $st | .plain = true | .dashdash = $i; $by_key; $wild)
     else ($w | index("=")) as $eq
     | (if $eq == null then $w else $w[:$eq] end) as $name
@@ -188,8 +191,9 @@ def lex($words; $i; $st; $by_key; $wild):
   end;
 
 # reclaim($words) hands the flags and options the walk did not use to the repeated operand that took every word left,
-# when each of them stands after that operand's first word: a command kit tools run runs owns its own --check. The
-# operand's words become every word from its first one on, less the ones a used flag or option took and the --.
+# when each of them stands after that operand's first word: in kit template fix a.md --check, the --check is a path.
+# A <command>… leaves it nothing, since match sorts no word after a command's first. The operand's words become
+# every word from its first one on, less the ones a used flag or option took and the --.
 def reclaim($words):
   . as $st
   | ((.given | keys_unsorted) - .used) as $unused
@@ -220,6 +224,11 @@ def absorb($by_key):
 # and option key to its values) when the words complete the syntax; status 1 with missing, the keys that could come
 # next joined by " or ", and the literals so far, when a required literal, operand, or group is missing; and status 2
 # with refusal, the whole line, when a word is refused.
+#
+# A <command>… is another program's command line, so every word after its first is the command's, as typed: a --help,
+# a --, and a flag or option the verb itself names. Only the walk knows which word is its first. So the words are
+# sorted and walked once to find it, as far as they sort, and then sorted again up to it. Each status has command,
+# the index of that word among $words, where the line holds a command.
 def match($words):
   . as $spec
   | ($spec.syntax | [.. | objects | select(.kind == "flag" or .kind == "option")]) as $named
@@ -227,10 +236,14 @@ def match($words):
   | ($named | any(.wildcard)) as $wild
   | if $spec.syntax == [[]] and ($words | length) > 0 then
       {status: 2, refusal: "kit \($spec.verb) takes no arguments; run: kit help \($spec.verb)"}
-    else lex($words; 0; {pos: [], given: {}, spans: {}, wild: [], used: [], literals: [], operands: [], values: {},
-        trailing: null, dashdash: null, refusal: null, missing: null, plain: false}; $by_key; $wild)
+    else {pos: [], given: {}, spans: {}, wild: [], used: [], literals: [], operands: [], values: {},
+        trailing: null, dashdash: null, refusal: null, missing: null, plain: false, command: null} as $start
+    | [{kind: "group", optional: false, alternatives: $spec.syntax, repeat: false}] as $whole
+    | ((lex($words; 0; $start; $by_key; $wild) | .refusal = null | walk_sequence($whole; .)
+        | .trailing | select(.key == "<command>") | .at) // null) as $command
+    | lex($words; 0; $start | .command = $command; $by_key; $wild)
     | if .refusal != null then .
-      else walk_sequence([{kind: "group", optional: false, alternatives: $spec.syntax, repeat: false}]; .) | reclaim($words) | absorb($by_key) end
+      else walk_sequence($whole; .) | reclaim($words) | absorb($by_key) end
     | ((.empty // []) - .wild) as $empty
     | if .refusal == null and ($empty | length) > 0 then .refusal = "\($empty[0]) needs a value" else . end
     | (.pos | map(select(.dash))) as $dashed
@@ -247,13 +260,16 @@ def match($words):
           {status: 2, refusal: "\($unused[0]) cannot be combined with \((.literals + .used + .operands)[0]); run: kit help \($spec.verb)"}
         else {status: 0, literals: .literals, operands: .operands, options: .given, values: (.given + .values)} end
       end
+      + if $command != null then {command: $command} else {} end
     end;
 
 # fields flattens a match for a shell to read, one string per record: status and its value; refusal and missing with
-# theirs (empty when absent); literals and operands, each as a count and the words; option, key, count, values for
-# every option given; and argument, key, count, values for every operand and option key.
+# theirs (empty when absent); command with its index (empty when the line holds none); literals and operands, each as a
+# count and the words; option, key, count, values for every option given; and argument, key, count, values for every
+# operand and option key.
 def fields:
   ["status", (.status | tostring), "refusal", (.refusal // ""), "missing", (.missing // ""),
+    "command", (.command // "" | tostring),
     "literals", (.literals // [] | length | tostring), (.literals // [])[],
     "operands", (.operands // [] | length | tostring), (.operands // [])[],
     ((.options // {}) | to_entries[] | "option", .key, (.value | length | tostring), .value[]),

@@ -428,7 +428,7 @@
           "type": "boolean"
         },
         "toolchain": {
-          "description": "uses this toolchain for the run, as KIT_TOOLCHAIN does; kit takes it even after run's command",
+          "description": "uses this toolchain for the run, as KIT_TOOLCHAIN does; with run, before the command's name",
           "type": "string"
         }
       },

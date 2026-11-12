@@ -126,10 +126,11 @@ image is built only when the daemon is local; with a remote one, no base shows a
 | `kit tools install` | Installs the pinned tools: `mise install`, `brew bundle install --no-upgrade` (filling in, `brew install` of what is missing), a `docker build` of the image, or `devcontainer up`. docker tags its image by the file's digest, so an unchanged file is never rebuilt. |
 | `kit tools update` | Moves every tool to its latest version, and rewrites the pins: `mise upgrade`, `brew upgrade` of the Brewfile's outdated formulae, new `FROM` digests, or `devcontainer upgrade`. Commit the files it rewrote. |
 | `kit tools path` | Prints the directories that put the tools first on `PATH`, for a runner's `GITHUB_PATH`. |
-| `kit tools run <command>…` | Runs a command with the tools: inside the container for docker, and for devcontainer from outside; otherwise with the tools first on `PATH`. |
+| `kit tools run <command>…` | Runs a command with the tools: inside the container for docker, and for devcontainer from outside; otherwise with the tools first on `PATH`. Every word after the command's name is the command's, as typed: a `--help`, a `--`, and `kit tools`' own options among them. |
 | `kit tools sources` | Prints the pull path, the artifact sources kit searches in order for what it fetches: each source, its kind, its URL, and the layer it came from, `KIT_SOURCES`, the workspace, or `kit.yml`. `--env` prints the same path as each language manager's settings, `GOPROXY` and npm's registry among them. See [packages.md](packages.md#kinds-and-the-pull-path). |
 
-Each but `sources` takes `--toolchain=<name>` to name the tool manager for that run.
+Each but `sources` takes `--toolchain=<name>` to name the tool manager for that run; with `run`, it goes before the
+command's name.
 
 Ambient, no tool manager pins anything; see [using no toolchain](toolchains/using-no-toolchain.md) for what each
 command does then.

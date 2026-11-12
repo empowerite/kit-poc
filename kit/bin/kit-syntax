@@ -25,7 +25,9 @@
 #
 # --extend answers with arguments entries marked extended, for a form to add as fields; kit new answers with the
 # template's holes, and {} before it knows them. --match answers with status 0, 1 with missing, or 2 with refusal,
-# and the words sorted into literals, operands, options, and values, for a form to fill; the words follow a --.
+# and the words sorted into literals, operands, options, and values, for a form to fill; the words follow a --. Where
+# the words hold a command for the verb to run, command is the index of its first word, from 0: every word after it
+# is the command's.
 #
 # In a clone you have not trusted, kit syntax reads this release's verbs' headers alone, as kit help does, so kittui's
 # palette draws there; --choices, --extend, and --match, which run what a verb asks to answer, refuse there as every

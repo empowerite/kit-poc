@@ -40,7 +40,7 @@ declare -gr syntax_word="^(--${syntax_name}(=<${syntax_name}>)?|--<${syntax_name
 declare -gr syntax_value="^<${syntax_name}>$"
 
 # What syntax:match sorted from the last command line it judged.
-declare -g syntax_refusal='' syntax_missing=''
+declare -g syntax_refusal='' syntax_missing='' syntax_command=''
 declare -ag syntax_literals=() syntax_operands=()
 declare -Ag syntax_options=() syntax_values=()
 
@@ -302,19 +302,21 @@ syntax:check() {
 }
 
 # syntax:match <verb> <argument>… judges the arguments against the verb's syntax, as syntax.jq's match does: a named
-# flag or option is taken wherever it stands, an option with its value after =; -- ends the flags; a literal
-# selects its alternative, as does a flag or option given; operands fill in order, and a repeated one takes every word
-# left, dash-words included. It returns 0 when the arguments complete the syntax, 1 when a required literal, operand, or
-# group is missing, and 2 when a word is refused, and sets what it sorted: syntax_refusal (the whole line, on 2),
-# syntax_missing (the keys that could come next, joined by " or ", on 1), syntax_literals and syntax_operands (in
-# order), syntax_options (each flag or option given, by its key, to its values joined by newlines; a flag's is 1), and
-# syntax_values (every operand and option key given, to its values the same way). When the arguments complete the
-# syntax, a value off a closed set of choices is refused too: <key> '<value>' is not one of the choices.
+# flag or option is taken wherever it stands, an option with its value after =; -- ends the flags, as does the first
+# word of a <command>…, every word after which is the command's as typed; a literal selects its alternative, as does
+# a flag or option given; operands fill in order, and a repeated one takes every word left, dash-words included. It
+# returns 0 when the arguments complete the syntax, 1 when a required literal, operand, or group is missing, and 2
+# when a word is refused, and sets what it sorted: syntax_refusal (the whole line, on 2), syntax_missing (the keys
+# that could come next, joined by " or ", on 1), syntax_literals and syntax_operands (in order), syntax_options
+# (each flag or option given, by its key, to its values joined by newlines; a flag's is 1),
+# syntax_values (every operand and option key given, to its values the same way), and syntax_command (the index
+# among the arguments, from 0, of a command's first word; empty where the line holds none). When the arguments
+# complete the syntax, a value off a closed set of choices is refused too: <key> '<value>' is not one of the choices.
 syntax:match() {
   local verb=$1 syntax status=0 key name count value i n
   local -a fields usage
   shift
-  syntax_refusal='' syntax_missing=''
+  syntax_refusal='' syntax_missing='' syntax_command=''
   syntax_literals=() syntax_operands=() syntax_options=() syntax_values=()
   help:values "${verb}" || return 1
   readarray -t usage < <(help:usage "${verb}")
@@ -340,6 +342,7 @@ syntax:match() {
       (status) status=${fields[i + 1]}; i=$(( i + 2 )) ;;
       (refusal) syntax_refusal=${fields[i + 1]}; i=$(( i + 2 )) ;;
       (missing) syntax_missing=${fields[i + 1]}; i=$(( i + 2 )) ;;
+      (command) syntax_command=${fields[i + 1]}; i=$(( i + 2 )) ;;
       (literals | operands)
         count=${fields[i + 1]}
         for (( n = 0; n < count; n++ ))
@@ -475,9 +478,9 @@ syntax:extend() {
 }
 
 # syntax:judge <verb> <argument>… prints the match of the arguments against the verb's syntax as JSON, as syntax.jq's
-# match gives it: status, refusal or missing, literals, operands, options, and values. kit syntax --match prints it, so
-# a form can fill its fields from a command line without a matcher of its own. Its refusal's remedy names its folder,
-# as out:remedy writes one, as kit prints it. It returns 1 when the usage does not parse.
+# match gives it: status, refusal or missing, literals, operands, options, values, and command. kit syntax --match
+# prints it, so a form can fill its fields from a command line without a matcher of its own. Its refusal's remedy
+# names its folder, as out:remedy writes one, as kit prints it. It returns 1 when the usage does not parse.
 syntax:judge() {
   local verb=$1 syntax
   local -a usage

@@ -83,6 +83,27 @@ setup() {
   [ "$output" = 0 ]
 }
 
+@test "every word after a command's name is the command's: the verb's own option, a --, and a --help the guard leaves alone" {
+  run kit-bash 'syntax:match tools run echo --toolchain=x -- -h; echo "$? ${syntax_command} | ${syntax_operands[*]} | ${syntax_options[--toolchain]:-none}"'
+  [ "$output" = "0 1 | echo --toolchain=x -- -h | none" ]
+  run kit-bash 'syntax:match tools run --toolchain=ambient echo --toolchain x; echo "$? ${syntax_command} | ${syntax_operands[*]} | ${syntax_options[--toolchain]:-none}"'
+  [ "$output" = "0 2 | echo --toolchain x | ambient" ]
+  run kit-bash 'syntax:match tools install; echo "$? ${syntax_command:-none}"'
+  [ "$output" = "0 none" ]
+  run kit-bash 'guard:arguments tools run echo --help; echo "$? ${syntax_operands[*]}"'
+  [ "$output" = "0 echo --help" ]
+  run kit-bash 'guard:arguments tools run echo x -h; echo "$? ${syntax_operands[*]}"'
+  [ "$output" = "0 echo x -h" ]
+  # before the command's name, and where the line is no command at all, --help is still the verb's
+  run kit-bash 'guard:arguments tools run --help echo; echo "not reached"'
+  [ "${lines[0]}" = "kit tools - lists, installs, and updates what the chosen toolchain and the dependencies pin" ]
+  [[ "$output" != *"not reached"* ]]
+  run kit-bash 'guard:arguments tools install --help; echo "not reached"'
+  [ "${lines[0]}" = "kit tools - lists, installs, and updates what the chosen toolchain and the dependencies pin" ]
+  run kit-bash 'guard:arguments tools --bogus run echo --help; echo "not reached"'
+  [ "${lines[0]}" = "kit tools - lists, installs, and updates what the chosen toolchain and the dependencies pin" ]
+}
+
 @test "complete arguments return 0 and the verb runs as before" {
   run "${kit_root}/bin/kit" help tidy
   [ "$status" -eq 0 ]

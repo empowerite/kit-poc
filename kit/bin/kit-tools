@@ -37,7 +37,7 @@
 # Arguments:
 #   --outdated          only the tools behind their latest version; reaches the network
 #   --check             with --outdated: fails when any tool is behind
-#   --toolchain=<name>  uses this toolchain for the run, as KIT_TOOLCHAIN does; kit takes it even after run's command
+#   --toolchain=<name>  uses this toolchain for the run, as KIT_TOOLCHAIN does; with run, before the command's name
 #   <name>              mise, nix, brew, docker, devcontainer, or ambient
 #   --json              one JSON object per tool: name, pinned, installed, latest with --outdated, and from; and
 #                       tagged where a newer version is tagged upstream than the pull path serves
@@ -48,7 +48,8 @@
 #   sources             prints the pull path: each source, its kind, its url, and its layer (env, workspace, kit.yml)
 #   --env               with sources: the package managers' settings for the path, NAME=value a line
 #   run <command>…      runs the command with the tools, or in their container
-#   <command>…          the command and its arguments, as typed, dash-words included
+#   <command>…          the command and its arguments, as typed: every word after the command's name is the command's,
+#                       a --help, a --, and kit tools' own options among them
 #
 # Exits 0 when it did it, 1 when it could not, and 2 on a usage error; run exits with the command's status.
 #

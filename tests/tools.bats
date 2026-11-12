@@ -101,13 +101,23 @@ JSON
   run "${kit_root}/bin/kit" tools run printf ran
   [ "$status" -eq 0 ]
   [ "$output" = ran ]
-  # --toolchain is kit's wherever it stands, so the usage names it before run; the command never sees it
+  # --toolchain is kit's before the command's name, where the usage names it
   run "${kit_root}/bin/kit" tools --toolchain=ambient run echo ran
   [ "$status" -eq 0 ]
   [ "$output" = ran ]
-  run "${kit_root}/bin/kit" tools run echo ran --toolchain=ambient
+  run "${kit_root}/bin/kit" tools run --toolchain=ambient echo ran
   [ "$status" -eq 0 ]
   [ "$output" = ran ]
+  # every word after the command's name is the command's, as typed: kit tools' own options, --help, -h, and a --
+  run "${kit_root}/bin/kit" tools run echo ran --toolchain=nonesuch --check --json
+  [ "$status" -eq 0 ]
+  [ "$output" = "ran --toolchain=nonesuch --check --json" ]
+  run "${kit_root}/bin/kit" tools --toolchain=ambient run echo --toolchain x --help -h
+  [ "$status" -eq 0 ]
+  [ "$output" = "--toolchain x --help -h" ]
+  run "${kit_root}/bin/kit" tools run echo a -- b
+  [ "$status" -eq 0 ]
+  [ "$output" = "a -- b" ]
 }
 
 @test "ambient, a found path too long for the terminal gives way at its start, so its file name shows" {

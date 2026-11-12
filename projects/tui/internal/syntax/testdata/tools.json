@@ -174,7 +174,7 @@
       "description": "with --outdated: fails when any tool is behind"
     },
     "--toolchain": {
-      "description": "uses this toolchain for the run, as KIT_TOOLCHAIN does; kit takes it even after run's command"
+      "description": "uses this toolchain for the run, as KIT_TOOLCHAIN does; with run, before the command's name"
     },
     "<name>": {
       "description": "mise, nix, brew, docker, devcontainer, or ambient"
@@ -204,7 +204,7 @@
       "description": "runs the command with the tools, or in their container"
     },
     "<command>": {
-      "description": "the command and its arguments, as typed, dash-words included"
+      "description": "the command and its arguments, as typed: every word after the command's name is the command's, a --help, a --, and kit tools' own options among them"
     }
   }
 }

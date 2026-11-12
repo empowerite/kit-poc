@@ -33,10 +33,10 @@ import "syntax" as syntax; syntax::undescribed
 []
 
 # match sorts a complete line: the literal that selected the alternative, the operands with the dash-words a trailing
-# operand takes, and the options given.
+# operand takes, the options given, and the index of the word a command begins at.
 import "syntax" as syntax; syntax::match(["run","bash","-c","echo hi"])
 {"verb":"toolchain","syntax":[[{"kind":"group","optional":false,"alternatives":[[{"kind":"literal","name":"list","repeat":false}],[{"kind":"literal","name":"run","repeat":false},{"kind":"operand","name":"command","repeat":true}]],"repeat":false}]]}
-{"status":0,"literals":["run"],"operands":["bash","-c","echo hi"],"options":{},"values":{"<command>":["bash","-c","echo hi"]}}
+{"status":0,"literals":["run"],"operands":["bash","-c","echo hi"],"options":{},"values":{"<command>":["bash","-c","echo hi"]},"command":1}
 
 # A group that repeats is walked again for each word it takes, so kit help [<verb> | <group>]… takes several names; it
 # stops at a word no alternative takes, and nothing given is nothing to walk.
@@ -75,6 +75,12 @@ import "syntax" as syntax; [syntax::match(["7","--title=x"]), syntax::match(["--
 import "syntax" as syntax; [syntax::match(["run","kit","generate","--check"]), syntax::match(["run","--check","kit"]), syntax::match(["outdated","--check"])] | map(.refusal // [.operands, .options])
 {"verb":"toolchains","syntax":[[{"kind":"group","optional":false,"alternatives":[[{"kind":"literal","name":"outdated","repeat":false},{"kind":"group","optional":true,"alternatives":[[{"kind":"flag","name":"check","repeat":false}]],"repeat":false}],[{"kind":"literal","name":"run","repeat":false},{"kind":"operand","name":"command","repeat":true}]],"repeat":false}]]}
 [[["kit","generate","--check"],{}],"--check cannot be combined with run; run: kit help toolchains",[[],{"--check":["1"]}]]
+
+# Every word after a command's first word is the command's, as typed: an option the alternative itself takes, one
+# given without its =, a --, and -h. Before that word an option is still the verb's, and no command is no index.
+import "syntax" as syntax; [syntax::match(["run","git","log","--toolchain=a","--","-h","--toolchain","b"]), syntax::match(["--toolchain=a","run","echo","--toolchain=b"]), syntax::match(["run","--toolchain=a","echo","--help"]), syntax::match(["--toolchain=a","install"])] | map([.operands, .options, .command])
+{"verb":"tools","syntax":[[{"kind":"group","optional":true,"alternatives":[[{"kind":"option","name":"toolchain","value":"name","repeat":false}]],"repeat":false},{"kind":"group","optional":false,"alternatives":[[{"kind":"literal","name":"install","repeat":false}],[{"kind":"literal","name":"run","repeat":false},{"kind":"operand","name":"command","repeat":true}]],"repeat":false}]]}
+[[["git","log","--toolchain=a","--","-h","--toolchain","b"],{},1],[["echo","--toolchain=b"],{"--toolchain":["a"]},2],[["echo","--help"],{"--toolchain":["a"]},2],[[],{"--toolchain":["a"]},null]]
 
 # An option written once is refused twice; a repeated one keeps both values; a wildcard option may be empty.
 import "syntax" as syntax; [syntax::match(["--title=a","--title=b"]) | .refusal, ({"verb":"new","syntax":[[{"kind":"literal","name":"file","repeat":false},{"kind":"operand","name":"path","repeat":false},{"kind":"group","optional":true,"alternatives":[[{"kind":"option","wildcard":true,"name":"hole","value":"value","repeat":false}]],"repeat":true}]]} | syntax::match(["file","p","--purpose="]) | .options)]

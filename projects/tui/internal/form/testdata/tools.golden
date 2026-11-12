@@ -8,8 +8,8 @@
 
      --check                 with --outdated: fails when any tool is behind
 
-     --toolchain             uses this toolchain for the run, as KIT_TOOLCHAIN does; kit takes it
-                             even after run's command
+     --toolchain             uses this toolchain for the run, as KIT_TOOLCHAIN does; with run,
+                             before the command's name
 
      --json   --jq           one JSON object per tool: name, pinned, installed, latest with
                              --outdated, and from; and tagged where a newer version is tagged
