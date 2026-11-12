@@ -1,7 +1,8 @@
 // What keeps the setup step's table in step with the screen: its sheet, made once kit names the folders and gone when
 // it no longer does; its records, drawn again where a check, a note, the cursor, or the keyboard changed them; the
 // pane it is placed in under its lead; and the check the cursor's row stands for, which c, r, and k, and the buttons
-// act on: the first of the row's checks that has a fix, else the first that failed, else the first.
+// act on: the first of the row's checks that has a fix, else the first that failed, else the first. A row with no
+// check, as a member's that is not cloned, has no buttons, and the three keys do nothing on it.
 package welcome
 
 import (
@@ -59,13 +60,13 @@ func (m *Model) followSheet() {
 	}
 }
 
-// rowCheck gives the check the setup table's cursor row stands for, as the file says; the check the cursor was on where
-// the cursor is on no row of a folder or a machine check.
-func (m Model) rowCheck(step int) int {
+// rowChecks gives the checks of the row the setup table's cursor is on, in kit's order: a folder's, or a machine
+// check's own; none where the cursor is on no row of a folder or a machine check.
+func (m Model) rowChecks(step int) []int {
 	sheet := m.tabs[step].sheet
 	rows, at := sheet.Rows(), sheet.Table().Cursor
 	if at < 0 || at >= len(rows) {
-		return m.cursor
+		return nil
 	}
 	var mine []int
 	for i, c := range m.checks {
@@ -73,6 +74,13 @@ func (m Model) rowCheck(step int) int {
 			mine = append(mine, i)
 		}
 	}
+	return mine
+}
+
+// rowCheck gives the check the setup table's cursor row stands for, as the file says; the check the cursor was on where
+// the cursor is on no row of a folder or a machine check, which under then says is on no row.
+func (m Model) rowCheck(step int) int {
+	mine := m.rowChecks(step)
 	for _, ok := range []func(kit.Check) bool{func(c kit.Check) bool { return c.Fix != "" },
 		func(c kit.Check) bool { return !c.OK }, func(kit.Check) bool { return true }} {
 		if k := slices.IndexFunc(mine, func(i int) bool { return ok(m.checks[i]) }); k >= 0 {

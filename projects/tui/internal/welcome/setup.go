@@ -192,9 +192,9 @@ func (m Model) state(checks []int, k int) table.Value {
 }
 
 // current gives the check whose buttons the table draws, or -1: the one the cursor is on, while the rows have the
-// keyboard.
+// keyboard and the cursor's row shows it.
 func (m Model) current() int {
-	if m.gridded() && m.sheet().InRows() && m.cursor < len(m.checks) {
+	if m.gridded() && m.sheet().InRows() && m.under() {
 		return m.cursor
 	}
 	return -1

@@ -222,3 +222,35 @@ func TestThePageKeysDoNothingInAPaneLeftWithNoRow(t *testing.T) {
 		t.Error("up did not give the bar the keyboard")
 	}
 }
+
+// c, r, and k act on the check under the cursor, and a step that shows no check has none there. Where the checks are
+// read again and none of the step's comes back, the cursor's index names another step's check: one whose fix kit runs,
+// or a terminal's failed finding. The keys bar offers nothing for it, and the three keys do nothing.
+func TestAStepThatShowsNoCheckOffersNoFixOfAnother(t *testing.T) {
+	record := filepath.Join(t.TempDir(), "calls")
+	t.Setenv("FAKE_WELCOME_CALLS", record)
+	for _, other := range []kit.Check{
+		{ID: "gh-auth", Step: "setup", Line: "gh is not logged in to github.com", Fix: "gh auth login", Runs: true},
+		{ID: "terminal-iterm-option", Step: "setup", Line: "iTerm2 sends ⌥ as a plain key", Fix: "set it", Runs: true},
+	} {
+		m, r := atChains(t)
+		m = drive(m, source.Answer[[]kit.Check]{Name: "checks", Value: []kit.Check{other}})
+		if n := len(m.rows(m.step)); n != 0 || !m.inPane || m.step != chains || m.checks[m.cursor].ID != other.ID {
+			t.Fatalf("%s: %d rows, in the pane %v, step %d, cursor %d", other.ID, n, m.inPane, m.step, m.cursor)
+		}
+		if m.copies() || m.runsHere() || m.keeping() || keysAt(m) != paneKeys {
+			t.Errorf("%s is offered: copies %v, runs %v, keeps %v, keys %q", other.ID, m.copies(), m.runsHere(),
+				m.keeping(), keysAt(m))
+		}
+		before := len(calls(t, record))
+		for _, key := range []rune{'c', 'r', 'k'} {
+			var msgs []tea.Msg
+			if m, msgs = testkit.Drive(m, nil, press(key)); clipboard(msgs) != "" {
+				t.Errorf("%s: %c copied %q", other.ID, key, clipboard(msgs))
+			}
+		}
+		if got := calls(t, record); len(r.calls) != 0 || len(got) != before {
+			t.Errorf("%s: a fix ran %q, kit was called %q", other.ID, r.calls, got[before:])
+		}
+	}
+}

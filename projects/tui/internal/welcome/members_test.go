@@ -246,3 +246,40 @@ func TestTheSetupStepsSearchNamesTheFolder(t *testing.T) {
 		t.Errorf("checking under a search nothing holds:\n%s", v)
 	}
 }
+
+// The row of a member not cloned has no check, so it offers no fix. The buttons leave the folder the cursor came
+// from, the keys bar names neither c nor r, and c, r, and k do nothing.
+func TestTheRowOfAMemberNotClonedOffersNoFix(t *testing.T) {
+	m, r, record := group(t, stepKey(setupStep))
+	m, found := onKey(m, "/code/b toolchain-project")
+	if v := view(m); !found || !strings.Contains(v, "kit toolchains use mise   ⧉   ▶️") {
+		t.Fatalf("b's toolchain does not offer its fix:\n%s", v)
+	}
+	notCloned := func(m Model) bool {
+		rows, at := m.sheet().Rows(), m.sheet().Table().Cursor
+		return at >= 0 && at < len(rows) && rows[at].Key == "uncloned github.com/o/c"
+	}
+	for range 6 {
+		if !notCloned(m) {
+			m = drive(m, down)
+		}
+	}
+	if !notCloned(m) || !m.focused() {
+		t.Fatalf("the cursor is not on the member not cloned:\n%s", view(m))
+	}
+	if v := view(m); m.copies() || m.runsHere() || m.keeping() || strings.Contains(v, "⧉") ||
+		strings.Contains(keysAt(m), "copy") {
+		t.Errorf("the member not cloned offers a fix: copies %v, runs %v, keeps %v, keys %q:\n%s", m.copies(),
+			m.runsHere(), m.keeping(), keysAt(m), v)
+	}
+	before := len(calls(t, record))
+	for _, key := range []rune{'c', 'r', 'k'} {
+		var msgs []tea.Msg
+		if m, msgs = testkit.Drive(m, nil, press(key)); clipboard(msgs) != "" {
+			t.Errorf("%c copied %q", key, clipboard(msgs))
+		}
+	}
+	if got := calls(t, record); len(r.calls) != 0 || len(got) != before {
+		t.Errorf("a fix ran %q, kit was called %q", r.calls, got[before:])
+	}
+}

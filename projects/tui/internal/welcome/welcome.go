@@ -910,11 +910,21 @@ func (m *Model) back() {
 	m.inPane = false
 }
 
+// under says whether the cursor names a check its row shows: in a step drawn as rows, one of the rows the step shows;
+// in the setup table, one of the checks of the row the table's cursor is on. The cursor names a check on no row where
+// the step shows none, and where the table's cursor is on a row with none, as a member's that is not cloned.
+func (m Model) under() bool {
+	if m.gridded() && m.step == m.setupIndex() {
+		return slices.Contains(m.rowChecks(m.step), m.cursor)
+	}
+	return slices.Contains(m.rows(m.step), m.cursor)
+}
+
 // fixUnder gives the check under the cursor in a step with checks drawn as rows while the pane has the keyboard, and
 // whether there is one with a fix: a failed check's, or one that holds and offers a fix all the same. A step drawn as a
 // table has the cursor's row's.
 func (m Model) fixUnder() (kit.Check, bool) {
-	if !m.hasRows() || !m.focused() || m.cursor >= len(m.checks) {
+	if !m.hasRows() || !m.focused() || !m.under() {
 		return kit.Check{}, false
 	}
 	c := m.checks[m.cursor]
@@ -935,7 +945,7 @@ func (m Model) runsHere() bool {
 
 // keeping says whether the cursor is on a row that offers keep: a terminal's failed finding.
 func (m Model) keeping() bool {
-	if !m.hasRows() || !m.focused() || m.cursor >= len(m.checks) {
+	if !m.hasRows() || !m.focused() || !m.under() {
 		return false
 	}
 	c := m.checks[m.cursor]
