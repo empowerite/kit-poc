@@ -1,10 +1,11 @@
 # shellcheck shell=bash
 # trust.sh - the clones you trust: what one asks kit to run, and the file that records your answer (sourced module)
 # ----------------------------------------------------------------------------------------------------------------------
-# kit runs nothing in a clone until you trust it. modules/bash/1st.sh holds the check, kit:trust-here, which every
-# verb's kit:enter makes before anything else, and bin/kit, the loader, makes the same check in POSIX sh before it
-# runs a release the clone names. This module holds what kit trust adds: what a clone asks kit to run, and the
-# records it writes.
+# kit runs nothing in a clone until you trust it, nor in a folder outside a clone that holds a kit.yml, which is
+# trusted as a clone is, by its own path. modules/bash/1st.sh holds the check, kit:trust-here, which every verb's
+# kit:enter makes before anything else, and bin/kit, the loader, makes the same check in POSIX sh before it runs a
+# release the clone names. This module holds what kit trust adds: what a clone asks kit to run, and the records it
+# writes.
 #
 # A record is one line of the trust file, kit:trust-file. For a clone, which trusts it and every worktree of it, it is
 # the sha256 of what the clone asks kit to run, kit:trust-digest's, two spaces, and the clone's absolute path, as
@@ -173,14 +174,14 @@ trust:list() {
 # trust:keeping <command>… runs a command that writes what kit itself keeps, its declaration in kit.yml, .kit/manifest,
 # and what it places under .kit/, and keeps the clone's trust across it: where a line of the trust file trusts the
 # clone as it asks just before, it records the digest of what it asks after, so a fresh clone that kit hydrates, or
-# an update that moves its version, is not asked about what kit wrote. A clone a folder trusts, or none, it leaves
-# as it is. The command runs in this shell, with trust_keeping set, so one it calls in turn is not kept twice. It
-# returns what the command returns.
+# an update that moves its version, is not asked about what kit wrote. A folder outside a clone that holds a kit.yml
+# is kept the same way. A clone a folder trusts, or none, it leaves as it is. The command runs in this shell, with
+# trust_keeping set, so one it calls in turn is not kept twice. It returns what the command returns.
 trust:keeping() {
   # shellcheck disable=SC2034  # read by the command it runs, through bash's dynamic scope
   local trust_keeping=1
   local root name before after status=0
-  if ! root=$(kit:clone-root .)
+  if ! root=$(kit:trust-root .)
   then
     "$@"
     return

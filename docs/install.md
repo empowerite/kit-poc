@@ -122,6 +122,10 @@ kit runs nothing in a clone until you trust it.
   asks again. A pull that changes only the code those name keeps it, and so does what kit writes itself, such as the
   files it places under `.kit/` and the version `kit update` moves.
 - `kit trust ~/Code/` trusts every clone under that folder, whatever each one asks.
+- Outside a clone, a folder that holds a `kit.yml` is held to the same trust, by its own path. An unpacked archive
+  of a repository is such a folder. Until you trust it, kit reads no `bash_path` there and runs nothing its `kit.yml`
+  names. kit reads `kit.yml` only in the folder you type in, so a folder below it is asked nothing, and neither is
+  a folder with no `kit.yml`.
 - `kit trust --list` and `kit trust --revoke` read and change the records, which are plain lines in
   `~/.config/kit/trusted`. `kit trust --check` and `kit trust --asks` answer a screen that asks for the trust itself.
 

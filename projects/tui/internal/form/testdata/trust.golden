@@ -5,8 +5,8 @@
 
      --yes    records the trust without asking, as a CI job does for its own checkout
 
-     <path>   a clone, or a directory in one, the clone here when none is given; or a folder ending
-              in /
+     <path>   a clone, or a directory in one, the clone here when none is given; a folder outside a
+              clone that holds a kit.yml; or a folder ending in /
 
    --list     prints the clones and the folders you trust, one per line
    --check    prints the name the clone is trusted by, and exits 0 when it is trusted, as it asks

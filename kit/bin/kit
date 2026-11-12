@@ -31,6 +31,13 @@
 # the clone asks kit to run and asks you; after a yes, the call runs as it was typed. Without a terminal, or after a no,
 # it is refused. kit trust runs on this release in a clone you trust too.
 #
+# Outside a clone, a folder that holds a kit.yml, or the .kit/settings.yml a release moves there, is held to the same
+# trust, by its own path, when kit is typed in it: an unpacked archive of a repository is such a folder. Until you
+# trust it, kit reads no bash_path there and runs nothing its kit.yml names, the same four verbs run, and every other
+# verb asks or is refused, as in a clone. It chooses no release: outside a clone this release runs. kit reads the
+# settings of the working directory alone there, so a folder below it, and any folder in no clone that holds no
+# kit.yml, is asked nothing.
+#
 # The kit options:
 #
 #   -h, --help                 kit help, in the release chosen
@@ -531,10 +538,17 @@ clone=$(clone_root) || clone=''
 here=${clone:-$(pwd -P)}
 untrusted=''
 trust=0
-if [ -n "${clone}" ]
+# The root whose trust is judged, as modules/bash/1st.sh's kit:trust-root finds it: the clone's, and outside a clone
+# the working directory, where it holds a kit.yml or the .kit/settings.yml a release moves there.
+judged=${clone}
+if [ -z "${judged}" ] && { [ -f kit.yml ] || [ -f .kit/settings.yml ]; }
 then
-  name=$(trust_name "${clone}")
-  trusted "${name}" "${clone}" || trust=$?
+  judged=${here}
+fi
+if [ -n "${judged}" ]
+then
+  name=$(trust_name "${judged}")
+  trusted "${name}" "${judged}" || trust=$?
 fi
 if [ "${trust}" != 0 ]
 then

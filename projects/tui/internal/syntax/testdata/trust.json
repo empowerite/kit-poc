@@ -127,7 +127,7 @@
       "description": "takes the trust of a clone or a folder back"
     },
     "<path>": {
-      "description": "a clone, or a directory in one, the clone here when none is given; or a folder ending in /"
+      "description": "a clone, or a directory in one, the clone here when none is given; a folder outside a clone that holds a kit.yml; or a folder ending in /"
     }
   }
 }

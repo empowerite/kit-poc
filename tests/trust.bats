@@ -85,10 +85,105 @@ answering() {
   [ ! -s "${trusted}" ]
 }
 
-@test "outside a clone, kit needs no trust" {
+@test "outside a clone, a folder with no kit.yml is asked nothing, and names nothing kit trust could record" {
   mkdir "${BATS_TEST_TMPDIR}/plain"
-  run bash -c 'cd "$1" && "$0" kinds x' "${kit}" "${BATS_TEST_TMPDIR}/plain"
+  cd "${BATS_TEST_TMPDIR}/plain"
+  run "${kit}" kinds x
   [[ "$output" != *"until you trust it"* ]]
+  run "${kit}" trust --check
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"is in no clone and holds no kit.yml"* ]]
+  [ ! -s "${trusted}" ]
+}
+
+@test "outside a clone, a folder that holds a kit.yml is held to a trust record of its own: none of its code runs before it" {
+  # a forge's Download ZIP, or a source tarball, unpacked: a kit.yml, and no .git at or above it
+  folder="${BATS_TEST_TMPDIR}/unpacked"
+  mkdir -p "${folder}/mods" "${folder}/bin" "${folder}/below"
+  cd "${folder}"
+  folder=$(pwd -P)
+  printf 'gate: bin/ci\nbash_path:\n  - kit:modules/bash/\n  - mods\n' > kit.yml
+  for module in gate help release syntax trust yaml
+  do
+    printf 'printf "%%s\\n" %s >> "%s/ran"\n' "${module}" "${BATS_TEST_TMPDIR}" > "mods/${module}.sh"
+  done
+  printf '#!/bin/sh\n: > "%s/gated"\n' "${BATS_TEST_TMPDIR}" > bin/ci
+  chmod +x bin/ci
+  # the verbs that run before the trust run on the release's own modules
+  run "${kit}" version
+  [ "$status" -eq 0 ]
+  [ "$output" = unreleased ]
+  run "${kit}" help --text
+  [ "$status" -eq 0 ]
+  run "${kit}" syntax commit
+  [ "$status" -eq 0 ]
+  run "${kit}" trust --check
+  [ "$status" -eq 1 ]
+  [ "$output" = "${folder}" ]
+  run "${kit}" trust --asks </dev/null
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = 'load bash into every kit command from mods (bash_path)' ]
+  [ "${lines[1]}" = 'run bin/ci for kit gate (gate)' ]
+  run bash -c 'source "$1/modules/bash/1st.sh" && use:path' _ "${kit_checkout}"
+  [ "$status" -eq 0 ]
+  [ "$output" = "${kit_checkout}/modules/bash" ]
+  # every other verb is refused, by the loader and by the verb
+  run "${kit}" gate
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit runs nothing in ${folder} until you trust it; see what it asks kit to run, and trust it: kit trust"* ]]
+  run "${kit_checkout}/bin/kit-gate"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit runs nothing in ${folder} until you trust it"* ]]
+  run "${kit}" trust </dev/null
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"${folder} asks kit to:"* ]]
+  [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
+  [ ! -e "${BATS_TEST_TMPDIR}/gated" ]
+  [ ! -s "${trusted}" ]
+  # below it kit reads nothing of the folder, so there is nothing to ask about
+  run bash -c 'cd below && "$0" kinds x' "${kit}"
+  [[ "$output" != *"until you trust it"* ]]
+  run bash -c 'cd below && "$0" trust --check' "${kit}"
+  [ "$status" -eq 2 ]
+  [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
+  # trusted, by its own path and the digest of what it asks, it runs what it asked
+  run "${kit}" trust --yes
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"kit trusts ${folder}, while it asks kit to run the same"* ]]
+  recorded "${folder}"
+  run "${kit}" trust --check
+  [ "$status" -eq 0 ]
+  run "${kit}" gate
+  [ "$status" -eq 0 ]
+  [ -e "${BATS_TEST_TMPDIR}/gated" ]
+  grep --quiet --line-regexp gate "${BATS_TEST_TMPDIR}/ran"
+  # it is asked again when it comes to ask something new, and --revoke takes the trust back
+  printf 'gate: bin/other\n' > kit.yml
+  run "${kit}" gate
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"${folder} asks kit to run something new since you trusted it"* ]]
+  run "${kit}" trust --revoke
+  [ "$status" -eq 0 ]
+  run "${kit}" gate
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit runs nothing in ${folder} until you trust it"* ]]
+}
+
+@test "outside a clone, a folder that holds .kit/settings.yml, which kit moves to kit.yml, is held to the same trust, and nothing moves before it" {
+  folder="${BATS_TEST_TMPDIR}/earlier"
+  mkdir -p "${folder}/.kit" "${folder}/mods"
+  cd "${folder}"
+  printf 'bash_path:\n  - kit:modules/bash/\n  - mods\n' > .kit/settings.yml
+  printf ': > "%s/ran"\n' "${BATS_TEST_TMPDIR}" > mods/help.sh
+  run "${kit}" kinds x
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit runs nothing in $(pwd -P) until you trust it"* ]]
+  run "${kit_checkout}/bin/kit-kinds" x
+  [ "$status" -eq 1 ]
+  run "${kit}" trust --check
+  [ "$status" -eq 1 ]
+  [ ! -e kit.yml ]
+  [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
 }
 
 @test "a clone you have not trusted runs none of its own code: not its kit/, not a release it names, not its bash_path" {

@@ -649,7 +649,8 @@ func (r Runner) Trusted() bool {
 }
 
 // Trust says whether kit trusts the clone the runner runs in, as it asks now, and the name kit trusts it by, as kit
-// trust --check prints them; outside a clone, where kit needs no trust and names none, it is trusted with no name.
+// trust --check prints them; outside a clone, in a folder that holds no kit.yml, where kit needs no trust and names
+// none, it is trusted with no name.
 func (r Runner) Trust() (string, bool, error) {
 	out, err := r.run("trust", "--check")
 	var refusal *ExitError

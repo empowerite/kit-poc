@@ -40,9 +40,20 @@ export-base() {
 }
 
 # update-staged <staged> <base> runs the staged kit's update over the staged files. The ceiling stops git from
-# finding this repository above the export, which is not a repository of its own.
+# finding this repository above the export, which is not a repository of its own. The export holds a kit.yml and is
+# in no clone, so kit holds it to a trust record of its own, by its path. It is the commit as it stands in this
+# clone, which you trust, so the staged kit records it first, as a CI job trusts its own checkout, and forget-staged
+# takes the record back when the script ends. A staged kit that cannot record it goes on to its update, which says
+# why when it is refused.
 update-staged() {
-  (cd "$1" && GIT_CEILING_DIRECTORIES="$(dirname "$1")" KIT_BASE="$2" kit/bin/kit update >/dev/null)
+  (cd "$1" && { kit/bin/kit trust --yes >/dev/null 2>&1 || true; } \
+    && GIT_CEILING_DIRECTORIES="$(dirname "$1")" KIT_BASE="$2" kit/bin/kit update >/dev/null)
+}
+
+# forget-staged <staged> takes the export's trust record back, so the trust file keeps no line for a folder that is
+# gone. It says nothing where there is no export, or no record of it.
+forget-staged() {
+  [[ ! -x "$1/kit/bin/kit" ]] || (cd "$1" && kit/bin/kit trust --revoke >/dev/null 2>&1) || true
 }
 
 # stage-export <staged> makes the index match the export, by adding it under a copy of the index and then reading
@@ -64,7 +75,7 @@ update-desk() {
 cd "$(git rev-parse --show-toplevel)"
 pinned-tools-first
 work=$(mktemp -d)
-trap 'rm -rf "${work}"' EXIT
+trap 'forget-staged "${work}/staged"; rm -rf "${work}"' EXIT
 
 export-staged "${work}/staged"
 export-base "${work}/base"

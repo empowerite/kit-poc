@@ -15,6 +15,12 @@
 # Then it asks you, and records your answer for the clone and every worktree of it, with the digest of what it asks.
 # A folder, written with a / at its end, trusts every clone under it.
 #
+# Outside a clone, a folder that holds a kit.yml is held to the same trust, by its own path: an unpacked archive of
+# a repository is one. Until you trust it, kit reads no bash_path there and runs nothing its kit.yml names, and kit
+# trust shows what it asks and records your answer the same way. kit reads the settings of the folder you type in
+# alone, so a folder below it, and a folder in no clone that holds no kit.yml, is asked nothing and has nothing to
+# record.
+#
 # Trusting a clone means you accept code from whoever can push to it. kit does not check each pull; review and signed
 # commits do. The trust holds while the clone asks kit to run what it asked: a pull that changes its kit.yml's
 # version, bash_path, gate, sources, or tools, or a rule's or a style's frontmatter, withdraws it, and kit asks again.
@@ -32,11 +38,12 @@
 #                     itself
 #   --asks            prints what the clone asks kit to run, one line each, as kit trust shows it, and asks nothing
 #   --revoke          takes the trust of a clone or a folder back
-#   <path>            a clone, or a directory in one, the clone here when none is given; or a folder ending in /
+#   <path>            a clone, or a directory in one, the clone here when none is given; a folder outside a clone
+#                     that holds a kit.yml; or a folder ending in /
 #
 # Exits 0 when the clone or the folder is trusted, or the list or the asks are printed; 1 when you answer no, there is
 # no terminal to ask and no --yes, --revoke finds no record, or --check finds the clone not trusted; and 2 on a usage
-# error or a path in no clone.
+# error, or a path in no clone that holds no kit.yml.
 #
 # see: modules/bash/trust.sh, modules/bash/1st.sh, bin/kit
 
@@ -67,9 +74,11 @@ then
   record=$(cd "${target}" && pwd -P)
   record=${record%/}/
 else
-  if ! clone=$(kit:clone-root "${target}")
+  # the root kit judges: a clone's, or outside a clone the folder itself, where it holds a kit.yml
+  if ! clone=$(kit:trust-root "${target}")
   then
-    error "${target} is in no clone; to trust every clone under a folder, end it with /: kit trust ${target%/}/"
+    error "${target} is in no clone and holds no kit.yml, so kit runs nothing it names; to trust every clone under a" \
+      "folder, end it with /: kit trust ${target%/}/"
     exit 2
   fi
   record=$(kit:trust-name "${clone}")
@@ -113,8 +122,20 @@ then
   exit 0
 fi
 digest=''
+# held is what the record holds the trust to, and kind what trusting lets kit run code from: a clone, with its
+# worktrees, or a folder outside one, which has none and takes no pull
+held=''
+kind=clone
+checks=' kit does not check each pull; review and signed commits do.'
 if [[ -n "${clone}" ]]
 then
+  held=', and every worktree of it, while it asks kit to run the same'
+  if [[ ! -e "${clone}/.git" ]]
+  then
+    held=', while it asks kit to run the same'
+    kind=folder
+    checks=''
+  fi
   declare -a asks=()
   list:read asks trust:asks "${clone}" || exit 1
   digest=$(kit:trust-digest "${clone}") || exit 1
@@ -126,8 +147,8 @@ then
   else
     info "${record} asks kit to run nothing beyond the kit itself"
   fi
-  info "Trusting it lets kit run code from the clone: what kit.yml names, and what its files ask kit commands to run," \
-    "as a kit:generate directive does. kit does not check each pull; review and signed commits do."
+  info "Trusting it lets kit run code from the ${kind}: what kit.yml names, and what its files ask kit commands to" \
+    "run, as a kit:generate directive does.${checks}"
 else
   info "Trusting ${record} trusts every clone under it, and every worktree of one."
 fi
@@ -148,6 +169,6 @@ then
   fi
 fi
 trust:record "${record}" "${digest}"
-ok "kit trusts ${record}${clone:+, and every worktree of it, while it asks kit to run the same}"
+ok "kit trusts ${record}${held}"
 
 # ----------------------------------------------------------------------------------------------------------------------

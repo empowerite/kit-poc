@@ -40,12 +40,13 @@ declare -ag kit_bash_path=()
 # kit:enter [--any-clone] starts a verb's process: it turns POSIX mode off, which POSIXLY_CORRECT, or a SHELLOPTS
 # exported by the sh the loader runs in, would turn on, as the kit's modules are bash, each function named
 # <module>:<name>, which declare -F refuses in POSIX mode; it exports the directory the command was typed in as
-# kit_invoked_in, for verbs that take relative paths, refuses a clone you have not trusted, as kit:trust-here says,
-# and changes to the repository root, kit:work-root's, so every verb reads and writes the same paths wherever it was
-# typed. A repository from a release that kept its settings in .kit/settings.yml has them moved to kit.yml first,
-# before anything reads them. With --any-clone, a verb that runs nothing the clone names, as kit version and kit
-# trust, runs in a clone you have not trusted too, and moves nothing there; every git command it runs there is
-# hardened, as kit:harden-git says.
+# kit_invoked_in, for verbs that take relative paths, refuses a clone you have not trusted, and outside a clone a
+# folder that holds a kit.yml and that you have not trusted, as kit:trust-here says, and changes to the repository
+# root, kit:work-root's, so every verb reads and writes the same paths wherever it was typed. A repository from a
+# release that kept its settings in .kit/settings.yml has them moved to kit.yml first, before anything reads them.
+# With --any-clone, a verb that runs nothing the clone names, as kit version and kit trust, runs in a clone, or such
+# a folder, that you have not trusted too, and moves nothing there; every git command it runs there is hardened, as
+# kit:harden-git says.
 kit:enter() {
   set +o posix
   local any_clone=false
@@ -91,6 +92,20 @@ kit:clone-root() {
 kit:work-root() {
   git rev-parse --show-toplevel >/dev/null 2>&1 || return 1
   kit:clone-root .
+}
+
+# kit:trust-root <dir> prints the root whose trust kit judges for <dir>, as bin/kit, the loader, finds it: the root of
+# the clone <dir> is in, kit:clone-root's, and outside a clone, <dir> itself, by its physical path, where it holds a
+# kit.yml, or the .kit/settings.yml that kit:move-settings moves there. Outside a clone kit reads the settings of the
+# working directory alone, so no folder above <dir> is looked at. It fails where there is neither: a folder in no
+# clone that holds no kit.yml names nothing for kit to run, and is held to no trust. It runs no git, as
+# kit:clone-root does not.
+kit:trust-root() {
+  kit:clone-root "$1" && return 0
+  local dir
+  dir=$(cd "$1" 2>/dev/null && pwd -P) || return 1
+  [[ -f "${dir}/kit.yml" || -f "${dir}/.kit/settings.yml" ]] || return 1
+  printf '%s\n' "${dir}"
 }
 
 # kit:trust-name <clone-root> prints the name a clone is trusted by: its root, and for a worktree, its desk, but only
@@ -249,14 +264,16 @@ kit:trusted() {
   return "${status}"
 }
 
-# kit_trusted_at holds, by clone root, what kit:trusted said of the clone in this process, so a verb asks once.
+# kit_trusted_at holds, by the root judged, kit:trust-root's, what kit:trusted said of it in this process, so a verb
+# asks once.
 declare -gA kit_trusted_at=()
 
-# kit:trusted-at <dir> succeeds where kit may run what a clone asks for: outside a clone, and in a clone you trust,
-# as it asks now. It returns kit:trusted's 1 or 3 otherwise.
+# kit:trusted-at <dir> succeeds where kit may run what <dir> asks for: in a clone you trust, as it asks now; outside
+# a clone, in a folder that holds a kit.yml and that you trust the same way, by its own path; and where there is
+# nothing to judge, outside a clone in a folder that holds no kit.yml. It returns kit:trusted's 1 or 3 otherwise.
 kit:trusted-at() {
   local root status=0
-  root=$(kit:clone-root "$1") || return 0
+  root=$(kit:trust-root "$1") || return 0
   if [[ -z "${kit_trusted_at[${root}]+x}" ]]
   then
     kit:trusted "$(kit:trust-name "${root}")" "${root}" || status=$?
@@ -266,12 +283,12 @@ kit:trusted-at() {
 }
 
 # kit:trust-here succeeds where kit:trusted-at the working directory does. Elsewhere it says how to trust the clone,
-# in the words bin/kit uses, and fails.
+# or the folder outside one, in the words bin/kit uses, and fails.
 kit:trust-here() {
   local status=0 name
   kit:trusted-at . || status=$?
   (( status != 0 )) || return 0
-  name=$(kit:trust-name "$(kit:clone-root .)")
+  name=$(kit:trust-name "$(kit:trust-root .)")
   if (( status == 3 ))
   then
     error "${name} asks kit to run something new since you trusted it; see what it asks, and trust it again: kit trust"
@@ -360,8 +377,8 @@ use:load-path() {
   # Only a kit.yml whose text names bash_path is read with yq: one that does not cannot set it, and a kit run without
   # yq goes on to say yq is missing. yaml.sh says nothing in a subshell, so a yq that is missing is named here; a file
   # it cannot parse has had its line.
-  # A clone you have not trusted names no bash: the verbs that run there, kit help among them, load the release's
-  # own modules alone.
+  # A clone you have not trusted names no bash, and neither does a folder outside a clone that holds a kit.yml: the
+  # verbs that run there, kit help among them, load the release's own modules alone.
   if [[ "${settings}" == *bash_path* ]] && kit:trusted-at "${root}"
   then
     list:read entries use:path-setting "${root}" || status=$?
