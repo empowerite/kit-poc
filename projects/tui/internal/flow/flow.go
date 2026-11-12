@@ -1034,8 +1034,10 @@ func (m *Model) restart(name string) tea.Cmd {
 func (m *Model) again(name string, fresh bool) tea.Cmd { return m.find(name).src.Again(m.env(), fresh) }
 
 // take keeps what a stage's command printed, decoded by the stage, or the refusal when it failed. The answer of a
-// load a later one superseded is dropped, as is one for a stage the screen does not have. The cursor stays within the
-// rows that came.
+// load a later one superseded is dropped, as is one for a stage the screen does not have. The cursor stays on the row
+// it was on, by the row's key, wherever the rows that came put it, as a crumb's does: a watched stage loads by itself,
+// and a key after it acts on the row the person was on. Where the row is gone, the cursor stays within the rows that
+// came.
 func (m *Model) take(msg source.Answer[[]byte]) {
 	s := m.find(msg.Name)
 	if s == nil {
@@ -1043,6 +1045,10 @@ func (m *Model) take(msg source.Answer[[]byte]) {
 	}
 	if _, landed := s.src.Take(msg); landed != source.Shown {
 		return
+	}
+	at, under := slices.IndexFunc(m.stages, func(o stage) bool { return o.name == msg.Name }), ""
+	if rows := m.rows(at); s.Cursor >= 0 && s.Cursor < len(rows) {
+		under = rows[s.Cursor].Key
 	}
 	err := msg.Err
 	if err == nil {
@@ -1054,6 +1060,9 @@ func (m *Model) take(msg source.Answer[[]byte]) {
 	m.blank(s)
 	m.rebuild()
 	m.autoGroup(s.name)
+	if k := slices.IndexFunc(m.rows(at), func(r row) bool { return r.Key == under }); under != "" && k >= 0 {
+		s.Cursor = k
+	}
 	for i := range m.stages {
 		m.clamp(i)
 	}

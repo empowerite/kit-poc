@@ -67,7 +67,8 @@ draws them, Platform's too. A tab kit read only part of, as a capped list, count
 feature the forge has off here, as secret scanning, says so, dim, under the rows, and is no failure. A tab whose read
 fails, the first or a later one, shows kit's line in place of its rows, under the heading over its groups where the
 rows grouped. The rows of the read before are gone until the tab is read again, so no key, click, or action reaches
-one behind the line.
+one behind the line. A tab read again keeps the cursor on the row it was on, wherever the new rows put that row, so
+a key pressed after a watched tab reloads acts on the same row; where the row is gone, the cursor stays in place.
 A link to a row of a tab the app does not have opens the app built around that tab's entity.
 
 Each screen reads what it shows from kit as JSON. A form reads `kit syntax <verb>`, the picture reads
