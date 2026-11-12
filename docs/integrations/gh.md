@@ -223,7 +223,7 @@ fills `{owner}` and `{repo}` from the repository `GH_REPO` names, as kit sets it
 
 | Capability | Command |
 | --- | --- |
-| Recent runs | `gh run list --limit 50 --json databaseId,number,attempt,workflowName,headBranch,headSha,displayTitle,event,status,conclusion,createdAt,startedAt,updatedAt,url`; filter with `--branch "${branch}"`, `--event push`, `--event schedule`, `--event workflow_dispatch` |
+| Recent runs | `gh run list --event "${event}" --limit "${limit}" --json databaseId,number,attempt,workflowName,headBranch,headSha,displayTitle,event,status,conclusion,createdAt,startedAt,updatedAt,url`, and `--branch "${branch}"`; kit asks by kind, so a pull request's runs take no room: `--event push --branch "${default}" --limit 20`, `--event schedule --limit 20`, `--event workflow_dispatch --limit 20`, and `--event push --limit 100` for the pushes to a tag, which no filter picks out, so a tag's run older than the 100 newest pushes is not listed |
 | A run's jobs and failed step | `gh run view "${run_id}" --json jobs`; each job has `steps[]` with `conclusion` |
 | Whether runs changed | `gh api --include -H "If-None-Match: ${etag}" 'repos/{owner}/{repo}/actions/runs?per_page=10'`, as kit's runs mark does |
 | A change's checks | `gh pr checks "${n}" --json name,state,bucket,link,workflow`; kit reads `statusCheckRollup` through `gh api graphql` |
@@ -386,5 +386,5 @@ with an example the gate validates against it.
 | [pr-list.schema.json](gh/pr-list.schema.json) | `gh pr list --head ${branch} --state ${state} --json ${field} --limit ${forge_list_limit} --jq ${filter}` |
 | [pr-view.schema.json](gh/pr-view.schema.json) | `gh pr view ${number} --json ${fields} --jq ${filter}` |
 | [repo-view.schema.json](gh/repo-view.schema.json) | `gh repo view --json ${field} --jq .${field}` |
-| [run-list.schema.json](gh/run-list.schema.json) | `gh run list --limit 50 --json databaseId,number,attempt,workflowName,headBranch,headSha,displayTitle,event,status,conclusion,createdAt,startedAt,updatedAt,url` |
+| [run-list.schema.json](gh/run-list.schema.json) | `gh run list --event ${event} --limit ${limit} --json databaseId,number,attempt,workflowName,headBranch,headSha,displayTitle,event,status,conclusion,createdAt,startedAt,updatedAt,url` |
 | [run-view.schema.json](gh/run-view.schema.json) | `gh run view ${id} --json jobs` |

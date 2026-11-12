@@ -10,7 +10,9 @@ kit reads CI through the code forge seam, `kit/modules/bash/forge.sh`, and two o
 seam is, [architecture.md](../architecture.md#code-forges-seams-and-providers) says.
 
 - `forge:runs` returns the 20 newest runs that no change owns, each with its jobs and the failed step. The builds
-  stage draws them.
+  stage draws them. Each provider asks its forge for them by kind, so a change's runs take no room in what it reads.
+  GitHub cannot be asked for the pushes to a tag alone: kit reads the 100 newest pushes for them, and a tag's run
+  older than those is not listed.
 - `open-prs` returns each open change with its checks: on GitHub the commit's `statusCheckRollup`, both check runs
   and commit statuses; on GitLab the jobs of the merge request's head pipeline. The changes stage draws them.
 

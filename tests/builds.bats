@@ -59,7 +59,7 @@ JSON
                      {"name": "notify", "conclusion": "skipped"}]}]}
 JSON
   route 'api user*' user.json
-  route 'run list --limit 50 --json *' runs.json
+  route 'run list --event *' runs.json
   route 'run view 5 --json jobs' jobs.json
   route 'run view 4 --json jobs' failed-jobs.json
 }

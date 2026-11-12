@@ -101,7 +101,7 @@ JSON
   "startedAt": "2026-10-01T10:00:00Z", "updatedAt": "2026-10-01T10:03:36Z", "url": "https://github.com/r/11"}]
 JSON
   route 'api --paginate repos/{owner}/{repo}/releases?per_page=100' releases.json
-  route 'run list --limit 50 --json *' runs.json
+  route 'run list --event *' runs.json
 }
 
 # empty-forge makes the fake forge answer with no issue, no change, no run, and no release.

@@ -337,7 +337,21 @@ added='"milestones","bots","attestations","code-scanning","dependabot","secret-s
   "sourceBranch": "refs/heads/9-other", "reason": "manual", "status": "completed", "result": "canceled",
   "queueTime": "2026-10-01T06:00:00Z", "startTime": "2026-10-01T06:00:00Z", "finishTime": "2026-10-01T06:00:42Z"}]
 JSON
-  az-route 'pipelines runs list --project empowerite --top 50 --query-order QueueTimeDesc --output json' runs.json
+  # az answers as Azure Pipelines filters the runs: asked for a reason, those of it, and asked for none, the 50 newest
+  # of any, which here are 50 runs of pull requests newer than every other
+  local reason list='pipelines runs list --project empowerite --top 50 --query-order QueueTimeDesc'
+  for reason in individualCI batchedCI schedule manual
+  do
+    jq --arg reason "${reason}" 'map(select(.reason == $reason))' "${FAKE_DIR}/runs.json" \
+      > "${FAKE_DIR}/runs-${reason}.json"
+    az-route "${list} --reason ${reason} --output json" "runs-${reason}.json"
+  done
+  jq '[range(50) | {id: (200 + .), buildNumber: "\(100 + .)", sourceVersion: "ccccccc0000000000",
+                    definition: {name: "kit"}, sourceBranch: "refs/pull/3/merge", reason: "pullRequest",
+                    status: "completed", result: "succeeded", queueTime: "2026-10-02T11:00:00Z",
+                    startTime: "2026-10-02T11:00:00Z", finishTime: "2026-10-02T11:03:00Z"}]' "${FAKE_DIR}/runs.json" \
+    > "${FAKE_DIR}/runs-any.json"
+  az-route "${list} --output json" runs-any.json
   expected='[{"id":103,"number":49,"attempt":1,"workflow":"kit","branch":"main","tag":false,"event":"push",'
   expected+='"sha":"8e817bf","state":"passed","took":216},'
   expected+='{"id":102,"number":48,"attempt":1,"workflow":"kit","branch":"release/0.1.0","tag":true,"event":"push",'
@@ -353,6 +367,9 @@ JSON
   [ "$(jq 'map(.age > 0 and .jobs == []) | all' <<<"$output")" = true ]
   # az drops a run's _links, so its page is built from the organization, the project, and the run's id
   [ "$(jq --raw-output '.[0].url' <<<"$output")" = 'https://dev.azure.com/acme/empowerite/_build/results?buildId=103' ]
+  # a reason a call, and never the runs of any reason, among which a pull request's take the room
+  [ "$(grep -c '^pipelines runs list .* --reason ' "${FAKE_DIR}/az.calls")" -eq 4 ]
+  ! grep --quiet '^pipelines runs list .* QueueTimeDesc --output json' "${FAKE_DIR}/az.calls"
 }
 
 @test "Azure DevOps lacks rate limits, marks, releases, and linked branches, and says so in its declaration" {

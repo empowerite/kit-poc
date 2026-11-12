@@ -610,15 +610,27 @@ forge/gitlab:rulesets() {
     --argjson push "${push}" --arg url "${url}" 'import "forge" as forge; forge::gitlab_controls($branch; $push; $url)'
 }
 
-# forge/gitlab:runs prints the builds stage's runs as one JSON array, as the seam's header says: the 50 newest
-# pipelines, those forge.jq's builds keeps. A pipeline's jobs would cost a call each, so every run carries none.
+# forge/gitlab:runs prints the builds stage's runs as one JSON array, as the seam's header says. It asks GitLab for
+# the pipelines by kind, as its list filters them, the 20 newest of each, so a merge request's pipelines take no
+# room in what it reads: the pushes to a tag, scope=tags, each of which is a tag's, which the list itself does not
+# say; the pushes to the default branch, source=push and ref; the scheduled, source=schedule; and those started from
+# the web page, source=web. The four lists are joined, each pipeline once, and forge.jq's builds keeps the 20 newest.
+# A pipeline's jobs would cost a call each, so every run carries none.
 forge/gitlab:runs() {
-  local list default tags
-  forge/gitlab:ask list 'the pipelines' 'pipelines?per_page=50' || return 1
+  local list lists='' default tags ref kind
   default=$(git:default-branch) || return 1
   tags=$(forge:tags) || return 1
-  forge/gitlab:fold 'the pipelines' "${list}" --compact-output --argjson now "$(date +%s)" --arg default "${default}" \
-    --argjson tags "${tags}" 'import "forge" as forge; forge::gitlab_builds($now; $default; $tags)'
+  ref=$(jq --null-input --raw-output --arg s "${default}" '$s | @uri')
+  for kind in 'scope=tags&source=push' "source=push&ref=${ref}" 'source=schedule' 'source=web'
+  do
+    forge/gitlab:ask list 'the pipelines' "pipelines?${kind}&per_page=20" || return 1
+    lists+=${list}$'\n'
+  done
+  forge/gitlab:fold 'the pipelines' "${lists}" --slurp --compact-output --argjson now "$(date +%s)" \
+    --arg default "${default}" --argjson tags "${tags}" \
+    'import "forge" as forge;
+     if all(.[]; type == "array") then (.[0] |= map(.tag = true)) | add | unique_by(.id) else error end
+     | forge::gitlab_builds($now; $default; $tags)'
 }
 
 # forge/gitlab:secret-scanning-alerts prints one document per secret detection vulnerability, open or dismissed, as

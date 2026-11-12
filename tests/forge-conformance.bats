@@ -1579,15 +1579,39 @@ JSON
   [[ "$stderr" == *"the iterations could not be read"* && "$stderr" != *"at most 20"* ]]
 }
 
-# runs-world <forge> is world's, with the runs: their list, and the jobs of run 103.
+# runs-world <forge> is world's, with the runs, and the jobs of run 103. gh-runs.json and gl-pipelines.json hold every
+# run the forge has, and each tool answers as its forge filters them: asked for a kind, those of that kind; asked for
+# none, the 50 newest of any. GitLab's list does not say that a pipeline is a tag's, so its answers leave it out.
 runs-world() {
+  local dir=${FAKE_DIR} pipelines='api projects/empowerite%2Fexample/pipelines'
   world "$1"
-  route gh 'run list --limit 50 --json *' gh-runs.json
+  jq 'map(select(.event == "push" and .headBranch == "main"))' "${dir}/gh-runs.json" > "${dir}/gh-runs-default.json"
+  jq 'map(select(.event == "push"))' "${dir}/gh-runs.json" > "${dir}/gh-runs-push.json"
+  jq 'map(select(.event == "schedule"))' "${dir}/gh-runs.json" > "${dir}/gh-runs-schedule.json"
+  jq 'map(select(.event == "workflow_dispatch"))' "${dir}/gh-runs.json" > "${dir}/gh-runs-manual.json"
+  jq 'sort_by(.createdAt) | reverse | .[:50]' "${dir}/gh-runs.json" > "${dir}/gh-runs-any.json"
+  route gh 'run list --event push --branch main --limit 20 --json *' gh-runs-default.json
+  route gh 'run list --event schedule --limit 20 --json *' gh-runs-schedule.json
+  route gh 'run list --event workflow_dispatch --limit 20 --json *' gh-runs-manual.json
+  route gh 'run list --event push --limit 100 --json *' gh-runs-push.json
+  route gh 'run list --limit 50 --json *' gh-runs-any.json
   route gh 'run view 103 --json jobs' gh-jobs.json
-  route glab 'api projects/empowerite%2Fexample/pipelines?per_page=50' gl-pipelines.json
+  jq 'map(select(.source == "push" and .ref == "main") | del(.tag))' "${dir}/gl-pipelines.json" > "${dir}/gl-default.json"
+  jq 'map(select(.source == "push" and .tag == true) | del(.tag))' "${dir}/gl-pipelines.json" > "${dir}/gl-tags.json"
+  jq 'map(select(.source == "schedule") | del(.tag))' "${dir}/gl-pipelines.json" > "${dir}/gl-schedule.json"
+  jq 'map(select(.source == "web") | del(.tag))' "${dir}/gl-pipelines.json" > "${dir}/gl-web.json"
+  jq 'sort_by(.created_at) | reverse | .[:50] | map(del(.tag))' "${dir}/gl-pipelines.json" > "${dir}/gl-any.json"
+  route glab "${pipelines}?source=push&ref=main&per_page=20" gl-default.json
+  route glab "${pipelines}?scope=tags&source=push&per_page=20" gl-tags.json
+  route glab "${pipelines}?source=schedule&per_page=20" gl-schedule.json
+  route glab "${pipelines}?source=web&per_page=20" gl-web.json
+  route glab "${pipelines}?per_page=50" gl-any.json
 }
 
-@test "every provider lists the runs not owned by any pull request in one shape, newest first, the newest with its jobs" {
+# runs-fixtures writes every run each forge has, the same six: a pull request's, a push to main, a push to the tag
+# release/0.1.0, a scheduled run, a push to a branch, and a manual run; and the jobs of run 103. The checkout has the
+# tag, as GitHub's list does not say a run is a tag's.
+runs-fixtures() {
   git commit --quiet --allow-empty --message one && git tag release/0.1.0
   fixture gh-runs.json <<'JSON'
 [{"databaseId": 104, "number": 50, "headSha": "aaaaaaa0000000000", "displayTitle": "title 104",
@@ -1647,6 +1671,12 @@ JSON
   "created_at": "2026-10-01T06:00:00.000Z", "updated_at": "2026-10-01T06:00:42.000Z",
   "web_url": "https://gl.com/p/99"}]
 JSON
+}
+
+# runs-expected prints the four runs of runs-fixtures that no pull request owns, newest first, as either forge's
+# runs call prints them, less its age, page, jobs, and title.
+runs-expected() {
+  local expected
   expected='[{"id":103,"number":49,"attempt":1,"workflow":"kit","branch":"main","tag":false,"event":"push",'
   expected+='"sha":"8e817bf","state":"passed","took":216},'
   expected+='{"id":102,"number":48,"attempt":1,"workflow":"kit","branch":"release/0.1.0","tag":true,"event":"push",'
@@ -1655,13 +1685,18 @@ JSON
   expected+='"sha":"8e817bf","state":"running","took":null},'
   expected+='{"id":99,"number":45,"attempt":1,"workflow":"kit","branch":"9-other","tag":false,'
   expected+='"event":"workflow_dispatch","sha":"5d376dd","state":"cancelled","took":42}]'
+  jq --compact-output --sort-keys . <<<"${expected}"
+}
+
+@test "every provider lists the runs not owned by any pull request in one shape, newest first, the newest with its jobs" {
+  runs-fixtures
   for forge in github gitlab
   do
     runs-world "${forge}"
     run call runs
     [ "$status" -eq 0 ]
-    [ "$(jq --compact-output --sort-keys 'map(del(.age, .url, .jobs, .title))' <<<"$output")" \
-      = "$(jq --compact-output --sort-keys . <<<"${expected}")" ] || { echo "${forge}: ${output}"; return 1; }
+    [ "$(jq --compact-output --sort-keys 'map(del(.age, .url, .jobs, .title))' <<<"$output")" = "$(runs-expected)" ] \
+      || { echo "${forge}: ${output}"; return 1; }
     [ "$(jq 'map(.age > 0 and (.url | startswith("https://"))) | all' <<<"$output")" = true ]
   done
   # GitLab's list gives no title, nor jobs; GitHub's runs carry their title, and the newest their jobs, a call each
@@ -1673,6 +1708,45 @@ JSON
     = '[{"name":"ci","state":"passed","took":210,"step":null},'"\
 "'{"name":"lint","state":"running","took":null,"step":null}]' ]
   [ "$(grep -c '^run view ' "${FAKE_DIR}/gh.calls")" -eq 4 ]
+}
+
+@test "every provider asks its forge for the runs by kind, so 50 newer runs of pull requests take no run's place" {
+  runs-fixtures
+  # the 50 newest runs the forge has are pull requests', all newer than the push to main
+  jq '[range(50) | {databaseId: (200 + .), number: (100 + .), headSha: "ccccccc0000000000", displayTitle: "a change",
+                    workflowName: "kit", headBranch: "7-fix-the-thing", event: "pull_request", status: "completed",
+                    conclusion: "success", createdAt: "2026-10-02T11:00:00Z", startedAt: "2026-10-02T11:00:00Z",
+                    updatedAt: "2026-10-02T11:03:00Z", url: "https://github.com/r/\(200 + .)"}] + .' \
+    "${FAKE_DIR}/gh-runs.json" > "${FAKE_DIR}/gh-more.json"
+  mv "${FAKE_DIR}/gh-more.json" "${FAKE_DIR}/gh-runs.json"
+  jq '[range(50) | {id: (200 + .), iid: (100 + .), sha: "ccccccc0000000000", name: "kit", ref: "7-fix-the-thing",
+                    source: "merge_request_event", status: "success", created_at: "2026-10-02T11:00:00.000Z",
+                    updated_at: "2026-10-02T11:03:00.000Z", web_url: "https://gl.com/p/\(200 + .)"}] + .' \
+    "${FAKE_DIR}/gl-pipelines.json" > "${FAKE_DIR}/gl-more.json"
+  mv "${FAKE_DIR}/gl-more.json" "${FAKE_DIR}/gl-pipelines.json"
+  for forge in github gitlab
+  do
+    runs-world "${forge}"
+    run --separate-stderr call runs
+    [ "$status" -eq 0 ]
+    [ "$(jq --compact-output --sort-keys 'map(del(.age, .url, .jobs, .title))' <<<"$output")" = "$(runs-expected)" ] \
+      || { echo "${forge}: ${output}"; return 1; }
+  done
+  # GitHub is asked four times: the pushes to main, the scheduled, the manual, and the pushes to any ref, for the tags
+  [ "$(grep -c '^run list ' "${FAKE_DIR}/gh.calls")" -eq 4 ]
+  ! grep --quiet '^run list --limit 50 ' "${FAKE_DIR}/gh.calls"
+  # GitLab is asked for a tag's pipelines by their scope, and knows each for a tag's by that, as its list does not say
+  grep --quiet 'pipelines?scope=tags&source=push&per_page=20' "${FAKE_DIR}/glab.calls"
+  ! grep --quiet 'pipelines?per_page=50' "${FAKE_DIR}/glab.calls"
+  git tag --delete release/0.1.0 >/dev/null
+  runs-world gitlab
+  [ "$(call runs | jq --compact-output 'map(select(.tag) | .branch)')" = '["release/0.1.0"]' ]
+  # a default branch is written into the address as an address takes it
+  git symbolic-ref refs/remotes/origin/HEAD 'refs/remotes/origin/rel#1'
+  route glab 'api projects/empowerite%2Fexample/pipelines?source=push&ref=rel%231&per_page=20' gl-schedule.json
+  run --separate-stderr call runs
+  [ "$status" -eq 0 ]
+  grep --quiet 'pipelines?source=push&ref=rel%231&per_page=20' "${FAKE_DIR}/glab.calls"
 }
 
 @test "every provider reads its open changes once a minute: a second call takes the snapshot, an old one is read again" {

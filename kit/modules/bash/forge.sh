@@ -116,6 +116,8 @@
 #                                 file it offers, {name, url}, where it downloads
 #   runs                          one JSON array of the runs not owned by any pull request, newest first, the 20
 #                                 newest at most: pushes to the default branch or a tag, scheduled and manual runs;
+#                                 a provider asks its forge for them by kind, so a change's runs take no room in
+#                                 what it reads, and says in its own header what its forge cannot be asked for;
 #                                 each is {id, number, attempt, workflow, branch, tag, event, sha, title, state, age,
 #                                 took, url, jobs}, what the builds stage draws; each job is {name, state, took, step}
 #   milestones                    one JSON object per milestone: {number, title, state, due, open, closed, url}; state

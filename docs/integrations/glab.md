@@ -145,7 +145,7 @@ failed job and its `failure_reason`.
 
 | Capability | Command |
 | --- | --- |
-| Recent runs | `glab ci list -F json -P 50`; filter with `--source push`, `--source schedule`, `--source web`, `--scope tags`, `-r "${branch}"`; kit reads `glab api 'projects/:id/pipelines?per_page=50'` |
+| Recent runs | `glab ci list -F json -P 50`; filter with `--source push`, `--source schedule`, `--source web`, `--scope tags`, `-r "${branch}"`; kit reads `glab api 'projects/:id/pipelines?${kind}&per_page=20'` by kind, so a merge request's pipelines take no room: `scope=tags&source=push`, whose pipelines are each a tag's, which the list does not say, `source=push&ref=${default}`, `source=schedule`, and `source=web` |
 | A run's jobs | `glab ci get -p "${pipeline_id}" -d -F json`, or `glab api projects/:id/pipelines/${pipeline_id}/jobs` |
 | A change's checks | `glab ci get --merge-request "${n}" -F json`; kit reads the merge request's head pipeline and its jobs |
 | A job's log | `glab ci trace "${job_id}"`, which follows a running job; `glab api projects/:id/jobs/${job_id}/trace` for the raw text |
@@ -258,7 +258,7 @@ with an example the gate validates against it.
 | [api-merge-requests.schema.json](glab/api-merge-requests.schema.json) | `glab api projects/${project}/merge_requests?${query} [--paginate]` |
 | [api-milestones.schema.json](glab/api-milestones.schema.json) | `glab api projects/${project}/milestones?sort=updated_desc&per_page=1` |
 | [api-pipeline-jobs.schema.json](glab/api-pipeline-jobs.schema.json) | `glab api projects/${home}/pipelines/${pipeline}/jobs?per_page=100 --paginate` |
-| [api-pipelines.schema.json](glab/api-pipelines.schema.json) | `glab api projects/${project}/pipelines?per_page=${n}` |
+| [api-pipelines.schema.json](glab/api-pipelines.schema.json) | `glab api projects/${project}/pipelines?per_page=${n}`, and with `${kind}&` before `per_page` |
 | [api-project.schema.json](glab/api-project.schema.json) | `glab api projects/${project}` |
 | [api-protected-branches.schema.json](glab/api-protected-branches.schema.json) | `glab api projects/${project}/protected_branches?per_page=100 --paginate` |
 | [api-protected-environments.schema.json](glab/api-protected-environments.schema.json) | `glab api projects/${project}/protected_environments?per_page=100 --paginate` |

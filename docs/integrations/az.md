@@ -143,7 +143,7 @@ a list. `az devops invoke` calls any REST route with the extension's sign-in.
 
 | Capability | Command |
 | --- | --- |
-| Recent runs | `az pipelines runs list --branch "${branch}" --top 20 --query-order QueueTimeDesc --reason individualCI`; `--reason` takes one value per call, `schedule` or `manual` the others |
+| Recent runs | `az pipelines runs list --branch "${branch}" --top 20 --query-order QueueTimeDesc --reason individualCI`; `--reason` takes one value per call, `schedule` or `manual` the others; kit reads `--top 50 --reason "${reason}"` for `individualCI`, `batchedCI`, `schedule`, and `manual`, a call each, so a pull request's runs take no room |
 | A run's jobs and failed step | REST `GET https://dev.azure.com/${organization}/${project}/_apis/build/builds/${build_id}/timeline?api-version=7.1`: records of type `Stage`, `Job`, and `Task`, each with `result` |
 | A change's checks | `az pipelines runs list --reason pullRequest --branch "refs/pull/${n}/merge"` on GitHub; an Azure Repos pull request's policies belong to the code forge |
 | A run's log | REST `GET https://dev.azure.com/${organization}/${project}/_apis/build/builds/${build_id}/logs/${log_id}?api-version=7.1`; the timeline names each record's `log.id` |
@@ -240,7 +240,7 @@ with an example the gate validates against it.
 | [devops-team-list.schema.json](az/devops-team-list.schema.json) | `az devops team list --project ${project} --top 21 --output json` |
 | [devops-team-list-member.schema.json](az/devops-team-list-member.schema.json) | `az devops team list-member --team ${team} --project ${project} --top 101 --output json` |
 | [pipelines-runs-artifact-list.schema.json](az/pipelines-runs-artifact-list.schema.json) | `az pipelines runs artifact list --run-id ${id} --project ${project} --output json` |
-| [pipelines-runs-list.schema.json](az/pipelines-runs-list.schema.json) | `az pipelines runs list --project ${project} --top ${top} --query-order QueueTimeDesc --output json` |
+| [pipelines-runs-list.schema.json](az/pipelines-runs-list.schema.json) | `az pipelines runs list --project ${project} --top ${top} --query-order QueueTimeDesc --output json`, and with `--reason ${reason}` |
 | [repos-policy-list.schema.json](az/repos-policy-list.schema.json) | `az repos policy list --branch ${branch} --repository-id ${id} --project ${project} --output json` |
 | [repos-pr-create.schema.json](az/repos-pr-create.schema.json) | `az repos pr create --draft ${draft} --source-branch ${branch} --target-branch ${base} --title ${title} --project ${project} --repository ${repository} [--work-items ${item}] --output json` |
 | [repos-pr-list.schema.json](az/repos-pr-list.schema.json) | `az repos pr list --project ${project} --repository ${repository} --status ${status} --top ${top} [--skip ${skip}] [--source-branch ${branch}] --output json` |

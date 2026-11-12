@@ -523,19 +523,29 @@ forge/ado:rulesets() {
     'import "forge" as forge; if type == "array" then forge::ado_controls($url) else error end'
 }
 
-# forge/ado:runs prints the builds stage's runs as one JSON array, as the seam's header says: the 50 newest runs of
-# the project's pipelines, those forge.jq's builds keeps. A run's jobs would cost a call each, so every run carries
-# none.
+# forge/ado:runs prints the builds stage's runs as one JSON array, as the seam's header says. It asks Azure Pipelines
+# for the runs of the project's pipelines by their reason, as az filters them, a reason a call, so a pull request's
+# runs take no room in what it reads: the 50 newest of individualCI and of batchedCI, the pushes; of schedule; and of
+# manual. The four lists are joined, each run once, and forge.jq's builds keeps the 20 newest. A push to a branch
+# that is not the default one is among the pushes, so a push to the default branch or a tag older than the 50 newest
+# pushes of its reason is not listed. A run's jobs would cost a call each, so every run carries none.
 forge/ado:runs() {
-  local list default tags org project
+  local list lists='' default tags org project reason
   IFS=$'\t' read -r org project _ < <(forge/ado:place) || return 1
-  forge/ado:ask list 'the pipeline runs' pipelines runs list --project "${project}" --top 50 --query-order QueueTimeDesc \
-    || return 1
   default=$(git:default-branch) || return 1
   tags=$(forge:tags) || return 1
-  forge/ado:fold 'the pipeline runs' "${list}" --compact-output --argjson now "$(date +%s)" --arg default "${default}" \
-    --argjson tags "${tags}" --arg results "${org}/$(forge/ado:encode "${project}")/_build/results" \
-    'import "forge" as forge; forge::ado_builds($now; $default; $tags; $results)'
+  for reason in individualCI batchedCI schedule manual
+  do
+    forge/ado:ask list 'the pipeline runs' pipelines runs list --project "${project}" --top 50 \
+      --query-order QueueTimeDesc --reason "${reason}" || return 1
+    lists+=${list}$'\n'
+  done
+  forge/ado:fold 'the pipeline runs' "${lists}" --slurp --compact-output --argjson now "$(date +%s)" \
+    --arg default "${default}" --argjson tags "${tags}" \
+    --arg results "${org}/$(forge/ado:encode "${project}")/_build/results" \
+    'import "forge" as forge;
+     if all(.[]; type == "array") then add | unique_by(.id) else error end
+     | forge::ado_builds($now; $default; $tags; $results)'
 }
 
 # forge/ado:issue-url <id> prints the work item's browser URL, for the forge's own tracker.

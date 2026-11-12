@@ -897,19 +897,36 @@ forge/github:rulesets() {
       forge::github_rulesets($protection | if type == "object" then {rules, checks, reviews} else null end)'
 }
 
-# forge/github:runs prints the builds stage's runs as one JSON array, as the seam's header says. It reads the 50
-# newest runs and keeps those forge.jq's builds keeps. A run's jobs cost a call each, so only the 5 newest runs carry
-# them; a run whose jobs cannot be read keeps none.
+# forge/github:runs prints the builds stage's runs as one JSON array, as the seam's header says. It asks GitHub for
+# the runs by kind, as gh run list filters them, so a pull request's runs take no room in what it reads: the 20
+# newest pushes to the default branch, the 20 newest scheduled runs, and the 20 newest runs started by hand, which
+# are all the builds stage could draw of each. GitHub cannot be asked for the pushes to a tag alone, so the fourth
+# list is the 100 newest pushes to any ref, of which forge.jq's builds keeps those to a tag: a tag's run older than
+# those 100 pushes is not listed. The four lists are joined, each run once, and forge.jq's builds keeps the 20
+# newest. A run's jobs cost a call each, so only the 5 newest runs carry them; a run whose jobs cannot be read keeps
+# none.
 forge/github:runs() {
-  local answer runs id jobs index=0 default tags
+  local answer lists='' runs id jobs index=0 default tags kind
   local fields=databaseId,number,attempt,workflowName,headBranch,headSha,displayTitle,event,status,conclusion
+  local -a filter
   fields+=,createdAt,startedAt,updatedAt,url
-  forge/github:ask answer 'the runs' run list --limit 50 --json "${fields}" || return 1
   default=$(git:default-branch) || return 1
   tags=$(forge:tags) || return 1
-  runs=$(forge/github:fold 'the runs' "${answer}" --compact-output --argjson now "$(date +%s)" \
+  for kind in default schedule workflow_dispatch push
+  do
+    case "${kind}" in
+      (default) filter=(--event push --branch "${default}" --limit 20) ;;
+      (push) filter=(--event push --limit 100) ;;
+      (*) filter=(--event "${kind}" --limit 20) ;;
+    esac
+    forge/github:ask answer 'the runs' run list "${filter[@]}" --json "${fields}" || return 1
+    lists+=${answer}$'\n'
+  done
+  runs=$(forge/github:fold 'the runs' "${lists}" --slurp --compact-output --argjson now "$(date +%s)" \
     --arg default "${default}" --argjson tags "${tags}" \
-    'import "forge" as forge; forge::github_builds($now; $default; $tags)') || return 1
+    'import "forge" as forge;
+     if all(.[]; type == "array") then add | unique_by(.databaseId) else error end
+     | forge::github_builds($now; $default; $tags)') || return 1
   while IFS= read -r id
   do
     # The run's own state stands whatever its jobs say, and the jobs are a detail of the picture, so a run whose jobs

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "gh run list --limit 50 --json databaseId,number,attempt,workflowName,headBranch,headSha,displayTitle,event,status,conclusion,createdAt,startedAt,updatedAt,url",
-  "description": "The 50 newest workflow runs, which kit reads in `modules/bash/forge/github.sh` (forge/github:runs) and folds in `modules/jq/forge.jq` (forge::github_builds). The types are workflow-run of GET /repos/{owner}/{repo}/actions/runs in GitHub's REST OpenAPI description, https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json, as gh renders its fields (https://github.com/cli/cli/blob/trunk/pkg/cmd/run/shared/shared.go): a null status, conclusion, or headBranch as \"\", and a missing time as 0001-01-01T00:00:00Z.",
+  "title": "gh run list --event ${event} --limit ${limit} --json databaseId,number,attempt,workflowName,headBranch,headSha,displayTitle,event,status,conclusion,createdAt,startedAt,updatedAt,url",
+  "description": "The newest workflow runs of one event, which kit reads by kind in `modules/bash/forge/github.sh` (forge/github:runs), with --branch ${default} for the pushes to the default branch, and folds in `modules/jq/forge.jq` (forge::github_builds): 20 pushes to the default branch, 20 scheduled runs, 20 manual runs, and 100 pushes to any ref, for those to a tag. The types are workflow-run of GET /repos/{owner}/{repo}/actions/runs in GitHub's REST OpenAPI description, https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.json, as gh renders its fields (https://github.com/cli/cli/blob/trunk/pkg/cmd/run/shared/shared.go): a null status, conclusion, or headBranch as \"\", and a missing time as 0001-01-01T00:00:00Z.",
   "type": "array",
   "items": {
     "type": "object",
