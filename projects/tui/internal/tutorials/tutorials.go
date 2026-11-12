@@ -17,7 +17,8 @@
 // summary needs, another blank line, and its audiences as pills in their colors on its bottom edge; the glyph of where
 // it is stands at the right of its top edge. The card under the cursor is drawn in the
 // menus' bright cyan, and the pane scrolls a row of cards, or a heading, at a time so that card is always whole. A
-// catalogue with no tutorial says so, as a search or a filter that lets none through does.
+// catalogue with no tutorial says so, as a search or a filter that lets none through does. Until kit lists a
+// tutorial, the screen draws no control line, and the table takes no key and no click.
 //
 // The cards have the keyboard as the screen opens. Tab and shift-tab move the cursor between them, its stops, in
 // reading order, on along the next row, as they move between the stops on any line; up and down move to the row of
@@ -434,8 +435,16 @@ func (m Model) focused() bool { return m.inPane && len(m.cards()) > 0 }
 // controlled says whether the table's control line has the keyboard.
 func (m Model) controlled() bool { return m.sheet.Focused() }
 
-// toControls gives the control line the keyboard, from the cards.
+// listed says whether the screen draws the table's control line, which it does once kit has listed a tutorial. Until
+// then the table takes no key and no click.
+func (m Model) listed() bool { return len(m.catalog.Tutorials) > 0 }
+
+// toControls gives the control line the keyboard, from the cards. Where the screen draws no control line (see
+// listed), it does nothing, and the keyboard stays where it is.
 func (m *Model) toControls() {
+	if !m.listed() {
+		return
+	}
 	m.inPane = false
 	m.sheet.Focus()
 }
@@ -649,7 +658,8 @@ func (m Model) click(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, m.follow(m.linkAt(msg.X, msg.Y))
 	case msg.Y == controlTop:
-		if m.sheet.Click(msg) {
+		// a control line that is not drawn takes no click, not even on the blank cells where its Fields button would be
+		if m.listed() && m.sheet.Click(msg) {
 			m.search.Focused, m.inPane = false, !m.sheet.Focused()
 			m.settle()
 		}

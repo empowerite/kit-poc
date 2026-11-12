@@ -89,7 +89,7 @@ func (m Model) control() string {
 		return pane.Clip(lead+style.Mark(Back+" tutorials")+style.Off(" │ ")+style.Label(strings.TrimSpace(t.Glyph+" "+
 			t.Title)), m.width-1)
 	}
-	if len(m.catalog.Tutorials) == 0 {
+	if !m.listed() {
 		return ""
 	}
 	return pane.Clip(m.sheet.View()[0], m.width-1)

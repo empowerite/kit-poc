@@ -630,3 +630,61 @@ func TestTheScreensCrumbIsClickedOrKeyedBack(t *testing.T) {
 		t.Error("⌫ goes back while the search has the keyboard")
 	}
 }
+
+// While the screen draws no table, with no group yet, before kit answers, and under kit's refusal, the table takes no
+// click and no key: a click on any cell, the blank ones where its Fields button would stand among them, and up then
+// f, open no dialog of a table that is not there, and the keys stay the screen's.
+func TestATableThatIsNotDrawnTakesNoClickAndNoKey(t *testing.T) {
+	none := `{"file":"/f","roots":[],"favorites":[],"workspaces":[]}`
+	noGroup, _ := opened(t, none)
+	reading := Open(testkit.Runner(t, "kit"))
+	reading, _ = drive(reading, tea.WindowSizeMsg{Width: 120, Height: 30})
+	refused, _ := opened(t, listJSON)
+	if err := os.Remove(filepath.Join(os.Getenv("FAKE_WORKSPACES"), "list.json")); err != nil {
+		t.Fatal(err)
+	}
+	refused, _ = drive(refused, refused.read()())
+	for name, m := range map[string]Model{"no group": noGroup, "reading": reading, "refused": refused} {
+		if m.listed() {
+			t.Fatalf("%s: the screen draws the table:\n%s", name, view(m))
+		}
+		// the table's keyboard stays where it was, on its rows, and the keys bar names none of the table's keys
+		keys := m.keys().Line(120)
+		if !m.sheet.InRows() || strings.Contains(keys, "↑↓") {
+			t.Fatalf("%s: the rows have the keyboard %v, and the keys are %q", name, m.sheet.InRows(), keys)
+		}
+		for y := tableTop; y < 29; y++ {
+			for x := range 120 {
+				if m, _ = drive(m, left(x, y)); m.sheet.Layered() || !m.sheet.InRows() || m.keys().Line(120) != keys {
+					t.Fatalf("%s: a click at %d, %d reached the table: %q", name, x, y, m.keys().Line(120))
+				}
+			}
+		}
+		m, _ = drive(m, testkit.Press("down"), testkit.Press("up"), testkit.Press("f"))
+		if m.sheet.Layered() || !m.sheet.InRows() || m.keys().Line(120) != keys {
+			t.Errorf("%s: down, up, f reached the table: %q\n%s", name, m.keys().Line(120), view(m))
+		}
+		// the search takes the keyboard from the table, and esc there gives it back to no table
+		m, _ = drive(m, testkit.Press("/"), testkit.Press("esc"), testkit.Press("f"))
+		if m.search.Focused || m.sheet.Focused() || m.sheet.Layered() {
+			t.Errorf("%s: /, esc, f reached the table: %q\n%s", name, m.keys().Line(120), view(m))
+		}
+	}
+	// a dialog open when the last group goes takes no key either: n still asks for a new group
+	m, _ := opened(t, listJSON)
+	x, y := lineAt(t, m, "workspace  #")
+	if m, _ = drive(m, left(x+1, y)); !m.sheet.Layered() {
+		t.Fatalf("a click on workspace opened no card:\n%s", view(m))
+	}
+	if err := os.WriteFile(filepath.Join(os.Getenv("FAKE_WORKSPACES"), "list.json"), []byte(none), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m, _ = drive(m, m.read()())
+	if v, keys := view(m), ansi.Strip(m.keys().Line(120)); !strings.Contains(v, "no group yet") ||
+		!strings.Contains(keys, "n new") {
+		t.Fatalf("the last group gone under a card: %q\n%s", keys, v)
+	}
+	if m, _ = drive(m, testkit.Press("n")); !m.prompt.open {
+		t.Error("n did not reach the screen past a card that is not drawn")
+	}
+}

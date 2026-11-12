@@ -12,6 +12,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/empowerite/kit/projects/tui/internal/kit"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/style"
 	"github.com/empowerite/kit/projects/tui/internal/testkit"
@@ -167,5 +168,37 @@ func TestTheSettingsReachTheTutorialsTable(t *testing.T) {
 	m, _ := loaded(t, shell.SettingsMsg{Settings: shell.Settings{FoldShared: false, SharedEmoji: true}})
 	if p := m.sheet.Panel(); p.Fold || !p.Glyphs {
 		t.Errorf("the settings did not reach the table: fold %v, glyphs %v", p.Fold, p.Glyphs)
+	}
+}
+
+// While the screen draws no control line, before kit answers, under kit's refusal, and with no tutorial, the table
+// takes no click and no key: a click on any cell of the line, the blank ones where its Fields button would stand
+// among them, and up then f, open no dialog of a table that is not there, and the keys stay the screen's.
+func TestAControlLineThatIsNotDrawnTakesNoClickAndNoKey(t *testing.T) {
+	reading, _ := fake(t)
+	reading = drive(reading, at120)
+	t.Setenv("FAKE_TUTORIALS_REFUSE", "1")
+	refused, _ := loaded(t)
+	empty, _ := fake(t)
+	empty = drive(empty, at120, catalogue(kit.Catalogue{Version: "unreleased"}))
+	for name, m := range map[string]Model{"reading": reading, "refused": refused, "no tutorial": empty} {
+		if lines(m)[controlTop] != "" {
+			t.Fatalf("%s: the screen draws a control line:\n%s", name, view(m))
+		}
+		keys := m.keys().Line(120)
+		for x := range 120 {
+			if m = drive(m, testkit.Click(x, controlTop)); m.sheet.Layered() || m.controlled() || m.keys().Line(120) != keys {
+				t.Fatalf("%s: a click at %d reached the table: %q", name, x, m.keys().Line(120))
+			}
+		}
+		m = drive(m, up, tea.KeyPressMsg{Code: 'f', Text: "f"}, esc, down, enter)
+		if m.sheet.Layered() || m.controlled() || m.keys().Line(120) != keys {
+			t.Errorf("%s: the keys reached the table: %q\n%s", name, m.keys().Line(120), view(m))
+		}
+	}
+	// the cards have the keyboard once kit answers, though a key asked for the control line before there was one
+	m := drive(reading, up, catalogue(eight()))
+	if !m.focused() || m.controlled() {
+		t.Errorf("after up while reading, then the catalogue: the cards %v, the control line %v", m.focused(), m.controlled())
 	}
 }

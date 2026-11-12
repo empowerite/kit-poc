@@ -16,6 +16,9 @@
 // screen; / or a click on the search at the right gives the search the keyboard, which narrows the rows to what is
 // typed. The mouse wheel scrolls the rows, the cursor left where it is, but not under an open menu or dialog. Ctrl-c
 // quits with 130, and ctrl-q with 0.
+//
+// While the screen draws no table, with no group yet, before kit answers, or under kit's refusal, the table takes no
+// key and no click, and the keys bar names the screen's keys alone.
 package workspaces
 
 import (
@@ -507,7 +510,7 @@ func (m Model) grouped(k int) (Model, tea.Cmd) {
 }
 
 // key takes a key press: the quitting keys; an open prompt's, menu's, or workspace menu's; = and -; an action's key;
-// then the table's.
+// then the table's, while the screen draws it (see listed): a table that is not drawn takes no key.
 func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch k.String() {
 	case "ctrl+c":
@@ -537,7 +540,7 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		var picked string
 		m.books, picked = m.books.Key(k)
 		return m, shell.Pick(picked)
-	case m.sheet.Layered():
+	case m.listed() && m.sheet.Layered():
 		m.sheet.Key(k)
 		return m, nil
 	case m.search.Focused:
@@ -545,7 +548,7 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if did != shell.NotSearch {
 			m.search = s
 			m.sheet.Search(s.Query)
-			if did == shell.Left {
+			if did == shell.Left && m.listed() {
 				m.sheet.FocusRows()
 			}
 			return m, nil
@@ -572,14 +575,15 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if action := m.byKey(k.String()); action != "" && (m.sheet.InRows() || action == New) {
 		return m.do(action)
 	}
-	if !m.sheet.Key(k) && !m.sheet.Focused() && k.String() == "down" {
+	if m.listed() && !m.sheet.Key(k) && !m.sheet.Focused() && k.String() == "down" {
 		m.sheet.Focus()
 	}
 	return m, nil
 }
 
 // click takes a left click: on an open prompt, menu, or workspace menu; on = or the screen's name; on the workspace
-// menu; then on the table.
+// menu; then on the table, while the screen draws it (see listed): a table that is not drawn takes no click, so a
+// click on the blank cells where its control line would be opens nothing.
 func (m Model) click(c tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 	if c.Button != tea.MouseLeft {
 		return m, nil
@@ -622,7 +626,9 @@ func (m Model) click(c tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 	m.search.Focused = false
-	m.sheet.Click(c)
+	if m.listed() {
+		m.sheet.Click(c)
+	}
 	return m, nil
 }
 
@@ -637,7 +643,7 @@ func (m Model) menuBar() shell.MenuBar {
 func (m Model) booksAt() int { return m.menuBar().WorkspaceAt() }
 
 // keys gives the path to the keyboard: an open prompt's or menu's alone; else the screen's keys, its actions' among
-// them and ⌫ while a crumb shows, and the table's while it has the keyboard.
+// them and ⌫ while a crumb shows, and the table's while it has the keyboard and the screen draws it.
 func (m Model) keys() shell.Path {
 	switch {
 	case m.prompt.open:
@@ -645,7 +651,7 @@ func (m Model) keys() shell.Path {
 	case m.appMenu.Open || m.books.Open:
 		return shell.Path{shell.MenuKeys()}
 	}
-	if seg, layer := m.sheet.Keys(); layer {
+	if seg, layer := m.sheet.Keys(); layer && m.listed() {
 		return shell.Path{seg}
 	}
 	own := []shell.Binding{shell.Bind("n", "new")}
@@ -659,7 +665,7 @@ func (m Model) keys() shell.Path {
 		search := shell.SearchKeys("workspaces", m.search.Query, false)
 		search.Owns = true
 		path = append(path, search)
-	case m.sheet.Focused():
+	case m.listed() && m.sheet.Focused():
 		path = append(path, seg)
 	}
 	return path
