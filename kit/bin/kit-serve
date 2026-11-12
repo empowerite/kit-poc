@@ -26,8 +26,10 @@
 # the repository, changes no file git sees, and never fetches. A tool's description is the verb's purpose and usage
 # lines. Its input is typed from the verb's usage: a boolean per flag, a string per option, and a string or a list per
 # operand. A call that does not fit is refused unrun: a NUL anywhere in the request, a name the tool does not take, a
-# word the verb acts on, a value off its choices, or a path outside the repository or too long to judge. Its resources
-# are the kit's files, and each tool's help page:
+# word the verb acts on, a value off its choices, or a path outside the repository or too long to judge. A tool
+# answers for the checkout the server runs in; check, context, kinds, and lint take a worktree, the path of another
+# checkout of the repository, and run there, so an agent that works in a worktree lints what is staged in it. Its
+# resources are the kit's files, and each tool's help page:
 #
 #   - kit://1st.md
 #   - kit://workflow.md, with the workflow package

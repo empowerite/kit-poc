@@ -177,7 +177,7 @@ call() {
         and endswith("Its whole page is the resource kit://help/\($verb).")) and .inputSchema.additionalProperties == false'
   done
   answer 1 | jq --exit-status '.result.tools[] | select(.name == "context") | .inputSchema
-    | (.properties | keys_unsorted) == ["path", "json", "jq"] and .required == ["path"]
+    | (.properties | keys_unsorted) == ["path", "json", "jq", "worktree"] and .required == ["path"]
       and .properties.path.type == "array" and .properties.json.type == "boolean"
       and (.properties.path.description | startswith("the files"))'
   answer 1 | jq --exit-status '.result.tools[] | select(.name == "flow") | .inputSchema.properties
@@ -345,6 +345,73 @@ call() {
   answer 2 | jq --exit-status '.result.isError and (.result.content[0].text
     | contains("worktrees/8-other && kit hydrate") and contains("worktrees/8-other, the checkout"))'
   [ ! -e worktrees/8-other/.kit ]
+}
+
+@test "check, context, kinds, and lint take a worktree and run there: a file staged in a worktree is linted, where the desk has nothing to lint" {
+  command -v shellcheck >/dev/null || skip "shellcheck, the bash rule's linter, is not on PATH"
+  git add --all && git commit --quiet --message=init
+  git worktree add --quiet -b 7-fix-the-thing worktrees/7-fix-the-thing
+  (cd worktrees/7-fix-the-thing && "${kit_checkout}/bin/kit" hydrate) >/dev/null 2>&1
+  printf '#!/usr/bin/env bash\necho $1\n' > worktrees/7-fix-the-thing/bad.sh
+  git -C worktrees/7-fix-the-thing add bad.sh
+  serve "$(call 1 lint)" \
+    "$(call 2 lint '{"worktree":"worktrees/7-fix-the-thing"}')" \
+    "$(call 3 kinds '{"worktree":"worktrees/7-fix-the-thing","path":[".github/workflows/w.yml"]}')" \
+    "$(call 4 context '{"worktree":"worktrees/7-fix-the-thing","path":["bad.sh"]}')" \
+    "$(call 5 check '{"worktree":"worktrees/7-fix-the-thing"}')" \
+    "$(call 6 lint "$(jq --null-input --compact-output --arg at "${PWD}/worktrees/7-fix-the-thing" '{worktree: $at}')")" \
+    "$(call 7 lint '{"worktree":".","path":["worktrees/7-fix-the-thing/bad.sh"]}')" \
+    "$(modern 8 tools/list)"
+  # the desk's index is empty, and the worktree's holds the bad file
+  answer 1 | jq --exit-status '.result | .isError == false and (.content[0].text | contains("nothing to lint"))'
+  answer 2 | jq --exit-status '.result | .isError and (.content[0].text | contains("SC2086")
+    and contains("In bad.sh line 2") and contains("cd worktrees/7-fix-the-thing && kit lint exited with status 1"))'
+  # a path is read from the worktree's root: a workflow there is one, and the rule named is the worktree's
+  answer 3 | jq --exit-status '.result | .isError == false and .content[0].text == "any\ntext\nworkflows\nyaml\n"'
+  answer 4 | jq --exit-status '.result | .isError == false and .content[0].text == ".kit/rules/bash.md\n"'
+  answer 5 | jq --exit-status '.result.isError == false'
+  answer 6 | jq --exit-status '.result | .isError and (.content[0].text | contains("In bad.sh line 2"))'
+  answer 7 | jq --exit-status '.result | .isError
+    and (.content[0].text | contains("cd . && kit lint worktrees/7-fix-the-thing/bad.sh exited with status 1"))'
+  grep --quiet 'id=2 .*outcome=status=1 cd worktrees/7-fix-the-thing && kit lint$' .kit/logs/mcp-*.log
+  answer 8 | jq --exit-status '[.result.tools[] | select(.inputSchema.properties | has("worktree")) | .name]
+    == ["check", "context", "kinds", "lint"]'
+  answer 8 | jq --exit-status '.result.tools[] | select(.name == "lint") | .inputSchema
+    | .properties.worktree.type == "string" and (.properties.worktree.description | contains("worktrees/"))
+      and (has("required") | not)'
+}
+
+@test "a worktree that is no checkout of the repository is refused with the checkouts there are, and a path stays inside the one named" {
+  git add --all && git commit --quiet --message=init
+  git worktree add --quiet -b 7-fix-the-thing worktrees/7-fix-the-thing
+  git worktree add --quiet -b 8-elsewhere "${BATS_TEST_TMPDIR}/elsewhere"
+  git init --quiet vendor/lib
+  elsewhere=$(cd "${BATS_TEST_TMPDIR}/elsewhere" && pwd -P)
+  (cd "${elsewhere}" && "${kit_checkout}/bin/kit" hydrate) >/dev/null 2>&1
+  serve "$(call 1 lint '{"worktree":"worktrees/8-none"}')" \
+    "$(call 2 lint '{"worktree":"vendor/lib"}')" \
+    "$(call 3 lint '{"worktree":"worktrees/7-fix-the-thing","path":["../../README.md"]}')" \
+    "$(call 4 lint '{"worktree":7}')" \
+    "$(call 5 version '{"worktree":"worktrees/7-fix-the-thing"}')" \
+    "$(call 6 check '{"worktree":"-"}')" \
+    "$(call 7 kinds "$(jq --null-input --compact-output --arg at "${elsewhere}" '{worktree: $at, path: ["x.sh"]}')")" \
+    "$(call 8 lint '{"worktree":"worktrees/7-fix-the-thing/.."}')" \
+    "$(call 9 lint '{"worktree":""}')"
+  local id
+  for id in 1 2 6 8 9
+  do
+    answer "${id}" | jq --exit-status --arg elsewhere "${elsewhere}" '.error | .code == -32602
+      and (.message | contains("is not a checkout of this repository; they are: ., ")
+        and contains(", worktrees/7-fix-the-thing") and contains(", \($elsewhere)"))'
+  done
+  answer 1 | jq --exit-status '.error.message | contains("worktree\u0027s value worktrees/8-none is not")'
+  answer 3 | jq --exit-status '.error | .code == -32602
+    and (.message | contains("../../README.md is outside worktrees/7-fix-the-thing, the checkout the call names"))'
+  answer 4 | jq --exit-status '.error | .code == -32602 and (.message | contains("worktree is a string"))'
+  answer 5 | jq --exit-status '.error | .code == -32602 and (.message | contains("unknown argument worktree"))'
+  # a worktree outside the desk is a checkout of the repository too, named by its absolute path
+  answer 7 | jq --exit-status '.result | .isError == false and (.content[0].text | contains("bash"))'
+  run ! grep --quiet 'kit lint' .kit/logs/mcp-*.log
 }
 
 @test "check, lint, toolchains, and tools say they run the repository's commands; a tool that reads only leaves it" {

@@ -9,7 +9,12 @@
     "description": "kit check fails when a delivered file differs from the pinned release\n\nUsage:\n  kit check\n\nIts whole page is the resource kit://help/check.",
     "inputSchema": {
       "additionalProperties": false,
-      "properties": {},
+      "properties": {
+        "worktree": {
+          "description": "the checkout to run in, by its path: a worktree of this repository, such as worktrees/7-fix-the-thing, whose root the paths are then read from; default: the checkout the server runs in",
+          "type": "string"
+        }
+      },
       "type": "object"
     },
     "name": "check",
@@ -39,6 +44,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "worktree": {
+          "description": "the checkout to run in, by its path: a worktree of this repository, such as worktrees/7-fix-the-thing, whose root the paths are then read from; default: the checkout the server runs in",
+          "type": "string"
         }
       },
       "required": [
@@ -211,6 +220,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "worktree": {
+          "description": "the checkout to run in, by its path: a worktree of this repository, such as worktrees/7-fix-the-thing, whose root the paths are then read from; default: the checkout the server runs in",
+          "type": "string"
         }
       },
       "type": "object"
@@ -239,6 +252,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "worktree": {
+          "description": "the checkout to run in, by its path: a worktree of this repository, such as worktrees/7-fix-the-thing, whose root the paths are then read from; default: the checkout the server runs in",
+          "type": "string"
         }
       },
       "type": "object"

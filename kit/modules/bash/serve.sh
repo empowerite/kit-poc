@@ -33,6 +33,13 @@
 # A call runs kit <verb> <word>… in a new process with stdin at end of file, so the verb cannot read the protocol
 # stream.
 #
+# A tool answers for the checkout the server runs in, the desk where a harness starts it from the repository's root.
+# check, context, kinds, and lint, which answer for a checkout's files, take a worktree: the path of a checkout of the
+# repository, the desk or a worktree, as git worktree list names them. The verb then runs there, on the release that
+# checkout pins, and its paths are read from that checkout's root. A value that names no checkout is refused with
+# -32602, and the refusal lists the checkouts. So an agent that works in worktrees/<N>-<slug> asks lint for what is
+# staged there, where a call without it reads the desk's index.
+#
 # A tool that reads only runs no command the repository's files name, takes no word that acts, reads no path outside
 # the repository, changes no file git sees, and never fetches. Of the workflow tools, only work writes the repository,
 # as it makes a branch, a worktree, and a pull request; leases writes the clone's refs under refs/kit/, which no file
@@ -47,7 +54,7 @@
 #     not, and so is a value off its property's enum.
 #   - A path stays inside the repository: each word given to context, kinds, or lint that is not a flag is refused
 #     when it leads outside the root, or when the root cannot be read, and flow does not offer --workspace, which
-#     reads other clones.
+#     reads other clones. With a worktree, the root is that checkout's.
 #
 # A tool's verb still writes the kit's log, and a verb's cache under .kit/cache/, which git never sees.
 #
@@ -130,6 +137,12 @@ declare -grA serve_hidden=(
 # repository.
 declare -gra serve_paths=(context kinds lint)
 
+# The tools that answer for a checkout's files, and so take a worktree, the checkout to run in, and what the property
+# says of itself.
+declare -gra serve_checkout_tools=(check context kinds lint)
+serve_worktree='the checkout to run in, by its path: a worktree of this repository, such as worktrees/7-fix-the-thing,'
+serve_worktree+=' whose root the paths are then read from; default: the checkout the server runs in'
+
 # The flags the server gives a tool's verb itself, on any line that takes them, and never offers: flow never fetches.
 declare -grA serve_implied=(
   [flow]='no-fetch'
@@ -156,6 +169,9 @@ serve_log_last=''
 
 serve_instructions='kit holds the rules this repository asks every agent to follow. Read the resource kit://1st.md'
 serve_instructions+=' first. Before you change a file, call the context tool with its path, and read every rule it names.'
+serve_instructions+=' A tool answers for the checkout the server runs in. When you work in a worktree, give check, context,'
+serve_instructions+=' kinds, and lint its path as worktree, such as worktrees/7-fix-the-thing: lint then reads what is staged'
+serve_instructions+=' there.'
 
 # serve:main answers each message on stdin, in order, until stdin ends, and logs each one.
 serve:main() {
@@ -496,10 +512,11 @@ serve:tools-list() {
 
 # serve:spec <tool> fills serve_specs[<tool>] with the verb's syntax, as syntax:spec prints it, and serve_opts[<tool>]
 # with what the server says of the tool, as serve.jq reads it: the words it does not offer, the flags it gives itself,
-# the name of the property for a line's leading word, and the values of each argument whose choices are closed.
+# the name of the property for a line's leading word, the values of each argument whose choices are closed, and, for
+# a tool that takes a worktree, what that property says of itself.
 # Each is built once per process. It assigns rather than prints, so call it in the server's own shell.
 serve:spec() {
-  local tool=$1 spec key choices='{}'
+  local tool=$1 spec key choices='{}' takes worktree=''
   [[ -z "${serve_specs[${tool}]+x}" ]] || return 0
   spec=$(syntax:spec "${tool}") || return 1
   while IFS= read -r key
@@ -509,12 +526,17 @@ serve:spec() {
       | jq --raw-input --slurp --compact-output --argjson choices "${choices}" --arg key "${key}" \
         '$choices + {($key): (split("\n") | map(select(. != "")))}')
   done < <(jq --raw-output '.arguments | to_entries[] | select(.value.choices == "closed") | .key' <<<"${spec}")
+  for takes in "${serve_checkout_tools[@]}"
+  do
+    [[ "${takes}" != "${tool}" ]] || worktree=${serve_worktree}
+  done
   serve_specs[${tool}]=${spec}
   serve_opts[${tool}]=$(jq --null-input --compact-output --argjson choices "${choices}" \
     --arg refused "${serve_listing_only[${tool}]:-} ${serve_hidden[${tool}]:-}" --arg implied "${serve_implied[${tool}]:-}" \
-    --arg word "${serve_leading[${tool}]:-}" \
+    --arg word "${serve_leading[${tool}]:-}" --arg worktree "${worktree}" \
     '{refused: ($refused | split(" ") | map(select(. != ""))), implied: ($implied | split(" ") | map(select(. != ""))),
-      choices: $choices} + (if $word != "" then {word: $word} else {} end)')
+      choices: $choices} + (if $word != "" then {word: $word} else {} end)
+      + (if $worktree != "" then {worktree: $worktree} else {} end)')
 }
 
 # serve:tool <tool> prints the tool's definition as JSON: its name, a description of its purpose and the usage lines
@@ -542,12 +564,15 @@ serve:tool() {
 # serve:tools-call <id> <params> runs the tool's verb with the words its arguments make, and answers with what it
 # printed. Arguments the tool does not take are refused with -32602, and the verb never runs; a listing-only tool's
 # refusal says what it does not offer. A tool whose operands are paths refuses, the same way, a word outside the
-# repository. A verb that exits non-zero sets isError, and the text names its exit status; one the system will not
+# repository. A call that gives a worktree runs the verb in that checkout, serve:checkout's, and reads its paths from
+# there; its command, in the answer and in the log, opens with the cd that takes it there. A worktree that names no
+# checkout of the repository is refused the same way, with the checkouts there are. A verb that exits non-zero sets
+# isError, and the text names its exit status; one the system will not
 # run, as when its words are longer than a command line carries, has status 126. The arguments reach jq on stdin, and
 # the words, the verb's output, and the command reach the server through files in its scratch directory, which each
 # call writes over, so no call leaves a file behind.
 serve:tools-call() {
-  local name status=0 quoted made problem tool word
+  local name status=0 quoted made problem tool word there where='' outside='the repository kit serve runs in'
   local words_file=${serve_scratch}/words out=${serve_scratch}/out err=${serve_scratch}/err
   local command=${serve_scratch}/command
   local -a words
@@ -592,14 +617,27 @@ serve:tools-call() {
     return 0
   fi
   readarray -d '' -t words <"${words_file}"
+  # The = tells a worktree given as an empty string, which names no checkout, from none given.
+  there=$(jq --raw-output 'if has("worktree") then "=" + .worktree else "" end' <<<"${made}")
+  if [[ -n "${there}" ]]
+  then
+    there=${there#=}
+    if ! where=$(serve:checkout "${there}")
+    then
+      serve:error "$1" -32602 "Invalid params: worktree's value ${there:0:200} is not a checkout of this repository; they are: $(
+        serve:checkouts | cut -f 1 | paste -s -d , - | sed 's/,/, /g')"
+      return 0
+    fi
+    outside="${there:0:200}, the checkout the call names"
+  fi
   for tool in "${serve_paths[@]}"
   do
     [[ "${tool}" == "${name}" ]] || continue
     for word in "${words[@]}"
     do
-      if [[ "${word}" != -* ]] && ! serve:inside "${word}"
+      if [[ "${word}" != -* ]] && ! serve:inside "${word}" "${where}"
       then
-        serve:error "$1" -32602 "Invalid params: ${word:0:200} is outside the repository kit serve runs in"
+        serve:error "$1" -32602 "Invalid params: ${word:0:200} is outside ${outside}"
         return 0
       fi
     done
@@ -607,9 +645,16 @@ serve:tools-call() {
   printf -v quoted ' %q' "${name}" "${words[@]}"
   serve_log_last="kit${quoted}"
   printf '%s' "kit ${name}${words[*]:+ ${words[*]}}" >"${command}"
+  if [[ -n "${where}" ]]
+  then
+    printf -v quoted 'cd %q && ' "${there}"
+    serve_log_last="${quoted}${serve_log_last}"
+    printf '%s' "cd ${there} && kit ${name}${words[*]:+ ${words[*]}}" >"${command}"
+  fi
   (
     export NO_COLOR=1 kit_serve_hydrated=1
     unset CLICOLOR_FORCE
+    [[ -z "${where}" ]] || cd "${where}" || exit 126
     run kit "${name}" "${words[@]}"
   ) </dev/null >"${out}" 2>"${err}" || status=$?
   (( status == 0 )) || serve_outcome="status=${status}"
@@ -626,8 +671,47 @@ serve:tools-call() {
 # serve_path_max is the longest path the system resolves, PATH_MAX, once serve:inside has asked for it.
 serve_path_max=''
 
-# serve:inside <path> succeeds when the path, read from the root, is the root or under it, as the kernel reads it and
-# as a shell does. The two read a .. after a symbolic link differently, and a verb may use either: the kernel applies
+# serve:checkouts prints each checkout of the repository, the desk and every worktree git worktree list names, one per
+# line: the name a call gives it, a tab, and its physical path. The name is its path from the server's root, . for
+# the root itself, and its absolute path where it is not under the root. A checkout whose directory is gone is left
+# out.
+serve:checkouts() {
+  local root line path
+  root=$(pwd -P 2>/dev/null) || return 1
+  while IFS= read -r line
+  do
+    [[ "${line}" == 'worktree '* ]] || continue
+    path=$(cd "${line#worktree }" 2>/dev/null && pwd -P) || continue
+    case "${path}" in
+      ("${root}") printf '.\t%s\n' "${path}" ;;
+      ("${root}"/*) printf '%s\t%s\n' "${path#"${root}"/}" "${path}" ;;
+      (*) printf '%s\t%s\n' "${path}" "${path}"
+    esac
+  done < <(git worktree list --porcelain 2>/dev/null)
+}
+
+# serve:checkout <value> prints the physical path of the checkout of the repository that <value> names, a path read
+# from the server's root, however it is spelled, and returns 1 when it names none: a directory that is not there, one
+# inside a checkout, or a clone that is no checkout of this repository, such as a submodule.
+serve:checkout() {
+  local value=$1 path listed
+  [[ -n "${value}" ]] || return 1
+  # ./ keeps a value that starts with -, as - itself, a path and no option of cd
+  [[ "${value}" == /* ]] || value="./${value}"
+  path=$(cd "${value}" 2>/dev/null && pwd -P) || return 1
+  while IFS=$'\t' read -r _ listed
+  do
+    if [[ "${listed}" == "${path}" ]]
+    then
+      printf '%s\n' "${path}"
+      return 0
+    fi
+  done < <(serve:checkouts)
+  return 1
+}
+
+# serve:inside <path> [<root>] succeeds when the path, read from the root, is the root or under it, as the kernel
+# reads it and as a shell does. The root is the server's directory, or <root>, the checkout a call names. The two read a .. after a symbolic link differently, and a verb may use either: the kernel applies
 # .. to where the link leads, and a shell's cd removes the part before .. as text. A path with a .. is judged both
 # ways, and is inside only when both readings are; a .. that leaves nothing before it to remove leads out of /. A
 # path whose last part is .. is judged a third way, as context:relative reads it: the parts before it as a shell
@@ -640,7 +724,7 @@ serve_path_max=''
 serve:inside() {
   local LC_ALL=C root path=$1 part length=0 up=false last='' popped=''
   local -a parts kernel=() shell=()
-  root=$(pwd -P 2>/dev/null) && [[ "${root}" == /* && -d "${root}" ]] || return 1
+  root=${2:-$(pwd -P 2>/dev/null)} && [[ "${root}" == /* && -d "${root}" ]] || return 1
   if [[ -z "${serve_path_max}" ]]
   then
     serve_path_max=$(getconf PATH_MAX / 2>/dev/null) || true  # with no answer, the default below

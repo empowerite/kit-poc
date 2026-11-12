@@ -92,6 +92,31 @@ help, the syntax, and the server cannot drift apart.
   The result's text is the verb's stdout, then its stderr. A verb that exits non-zero sets `isError`, and the text
   names its exit status.
 
+## The checkout a tool answers for
+
+A tool answers for the checkout the server runs in. A harness starts the server from the repository's root, so
+that is the desk, while the workflow sends an agent to work in `worktrees/<N>-<slug>`. A `lint` call with no path
+reads the desk's index, and says there is nothing to lint while the agent's file is staged in its worktree.
+
+`check`, `context`, `kinds`, and `lint`, the tools that answer for a checkout's files, take a `worktree`:
+
+```json
+{"name": "lint", "arguments": {"worktree": "worktrees/7-fix-the-thing"}}
+```
+
+- The value is the path of a checkout of the repository: the desk, as `.`, or a worktree, as `git worktree list`
+  names them. It is read from the server's root, and a worktree outside the root is named by its absolute path.
+- The verb runs in that checkout, on the release it pins. Here that is `kit lint` in the worktree, over the files
+  staged there.
+- The tool's paths are read from that checkout's root, and held inside it.
+- A value that names no checkout of the repository is refused with `-32602`, and the error lists the checkouts.
+- The command in a failed call's text, and in the log, opens with the `cd` that takes it there:
+  `cd worktrees/7-fix-the-thing && kit lint exited with status 1`.
+- A call places nothing in that checkout either. `kit work` places `.kit/` when it makes a worktree, and any kit
+  command typed there places it again.
+
+The other tools take none. `settle` and the workflow tools name an issue, and `flow` reads the forge.
+
 The seven tools that read only carry `readOnlyHint`, and it holds. Such a tool runs no command the repository's files
 name, takes no word that acts, reads no path outside the repository, changes no file git sees, and never fetches:
 
@@ -135,8 +160,9 @@ The resources are the kit's files under `.kit/`, each as the repository has it, 
 | `kit://kinds/<file>` | `.kit/kinds/<file>.yml`, which defines one kind or several | `application/yaml` |
 | `kit://help/<verb>` | none: the page `kit help <verb>` prints, for each tool | `text/plain` |
 
-The server's instructions tell an agent to read `kit://1st.md` first, and to call `context` with a path before it
-changes that file.
+The server's instructions tell an agent to read `kit://1st.md` first, to call `context` with a path before it
+changes that file, and to give `check`, `context`, `kinds`, and `lint` its worktree's path as `worktree` when it
+works in one.
 
 ## The protocol
 

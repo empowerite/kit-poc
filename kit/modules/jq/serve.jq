@@ -8,6 +8,8 @@
 #   - implied: the flags the server gives itself to any line that takes them, such as no-fetch for kit flow
 #   - word: the name of the property that holds a line's leading word, such as stage for kit flow
 #   - choices: the values of each argument whose choices are closed, by key, such as <package>
+#   - worktree: what the worktree property says of itself, for a tool that takes the checkout to run in; it is no
+#     word of the verb, so argv gives its value beside the words
 #
 # A flag is a boolean property, and an operand or an option is a string. One that repeats, alone or in a group that
 # repeats, is an array of strings. Each takes its description from the verb's header. An argument is required when
@@ -89,7 +91,8 @@ def schema($opts):
   | (if ($requires | length) > 0
       then reduce $requires[1:][] as $line ($requires[0]; map(select(IN($line[]))))
       else [] end) as $required
-  | {type: "object", properties: ($leading + $properties), additionalProperties: false}
+  | (if $opts.worktree then {worktree: {type: "string", description: $opts.worktree}} else {} end) as $worktree
+  | {type: "object", properties: ($leading + $properties + $worktree), additionalProperties: false}
     + (if ($required | length) > 0 then {required: $required} else {} end);
 
 # given gives the arguments a call gave: a false switch, a null, and an empty list count as not given.
@@ -114,7 +117,8 @@ def cut: .[:200];
 def nul: any(.. | strings; explode | any(. == 0));
 
 # argv($args; $opts) gives {argv} for a call's arguments, the words of the first line they fit, with the flags the
-# server gives itself; or {error}, saying what is wrong: a value that holds a NUL, which no command line carries, an
+# server gives itself, and {worktree} beside it when the tool takes one and the call gave it; or {error}, saying what
+# is wrong: a value that holds a NUL, which no command line carries, an
 # unknown name, a value of the wrong type, an operand's value that starts with -, an operand's value that is a literal
 # of the verb's syntax, offered or not, a value off its property's enum, or arguments that fit no line. A value an
 # error quotes is cut to 200 characters.
@@ -123,18 +127,19 @@ def argv($args; $opts):
   | schema($opts) as $schema
   | ($opts.word // "subcommand") as $word
   | ($opts.implied // []) as $implied
-  | ($args | given) as $a
+  | ($args | given) as $all
+  | (if $opts.worktree then $all | del(.worktree) else $all end) as $a
   | ($schema.properties | keys_unsorted) as $known
   | [lines($opts)[].sequence | nodes[] | select(.kind == "operand") | .name] as $operands
   | [$spec.syntax[] | nodes[] | select(.kind == "literal") | .name] as $literals
-  | [$a | keys_unsorted[] | select(IN($known[]) | not)] as $unknown
-  | ([$a | to_entries[] | select(.value | nul) | .key] | first) as $nul
+  | [$all | keys_unsorted[] | select(IN($known[]) | not)] as $unknown
+  | ([$all | to_entries[] | select(.value | nul) | .key] | first) as $nul
   | if $nul then {error: "\($nul | cut)'s value holds a NUL, which no command line carries"}
     elif ($unknown | length) > 0 then
       {error: ("unknown argument\(if ($unknown | length) > 1 then "s" else "" end) "
         + "\($unknown | map(cut) | join(", ")); kit \($spec.verb) takes: \($known | join(", "))")}
     else
-      ([$a | to_entries[] | .key as $key | .value as $value | $schema.properties[$key] as $property
+      ([$all | to_entries[] | .key as $key | .value as $value | $schema.properties[$key] as $property
         | ($property.enum // $property.items.enum) as $enum
         | if $property.type == "boolean" then
             (if ($value | type) != "boolean" then "\($key) is true or false" else empty end)
@@ -164,7 +169,8 @@ def argv($args; $opts):
               | select($requires - ($a | keys) == [])
               | select(if ($leading | length) > 0 then $a[$word] == $leading[0] else ($a | has($word) | not) end)
               | ([$implied[] | select(IN($names[]))] | map({(.): true}) | add // {}) as $own
-              | {argv: ($sequence | emit($a + $own; $word))})
+              | {argv: ($sequence | emit($a + $own; $word))}
+                + (if $opts.worktree and $all.worktree then {worktree: $all.worktree} else {} end))
             // {error: ("these arguments fit no usage of kit \($spec.verb): " + ([$lines[].text] | join("; ")))})
         end
     end;
