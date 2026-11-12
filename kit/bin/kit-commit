@@ -22,7 +22,8 @@
 # kit commit judged it, whatever commit.cleanup says: a subject that starts with # stays the subject.
 #
 # Without paths, kit commit never undoes a commit the index did not see. It refuses a staged path that is as it was
-# before the last commit that changed it, while the disk holds something else.
+# before a commit on the branch that changed it, absent when that commit added it, while the disk holds something
+# else. It names the nearest such commit, and how many commits changed the path since.
 #
 # With or without paths, it refuses when a commit landed on HEAD while the checks ran; run kit commit again.
 #

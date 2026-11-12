@@ -584,6 +584,40 @@ EOF
   [ "$(git rev-parse HEAD)" = "${peer}" ]
 }
 
+@test "an index two commits behind on a path is refused, naming the nearest commit it would undo and how many since" {
+  local first second
+  peer-script
+  # a path changed twice: the shared index holds notes.txt as it was before both commits
+  first=$("${work}/peer" '#7 notes: theirs' notes.txt theirs)
+  second=$("${work}/peer" '#7 notes: theirs again' notes.txt 'theirs again')
+  printf 'mine\n' > mine.txt && git add mine.txt
+  run kit commit --message='#7 mine: a file'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"notes.txt is staged as it was before ${first:0:7} #7 notes: theirs;"* ]]
+  [[ "$output" == *"would undo that commit and the 1 that changed it since; run: "* ]]
+  [[ "$output" == *"git restore --staged -- 'notes.txt'"* ]]
+  [ "$(git rev-parse HEAD)" = "${second}" ]
+  [ "$(git show HEAD:notes.txt)" = 'theirs again' ]
+  # a path added, then changed twice: the shared index lacks it, and the disk and HEAD hold it
+  git restore --staged -- notes.txt
+  first=$("${work}/peer" '#7 peer: a file' 'peer file.txt' peer)
+  "${work}/peer" '#7 peer: more' 'peer file.txt' more >/dev/null
+  second=$("${work}/peer" '#7 peer: and more' 'peer file.txt' 'and more')
+  run kit commit --message='#7 mine: a file'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"peer file.txt is staged as it was before ${first:0:7} #7 peer: a file;"* ]]
+  [[ "$output" == *"would undo that commit and the 2 that changed it since; run: "* ]]
+  [[ "$output" != *"notes.txt"* ]]
+  [ "$(git rev-parse HEAD)" = "${second}" ]
+  # the remedy brings the index level, and the commit takes the staged file alone
+  git restore --staged -- 'peer file.txt'
+  run kit commit --message='#7 mine: a file'
+  [ "$status" -eq 0 ]
+  [ "$(git show --name-only --format= HEAD)" = mine.txt ]
+  [ "$(git show 'HEAD:peer file.txt')" = 'and more' ]
+  [ "$(git show HEAD:notes.txt)" = 'theirs again' ]
+}
+
 @test "a commit that lands while kit commit checks is refused, naming it, and HEAD stays the other session's" {
   opa-rule 'deny contains "never" if input.never'
   peer-script

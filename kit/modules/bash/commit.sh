@@ -349,27 +349,72 @@ commit:checks() {
 }
 
 # commit:behind <path>… refuses a staged path that would undo a commit the index never saw. Such a path is staged as it
-# was before the last commit on HEAD that changed it, absent when that commit added it, while the disk holds something
-# else: an index another session's commit passed by. A change put back on purpose matches the disk, and passes. It
-# names every such path and returns 1.
+# was before a commit on HEAD that changed it, absent when that commit added it, while the disk holds something else:
+# an index the commits of another session passed by, one of them or many. A change put back on purpose matches the
+# disk, and passes. The history of the paths is read once for them all, each commit against its first parent. It
+# names every such path, with the nearest such commit and how many changed the path since, and returns 1.
 commit:behind() {
-  local path last before staged behind=false
+  local path record lead='' commit='' blob since behind=false
+  local -a records=()
+  local -A staged=() before=() later=()
+  # Before the first commit there is no commit to undo.
+  git rev-parse --verify --quiet HEAD >/dev/null || return 0
   for path in "$@"
   do
-    last=$(git log -1 --format=%H HEAD -- ":(literal)${path}")
-    [[ -n "${last}" ]] || continue
-    # A path the commit added has no blob before it, which reads as absent.
-    before=$(git rev-parse --verify --quiet "${last}^:${path}" || true)
-    staged=$(git ls-files --stage -- ":(literal)${path}" | cut -d ' ' -f 2)
-    [[ "${staged}" == "${before}" ]] || continue
-    if [[ -n "${staged}" ]]
+    staged[${path}]=''
+  done
+  # An entry is <mode> <blob> <stage>, a tab, and the path; a path with none at stage 0 reads as absent.
+  list:read0 records git ls-files --stage -z -- "${@/#/:(literal)}" || return 1
+  for record in "${records[@]}"
+  do
+    lead=${record%%$'\t'*}
+    [[ "${lead}" == *' 0' ]] || continue
+    blob=${lead#* }
+    staged[${record#*$'\t'}]=${blob%% *}
+  done
+  # The log is a commit, then, for each of the paths it changed, a line that starts with a colon and holds the modes
+  # and the blobs before and after, and then the path, newest commit first. A path the commit added has no blob
+  # before it, written as zeros, which reads as absent.
+  list:read0 records git log -z --no-show-signature --format=%H --raw --no-abbrev --no-renames --root \
+    --diff-merges=first-parent HEAD -- "${@/#/:(literal)}" || return 1
+  lead=''
+  for record in "${records[@]}"
+  do
+    record=${record#$'\n'}
+    if [[ -n "${lead}" ]]
+    then
+      blob=${lead#* * }
+      blob=${blob%% *}
+      lead=''
+      [[ -n "${staged[${record}]+x}" && -z "${before[${record}]:-}" ]] || continue
+      [[ ! "${blob}" =~ ^0+$ ]] || blob=''
+      if [[ "${staged[${record}]}" == "${blob}" ]]
+      then
+        before[${record}]=${commit}
+      else
+        later[${record}]=$(( ${later[${record}]:-0} + 1 ))
+      fi
+    elif [[ "${record}" == :* ]]
+    then
+      lead=${record}
+    else
+      commit=${record}
+    fi
+  done
+  for path in "$@"
+  do
+    commit=${before[${path}]:-}
+    [[ -n "${commit}" ]] || continue
+    if [[ -n "${staged[${path}]}" ]]
     then
       git diff --quiet -- ":(literal)${path}" && continue
     else
       [[ -e "${path}" || -L "${path}" ]] || continue
     fi
-    error "${path} is staged as it was before $(git log -1 --format='%h %s' "${last}"); committing it would undo" \
-      "that commit; run: git restore --staged -- '${path}'"
+    since=''
+    [[ -z "${later[${path}]:-}" ]] || since=" and the ${later[${path}]} that changed it since"
+    error "${path} is staged as it was before $(git log -1 --format='%h %s' "${commit}"); committing it would undo" \
+      "that commit${since}; run: git restore --staged -- '${path}'"
     behind=true
   done
   [[ "${behind}" == false ]]
