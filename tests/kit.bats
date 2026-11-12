@@ -679,6 +679,28 @@ tree-digest() {
   [ "$(paste -s -d '|' - < kit.yml)" = "${expected}" ]
 }
 
+@test "a declaration whose lists sit at the key's column, or one space in, is rewritten whole, and uninstall drops all of it" {
+  mkdir .kit
+  # lists at the key's column, as many YAML formatters write them, with a comment among the items
+  printf 'version: unreleased\npackages:\n- kit\n# ours\n- style/json\n\nanswers:\n  ci_runner: x\n' > kit.yml
+  run "${kit_checkout}/bin/kit" packages add hooks/lefthook
+  [ "$status" -eq 0 ]
+  expected='version: unreleased|packages:|  - kit|  - hooks/lefthook|  - style/json||answers:|  ci_runner: x'
+  [ "$(paste -s -d '|' - < kit.yml)" = "${expected}" ]
+  [ "$(declared packages)" = "kit hooks/lefthook style/json" ]
+  # one space in, and a list that closes the file
+  printf 'gate: bin/ci\nversion: unreleased\npackages:\n - kit\n - style/json\n' > kit.yml
+  run "${kit_checkout}/bin/kit" packages add hooks/lefthook
+  [ "$status" -eq 0 ]
+  expected='gate: bin/ci|version: unreleased|packages:|  - kit|  - hooks/lefthook|  - style/json'
+  [ "$(paste -s -d '|' - < kit.yml)" = "${expected}" ]
+  # uninstall drops the same blocks, and leaves no item behind
+  printf 'version: unreleased\npackages:\n- kit\n- style/json\n- hooks/lefthook\nanswers:\n  ci_runner: x\n' > kit.yml
+  run "${kit_checkout}/bin/kit" uninstall
+  [ "$status" -eq 0 ]
+  [ "$(paste -s -d '|' - < kit.yml)" = 'answers:|  ci_runner: x' ]
+}
+
 @test "the delivered workflow's version read strips quotes and a trailing comment" {
   "${kit_checkout}/bin/kit" install github/ci
   printf 'version: "9.9.9"  # pinned\n' > s.yml

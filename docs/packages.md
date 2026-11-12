@@ -268,6 +268,8 @@ which declare the pinned release and the active packages, and reads the rest.
 - An editor validates the file through the modeline `# yaml-language-server: $schema=.kit/kit.schema.json`.
 - Before every install, update, and check, the kit checks the file against the schema's main points, and
   names any unknown key.
+- The kit rewrites its three keys where they stand, and leaves every other line as it is and where it is. It writes
+  each list two spaces in, and replaces a list written any other way YAML allows, at the key's column among them.
 
 ```yaml
 answers:

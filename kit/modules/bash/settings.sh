@@ -226,13 +226,14 @@ settings:declare() {
 
 # settings:declaration-kept <settings> <marker> prints the settings file without the blocks of version, packages, and
 # excludes, with <marker> on a line of its own where the first block stood, or nothing there when it is empty. A block
-# is its key line, the indented lines after it, and the comments and blank lines among them. A comment or blank line
-# after the block's last item belongs to what follows, and stays.
+# is its key line, the lines after it that are indented, by any number of spaces, or that are list items at the key's
+# own column, which YAML allows and many formatters write, and the comments and blank lines among them. A comment or
+# blank line after the block's last item belongs to what follows, and stays.
 settings:declaration-kept() {
   awk -v marker="$2" '
     function flush() { for (i = 1; i <= held; i++) print hold[i]; held = 0 }
     /^(version|packages|excludes):/ { if (!seen) { if (marker != "") print marker; seen = 1 }; skip = 1; held = 0; next }
-    skip && /^  / { held = 0; next }
+    skip && /^([ \t]|-([ \t]|$))/ { held = 0; next }
     skip && (/^#/ || /^[[:space:]]*$/) { hold[++held] = $0; next }
     { if (skip) flush(); skip = 0; print }
     END { if (skip) flush() }' "$1"
