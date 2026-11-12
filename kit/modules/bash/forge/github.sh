@@ -7,6 +7,11 @@
 # modules/bash/forge.sh loads this provider when the repository's forge is github. It implements the calls listed in the
 # header of modules/bash/forge.sh. Only this file requires gh.
 #
+# Every call of gh is made by forge/github:gh, which names the primary remote's repository and its host to it, as
+# forge/github:place reads them from the primary's URL. Left to itself, gh picks a repository from the checkout's
+# remotes, upstream before origin, or the one gh repo set-default chose, and sends gh api to the host it logged in
+# to first.
+#
 # A read that fails because GitHub's rate limit is spent says so, and when it resets, as forge/github:limited tells
 # it; any other failure names gh auth status.
 #
@@ -53,7 +58,8 @@ forge/github:attestations() {
   do
     [[ -n "${row}" ]] || continue
     IFS=$'\t' read -r name digest made <<<"${row}"
-    if ! answer=$(gh api --paginate --slurp "repos/{owner}/{repo}/attestations/${digest}?per_page=100" 2>"${said}")
+    if ! answer=$(forge/github:gh api --paginate --slurp "repos/{owner}/{repo}/attestations/${digest}?per_page=100" \
+      2>"${said}")
     then
       # A digest GitHub keeps no attestation of answers 404.
       [[ "$(<"${said}")" == *'(HTTP 404)'* ]] && continue
@@ -300,11 +306,11 @@ forge/github:environments() {
 
 # forge/github:issue-add-sub makes the second issue a sub-issue of the first, as the issue page's Relationships do.
 forge/github:issue-add-sub() {
-  gh issue edit "$1" --add-sub-issue "$2" >/dev/null 2>&1
+  forge/github:gh issue edit "$1" --add-sub-issue "$2" >/dev/null 2>&1
 }
 
 forge/github:issue-assign() {
-  gh issue edit "$1" --add-assignee "$2" >/dev/null 2>&1
+  forge/github:gh issue edit "$1" --add-assignee "$2" >/dev/null 2>&1
 }
 
 forge/github:issue-assignees() {
@@ -326,16 +332,16 @@ forge/github:issue-body() {
 forge/github:issue-close() {
   local -a how=(--reason "${2//-/ }")
   [[ "$2" != duplicate ]] || how+=(--duplicate-of "$3")
-  gh issue close "$1" "${how[@]}" >/dev/null 2>&1
+  forge/github:gh issue close "$1" "${how[@]}" >/dev/null 2>&1
 }
 
 forge/github:issue-comment() {
-  gh issue comment "$1" --body "$2" >/dev/null 2>&1
+  forge/github:gh issue comment "$1" --body "$2" >/dev/null 2>&1
 }
 
 forge/github:issue-create() {
   local number
-  number=$(gh issue create --title "$1" --body "${2:-}" 2>/dev/null | sed -n 's@.*/issues/@@p')
+  number=$(forge/github:gh issue create --title "$1" --body "${2:-}" 2>/dev/null | sed -n 's@.*/issues/@@p')
   if [[ ! "${number}" =~ ^[0-9]+$ ]]
   then
     error "run: gh auth status (the issue could not be created)"
@@ -357,7 +363,7 @@ forge/github:issue-title() {
 }
 
 forge/github:issue-unassign() {
-  gh issue edit "$1" --remove-assignee "$2" >/dev/null 2>&1
+  forge/github:gh issue edit "$1" --remove-assignee "$2" >/dev/null 2>&1
 }
 
 # forge/github:iterations prints one document per iteration, by start, as the seam's header says: those of the iteration
@@ -381,8 +387,8 @@ forge/github:iterations() {
     }
   }'
   file:temp said gh || return 1
-  if ! answer=$(gh api graphql --field owner="${repo%%/*}" --field name="${repo#*/}" --raw-field query="${query}" \
-    2>"${said}")
+  if ! answer=$(forge/github:gh api graphql --field owner="${repo%%/*}" --field name="${repo#*/}" \
+    --raw-field query="${query}" 2>"${said}")
   then
     out=${answer}$'\n'$(<"${said}")
     if [[ "${out,,}" == *insufficient_scopes* || "${out,,}" == *'required scopes'* ]]
@@ -405,7 +411,7 @@ forge/github:iterations() {
 
 # gh issue develop names the branch <N>-<slug>, links it to the issue under Development, and pushes it.
 forge/github:link-branch() {
-  gh issue develop "$1" --base "$2" >/dev/null
+  forge/github:gh issue develop "$1" --base "$2" >/dev/null
 }
 
 # forge/github:marks <dir> [<kind>…] reads, for each kind named, or each of them without one, a mark that changes when
@@ -420,7 +426,7 @@ forge/github:link-branch() {
 # counts against no rate limit; and a scanner off or refused is kept there as so, and asked again only once
 # forge_github_verdict_seconds have passed, as a 403 or 404 keeps no ETag. A kind that cannot be read is null, its
 # line said, and the others are still read; it returns 1 then, after the object.
-# gh names the repository from the checkout's remote, as {owner}/{repo}, which costs no request.
+# gh fills {owner}/{repo} with the repository forge/github:gh names to it, which costs no request.
 forge/github:marks() {
   local dir=${1:-} kind mark marks='{}' status=0
   local -a kinds=("${@:2}")
@@ -507,9 +513,10 @@ forge/github:scanner-of() {
 }
 
 forge/github:me() {
-  local login said
+  local login said forge_github_place
+  forge_github_place=$(forge/github:place) || return 1
   file:temp said gh || return 1
-  if login=$(gh api user --jq '.login' 2>"${said}")
+  if login=$(forge/github:gh api user --jq '.login' 2>"${said}")
   then
     printf '%s\n' "${login}"
     return 0
@@ -760,7 +767,7 @@ forge/github:pr-create() {
     fi
     head="${path%%/*}:$1"
   fi
-  url=$(gh pr create "${draft[@]}" --base "$2" --head "${head}" --title "$3" --body "") || return 1
+  url=$(forge/github:gh pr create "${draft[@]}" --base "$2" --head "${head}" --title "$3" --body "") || return 1
   printf '%s\n' "${url##*/}"
 }
 
@@ -790,11 +797,11 @@ forge/github:pr-here() {
 }
 
 forge/github:pr-label-add() {
-  gh pr edit "$1" --add-label "$2" >/dev/null 2>&1
+  forge/github:gh pr edit "$1" --add-label "$2" >/dev/null 2>&1
 }
 
 forge/github:pr-label-remove() {
-  gh pr edit "$1" --remove-label "$2" >/dev/null 2>&1
+  forge/github:gh pr edit "$1" --remove-label "$2" >/dev/null 2>&1
 }
 
 forge/github:pr-last-for-branch() {
@@ -802,15 +809,15 @@ forge/github:pr-last-for-branch() {
 }
 
 forge/github:pr-ready() {
-  gh pr ready "$1" >/dev/null 2>&1
+  forge/github:gh pr ready "$1" >/dev/null 2>&1
 }
 
 forge/github:pr-set-body() {
-  gh pr edit "$1" --body "$2" >/dev/null
+  forge/github:gh pr edit "$1" --body "$2" >/dev/null
 }
 
 forge/github:pr-set-title() {
-  gh pr edit "$1" --title "$2" >/dev/null 2>&1
+  forge/github:gh pr edit "$1" --title "$2" >/dev/null 2>&1
 }
 
 forge/github:pr-state() {
@@ -855,14 +862,21 @@ forge/github:releases() {
     'import "forge" as forge; forge::github_releases($now)'
 }
 
+# forge/github:repo prints the primary's repository as GitHub names it, <owner>/<name>. gh repo view takes no
+# repository from GH_REPO, so it is given the one forge/github:place prints, and none where that prints none.
 forge/github:repo() {
-  gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null \
-    || { error "run: gh repo view (this checkout does not resolve to a GitHub repository)"; return 1; }
+  local place
+  place=$(forge/github:place) || return 1
+  forge/github:gh repo view ${place:+"${place}"} --json nameWithOwner --jq .nameWithOwner 2>/dev/null \
+    || { error "run: gh repo view${place:+ ${place}} (this checkout does not resolve to a GitHub repository)"; return 1; }
 }
 
+# forge/github:repo-url prints the page of the primary's repository, read as forge/github:repo reads its name.
 forge/github:repo-url() {
-  gh repo view --json url --jq .url 2>/dev/null \
-    || { error "run: gh repo view (this checkout does not resolve to a GitHub repository)"; return 1; }
+  local place
+  place=$(forge/github:place) || return 1
+  forge/github:gh repo view ${place:+"${place}"} --json url --jq .url 2>/dev/null \
+    || { error "run: gh repo view${place:+ ${place}} (this checkout does not resolve to a GitHub repository)"; return 1; }
 }
 
 # forge/github:require fails when gh is missing or not authenticated. It makes a real API call, because
@@ -900,7 +914,7 @@ forge/github:runs() {
   do
     # The run's own state stands whatever its jobs say, and the jobs are a detail of the picture, so a run whose jobs
     # cannot be read is drawn with none.
-    jobs=$(gh run view "${id}" --json jobs 2>/dev/null | jq -L "${kit_jq}" --compact-output \
+    jobs=$(forge/github:gh run view "${id}" --json jobs 2>/dev/null | jq -L "${kit_jq}" --compact-output \
       'import "forge" as forge; forge::github_jobs' 2>/dev/null) || jobs='[]'
     runs=$(forge/github:fold 'the runs' "${runs}" --compact-output --argjson index "${index}" \
       --argjson jobs "${jobs:-[]}" '.[$index].jobs = $jobs') || return 1
@@ -987,8 +1001,8 @@ forge/github:issue-iterations() {
   file:temp said gh || return 1
   while [[ "${more}" == true ]]
   do
-    if ! page=$(gh api graphql --field owner='{owner}' --field name='{repo}' "${after[@]}" --raw-field query="${query}" \
-      2>"${said}")
+    if ! page=$(forge/github:gh api graphql --field owner='{owner}' --field name='{repo}' "${after[@]}" \
+      --raw-field query="${query}" 2>"${said}")
     then
       out=${page}$'\n'$(<"${said}")
       if [[ "${out,,}" == *insufficient_scopes* || "${out,,}" == *'required scopes'* ]]
@@ -1027,7 +1041,8 @@ forge/github:mark() {
   local -a header=()
   [[ -z "${file}" || ! -f "${file}" ]] || etag=$(<"${file}")
   [[ -z "${etag}" ]] || header=(--header "If-None-Match: ${etag}")
-  answer=$(gh api --include "${header[@]}" "${path}" 2>/dev/null) || true  # the status line decides, below
+  # the status line decides, below
+  answer=$(forge/github:gh api --include "${header[@]}" "${path}" 2>/dev/null) || true
   status=$(sed -n '1s@^HTTP/[0-9.]* \([0-9]*\).*@\1@p' <<<"${answer}")
   case "${status}" in
     (304) printf '%s\n' "${etag}" ;;
@@ -1089,7 +1104,7 @@ forge/github:alert-pages() {
   file:temp pages_said gh || return 1
   for pages_path in "$@"
   do
-    if ! pages_out=$(gh api --paginate --slurp "${pages_path}" 2>"${pages_said}")
+    if ! pages_out=$(forge/github:gh api --paginate --slurp "${pages_path}" 2>"${pages_said}")
     then
       forge/github:alerts-refused "${pages_what}" "${pages_path}" "${pages_out}"$'\n'"$(<"${pages_said}")"
       return
@@ -1123,7 +1138,7 @@ forge/github:alerts-refused() {
     forge/github:scoped "${what}" "${said}" || error "run: gh auth status (${what} could not be read)"
     return 1
   fi
-  head=$(gh api --include "${path}" 2>/dev/null | tr -d '\r' | sed '/^$/q') || true  # a refusal exits 1
+  head=$(forge/github:gh api --include "${path}" 2>/dev/null | tr -d '\r' | sed '/^$/q') || true  # a refusal exits 1
   granted=$(sed -n 's/^[Xx]-[Oo][Aa]uth-[Ss]copes: *//p' <<<"${head}")
   accepted=$(sed -n 's/^[Xx]-[Aa]ccepted-[Oo][Aa]uth-[Ss]copes: *//p' <<<"${head}")
   if grep --quiet --ignore-case '^x-oauth-scopes:' <<<"${head}" && [[ -n "${accepted}" ]]
@@ -1207,7 +1222,8 @@ forge/github:controls() {
     if [[ "$(jq --raw-output '.protection.enabled == true' <<<"${controls_page}")" == true ]]
     then
       file:temp controls_said gh || return 1
-      if controls_page=$(gh api "repos/{owner}/{repo}/branches/${encoded}/protection" 2>"${controls_said}")
+      if controls_page=$(forge/github:gh api "repos/{owner}/{repo}/branches/${encoded}/protection" \
+        2>"${controls_said}")
       then
         controls_protection=$(forge/github:fold 'the protection of the default branch' "${controls_page}" \
           --compact-output 'import "forge" as forge;
@@ -1310,15 +1326,68 @@ forge/github:rest-of-pr() {
   printf '%s\n' "${all}"
 }
 
+# forge/github:place prints the primary remote's repository as gh takes one, <host>/<owner>/<name>, read from the
+# remote's URL as git resolves it. It prints nothing for a primary whose URL names no host, a path on this machine or
+# no remote at all, which only forge in kit.yml makes GitHub's. The host of an ssh URL may be a Host of the ssh
+# configuration, as github.com-work is, so ssh is asked the host it stands for, as gh asks it; github.com needs no
+# asking. ssh.github.com, GitHub's ssh on port 443, is github.com, and a host is written in lower case. A URL whose
+# host no host name may be, or whose path is not <owner>/<name>, names no repository: it fails with its line.
+forge/github:place() {
+  local primary url host path named
+  primary=$(forge:primary) || return 1
+  url=$(git remote get-url --end-of-options "${primary}" 2>/dev/null) || return 0
+  host=$(forge:url-host "${url}")
+  [[ -n "${host}" ]] || return 0
+  path=$(forge:url-path "${url}")
+  if [[ ! "${host}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ || ! "${path}" =~ ^[^/]+/[^/]+$ ]]
+  then
+    error "set the URL of ${primary} to a repository on GitHub, as https://github.com/<owner>/<name>" \
+      "(${url} names no repository, so GitHub was not asked)"
+    return 1
+  fi
+  host=${host,,}
+  if [[ "${host}" != github.com && ( "${url}" != *://* || "${url}" == *ssh://* ) ]]
+  then
+    # ssh that is missing, or that cannot say, leaves the host the URL names
+    named=$(ssh -G -- "${host}" 2>/dev/null | sed -n 's/^hostname //p' | head -n 1) || named=''
+    host=${named:-${host}}
+    host=${host,,}
+  fi
+  [[ "${host}" != ssh.github.com ]] || host=github.com
+  printf '%s/%s\n' "${host}" "${path}"
+}
+
+# forge/github:gh <gh argument>… runs gh on the primary remote's repository, the one place this file runs it:
+# GH_REPO names the repository forge/github:place prints, which gh acts on and fills {owner}/{repo} with, and GH_HOST
+# its host, which gh api asks. Where forge/github:place prints none, gh runs as the caller's environment has it. A
+# caller that keeps what gh says, to say why it failed, reads the place first, into a forge_github_place of its own,
+# so the line of a URL that names no repository is said, not kept; gh then runs on that place.
+forge/github:gh() {
+  local place
+  if [[ -v forge_github_place ]]
+  then
+    place=${forge_github_place}
+  else
+    place=$(forge/github:place) || return 1
+  fi
+  if [[ -z "${place}" ]]
+  then
+    gh "$@"
+    return
+  fi
+  GH_HOST=${place%%/*} GH_REPO=${place} gh "$@"
+}
+
 # forge/github:ask <name> <what> <gh argument>… runs gh and puts what it printed in the variable <name>. When gh
 # fails, it keeps what gh said in forge_github_said, and says why, as forge/github:limited or forge/github:scoped
 # does, or else names gh auth status, for <what>, and returns 1. An answer gh is not asked to filter with --jq must be
 # JSON, or the read fails; gh parses the one it filters itself.
 forge/github:ask() {
-  local ask_into=$1 ask_what=$2 ask_said ask_out ask_arg ask_filtered=false
+  local ask_into=$1 ask_what=$2 ask_said ask_out ask_arg ask_filtered=false forge_github_place
   shift 2
+  forge_github_place=$(forge/github:place) || return 1
   file:temp ask_said gh || return 1
-  if ! ask_out=$(gh "$@" 2>"${ask_said}")
+  if ! ask_out=$(forge/github:gh "$@" 2>"${ask_said}")
   then
     forge_github_said=$(<"${ask_said}")
     forge/github:limited "${ask_what}" "${ask_out}"$'\n'"$(<"${ask_said}")" \
@@ -1342,10 +1411,11 @@ forge/github:ask() {
 # GitHub may refuse a caller in words of its own: when what gh said matches the glob <said>, in any case, the failure
 # says <line>, then that <what> could not be read.
 forge/github:refused() {
-  local refused_into=$1 refused_what=$2 refused_glob=$3 refused_line=$4 refused_said refused_out
+  local refused_into=$1 refused_what=$2 refused_glob=$3 refused_line=$4 refused_said refused_out forge_github_place
   shift 4
+  forge_github_place=$(forge/github:place) || return 1
   file:temp refused_said gh || return 1
-  if ! refused_out=$(gh "$@" 2>"${refused_said}")
+  if ! refused_out=$(forge/github:gh "$@" 2>"${refused_said}")
   then
     refused_out=${refused_out}$'\n'$(<"${refused_said}")
     # shellcheck disable=SC2053  # the glob is the caller's, matched as a glob on purpose
@@ -1542,7 +1612,7 @@ forge/github:limited() {
     return 0
   fi
   [[ "${said}" == *rate_limited* || "${said}" == *'rate limit'* ]] || return 1
-  limits=$(gh api rate_limit 2>/dev/null) || limits='{}'
+  limits=$(forge/github:gh api rate_limit 2>/dev/null) || limits='{}'
   wait=$(jq -L "${kit_jq}" --raw-output --argjson now "$(date +%s)" \
     'import "forge" as forge; forge::github_spent($now)' <<<"${limits}" 2>/dev/null) || wait=''
   [[ -n "${wait}" ]] || wait="wait for GitHub's rate limit to reset; run: gh api rate_limit"

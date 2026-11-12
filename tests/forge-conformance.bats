@@ -17,6 +17,19 @@ setup() {
   fresh-repo
 }
 
+# A world on GitHub names its primary's repository in FAKE_GH_REPO, and tests/fakes/fake-tool refuses a gh call that
+# names another, or none, and keeps it in gh.unnamed. A provider may hide a call that fails, as a run's jobs that
+# cannot be read are none, so every test here ends by looking: no gh call went to a repository gh chose itself.
+teardown() {
+  helper:outside-checkout || return 1
+  if [[ -s "${FAKE_DIR}/gh.unnamed" ]]
+  then
+    echo "gh was called without the primary's repository, ${FAKE_GH_REPO:-}:" >&2
+    cat "${FAKE_DIR}/gh.unnamed" >&2
+    return 1
+  fi
+}
+
 # call <call> <argument>… runs one call of the seam, as a verb would.
 call() {
   bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge && "forge:$0" "$@"' "$@"
@@ -54,6 +67,7 @@ world() {
 
 world-github() {
   git remote add origin https://github.com/empowerite/example.git
+  export FAKE_GH_REPO=github.com/empowerite/example
   : > "${FAKE_DIR}/gh.routes"
   fixture user.json <<<'{"login": "ada"}'
   fixture repo.json <<<'{"nameWithOwner": "empowerite/example", "url": "https://github.com/empowerite/example"}'
@@ -318,6 +332,90 @@ JSON
   [ "$output" = $'MERGED\tdef456' ]
   run grep -v '^api user\|^api projects/empowerite%2Fexample/merge_requests/4$' "${FAKE_DIR}/glab.calls"
   [ "$output" = $'issue update 7 --assignee -bob\nissue close 7\nissue note 7 --message /duplicate #9\nissue note 7 --message Moved on\napi projects/empowerite%2Fexample/issues/7/links --method POST --raw-field target_project_id=empowerite/example --raw-field target_issue_iid=9' ]
+}
+
+# named prints each repository the gh calls since the last named-afresh named, once: "<host> <repo>".
+named() { sort --unique "${FAKE_DIR}/gh.named" | tr '\t' ' '; }
+
+# named-afresh <host/owner/name> holds the gh calls from here on to that repository, and forgets those before.
+named-afresh() {
+  export FAKE_GH_REPO=$1
+  : > "${FAKE_DIR}/gh.named"
+  forge-forget
+}
+
+@test "GitHub's provider names the primary's repository and host to gh, which would choose a repository of its own" {
+  world github
+  # a fork's checkout: origin is the fork, and upstream the project, which gh takes before origin
+  git remote set-url origin https://github.com/ada/example.git
+  git remote add upstream https://github.com/empowerite/example.git
+  named-afresh github.com/ada/example
+  # reads and changes alike, each way the provider reaches gh
+  for call in repo repo-url me 'issue-title 7' 'issue-create Fix' 'issue-assign 7 ada' 'pr-for-branch 7-fix-the-thing' \
+    open-prs open-issues milestones merged-prs deployments artifacts environments collaborators teams bots
+  do
+    # shellcheck disable=SC2086  # a call and its arguments, split on purpose
+    run --separate-stderr call ${call}
+    [ "$status" -eq 0 ] || { echo "${call}: ${stderr}"; false; }
+  done
+  run --separate-stderr call pr-create 7-fix-the-thing main "Fix the thing"
+  [ "$status" -eq 0 ]
+  [ "$(named)" = 'github.com github.com/ada/example' ]
+  # gh repo view takes no repository from GH_REPO, only as its argument
+  grep --quiet '^repo view github.com/ada/example --json nameWithOwner' "${FAKE_DIR}/gh.calls"
+  grep --quiet '^repo view github.com/ada/example --json url' "${FAKE_DIR}/gh.calls"
+  # the primary is kit.yml's, where it names one
+  printf 'primary: upstream\n' > kit.yml
+  named-afresh github.com/empowerite/example
+  run --separate-stderr call milestones
+  [ "$status" -eq 0 ]
+  run --separate-stderr call issue-create Fix
+  [ "$status" -eq 0 ]
+  [ "$(named)" = 'github.com github.com/empowerite/example' ]
+  # a GitHub Enterprise Server, by an ssh URL: gh api goes to its host, not to the host gh logged in to first
+  printf 'forge: github\n' > kit.yml
+  git remote set-url origin git@ghe.example.com:team/app.git
+  named-afresh ghe.example.com/team/app
+  run --separate-stderr call milestones
+  [ "$status" -eq 0 ]
+  [ "$(named)" = 'ghe.example.com ghe.example.com/team/app' ]
+  # an ssh URL may name a Host of the ssh configuration: ssh says the host it stands for, as gh asks it
+  fake-tools ssh
+  fixture ssh-work.txt <<<$'user git\nhostname github.com\nport 22'
+  route ssh '-G -- github.com-work' ssh-work.txt
+  git remote set-url origin git@github.com-work:team/app.git
+  named-afresh github.com/team/app
+  run --separate-stderr call milestones
+  [ "$status" -eq 0 ]
+  # ssh.github.com is github.com's own ssh, on port 443, and a host in capitals is the host
+  git remote set-url origin ssh://git@ssh.GitHub.com:443/team/app.git
+  run --separate-stderr call milestones
+  [ "$status" -eq 0 ]
+  [ "$(named)" = 'github.com github.com/team/app' ]
+  # a URL that names a host and no <owner>/<name> names no repository: gh is not run
+  git remote set-url origin https://github.com/team
+  named-afresh github.com/team/app
+  run --separate-stderr call milestones
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+  [[ "$stderr" == *"https://github.com/team names no repository"* ]]
+  [ ! -s "${FAKE_DIR}/gh.named" ]
+  # a primary on this machine, GitHub's by kit.yml alone, names none: gh runs as the caller's environment has it
+  git remote set-url origin "${BATS_TEST_TMPDIR}/mirror.git"
+  unset FAKE_GH_REPO
+  run --separate-stderr call milestones
+  [ "$status" -eq 0 ]
+  [ "$(named)" = ' ' ]
+}
+
+@test "the GitHub provider runs gh in one place, forge/github:gh, so no call can leave the repository unnamed" {
+  # what is left of the provider without its comments, its remedies, run: gh …, and the names of its temporary files
+  run bash -c 'grep --invert-match --extended-regexp "^[[:space:]]*#" "$1" \
+    | sed -E "s/run: gh [a-z]+//g; s/file:temp [a-z_]+ gh//g" \
+    | grep --extended-regexp "(^|[^[:alnum:]_:/.-])gh([[:space:]]|\$)"' _ "${kit_root}/modules/bash/forge/github.sh"
+  [ "$status" -eq 0 ]
+  [ "${#lines[@]}" -eq 2 ]
+  [[ "${lines[0]}" == *'gh "$@"' && "${lines[1]}" == *'GH_REPO=${place} gh "$@"' ]]
 }
 
 @test "every provider finds, opens, and reads a change by its branch the same way" {

@@ -12,10 +12,26 @@
 # As gh does, the fake colors an unfiltered response when CLICOLOR_FORCE is set to other than 0 or GH_FORCE_TTY is set:
 # it wraps the response in a color and its reset. A provider that lets a desk's forcing reach its tool is caught by
 # the JSON it then cannot parse.
+#
+# The repository a gh call names, in GH_HOST and GH_REPO, is appended to ${FAKE_DIR}/gh.named, "<host>\t<repo>" a
+# call, empty where it names none. A world that sets FAKE_GH_REPO, its primary's <host>/<owner>/<name>, has every gh
+# call held to it: a call that names another repository, another host, or none is one gh would answer from a
+# repository of its own choosing, so its arguments' first line is appended to ${FAKE_DIR}/gh.unnamed, and it fails.
 
 set -o errexit -o nounset -o pipefail
 tool=${0##*/}
 printf '%s\n' "$*" >> "${FAKE_DIR}/${tool}.calls"
+if [[ "${tool}" == gh ]]
+then
+  printf '%s\t%s\n' "${GH_HOST:-}" "${GH_REPO:-}" >> "${FAKE_DIR}/gh.named"
+  if [[ -n "${FAKE_GH_REPO:-}" ]] \
+    && [[ "${GH_REPO:-}" != "${FAKE_GH_REPO}" || "${GH_HOST:-}" != "${FAKE_GH_REPO%%/*}" ]]
+  then
+    head -n 1 <<<"$*" >> "${FAKE_DIR}/gh.unnamed"
+    echo "gh: called for '${GH_REPO:-}' on '${GH_HOST:-}', not ${FAKE_GH_REPO}: $(head -n 1 <<<"$*")" >&2
+    exit 1
+  fi
+fi
 filter=''
 forced=false
 [[ ( -n "${CLICOLOR_FORCE:-}" && "${CLICOLOR_FORCE}" != 0 ) || -n "${GH_FORCE_TTY:-}" ]] && forced=true

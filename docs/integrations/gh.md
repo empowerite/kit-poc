@@ -2,9 +2,18 @@
 
 `gh` is GitHub's own CLI. It authenticates with `gh auth login`, or `GH_TOKEN` in CI. `--json "${fields}"` picks the
 fields, `--jq` filters them, and `--limit` sets how many items a list reads. `gh api` is the escape hatch: it fills
-`{owner}/{repo}` from the checkout, reads every page with `--paginate` (`--slurp` joins them), sends headers with
-`--header`, prints the status line and headers with `--include`, and runs GraphQL with `gh api graphql`. kit reads
-`gh` for a single change and GraphQL for the open changes, 100 a page, following each list's cursor to its end.
+`{owner}/{repo}` from the repository `GH_REPO` names, else the checkout's, reads every page with `--paginate`
+(`--slurp` joins them), sends headers with `--header`, prints the status line and headers with `--include`, and runs
+GraphQL with `gh api graphql`. kit reads `gh` for a single change and GraphQL for the open changes, 100 a page,
+following each list's cursor to its end.
+
+Left to itself, `gh` picks the repository from the checkout's remotes: one named `upstream` before `origin`, or the
+one `gh repo set-default` chose. `gh api` goes to the host `gh` logged in to first, whatever the checkout's remotes
+say. kit acts on the primary remote, so its provider runs every `gh` call with `GH_REPO="${host}/${owner}/${name}"`
+and `GH_HOST="${host}"`, read from the primary's URL. `gh repo view` takes no repository from `GH_REPO`, so the
+provider gives it as the argument. An ssh URL may name a `Host` of the ssh configuration, as `github.com-work`: the
+provider asks `ssh -G` for the host it stands for, as `gh` does, and takes `ssh.github.com` for `github.com`. A
+primary that is a path on this machine names no repository, and `gh` runs as the caller's environment has it.
 
 This page says what `gh` reads and writes where it meets kit's scope, for each service it reaches, and the
 machine-readable descriptions each publishes. The index of these pages is [1st.md](1st.md).
@@ -21,6 +30,7 @@ machine-readable descriptions each publishes. The index of these pages is [1st.m
 
 GitHub Enterprise Server answers the same calls at `https://${host}/api/v3` and `https://${host}/api/graphql`. `gh`
 reaches it with `gh auth login --hostname "${host}"`, or `GH_HOST`, and kit finds such a host in `gh`'s `hosts.yml`.
+kit sets `GH_HOST` to the host of the primary's URL, so `gh api` asks the Server and not github.com.
 Each Server release has its own REST description and GraphQL schema, and a field newer than the release is absent.
 Rate limits on Server are off unless its administrator turns them on.
 
@@ -206,7 +216,8 @@ Gaps: `gh project` names projects, fields, and options by their node IDs, so a w
 
 `gh` is GitHub's CLI. It signs in with `gh auth login` or reads `GH_TOKEN`. Every list command takes `--json
 <fields>`, with `--jq` and `--template` to shape it, and `--limit` instead of pages. `gh api` calls any REST route,
-fills `{owner}` and `{repo}` from the checkout, and reads every page with `--paginate`; with `--slurp` it joins them.
+fills `{owner}` and `{repo}` from the repository `GH_REPO` names, as kit sets it, and reads every page with
+`--paginate`; with `--slurp` it joins them.
 
 ### Read from GitHub Actions
 
@@ -248,10 +259,11 @@ posts only a commit status. `gh` has no command that validates a workflow file.
 
 `gh` is GitHub's own CLI. It authenticates with `gh auth login`, or `GH_TOKEN` in CI. `--json "${fields}"` picks the
 fields, `--jq` filters them, and `--limit` sets how many items a list reads. `gh` has release commands and none for
-environments or deployments, so those go through `gh api`, which fills `{owner}/{repo}` from the checkout, reads
-every page with `--paginate`, and runs GraphQL with `gh api graphql`. kit reads releases with `gh api`, as
-`gh release list` gives no release's notes or assets; the REST list does not mark the latest release, so kit names it
-as GitHub does by default: the newest release, by its creation, that is neither a draft nor a pre-release.
+environments or deployments, so those go through `gh api`, which fills `{owner}/{repo}` from the repository
+`GH_REPO` names, as kit sets it, reads every page with `--paginate`, and runs GraphQL with `gh api graphql`. kit
+reads releases with `gh api`, as `gh release list` gives no release's notes or assets; the REST list does not mark
+the latest release, so kit names it as GitHub does by default: the newest release, by its creation, that is neither
+a draft nor a pre-release.
 
 A job in GitHub Actions that names an `environment:` creates a deployment for that environment, and its run waits
 there for the environment's protection rules, such as required reviewers. A deployment whose ref is a pull request's
