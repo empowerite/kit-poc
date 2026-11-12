@@ -400,6 +400,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		m.copied, m.link = "", ""
 		return m.key(msg)
+	case tea.PasteMsg:
+		m.paste(shell.Pasted(msg.Content))
 	case tea.MouseWheelMsg:
 		m.wheeled(msg)
 	case tea.MouseClickMsg:

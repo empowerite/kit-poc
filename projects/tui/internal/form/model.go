@@ -5,7 +5,8 @@
 // field or line and, on the command line, runs; shift-Enter runs from anywhere a terminal reports it, and the keys bar
 // names it only where the terminal said it does; esc goes back
 // to the palette and never quits; ctrl-q quits, and ctrl-c quits as interrupted. In a list, page down and page up move the cursor a page,
-// and home and end to the first and last row. Where a window hides rows, a dim line says how many.
+// and home and end to the first and last row. Where a window hides rows, a dim line says how many. A paste is typed
+// where a key would be, as paste says.
 //
 // The form stands in the frame every screen has: the menu bar first, kit help's, its kit menu, its workspace menu, the
 // verb's name, and the search field; the status bar last. A click on the kit menu or the workspace menu drops it down,
@@ -147,6 +148,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		cmd := m.key(msg)
 		return m, cmd
+	case tea.PasteMsg:
+		m.paste(msg.Content)
 	}
 	return m, nil
 }
@@ -515,6 +518,31 @@ func (m *Model) text(k tea.KeyPressMsg, s string) tea.Cmd {
 		return m.move(-1)
 	}
 	return nil
+}
+
+// paste types a paste in the field with the keyboard, where a key pressed would be typed: a value and a list's filter
+// take it as one line, its line breaks dropped, so a pasted line break neither moves on nor runs; a field of lines
+// takes each line of it, as Enter after each would, and leaves the last to go on typing. Under an open menu, on a
+// field that types nothing, and on the command line, a paste does nothing.
+func (m *Model) paste(content string) {
+	lines := shell.PastedLines(content)
+	if m.appMenu.Open || m.books.Open || !m.typing() || len(lines) == 0 {
+		return
+	}
+	switch m.fields[m.focus].Kind {
+	case Text:
+		m.input += strings.Join(lines, "")
+		m.typedText()
+	case Lines, Wildcard:
+		for _, line := range lines[:len(lines)-1] {
+			m.input += line
+			m.commitLine()
+		}
+		m.input += lines[len(lines)-1]
+	default:
+		m.input += strings.Join(lines, "")
+		m.cursor = 0
+	}
 }
 
 // typedText applies the text typed: a text field's value changes as it is typed.

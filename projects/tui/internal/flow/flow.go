@@ -435,6 +435,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		m.note.Text, m.copied = "", false
 		return m.key(msg)
+	case tea.PasteMsg:
+		m.paste(shell.Pasted(msg.Content))
 	case tea.MouseWheelMsg:
 		// down or up scrolls the rows; across, as shell.Turn says, scrolls the columns, as tab does, where the view
 		// hides one

@@ -36,9 +36,9 @@
 // while open, and down gives the cards the keyboard back; it is the top of the screen, so up and esc leave it where it
 // is. = or a click on the = drops the app's menu down, and - or a click on the workspace menu after the screen's name
 // drops it down, as on every screen. The search on the menu bar's right is every screen's, internal/shell's: / or a
-// click on it gives it focus, typing narrows the cards to the tutorials whose title, audiences, summary, or id holds
-// it, and ⏎, ↓, esc, or tab gives the cards focus, the filter kept, or the control line where it lets no card through.
-// Ctrl-c quits with 130 from anywhere, and ctrl-q quits with 0; esc never quits.
+// click on it gives it focus, typing, or a paste, narrows the cards to the tutorials whose title, audiences, summary,
+// or id holds it, and ⏎, ↓, esc, or tab gives the cards focus, the filter kept, or the control line where it lets no
+// card through. Ctrl-c quits with 130 from anywhere, and ctrl-q quits with 0; esc never quits.
 //
 // Opening a tutorial says so in place of the keys, for Fades or until a key; when the browser cannot be asked, the
 // tutorial's link stands there instead until a key, to open by hand. The browser cannot be asked over SSH, where an
@@ -304,6 +304,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.click(msg)
 	case tea.MouseWheelMsg:
 		m.wheel(msg)
+	case tea.PasteMsg:
+		m.paste(shell.Pasted(msg.Content))
 	}
 	m.fit()
 	return m, nil

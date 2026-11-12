@@ -12,8 +12,9 @@
 //
 // The rows have focus from the start, the cursor on the first verb, so the arrows move at once. The search,
 // internal/shell's, on the menu bar, works as it does on every screen: / or a click on it gives it focus; a key typed
-// narrows the rows at once to those whose text holds it, backspace takes one back, and ⌃U clears; ⏎, ↓, esc, or tab
-// gives the rows the keyboard, the filter kept, the cursor on the first verb; ⌃R recalls a past search. With the rows
+// narrows the rows at once to those whose text holds it, as a paste does, backspace takes one back, and ⌃U clears; ⏎,
+// ↓, esc, or tab gives the rows the keyboard, the filter kept, the cursor on the first verb; ⌃R recalls a past
+// search. With the rows
 // focused, the keys are the table's, and esc, or up past the control line, gives the search the keyboard again. Enter
 // opens the form of the verb under the cursor, and a form that cannot open leaves kit's line in red under the menu bar,
 // until the search changes or another verb opens. = or a click on the = before the screen's name drops the kit menu
@@ -408,8 +409,23 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.KeyPressMsg:
 		return m.key(msg)
+	case tea.PasteMsg:
+		m.paste(shell.Pasted(msg.Content))
 	}
 	return m, nil
+}
+
+// paste types a paste where a key pressed would be typed: in the search while it has focus, = and all, which narrows
+// the rows as typing does; else where the table types, a card's line or a preset's name. Under an open menu, and on
+// the rows, it types nothing.
+func (m *Model) paste(text string) {
+	switch {
+	case m.appMenu.Open || m.books.Open || m.recent.Open:
+	case m.search.Focused && !m.sheet.Layered():
+		m.typed(m.search.Query + text)
+	default:
+		m.sheet.Paste(text)
+	}
 }
 
 // click takes a click: on an open menu, or a layer of the table; on the search, its Recall glyph, the workspace menu,

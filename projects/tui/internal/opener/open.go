@@ -4,7 +4,8 @@
 // into by a plain click. Up and down move a highlight from what is typed onto the folders and back, page up and page
 // down by a page, and the list scrolls to keep it in view, as the mouse wheel scrolls it, saying how many folders it
 // hides above and below; enter on a folder highlighted goes into it, as a click does, and typing puts the highlight
-// back on what is typed. Shift+backspace and ⌃W go up a folder, taking the last name off what is typed; while there is
+// back on what is typed. A paste is typed after what is typed, as paste.go says. Shift+backspace and ⌃W go up a
+// folder, taking the last name off what is typed; while there is
 // a folder above, a ../ line starts the list, pinned as it scrolls, and a click on it, or enter on it, goes up the same
 // way. Enter with no folder highlighted, or a click on Open, asks kittui to open what is typed; kit says whether it is
 // a git working tree, and its line, when it is not, stands in the dialog, which stays open.  A line above Open, or ⌃F,

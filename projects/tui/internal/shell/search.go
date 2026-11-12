@@ -18,8 +18,8 @@ const Idle = "/search"
 // Search is the search every screen of kittui has, the same on each: on the menu bar's right, 🔎 and what is typed,
 // which a table narrows its rows to, and a page's text keeps every line of, each match drawn as Found draws it. / or a
 // click on it gives it focus, and a screen may open with focus there; then a printable key is typed, / and = too, as
-// the filter goes, backspace takes one back, and ⌃U clears it; ⏎, ↓, esc, and tab give the view focus, the filter
-// kept; and ⌃R recalls the past searches.
+// the filter goes, a paste is typed as Pasted gives it, backspace takes one back, and ⌃U clears it; ⏎, ↓, esc, and
+// tab give the view focus, the filter kept; and ⌃R recalls the past searches.
 type Search struct {
 	Query   string
 	Focused bool

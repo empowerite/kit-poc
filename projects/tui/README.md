@@ -28,6 +28,11 @@ Search works the same on every screen. `/` or a click on the search field at the
 typing filters as it goes. ⏎, ↓, esc, or tab gives the view focus and keeps the filter, ⌃U clears it, and ⌃R recalls
 a past search.
 
+A paste is typed wherever a key would be: in the search, a form's field, a dialog's line, a preset's name, and the
+line of a field's card that takes a range. A pasted line break never stands for ⏎. A field of one line drops it, and a
+form's field of lines takes each pasted line as a line. While a dialog is open the paste goes to the dialog, and under
+an open menu it types nothing.
+
 `kit <verb> <argument>` opens the verb's screen on the argument. `kit flow issues` opens the picture with the issues
 stage maximized, and both `kit flow backlog` and `kit flow underway` open it the same way, issues set as its Backlog
 or Underway preset. `kit tutorials screens` opens the tutorials with the cursor on that card. `kit help commit` opens

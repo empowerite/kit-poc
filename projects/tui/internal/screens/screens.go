@@ -320,7 +320,8 @@ func (m Model) workspaceMsg() shell.WorkspaceMsg {
 // key or a click the screen shown says goes back to its crumb, while no dialog is open; or for the Settings dialog, or
 // the Open Repository… dialog, opened over it, and a walk's clones for the Open Repository… dialog;
 // an answer to what a screen started, for that screen; while a dialog is open, a key or a click for it, which closes
-// it outside it, a turn of the wheel for the Open Repository… dialog's list, and any other mouse event nowhere;
+// it outside it, a paste for the Open Repository… dialog, which types it, and for the Settings dialog nowhere, a turn
+// of the wheel for the Open Repository… dialog's list, and any other mouse event nowhere;
 // and anything else for the screen shown, the terminal's size as the screen has it.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -384,6 +385,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			was := m.settings
 			m.dialog, m.settings = m.dialog.Key(msg, m.settings)
 			return m.changed(was)
+		}
+	case tea.PasteMsg:
+		if m.opener.Open {
+			m.opener = m.opener.Paste(shell.Pasted(msg.Content))
+			return m, nil
+		}
+		if m.dialog.Open {
+			return m, nil
 		}
 	case tea.MouseClickMsg:
 		if s, ok := m.crumbHere(); ok && !m.opener.Open && !m.dialog.Open && s.OnCrumb(msg) {

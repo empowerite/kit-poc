@@ -14,11 +14,11 @@
 // menu closed: n, r, a, o, c, x, f, d, and enter, which switches to the group under the cursor. = or a click on the =
 // drops the app's menu down, and - or a click on the workspace menu after the screen's name drops it down, as on every
 // screen; / or a click on the search at the right gives the search the keyboard, which narrows the rows to what is
-// typed. The mouse wheel scrolls the rows, the cursor left where it is, but not under an open menu or dialog. Ctrl-c
-// quits with 130, and ctrl-q with 0.
+// typed. A paste is typed where a key would be, as paste.go says. The mouse wheel scrolls the rows, the cursor left
+// where it is, but not under an open menu or dialog. Ctrl-c quits with 130, and ctrl-q with 0.
 //
 // While the screen draws no table, with no group yet, before kit answers, or under kit's refusal, the table takes no
-// key and no click, and the keys bar names the screen's keys alone.
+// key, no click, and no paste, and the keys bar names the screen's keys alone.
 package workspaces
 
 import (
@@ -212,6 +212,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		m.note.Text = ""
 		return m.key(msg)
+	case tea.PasteMsg:
+		m.paste(shell.Pasted(msg.Content))
 	case tea.MouseClickMsg:
 		return m.click(msg)
 	case tea.MouseWheelMsg:
