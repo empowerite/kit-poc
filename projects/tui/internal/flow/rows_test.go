@@ -26,7 +26,7 @@ func TestIssuesDrawTheBacklogAndWhatIsUnderwayTogether(t *testing.T) {
 		}
 	}
 	for key, want := range map[string]map[string][]string{
-		"#7": {"status": {"backlog"}, "milestone": {"v1"}, "iteration": nil, "swimlane": nil, "branch": nil,
+		"empowerite/jig#7": {"status": {"backlog"}, "milestone": {"v1"}, "iteration": nil, "swimlane": nil, "branch": nil,
 			"change": nil, "state": nil, "where": nil, "pushed": nil},
 		"#46": {"status": {"backlog"}, "milestone": {"v0.2.0"}, "iteration": {"Sprint 4"}, "swimlane": {"tui"},
 			"branch": nil, "change": nil, "where": nil},

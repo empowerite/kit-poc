@@ -63,8 +63,8 @@ func TestTheCardFlattensAListAndItsRowsSort(t *testing.T) {
 	m = choose(m, "assignees", table.FlattenIt("assignee"))
 	header := lines(m)[m.headerTop()]
 	if !m.panel(m.stage).Field("assignees").Flat || !strings.Contains(header, "assignee ") ||
-		strings.Contains(header, "assignees") || rows(m, "#7") != 2 || rows(m, "#45") != 1 {
-		t.Fatalf("assignees flat: #7 %d rows, #45 %d\n%s", rows(m, "#7"), rows(m, "#45"), raw(m))
+		strings.Contains(header, "assignees") || rows(m, "empowerite/jig#7") != 2 || rows(m, "#45") != 1 {
+		t.Fatalf("assignees flat: #7 %d rows, #45 %d\n%s", rows(m, "empowerite/jig#7"), rows(m, "#45"), raw(m))
 	}
 	// jig's #7 stands on two lines, one row
 	for _, want := range []string{"issues  7", "repository ▾ 7", "github · empowerite 7", "jig 1"} {
@@ -88,8 +88,8 @@ func TestTheCardFlattensAListAndItsRowsSort(t *testing.T) {
 	// gathered, its sort orders the rows by size, how many assignees each holds
 	m = choose(choose(m, "labels", table.GatherIt("labels")), "assignees", table.GatherIt("assignees"))
 	if p := m.panel(m.stage); p.Field("assignees").Flat || len(p.SortKeys()) != 1 || !p.Counts("assignees") ||
-		rows(m, "#7") != 1 ||
+		rows(m, "empowerite/jig#7") != 1 ||
 		!strings.Contains(lines(m)[m.headerTop()], "assignees") || slices.Contains(p.Groups(), "assignees") {
-		t.Errorf("gathered: keys %v, #7 %d rows", p.SortKeys(), rows(m, "#7"))
+		t.Errorf("gathered: keys %v, #7 %d rows", p.SortKeys(), rows(m, "empowerite/jig#7"))
 	}
 }

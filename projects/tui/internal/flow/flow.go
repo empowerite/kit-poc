@@ -418,7 +418,9 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case shell.WorkspaceMsg:
 		m.books = m.books.Told(msg)
 		if msg.Refusal == "" {
+			// the rows are built again: an issue's key names its repository where that is not the workspace's
 			m.ws = msg.Workspace
+			m.rebuild()
 		}
 	case shell.SettingsMsg:
 		m.fold, m.hide, m.glyphs = msg.Settings.FoldShared, msg.Settings.HideBlank, msg.Settings.SharedEmoji

@@ -287,10 +287,10 @@ func TestSortByInAColumnsMenuSortsTheRows(t *testing.T) {
 	if m = drive(m, testkit.Click(at("age"), m.headerTop()), press(tea.KeyEnter), esc); under("age") != "¹" {
 		t.Fatalf("a click on age: %s\n%s", order(), view(m))
 	}
-	if got := order(); got != "#45 #46 #7" {
+	if got := order(); got != "#45 #46 empowerite/jig#7" {
 		t.Errorf("by age, the youngest first: %s", got)
 	}
-	if m = drive(m, testkit.Click(at("age"), ruleY(m))); under("age") != "₁" || order() != "#7 #46 #45" {
+	if m = drive(m, testkit.Click(at("age"), ruleY(m))); under("age") != "₁" || order() != "empowerite/jig#7 #46 #45" {
 		t.Errorf("a click on its ¹, the oldest first: %s\n%s", order(), view(m))
 	}
 	option := tea.MouseClickMsg{X: at("source"), Y: m.headerTop(), Button: tea.MouseLeft, Mod: tea.ModAlt}
@@ -579,7 +579,7 @@ func TestAFieldsPopoverFiltersAndDrawsIt(t *testing.T) {
 	if keys := m.keys().String(); keys != "← fields ↑↓ move ␣ toggle" || !strings.Contains(view(m), "@me ada") {
 		t.Errorf("the card's keys on @me: %q", keys)
 	}
-	if m = drive(m, press(tea.KeySpace)); !slices.Equal(keys(m), []string{"#7"}) ||
+	if m = drive(m, press(tea.KeySpace)); !slices.Equal(keys(m), []string{"empowerite/jig#7"}) ||
 		!strings.Contains(presetText(m), "assignees: @me") {
 		t.Errorf("@me: %v, %q", keys(m), presetText(m))
 	}

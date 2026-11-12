@@ -1562,8 +1562,9 @@ func TestUnderwayDrawsEachIssueBesideThePullRequestThatClosesIt(t *testing.T) {
 	}
 }
 
-// An issue's row is keyed by its number, and, underway, its pull request's after it: an issue in the backlog is one
-// row, one two pull requests close two, and two rows of one key are refused.
+// An issue's row is keyed by its number, after its organization, repository, and tracker where kit prints them, and,
+// underway, its pull request's after it: an issue in the backlog is one row, one two pull requests close two, and two
+// rows of one key are refused.
 func TestIssuesKeyEachRowByTheIssueAndItsPullRequest(t *testing.T) {
 	s := stage{name: "issues"}
 	if err := s.decode([]byte(`[{"number": 1, "pr": null}, {"number": 2, "pr": {"number": 3}},

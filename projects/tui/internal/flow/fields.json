@@ -40,7 +40,8 @@
     {
       "stage": "issues", "command": ["flow", "issues", "--json"], "staged": true, "forge": true,
       "summary": "What is open, who has it, and where the work on it stands",
-      "takes": ["owner", "fresh", "cached", "workspace"], "record": ".[]", "key": ".tracker?, .number, .pr.number?",
+      "takes": ["owner", "fresh", "cached", "workspace"], "record": ".[]",
+      "key": ".organization?, .repository?, .tracker?, .number, .pr.number?",
       "empty": "no open issue", "carries": ["createdAt", "worktree"],
       "fields": [
         {"id": "id", "label": "id", "type": "ref", "path": ".ref", "sort": true, "renderings": ["text"],

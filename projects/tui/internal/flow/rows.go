@@ -472,16 +472,19 @@ func (m Model) short(member string) string {
 // closes, the branch named for it, on the primary. The pull request's glyph leads to its row under
 // changes, or to its page when no app draws changes; the state's glyph to its page. Open, every assignee, the title
 // wrapped, and every label; the pull request's title is under changes, and the checkout's path on Repositories'
-// worktrees tab. A row belongs to the issue's assignees, whoever opened the pull request, as kit flow --mine says.
+// worktrees tab. A row belongs to the issue's assignees, whoever opened the pull request, as kit flow --mine says. An
+// issue of another repository, as elsewhere says, is keyed by its repository and its reference, as named gives them,
+// and its title leads to its page in that repository.
 func (m Model) issueRows(s stage) []record {
 	var out []record
 	for _, i := range of[issue](s) {
-		o, ref, page := m.originOf(i.Member), "#"+strconv.Itoa(i.Number), i.URL
-		if i.Ref != "" {
-			ref = i.Ref
-		}
+		o, ref, page := m.originOf(i.Member), reference(i), i.URL
 		if strings.HasPrefix(ref, "#") {
-			page = o.issue(i.Number, i.URL)
+			in := o
+			if m.elsewhere(i) && in.Repo != "" {
+				in.Repo = i.Organization + "/" + i.Repository
+			}
+			page = in.issue(i.Number, i.URL)
 		}
 		values := map[string]table.Value{
 			"id": table.One(ref), "tracker": table.Some(i.Tracker), "source": table.Some(i.Source), "organization": table.Some(i.Organization),
@@ -490,7 +493,7 @@ func (m Model) issueRows(s stage) []record {
 			"swimlane": table.Some(i.Swimlane), "branch": table.Some(i.Branch), "labels": table.Labelled(i.Labels),
 			"title": {Raw: []string{i.Title}, Link: page}, "member": m.memberValue(i.Member),
 		}
-		key := ref
+		key := m.named(i)
 		switch {
 		case i.Here:
 			values["where"] = m.here(i.Member, i.Worktree)
@@ -522,6 +525,50 @@ func (m Model) issueRows(s stage) []record {
 		out = append(out, record{row{Key: m.keyOf(i.Member, key)}, values})
 	}
 	return out
+}
+
+// reference gives an issue's reference: what kit printed, else #<number>.
+func reference(i issue) string {
+	if i.Ref != "" {
+		return i.Ref
+	}
+	return "#" + strconv.Itoa(i.Number)
+}
+
+// named gives what an issue's row's key names it by: its reference, and for an issue of another repository, as
+// elsewhere says, its organization and repository before it, one word, as empowerite/jig#7, so it is never taken for
+// the issue of that number in the repository here.
+func (m Model) named(i issue) string {
+	if m.elsewhere(i) {
+		return i.Organization + "/" + i.Repository + reference(i)
+	}
+	return reference(i)
+}
+
+// elsewhere says whether an issue is of another repository than the one its row was read in, as kit lists one underway
+// where a pull request here closes it: it names an organization and a repository, and they are not the path of the
+// repository here, as pathHere gives it. Either may lack the other's leading segments, as origin's lacks a GitLab
+// group's parents, and the forge chooses the case of its letters, so the paths are compared from their ends, segment
+// by segment, in any case. kit's verbs read a reference in the repository here alone, so no action hands them such an
+// issue. Where kittui knows no repository here, no issue is elsewhere.
+func (m Model) elsewhere(i issue) bool {
+	if i.Organization == "" || i.Repository == "" {
+		return false
+	}
+	place, here := strings.ToLower("/"+i.Organization+"/"+i.Repository), strings.ToLower("/"+m.pathHere(i.Member))
+	return here != "/" && !strings.HasSuffix(place, here) && !strings.HasSuffix(here, place)
+}
+
+// pathHere gives the path of the repository a member's rows were read in, past its host: the member's, over a group;
+// else that of the repository kit says the workspace is; else origin's, until kit has said the workspace.
+func (m Model) pathHere(member string) string {
+	if member == "" {
+		member = m.ws.Member
+	}
+	if _, path, ok := strings.Cut(member, "/"); ok {
+		return path
+	}
+	return m.origin.Repo
 }
 
 // here gives an issue underway its where for work in a member's checkout on this desk, at path: the desk, when the path

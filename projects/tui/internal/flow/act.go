@@ -3,7 +3,9 @@
 // what others see first shows the issues it will change and asks; one that wants an answer, a title, a login, an issue,
 // or one of the caller's pull requests, asks for it. While kit runs, the keys bar says so; then it says what kit did,
 // or why it refused, the selection is cleared when kit did it, and the stages that read the forge's issues and pull
-// requests read them afresh.
+// requests read them afresh. kit's verbs read a reference in the repository they run in, so while an issue of another
+// repository, which kit lists where a pull request here closes it, is among those selected, every action that hands
+// kit a reference is dim; Copy Links, which hands kit nothing, is not.
 package flow
 
 import (
@@ -91,8 +93,9 @@ type memberRefs struct {
 }
 
 // refOf gives a row's member and what it names, from the row's key, which holds the member before it over a group: an
-// issues row's issue's reference, #45 or AB#4521, its first word that holds a #, the pull request's after it for an
-// issue underway, as #45 #46, left out; or a packages row's package.
+// issues row's issue's reference, #45 or AB#4521, or empowerite/jig#7 for an issue of another repository, its first
+// word that holds a #, the pull request's after it for an issue underway, as #45 #46, left out; or a packages row's
+// package.
 func refOf(key string) (member, ref string) {
 	words := strings.Fields(key)
 	if k := slices.IndexFunc(words, func(w string) bool { return strings.Contains(w, "#") }); k >= 0 {
@@ -186,8 +189,9 @@ func (m Model) mine() (numbers []int, lines []string) {
 }
 
 // acting says whether an item of the tab's menu is one of the issues' actions, and whether it does anything now:
-// New… always; the rest none while no issue is selected, and Add to Pull Request only while the caller has an open
-// pull request to add to.
+// New… always; the rest none while no issue is selected; all of those but Copy Links, which hand kit the issues'
+// references, none while an issue of another repository is among them, as away says; and Add to Pull Request only
+// while the caller has an open pull request to add to.
 func (m Model) acting(name string) (action, enabled bool) {
 	if !slices.ContainsFunc(m.actions(), func(i shell.Item) bool { return i.Name == name }) {
 		return false, false
@@ -198,7 +202,8 @@ func (m Model) acting(name string) (action, enabled bool) {
 	if name == "New…" {
 		return true, m.runner.Group == "" || m.cursorMember() != ""
 	}
-	if m.selected() == 0 || slices.Contains(oneMember, name) && len(m.refsByMember()) > 1 {
+	if m.selected() == 0 || name != "Copy Links" && m.away() ||
+		slices.Contains(oneMember, name) && len(m.refsByMember()) > 1 {
 		return true, false
 	}
 	if name == "Add to Pull Request…" {
@@ -206,6 +211,24 @@ func (m Model) acting(name string) (action, enabled bool) {
 		return true, len(numbers) > 0
 	}
 	return true, true
+}
+
+// away says whether an issue of another repository, as elsewhere says, is among those selected in issues: kit's verbs
+// would read its reference as the issue of that number in the repository here.
+func (m Model) away() bool {
+	far := map[string]bool{}
+	for _, i := range of[issue](*m.find(issuesStage)) {
+		if m.elsewhere(i) {
+			far[m.keyOf(i.Member, m.named(i))] = true
+		}
+	}
+	if len(far) == 0 {
+		return false
+	}
+	return slices.ContainsFunc(m.selectedRows(), func(r row) bool {
+		member, ref := refOf(r.Key)
+		return far[m.keyOf(member, ref)]
+	})
 }
 
 // nowhere says an action does not run, as kit has not said where the member it acts in is checked out, and running
@@ -356,12 +379,11 @@ func (m Model) listed() []string {
 	return out
 }
 
-// issueTitle gives a member's issue's title, by its reference, as issues read it, or nothing; it asks only on issues,
-// whose actions are the only ones that name issues.
+// issueTitle gives a member's issue's title, by what its row's key names it by, as named gives it, as issues read it,
+// or nothing; it asks only on issues, whose actions are the only ones that name issues.
 func (m Model) issueTitle(member, ref string) (title string) {
-	n, _ := strconv.Atoi(strings.TrimPrefix(ref, "#"))
 	for _, i := range of[issue](*m.find(issuesStage)) {
-		if i.Number == n && i.Member == member {
+		if i.Member == member && m.named(i) == ref {
 			title = i.Title
 		}
 	}

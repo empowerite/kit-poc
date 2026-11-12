@@ -110,11 +110,11 @@ func TestAssignToMeRunsKitAndTheKeysBarSaysWhatItDid(t *testing.T) {
 // stand for it once.
 func TestAnIssueUnderwayIsActedOnByItsNumberOnce(t *testing.T) {
 	m, record := selecting(t)
-	m.stages[0].Picked = map[string]bool{"#7": true, "#8 #4": true, "#8 #11": true}
-	if got := m.refs(); !slices.Equal(got, []string{"#7", "#8"}) {
+	m.stages[0].Picked = map[string]bool{"#45": true, "#8 #4": true, "#8 #11": true}
+	if got := m.refs(); !slices.Equal(got, []string{"#8", "#45"}) {
 		t.Fatalf("selected: %q", got)
 	}
-	if m = choose(t, m, "Assign to Me"); !slices.Equal(acted(t, record), []string{"assign #7 #8"}) {
+	if m = choose(t, m, "Assign to Me"); !slices.Equal(acted(t, record), []string{"assign #8 #45"}) {
 		t.Errorf("the calls: %q", acted(t, record))
 	}
 	if member, ref := refOf("github.com/o/a #8 #4"); member != "github.com/o/a" || ref != "#8" {
@@ -201,7 +201,7 @@ func TestAddToPullRequestPicksOneOfTheCallersOwn(t *testing.T) {
 	}
 	// someone with no open pull request has nothing to add to: the item is dim
 	m.me = "nobody"
-	m.stages[0].Picked["#7"] = true
+	m.stages[0].Picked["#45"] = true
 	m = drive(m, press(':'))
 	if k := item(m, "Add to Pull Request…"); k < 0 || m.enabled(k) {
 		t.Errorf("add to pull request for a caller with none: %d", k)
