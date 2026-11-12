@@ -129,6 +129,11 @@ Trusting a clone means you accept code from anyone who can push to it. kit does 
 signed commits do.
 
 In a clone you have not trusted, every git command kit runs ignores the clone's hooks and fsmonitor, and reaches no
-remote. kit never trusts a toolchain's own config for you: when `mise install` refuses a `mise.toml` mise does not
-trust, kit names `mise trust` as the step you take once you have read the file. kit neither writes nor removes a path
-through a link under `.kit/`, and writes no log through one.
+remote. kit works in the clone's root as the file system gives it, the nearest folder at or above you that holds
+`.git`, which is the root it judged. It never takes the root from git, since a clone's own git config can name any
+folder as its work tree. That holds in a clone you trust too. Where no folder at or above you holds `.git`, kit
+stays in the folder you typed in.
+
+kit never trusts a toolchain's own config for you: when `mise install` refuses a `mise.toml` mise does not trust, kit
+names `mise trust` as the step you take once you have read the file. kit neither writes nor removes a path through a
+link under `.kit/`, and writes no log through one.

@@ -106,6 +106,59 @@ answering() {
   [ ! -e "${BATS_TEST_TMPDIR}/sourced" ]
 }
 
+@test "a clone whose git config names a work tree beside it runs none of that folder's code: kit works in the root it judged" {
+  # .git/config is the clone's own: git clone delivers none, an unpacked archive or a synced folder does
+  beside="${BATS_TEST_TMPDIR}/beside"
+  mkdir -p "${beside}/mods" sub
+  printf 'bash_path:\n  - kit:modules/bash/\n  - mods\n' > "${beside}/kit.yml"
+  for module in help release syntax trust
+  do
+    printf 'printf "%%s\\n" %s >> "%s/ran"\n' "${module}" "${BATS_TEST_TMPDIR}" > "${beside}/mods/${module}.sh"
+  done
+  git config core.worktree "${beside}"
+  [ "$(git rev-parse --show-toplevel)" = "$(cd "${beside}" && pwd -P)" ]
+  root=$(pwd -P)
+  run "${kit}" version
+  [ "$status" -eq 0 ]
+  [ "$output" = unreleased ]
+  run "${kit}" trust --check
+  [ "$status" -eq 1 ]
+  run "${kit}" trust --asks </dev/null
+  [ "$status" -eq 0 ]
+  run "${kit}" trust </dev/null
+  [ "$status" -eq 1 ]
+  run "${kit}" syntax commit
+  [ "$status" -eq 0 ]
+  run "${kit}" help --text
+  [ "$status" -eq 0 ]
+  [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
+  # the verb, and a script that sources the loader below the root, each stand in and read the root kit judged
+  run bash -c 'cd sub && source "$1/modules/bash/1st.sh" && kit:enter --any-clone && pwd -P' _ "${kit_checkout}"
+  [ "$status" -eq 0 ]
+  [ "$output" = "${root}" ]
+  run bash -c 'cd sub && source "$1/modules/bash/1st.sh" && use:path' _ "${kit_checkout}"
+  [ "$status" -eq 0 ]
+  [ "$output" = "${kit_checkout}/modules/bash" ]
+  # trusted, the clone's own kit.yml is the one read, not the folder's
+  "${kit}" trust --yes
+  run "${kit}" version
+  [ "$status" -eq 0 ]
+  [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
+  # in no clone, a folder that git reads as a repository names a work tree the same way: kit stays where it was typed
+  plain="${BATS_TEST_TMPDIR}/plain/looks-bare"
+  git init --quiet --bare "${plain}"
+  git -C "${plain}" config core.bare false
+  git -C "${plain}" config core.worktree "${beside}"
+  cd "${plain}"
+  [ "$(git rev-parse --show-toplevel)" = "$(cd "${beside}" && pwd -P)" ]
+  run "${kit}" version
+  [ "$status" -eq 0 ]
+  [ "$output" = unreleased ]
+  [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
+  run bash -c 'source "$1/modules/bash/1st.sh" && kit:enter --any-clone && pwd -P' _ "${kit_checkout}"
+  [ "$output" = "$(pwd -P)" ]
+}
+
 @test "kit trust shows what the clone asks kit to run, and with no terminal and no --yes records nothing" {
   own-kit
   printf 'version: unreleased\ngate: bin/ci\nbash_path:\n  - kit:modules/bash/\n  - lib/bash/\nsources:\n  - name: house\n    url: https://example.com/house.git\n' > kit.yml

@@ -41,11 +41,11 @@ declare -ag kit_bash_path=()
 # exported by the sh the loader runs in, would turn on, as the kit's modules are bash, each function named
 # <module>:<name>, which declare -F refuses in POSIX mode; it exports the directory the command was typed in as
 # kit_invoked_in, for verbs that take relative paths, refuses a clone you have not trusted, as kit:trust-here says,
-# and changes to the repository root, so every verb reads and writes the same paths wherever it was typed. A
-# repository from a release that kept its settings in .kit/settings.yml has them moved to kit.yml first, before
-# anything reads them. With --any-clone, a verb that runs nothing the clone names, as kit version and kit trust,
-# runs in a clone you have not trusted too, and moves nothing there; every git command it runs there is hardened, as
-# kit:harden-git says.
+# and changes to the repository root, kit:work-root's, so every verb reads and writes the same paths wherever it was
+# typed. A repository from a release that kept its settings in .kit/settings.yml has them moved to kit.yml first,
+# before anything reads them. With --any-clone, a verb that runs nothing the clone names, as kit version and kit
+# trust, runs in a clone you have not trusted too, and moves nothing there; every git command it runs there is
+# hardened, as kit:harden-git says.
 kit:enter() {
   set +o posix
   local any_clone=false
@@ -60,7 +60,7 @@ kit:enter() {
     kit:harden-git
   fi
   local repository
-  if repository=$(git rev-parse --show-toplevel 2>/dev/null)
+  if repository=$(kit:work-root)
   then
     cd "${repository}" || return 1
   fi
@@ -80,6 +80,17 @@ kit:clone-root() {
     dir=${dir%/*}
   done
   printf '%s\n' "${dir:-/}"
+}
+
+# kit:work-root prints the root of the work tree the working directory is in, and fails where there is none, as in
+# a bare repository, a .git directory, or outside a clone. git says only whether there is a work tree here; the root
+# is kit:clone-root's, the one the trust was judged of, and never the one git answers. A folder's own git config
+# sets that answer, with core.worktree, to any folder, whose kit.yml would then be read in its place: a clone's
+# .git/config does, and so does the config of a folder in no clone that git reads as a repository. Where
+# kit:clone-root finds no clone, there is no root, whatever git answers.
+kit:work-root() {
+  git rev-parse --show-toplevel >/dev/null 2>&1 || return 1
+  kit:clone-root .
 }
 
 # kit:trust-name <clone-root> prints the name a clone is trusted by: its root, and for a worktree, its desk, but only
@@ -313,9 +324,9 @@ use:yq() {
 # use:load-path fills kit_bash_path with the module path's directories, once per process: each entry of the bash_path
 # setting, else kit:modules/bash/ alone. An entry is kit:<dir> (in the release), an absolute directory, ~/<dir> (in
 # the home directory), <source>:<dir> (in a source the settings name), or a directory relative to the repository root.
-# A directory that does not exist is skipped, as PATH skips one. Away from the root, it reads the root's settings. It
-# returns 2 on a path that does not start with kit:modules/bash/, a root other than kit: and the sources, or a kit.yml
-# yq cannot read.
+# A directory that does not exist is skipped, as PATH skips one. Away from the root, it reads the root's settings,
+# the root kit:work-root finds, as kit:enter does. It returns 2 on a path that does not start with
+# kit:modules/bash/, a root other than kit: and the sources, or a kit.yml yq cannot read.
 #
 # Reading bash_path starts yq, so the entries it found are exported for child processes: kit_bash_path_dirs, their
 # directories, one per line, and kit_bash_path_from, all they were resolved from: the release, the home directory, the
@@ -331,7 +342,7 @@ use:load-path() {
   root=$(pwd -P)
   if [[ ! -f kit.yml ]]
   then
-    root=$(git rev-parse --show-toplevel 2>/dev/null || pwd -P)
+    root=$(kit:work-root || pwd -P)
   fi
   if [[ -f "${root}/kit.yml" ]]
   then
