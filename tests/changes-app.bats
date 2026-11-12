@@ -85,6 +85,20 @@ JSON
     = '[["3 a",3,"a","passed",1790848800,30],["3 b",3,"b","passed",1790848810,50]]' ]
 }
 
+@test "checks has a row for each check of one name that is of another workflow, or for another event, a key each" {
+  github-world
+  jq '.data.repository.pullRequests.nodes[0].commits.nodes[0].commit.statusCheckRollup.contexts.nodes
+      |= (.[0].checkSuite = {workflowRun: {event: "pull_request", workflow: {name: "CI"}}}
+          | .[1].checkSuite = {workflowRun: {event: "pull_request", workflow: {name: "Docs"}}}
+          | .[2].checkSuite = {workflowRun: null})' "${FAKE_DIR}/open-prs.json" > "${FAKE_DIR}/checks.json"
+  mv "${FAKE_DIR}/checks.json" "${FAKE_DIR}/open-prs.json"
+  run --separate-stderr "${kit_root}/bin/kit" changes checks --json
+  [ "$status" -eq 0 ]
+  # CI's a failed, and Docs' a, which started later and passed, is no rerun of it: both are drawn
+  [ "$(jq -c '[.rows[] | [.key, .name, .workflow, .event, .verdict]]' <<<"$output")" \
+    = '[["3 b","b",null,null,"passed"],["3 CI/pull_request a","a","CI","pull_request","failed"],["3 Docs/pull_request a","a","Docs","pull_request","passed"]]' ]
+}
+
 @test "reviews and checks read the open changes once, the one GraphQL request kit flow changes makes" {
   github-world
   run --separate-stderr "${kit_root}/bin/kit" changes --json

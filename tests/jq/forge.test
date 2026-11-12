@@ -50,6 +50,18 @@ import "forge" as forge; forge::checks(1000000)
 [{"name": "test", "verdict": "failed", "at": "a", "since": 1, "took": 5}, {"name": "test", "verdict": "passed", "at": "b", "since": 2, "took": 50}, {"name": "lint", "verdict": "passed", "at": "a", "since": 1, "took": 9}]
 {"state":"SUCCESS","passed":2,"total":2,"failing":"","took":50}
 
+# A run of the same name in another workflow, or for another event, is another check: one that passed later does not
+# supersede the one that failed, as a later run in the same workflow for the same event does.
+import "forge" as forge; forge::checks(1000000) | [.state, .passed, .total, .failing]
+[{"name": "test", "workflow": "CI", "event": "push", "verdict": "failed", "at": "a", "since": 1, "took": 5}, {"name": "test", "workflow": "Docs", "event": "push", "verdict": "passed", "at": "b", "since": 2, "took": 5}, {"name": "test", "workflow": "CI", "event": "pull_request", "verdict": "failed", "at": "a", "since": 1, "took": 5}, {"name": "test", "workflow": "CI", "event": "pull_request", "verdict": "passed", "at": "b", "since": 2, "took": 5}]
+["FAILURE",2,3,"test"]
+
+# A GitHub check run says the workflow of its check suite and the event that started it; a check run of no workflow,
+# and a status context, have neither.
+import "forge" as forge; forge::github_runs | map([.name, .workflow, .event, .verdict])
+[{"__typename": "CheckRun", "name": "test", "status": "COMPLETED", "conclusion": "SUCCESS", "startedAt": "1970-01-12T13:30:00Z", "completedAt": "1970-01-12T13:31:00Z", "checkSuite": {"workflowRun": {"event": "pull_request", "workflow": {"name": "CI"}}}}, {"__typename": "CheckRun", "name": "scan", "status": "QUEUED", "conclusion": null, "startedAt": null, "completedAt": null, "checkSuite": {"workflowRun": null}}, {"__typename": "StatusContext", "context": "ci/ext", "state": "FAILURE", "createdAt": "1970-01-12T13:30:00Z"}]
+[["test","CI","pull_request","passed"],["scan",null,null,"pending"],["ci/ext",null,null,"failed"]]
+
 # A failed check makes the state FAILURE, and failing names the first, by name.
 import "forge" as forge; forge::checks(1000000)
 [{"name": "zeta", "verdict": "failed", "at": "", "since": null, "took": 3}, {"name": "beta", "verdict": "failed", "at": "", "since": null, "took": 4}]
@@ -83,7 +95,7 @@ import "forge" as forge; forge::gitlab_runs | map([.name, .verdict, .took])
 # A merge request folds into the document, with its ref written !<iid>; with no pipeline, its last push is unknown.
 import "forge" as forge; forge::gitlab_pr(1000000; [{"name": "test", "status": "success", "started_at": "1970-01-12T13:45:00Z", "finished_at": "1970-01-12T13:46:40Z"}]; [{"notes": [{"resolvable": true, "resolved": false}, {"resolvable": false}]}]; [{"iid": 7, "title": "Fix the thing", "created_at": "1970-01-12T13:40:00Z", "assignees": [{"username": "bob"}], "references": {"full": "empowerite/tools/example#7"}}]; null; {"approved_by": null})
 {"iid": 3, "source_branch": "7-fix-the-thing", "title": "Fix it", "author": {"username": "ada"}, "created_at": "1970-01-12T13:30:00Z", "draft": false, "has_conflicts": false, "detailed_merge_status": "mergeable"}
-{"number":3,"ref":"!3","source":"gitlab","branch":"7-fix-the-thing","fork":null,"title":"Fix it","author":"ada","createdAt":"1970-01-12T13:30:00Z","age":1000,"pushed":null,"state":"comments:open","checks":{"state":"SUCCESS","passed":1,"total":1,"failing":"","took":100},"unresolved":1,"labels":[],"closes":[{"number":7,"title":"Fix the thing","assignees":["bob"],"labels":[],"source":"gitlab","organization":"empowerite/tools","repository":"example","age":400}],"named":[],"reviewers":[],"runs":[{"name":"test","verdict":"passed","at":999900,"took":100}]}
+{"number":3,"ref":"!3","source":"gitlab","branch":"7-fix-the-thing","fork":null,"title":"Fix it","author":"ada","createdAt":"1970-01-12T13:30:00Z","age":1000,"pushed":null,"state":"comments:open","checks":{"state":"SUCCESS","passed":1,"total":1,"failing":"","took":100},"unresolved":1,"labels":[],"closes":[{"number":7,"title":"Fix the thing","assignees":["bob"],"labels":[],"source":"gitlab","organization":"empowerite/tools","repository":"example","age":400}],"named":[],"reviewers":[],"runs":[{"name":"test","workflow":null,"event":null,"verdict":"passed","at":999900,"took":100}]}
 
 # A merge request from a fork names the fork's owner, and its head pipeline gives the last push: its age, and who
 # started it; a pipeline that names no one gives a null by.

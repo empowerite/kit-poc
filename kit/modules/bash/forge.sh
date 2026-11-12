@@ -239,7 +239,8 @@
 #   secret-scanning  4      secret-scanning-alerts
 #   rulesets         4      rulesets
 #   bypasses         4      bypasses
-#   check-runs       4      open-prs: each change's runs, [{name, verdict, at, took}], the checks by name
+#   check-runs       4      open-prs: each change's runs, [{name, workflow, event, verdict, at, took}], the checks
+#                           by name, and by workflow and event where the forge names them, else null
 #   swimlanes        5      open-issues: each issue's swimlane, the lane a board draws it in; no forge kit reaches has
 #                           one it reads the same way, so a repository gives it a stand-in, or every issue has none
 #   bot-accounts     6      bot-app, bot-installation, bot-installations, bot-proof, bot-token, bot-repositories,

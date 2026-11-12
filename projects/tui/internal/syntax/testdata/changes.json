@@ -247,7 +247,7 @@
       "description": "each open change's reviewers: those it asks, and those who reviewed it, by login"
     },
     "checks": {
-      "description": "each open change's checks: the latest run of each name on its head commit"
+      "description": "each open change's checks: the latest run of each on its head commit"
     },
     "merged": {
       "description": "the changes merged last, 50 at most, merged last first"

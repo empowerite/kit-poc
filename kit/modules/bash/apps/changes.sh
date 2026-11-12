@@ -7,7 +7,8 @@
 #   reviews   a row per open change and reviewer: asked, or the reviewer's latest review, approved, changes, or
 #             commented, and when, with the change's unresolved threads
 #   checks    a row per open change and check: the latest run of each name on its head commit, so a rerun supersedes
-#             the run before it
+#             the run before it; where the forge names a run's workflow and event, as GitHub does, a check is a name
+#             in one workflow for one event
 #   merged    a row per change merged last, 50 at most, who merged it and when
 #
 # reviews and checks read the open changes as kit flow changes does, from the snapshot the forge's open-prs call
@@ -29,7 +30,7 @@ declare -gA changes_elsewhere=([changes]='kit flow changes')
 # them, through apps::review. A primary with no forge, or a forge without reviewers, gives none.
 apps/changes:reviews() { apps:forge reviewers open-prs review; }
 
-# apps/changes:checks prints the checks document: each open change's runs, the latest of each name, through
+# apps/changes:checks prints the checks document: each open change's runs, the latest of each check, through
 # apps::check. A forge whose provider lacks check-runs, as one written to a contract before 4, prints no runs on its
 # changes, though it has their checks, which kit flow changes counts: the document has no rows, and check-runs off and
 # lacked under errors, which is no failure.

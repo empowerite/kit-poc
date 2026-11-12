@@ -678,6 +678,10 @@
          "filter": true, "renderings": ["text"], "dim": true, "placement": "group", "depth": 3},
         {"id": "name", "label": "check", "type": "text", "path": ".name", "sort": true, "group": true,
          "renderings": ["text"], "placement": "column"},
+        {"id": "workflow", "label": "workflow", "type": "text", "path": ".workflow", "sort": true, "group": true,
+         "renderings": ["text"], "dim": true, "placement": "hidden"},
+        {"id": "event", "label": "event", "type": "text", "path": ".event", "sort": true, "group": true,
+         "renderings": ["text"], "dim": true, "placement": "hidden"},
         {"id": "verdict", "label": "verdict", "type": "enum", "path": ".verdict", "sort": true, "group": true,
          "filter": true, "values": [
            {"value": "passed", "glyph": "✅"}, {"value": "failed", "glyph": "❌"}, {"value": "pending", "glyph": "🏃"}

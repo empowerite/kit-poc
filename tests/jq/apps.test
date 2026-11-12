@@ -67,7 +67,13 @@ import "apps" as apps; [.[] | apps::review]
 # A change's checks are the latest run of each name, a row each, keyed by the change's number and the name.
 import "apps" as apps; [apps::check]
 {"number": 3, "title": "Fix", "runs": [{"name": "b", "verdict": "passed", "at": 20, "took": 5}, {"name": "a", "verdict": "failed", "at": 10, "took": 300}, {"name": "a", "verdict": "passed", "at": 30, "took": 30}, {"name": "c", "verdict": "pending", "at": null, "took": null}]}
-[{"key":"3 a","change":3,"title":"Fix","name":"a","verdict":"passed","at":30,"took":30,"links":{}},{"key":"3 b","change":3,"title":"Fix","name":"b","verdict":"passed","at":20,"took":5,"links":{}},{"key":"3 c","change":3,"title":"Fix","name":"c","verdict":"pending","at":null,"took":null,"links":{}}]
+[{"key":"3 a","change":3,"title":"Fix","name":"a","workflow":null,"event":null,"verdict":"passed","at":30,"took":30,"links":{}},{"key":"3 b","change":3,"title":"Fix","name":"b","workflow":null,"event":null,"verdict":"passed","at":20,"took":5,"links":{}},{"key":"3 c","change":3,"title":"Fix","name":"c","workflow":null,"event":null,"verdict":"pending","at":null,"took":null,"links":{}}]
+
+# A run of the same name in another workflow, or for another event, is a check of its own, its key holding both; only
+# a later run in the same workflow for the same event supersedes one.
+import "apps" as apps; [apps::check | [.key, .verdict]]
+{"number": 3, "title": "Fix", "runs": [{"name": "a", "workflow": "CI", "event": "push", "verdict": "failed", "at": 10, "took": 1}, {"name": "a", "workflow": "CI", "event": "pull_request", "verdict": "failed", "at": 11, "took": 1}, {"name": "a", "workflow": "CI", "event": "pull_request", "verdict": "passed", "at": 30, "took": 1}, {"name": "a", "workflow": "Docs", "event": "push", "verdict": "passed", "at": 40, "took": 1}]}
+[["3 CI/pull_request a","passed"],["3 CI/push a","failed"],["3 Docs/push a","passed"]]
 
 # A merged change is keyed by its number, its page the link of its title.
 import "apps" as apps; apps::merged

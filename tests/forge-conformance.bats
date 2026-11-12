@@ -389,9 +389,10 @@ JSON
   expected+='"reviewers":[{"login":"bob","state":"requested","at":null},'
   expected+='{"login":"carol","state":"approved","at":1790931600}],'
   # every run on the head commit, the failed one a rerun superseded among them
-  expected+='"runs":[{"name":"a","verdict":"failed","at":1790762400,"took":300},'
-  expected+='{"name":"a","verdict":"passed","at":1790848800,"took":30},'
-  expected+='{"name":"b","verdict":"passed","at":1790848810,"took":50}]}'
+  # a run's workflow and event are null where the forge names none, as in this world
+  expected+='"runs":[{"name":"a","workflow":null,"event":null,"verdict":"failed","at":1790762400,"took":300},'
+  expected+='{"name":"a","workflow":null,"event":null,"verdict":"passed","at":1790848800,"took":30},'
+  expected+='{"name":"b","workflow":null,"event":null,"verdict":"passed","at":1790848810,"took":50}]}'
   for forge in github gitlab
   do
     world "${forge}"
@@ -1979,6 +1980,8 @@ JSON
   [[ "$(jq --compact-output '.checks' <<<"$output")" == *'"failing":"c"'* ]]
   grep --quiet 'pr=3 --raw-field after=t1 ' "${FAKE_DIR}/gh.calls"
   grep --quiet 'pr=3 --raw-field after=c1 ' "${FAKE_DIR}/gh.calls"
+  # the checks after the first page are asked their workflow and event as the first page's are
+  [ "$(grep --count 'checkSuite { workflowRun { event workflow { name } } }' "${FAKE_DIR}/gh.calls")" -eq 2 ]
 }
 
 @test "the rest of a pull request's checks that cannot be read, or that are another commit's, fails the read" {
@@ -1992,6 +1995,52 @@ JSON
   [ "$status" -eq 1 ]
   [ -z "$output" ]
   [[ "$stderr" == *"head commit moved"*"(the checks of #3 could not be read)"* ]]
+}
+
+# checks-world gives pull request #3's head commit the check runs of a jq array, each [name, workflow, event,
+# conclusion, startedAt], a workflow of null a check run of no workflow.
+checks-world() {
+  world github
+  jq --argjson runs "$1" '.data.repository.pullRequests.nodes[0].commits.nodes[0].commit.statusCheckRollup.contexts.nodes
+      = [$runs[] | {__typename: "CheckRun", name: .[0], status: "COMPLETED", conclusion: .[3], startedAt: .[4],
+                    completedAt: .[4],
+                    checkSuite: {workflowRun: (if .[1] == null then null
+                                               else {event: .[2], workflow: {name: .[1]}} end)}}]' \
+    "${FAKE_DIR}/open-prs.json" > "${FAKE_DIR}/checks.json"
+  mv "${FAKE_DIR}/checks.json" "${FAKE_DIR}/open-prs.json"
+}
+
+@test "a failed check on GitHub is not hidden by a later check of its name in another workflow, or for another event" {
+  # two workflows with a job named test: the first failed, the second started later and passed
+  checks-world '[["test", "CI", "pull_request", "FAILURE", "2026-10-01T10:00:00Z"],
+                 ["test", "Docs", "pull_request", "SUCCESS", "2026-10-01T10:00:02Z"]]'
+  run call open-prs
+  [ "$status" -eq 0 ]
+  [ "$(jq --compact-output '[.state, .checks.state, .checks.passed, .checks.total, .checks.failing]' <<<"$output")" \
+    = '["failing:gate","FAILURE",1,2,"test"]' ]
+  # each run says the workflow it is of and the event that started it
+  [ "$(jq --compact-output '[.runs[] | [.name, .workflow, .event, .verdict]]' <<<"$output")" \
+    = '[["test","CI","pull_request","failed"],["test","Docs","pull_request","passed"]]' ]
+  # the query asks them of each check run
+  grep --quiet 'checkSuite { workflowRun { event workflow { name } } }' "${FAKE_DIR}/gh.calls"
+  # one workflow that runs on a push and on a pull request: the push's failed, the pull request's passed later
+  checks-world '[["test", "CI", "push", "FAILURE", "2026-10-01T10:00:00Z"],
+                 ["test", "CI", "pull_request", "SUCCESS", "2026-10-01T10:00:02Z"]]'
+  forge-forget
+  run call open-prs
+  [ "$status" -eq 0 ]
+  [ "$(jq --compact-output '[.state, .checks.passed, .checks.total, .checks.failing]' <<<"$output")" \
+    = '["failing:gate",1,2,"test"]' ]
+  # a later run of the same job, in the same workflow for the same event, is a rerun, and supersedes the one before
+  checks-world '[["test", "CI", "pull_request", "FAILURE", "2026-10-01T10:00:00Z"],
+                 ["test", "CI", "pull_request", "SUCCESS", "2026-10-01T10:00:02Z"],
+                 ["lint", null, null, "FAILURE", "2026-10-01T10:00:00Z"],
+                 ["lint", null, null, "SUCCESS", "2026-10-01T10:00:02Z"]]'
+  forge-forget
+  run call open-prs
+  [ "$status" -eq 0 ]
+  [ "$(jq --compact-output '[.checks.state, .checks.passed, .checks.total, .checks.failing]' <<<"$output")" \
+    = '["SUCCESS",2,2,""]' ]
 }
 
 @test "a list that reaches the most kit reads fails, on either forge, saying so" {

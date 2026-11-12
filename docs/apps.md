@@ -100,7 +100,7 @@ The tab's presets are All Issues, which it opens on, Backlog, Underway, By Miles
 | Stage | A row per | Fields | Mark |
 | --- | --- | --- | --- |
 | `reviews` | open change and reviewer | `change, title, login, state, at, unresolved` | the forge's issues and runs |
-| `checks` | open change and check, its latest run | `change, title, name, verdict, at, took` | as `reviews` |
+| `checks` | open change and check, its latest run | `change, title, name, workflow, event, verdict, at, took` | as `reviews` |
 | `merged` | change merged last, 50 at most | `number, title, author, branch, merged, by` | as `reviews` |
 
 - `reviews` and `checks` read the open changes as `kit flow changes` does, from the forge's snapshot of them, so they
@@ -118,7 +118,11 @@ The tab's presets are All Issues, which it opens on, Backlog, Underway, By Miles
   stands as a comment. GitLab's reviewer is `approved` with an approval, else `requested`. Azure
   DevOps' votes 10 and 5 are `approved`, -5 and -10 `changes`, 0 `requested`, and it keeps no time of a vote.
 - `checks` keys each row by the change's number and the check's name, `3 a`. Of the runs of one name on the head
-  commit, the latest by its start counts, so a rerun that passed supersedes a run that failed. `verdict` is `passed`,
+  commit, the latest by its start counts, so a rerun that passed supersedes a run that failed. GitHub names a check
+  by its job alone, so a row there says the `workflow` the job is in and the `event` that started it, and its key
+  holds them, `3 CI/pull_request a`: a job named `test` in two workflows, or run for a push and for a pull request,
+  is two checks, and a `test` that passed later never hides one that failed. Both are `null` for a check of no
+  workflow, and on a forge that names none. `verdict` is `passed`,
   `failed`, or `pending`; `at` is when the run started and `took` how long it ran, in seconds. A forge whose provider
   lacks `check-runs`, as one written to a contract before 4, prints no runs on its changes: the stage has no rows,
   and `{feature: check-runs, off: true, lacked: true}` under `errors` says why, though `kit flow changes` counts

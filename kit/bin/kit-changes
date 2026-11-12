@@ -36,9 +36,12 @@
 #                       or commented; at is when they answered, in seconds since the epoch, null while asked and on
 #                       Azure DevOps, whose votes have no time; unresolved counts the change's unresolved threads. The
 #                       author's own comments are no review
-#   checks              {change, title, name, verdict, at, took}, keyed by the change's number and the check's name:
-#                       verdict is passed, failed, or pending; at is when the run started, in seconds since the epoch,
-#                       or null; took is how long it ran, in seconds, null while it runs. A forge whose provider lacks
+#   checks              {change, title, name, workflow, event, verdict, at, took}, keyed by the change's number and
+#                       the check's name, with its workflow and event between them where the forge names them, as
+#                       GitHub does of a workflow's job, else null: two jobs of one name in two workflows, or for two
+#                       events, are two checks, and only a later run of the same one supersedes a run. verdict is
+#                       passed, failed, or pending; at is when the run started, in seconds since the epoch, or null;
+#                       took is how long it ran, in seconds, null while it runs. A forge whose provider lacks
 #                       check-runs, as one written to a contract before 4, has no runs on its changes: the document
 #                       has no rows, and {feature: check-runs, off: true, lacked: true} under errors
 #   merged              {number, title, author, branch, merged, by, named}, keyed by its number: merged is when, in
@@ -90,7 +93,7 @@
 #                       for each, the forge's own marks of its issues, which move with its changes, and of its runs
 #   --fresh             reviews and checks read the open changes afresh, not the snapshot of the last minute
 #   reviews             each open change's reviewers: those it asks, and those who reviewed it, by login
-#   checks              each open change's checks: the latest run of each name on its head commit
+#   checks              each open change's checks: the latest run of each on its head commit
 #   merged              the changes merged last, 50 at most, merged last first
 #   changes             a tab kit flow prints; on a terminal it opens in kittui, and with a form it is refused
 #

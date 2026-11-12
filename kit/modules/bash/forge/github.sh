@@ -573,8 +573,10 @@ forge/github:open-issues() {
 # forge/github:open-prs makes one GraphQL request for every open pull request, with its labels, the issues it closes
 # and theirs, the reviewers it asks and each reviewer's latest review, its review threads, the owner of the repository
 # its branch lives in, and its head commit: when it was committed, by whom, and the checks on it. It prints one JSON
-# object per pull request: the document kit status renders, which modules/jq/forge.jq folds the answer into. Of
-# several runs of one name on the head commit, as after a rerun, only the latest counts.
+# object per pull request: the document kit status renders, which modules/jq/forge.jq folds the answer into. GitHub
+# names a check run by its job alone, so each is asked the workflow its check suite is of and the event that started
+# it: of several runs of one name in one workflow for one event on the head commit, as after a rerun, only the latest
+# counts, and a run of that name in another workflow, or for another event, is a check of its own.
 #
 # GitHub charges a request by the nodes it may return, so assignees asked of each issue each pull request closes cost
 # a hundred times as much as the rest of the request. The same request asks instead for the assignees of the hundred
@@ -622,7 +624,9 @@ forge/github:open-prs() {
             oid committedDate author { user { login } }
             statusCheckRollup { contexts(first: 100) { pageInfo { hasNextPage endCursor } nodes {
               __typename
-              ... on CheckRun { name status conclusion startedAt completedAt }
+              ... on CheckRun {
+                name status conclusion startedAt completedAt checkSuite { workflowRun { event workflow { name } } }
+              }
               ... on StatusContext { context state createdAt }
             } } }
           } } }
@@ -1274,7 +1278,9 @@ forge/github:rest-of-pr() {
         commits(last: 1) { nodes { commit { oid statusCheckRollup {
           contexts(first: 100, after: $after) { pageInfo { hasNextPage endCursor } nodes {
             __typename
-            ... on CheckRun { name status conclusion startedAt completedAt }
+            ... on CheckRun {
+              name status conclusion startedAt completedAt checkSuite { workflowRun { event workflow { name } } }
+            }
             ... on StatusContext { context state createdAt }
           } }
         } } } }

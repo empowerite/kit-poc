@@ -22,8 +22,10 @@
 #   reviewers   [{login, state, at}] of the people and teams asked to review it, or who did: state is requested while
 #               one is asked and has not answered, else approved, changes, or commented; at, in seconds since the
 #               epoch, is when they answered, null while asked, or where the forge keeps no time
-#   runs        [{name, verdict, at, took}] of every check run on its head commit, those a rerun superseded among
-#               them, which checks counts: at in seconds since the epoch, or null
+#   runs        [{name, workflow, event, verdict, at, took}] of every check run on its head commit, those a rerun
+#               superseded among them, which checks counts: at in seconds since the epoch, or null; workflow and
+#               event are the workflow the run is of and the event that started it, where the forge names them, as
+#               GitHub does of a workflow's job, else null
 #
 # see: modules/bash/forge.sh, modules/bash/forge/github.sh, modules/bash/forge/gitlab.sh
 
@@ -73,12 +75,14 @@ def github_path: (.url // "") | capture("^https?://[^/]+/(?<path>[^/]+/[^/]+)/is
 # one.
 def gitlab_path: (.references.full // "") | sub("#[0-9]+$"; "") | if . == "" then null else . end;
 
-# checks($now) reads runs, [{name, verdict, at, since, took}], and gives {state, passed, total, failing, took}. A
-# run's verdict is pending, passed, or failed; at orders the runs of one name, and the latest counts, as after a
-# rerun; since is when it started or was queued, in epoch seconds; took is its own duration, or null. took is the
-# slowest run's duration, or the wait so far while one is pending. failing names the first failed check.
+# checks($now) reads runs, [{name, workflow, event, verdict, at, since, took}], and gives {state, passed, total,
+# failing, took}. A run's verdict is pending, passed, or failed. A check is the runs of one name in one workflow for
+# one event, or of one name where the forge names neither: at orders them, and the latest counts, as after a rerun.
+# Two runs of one name in two workflows, or for two events, are two checks, and neither supersedes the other. since
+# is when a run started or was queued, in epoch seconds; took is its own duration, or null. took is the slowest
+# run's duration, or the wait so far while one is pending. failing names the first failed check.
 def checks($now):
-  (group_by(.name) | map(sort_by(.at) | last)) as $latest
+  (group_by([.workflow, .event, .name]) | map(sort_by(.at) | last)) as $latest
   | ($latest | length) as $n
   | ([$latest[] | select(.verdict == "pending")] | length) as $running
   | ([$latest[] | select(.verdict == "passed")] | length) as $ok
@@ -124,7 +128,8 @@ def named:
 # assignees, labels, createdAt, source, organization, repository}, and comes out with its age; an issue an older answer
 # gives without a time has a null age, one without a source, an organization, or a repository a null one, and one
 # without labels none. reviewers are as reviewers reads them, none where the answer names none; each run comes out with
-# at in seconds since the epoch, null where it was empty, and without since.
+# at in seconds since the epoch, null where it was empty, its workflow and event null where it has none, and without
+# since.
 def document($now):
   (.runs | checks($now)) as $checks
   | { number, ref, source: (.source // null), branch, fork: (.fork // null), title, author, createdAt,
@@ -137,13 +142,18 @@ def document($now):
                              age: (if .createdAt == null then null else $now - (.createdAt | epoch) end) }],
       named: (.body | named),
       reviewers: (.author as $author | .reviewers // [] | reviewers($author)),
-      runs: [.runs[] | {name, verdict, at: (if (.at // "") == "" then null else .at | epoch end), took}] };
+      runs: [.runs[] | { name, workflow: (.workflow // null), event: (.event // null), verdict,
+                         at: (if (.at // "") == "" then null else .at | epoch end), took }] };
 
-# github_runs reads a commit's status check contexts, CheckRun and StatusContext alike, and gives its runs.
+# github_runs reads a commit's status check contexts, CheckRun and StatusContext alike, and gives its runs. GitHub
+# names a check run by its job alone, so a run says the workflow its check suite is of and the event that started it;
+# a check run of no workflow, as an app's, and a status context have neither.
 def github_runs:
   map((if .__typename == "CheckRun" then (if .status == "COMPLETED" then .conclusion else "PENDING" end)
        else .state end) as $verdict
       | { name: (.name // .context),
+          workflow: (.checkSuite.workflowRun.workflow.name // null),
+          event: (.checkSuite.workflowRun.event // null),
           verdict: (if $verdict | IN("PENDING", "EXPECTED") then "pending"
                     elif $verdict | IN("SUCCESS", "NEUTRAL", "SKIPPED") then "passed" else "failed" end),
           at: (.startedAt // .createdAt // ""),

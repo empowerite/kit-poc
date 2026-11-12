@@ -262,8 +262,8 @@ added='"milestones","bots","attestations","code-scanning","dependabot","secret-s
   # a vote of 10 approves; 0 is a reviewer asked, who has not voted; Azure DevOps keeps no time of a vote
   expected+='"reviewers":[{"login":"bob","state":"requested","at":null},'
   expected+='{"login":"carol","state":"approved","at":null}],'
-  expected+='"runs":[{"name":"a","verdict":"passed","at":1790848800,"took":30},'
-  expected+='{"name":"b","verdict":"passed","at":1790848810,"took":50}]}'
+  expected+='"runs":[{"name":"a","workflow":null,"event":null,"verdict":"passed","at":1790848800,"took":30},'
+  expected+='{"name":"b","workflow":null,"event":null,"verdict":"passed","at":1790848810,"took":50}]}'
   run call open-prs
   [ "$status" -eq 0 ]
   [ "$(jq --compact-output --sort-keys \

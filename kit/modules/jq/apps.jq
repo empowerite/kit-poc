@@ -59,12 +59,17 @@ def review:
       unresolved: $change.unresolved, links: {} };
 
 # check reads a change the forge's open-prs call prints and gives a row per check, keyed by the change's number and the
-# check's name: the latest run of each name, by at, so a rerun supersedes the run before it.
+# check's name, 3 a, with its workflow and event between them where the forge names them, 3 CI/pull_request a: the
+# latest run, by at, of each name in one workflow for one event, so a rerun supersedes the run before it, and a run of
+# the same name in another workflow, or for another event, is a check of its own.
 def check:
   . as $change
-  | (.runs // []) | group_by(.name) | map(sort_by(.at) | last)[]
-  | { key: "\($change.number) \(.name)", change: $change.number, title: $change.title, name, verdict, at, took,
-      links: {} };
+  | (.runs // []) | group_by([.workflow, .event, .name]) | map(sort_by(.at) | last)[]
+  | { key: ("\($change.number) "
+            + (if .workflow == null and .event == null then "" else "\(.workflow // "")/\(.event // "") " end)
+            + "\(.name)"),
+      change: $change.number, title: $change.title, name, workflow: (.workflow // null), event: (.event // null),
+      verdict, at, took, links: {} };
 
 # merged reads a change the forge's merged-prs call prints and gives it keyed by its number, its page the link of its
 # title.
