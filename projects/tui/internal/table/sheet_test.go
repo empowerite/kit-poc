@@ -1224,3 +1224,44 @@ func TestAColumnNoRowHoldsAValueInHidesUntilOneDoes(t *testing.T) {
 		t.Errorf("Auto-hide off: names %q", s.Names())
 	}
 }
+
+// A sheet without a row that groups by nothing lists no field: f on its preset line, and a click on Fields, open a
+// dialog whose keys bar and keys are safe; and records taken while the dialog is open, fewer of whose columns hold a
+// value, leave the keyboard on a field the dialog still lists.
+func TestTheFieldsDialogOfASheetWithoutRowsAndOfOneReloaded(t *testing.T) {
+	empty := NewSheet(things, "things", "75", "")
+	empty.Place(4, 16, 80, 24)
+	empty.SetPanel(empty.Panel().Placed("kind", grid.Column))
+	if got := empty.Panel().Listed(); len(got) != 0 {
+		t.Fatalf("a sheet without rows that groups by nothing lists %q", got)
+	}
+	empty.Focus()
+	if pressed(&empty, "f"); !empty.cols.Open {
+		t.Fatal("f opened no dialog")
+	}
+	if seg, layer := empty.Keys(); !layer || len(seg.Bindings) != 1 {
+		t.Errorf("the keys of the dialog of no field: %q", shellLine(seg))
+	}
+	pressed(&empty, "space", "down", "s")
+	if pressed(&empty, "esc"); empty.cols.Open {
+		t.Error("esc left the dialog of no field open")
+	}
+	if clickOn(t, &empty, FieldsButton, 1); !empty.cols.Open {
+		t.Fatal("a click on Fields opened no dialog")
+	}
+	if seg, _ := empty.Keys(); len(seg.Bindings) != 1 {
+		t.Errorf("the keys after the click: %q", shellLine(seg))
+	}
+	// the keyboard on tags, the last of four fields; then one record, whose name alone holds a value
+	s := sheet("")
+	s.SetPanel(s.Panel().Placed("tags", grid.Column))
+	s.cols = Columns{Open: true, At: len(s.Panel().Listed()) - 1}
+	s.SetRecords([]Record{{Row: grid.Row{Key: "plum"}, Values: map[string]Value{"name": One("plum")}}})
+	listed := s.Panel().Listed()
+	if seg, layer := s.Keys(); !layer || len(seg.Bindings) < 2 || s.cols.At < len(listed) {
+		t.Fatalf("the keys after the reload: %q, at %d of %q", shellLine(seg), s.cols.At, listed)
+	}
+	if got := s.cols.Card(&s).Field; got != listed[len(listed)-1] {
+		t.Errorf("the field under the keyboard after the reload: %q of %q", got, listed)
+	}
+}

@@ -10,7 +10,9 @@
 // right, enter, or tab gives the card the keyboard, which left, esc, or shift-tab gives back; and esc closes the
 // dialog. A click on a line's box, its sort, or its group does what space, s, or g does, and a shift-click on its sort
 // turns the sort off; a click on its label gives its card the keyboard; one on the card acts on its line there; one off
-// the dialog closes it.
+// the dialog closes it. A table that offers no field, because it has no row and groups by nothing, opens the dialog
+// with its headings alone, and esc is its only key; where a reload leaves the list shorter than the line the keyboard
+// stood on, the keyboard is on the list's last field.
 package table
 
 import (
@@ -43,13 +45,25 @@ func OpenColumns(h Host, id string) Columns {
 	return c
 }
 
-// Card gives the card beside the list, of the field under the keyboard.
-func (c Columns) Card(h Host) Popover {
+// under gives the field under the keyboard and its index among the fields the dialog lists: the last, where the list
+// is now shorter than where the keyboard stood, which a reload whose rows fill fewer columns leaves it; and no field,
+// at -1, where the dialog lists none, which a table without a row that groups by nothing does.
+func (c Columns) under(h Host) (id string, at int) {
 	listed := c.Listed(h)
-	if c.At < 0 || c.At >= len(listed) {
+	at = min(c.At, len(listed)-1)
+	if at < 0 {
+		return "", -1
+	}
+	return listed[at], at
+}
+
+// Card gives the card beside the list, of the field under the keyboard; none where there is no such field.
+func (c Columns) Card(h Host) Popover {
+	id, at := c.under(h)
+	if at < 0 {
 		return Popover{}
 	}
-	return Popover{Open: true, Field: listed[c.At], At: c.CardAt, Typed: c.Typed}
+	return Popover{Open: true, Field: id, At: c.CardAt, Typed: c.Typed}
 }
 
 // toCard gives the card the keyboard, on its first line that acts.
@@ -196,15 +210,16 @@ func (c Columns) listBody(h Host) []string {
 	body := []string{style.Off("  " + pane.Pad("field", LabelCells, false) + pane.Pad("type", TypeCells, false) +
 		pane.Pad("sort", SortCells, false) + "group")}
 	rules := c.rules(h)
+	_, at := c.under(h)
 	for k, id := range c.Listed(h) {
 		if slices.Contains(rules, k) {
 			body = append(body, style.Off(strings.Repeat("─", 2+LabelCells+TypeCells+SortCells+5)))
 		}
 		line := c.Line(h, id)
 		switch {
-		case k == c.At && c.InCard:
+		case k == at && c.InCard:
 			line = style.Mark(pane.Pad(ansi.Strip(line), 2+LabelCells+TypeCells+SortCells+5, false))
-		case k == c.At:
+		case k == at:
 			line = style.Selected(pane.Pad(ansi.Strip(line), 2+LabelCells+TypeCells+SortCells+5, false))
 		}
 		body = append(body, line)
@@ -233,9 +248,14 @@ func (c Columns) Row(h Host, y int) int {
 }
 
 // Act does to the field under the keyboard what a key asks: space shows it or hides it; s turns its sort; g
-// groups by it, or no longer; shift with up or down moves it a place, the keyboard with it.
+// groups by it, or no longer; shift with up or down moves it a place, the keyboard with it. Where no field is under
+// the keyboard, as under says, it does nothing.
 func (c *Columns) Act(h Host, key string) {
-	id, p := c.Listed(h)[c.At], h.Panel()
+	id, at := c.under(h)
+	if at < 0 {
+		return
+	}
+	p := h.Panel()
 	switch key {
 	case "space":
 		if p.Field(id).Placement == grid.Hidden {
@@ -284,7 +304,8 @@ func (c *Columns) Key(h Host, k tea.KeyPressMsg) {
 	switch key {
 	case "up", "down":
 		step := map[string]int{"up": -1, "down": 1}[key]
-		c.At = shell.Step(c.At, len(c.Listed(h)), step, shell.Every)
+		_, at := c.under(h)
+		c.At = max(0, shell.Step(at, len(c.Listed(h)), step, shell.Every))
 	case "esc":
 		*c = Columns{}
 	case "right", "enter", "tab":
@@ -338,7 +359,7 @@ func (c *Columns) Click(h Host, x, y int, shift bool) {
 // Keys gives the keys bar's segment while the columns dialog is open: while the card has the keyboard, the card's, but
 // that left, esc, and shift-tab go back to the list; otherwise each key where it acts on the field under the keyboard:
 // up and down where there is a line that way, shift with either where the field moves that way, s where it sorts, g
-// where it groups, and right where it has a card.
+// where it groups, and right where it has a card; and esc alone where no field is under the keyboard, as under says.
 func (c Columns) Keys(h Host) shell.Segment {
 	if c.InCard {
 		s := c.Card(h).Keys(h)
@@ -346,13 +367,17 @@ func (c Columns) Keys(h Host) shell.Segment {
 		return s
 	}
 	s := shell.Segment{Owns: true, Bindings: []shell.Binding{shell.Bind("esc", "close")}}
-	id, p := c.Listed(h)[c.At], h.Panel()
+	id, at := c.under(h)
+	if at < 0 {
+		return s
+	}
+	p := h.Panel()
 	var moves, orders []string
 	for _, step := range []struct {
 		key  string
 		by   int
 		more bool
-	}{{"up", -1, c.At > 0}, {"down", 1, c.At < len(c.Listed(h))-1}} {
+	}{{"up", -1, at > 0}, {"down", 1, at < len(c.Listed(h))-1}} {
 		if step.more {
 			moves = append(moves, step.key)
 		}

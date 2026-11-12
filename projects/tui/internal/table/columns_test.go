@@ -173,8 +173,9 @@ func TestTheColumnsDialogHoldsTheFieldsCardBesideIt(t *testing.T) {
 	if c.Click(h, left+6, top+2+c.At, false); c.InCard {
 		t.Error("a click on extra's label into no card")
 	}
-	if (Columns{At: 99}).Card(h).Open {
-		t.Error("a card past the list")
+	// past the list's end, the keyboard is on its last field, and the card is that field's
+	if got := (Columns{At: 99}).Card(h); got.Field != "extra" {
+		t.Errorf("the card past the list: %+v", got)
 	}
 	// OpenColumns opens the dialog on a field, its card with the keyboard; on the first for a field it does not list
 	if o := OpenColumns(h, "who"); !o.Open || o.Listed(h)[o.At] != "who" || !o.InCard || o.CardAt < 0 {
@@ -333,5 +334,44 @@ func TestTheColumnsDialogNamesEachFieldsType(t *testing.T) {
 		if got := strings.TrimSpace(string([]rune(line)[2+LabelCells : 2+LabelCells+TypeCells])); got != c.want {
 			t.Errorf("%s's type: %q in %q", c.id, got, line)
 		}
+	}
+}
+
+// A table that lists no field, as one without a row that groups by nothing, opens a dialog of its headings alone:
+// esc is its only key, and no key or click acts on a field. A list that shrinks under the keyboard, as a reload
+// whose rows fill fewer columns leaves it, keeps the keyboard on its last field.
+func TestTheColumnsDialogOfNoFieldAndOfFewerFieldsKeepsTheKeyboardInTheList(t *testing.T) {
+	h := listing()
+	h.panel.Columns = nil
+	c := Columns{Open: true}
+	if keys := (shell.Path{c.Keys(h)}).String(); !strings.Contains(keys, "close") || strings.Contains(keys, "show/hide") {
+		t.Errorf("the keys of a dialog of no field: %q", keys)
+	}
+	for _, k := range []string{"up", "down", "space", "s", "g", "shift+up", "right"} {
+		c.Key(h, press(k))
+	}
+	if box, top, left := c.Box(h); len(box) != 3 || c.At != 0 || c.InCard || c.Card(h).Open || h.sets != 0 {
+		t.Errorf("a dialog of no field: %d lines, at %d, %+v, the panel set %d times", len(box), c.At, c, h.sets)
+	} else if c.Click(h, left+2, top+1, false); !c.Open || h.sets != 0 {
+		t.Errorf("a click on its headings: %+v, the panel set %d times", c, h.sets)
+	}
+	// the keyboard stood on title, the third field; the list is now state alone
+	h = listing()
+	c = Columns{Open: true, At: 2}
+	h.panel.Columns = []string{"state"}
+	if keys := (shell.Path{c.Keys(h)}).String(); !strings.Contains(keys, "sort") || strings.Contains(keys, "move") {
+		t.Errorf("the keys once the list is state alone: %q", keys)
+	}
+	if got := c.Card(h); got.Field != "state" {
+		t.Errorf("the card once the list is state alone: %+v", got)
+	}
+	if c.Key(h, press("space")); h.panel.Field("state").Placement != grid.Hidden || c.At != 0 {
+		t.Errorf("space once the list is state alone: %+v, at %d", h.panel.Field("state"), c.At)
+	}
+	// up from past the list's end moves from its last field, not from where the keyboard stood
+	h = listing()
+	c = Columns{Open: true, At: 7}
+	if c.Key(h, press("up")); c.At != 1 {
+		t.Errorf("up from past the end of three fields: at %d", c.At)
 	}
 }

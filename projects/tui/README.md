@@ -138,7 +138,10 @@ Each screen reads what it shows from kit as JSON. A form reads `kit syntax <verb
     What it sets applies at once: space shows or hides, s turns the sort, g groups, ⇧↑↓ moves a field, into the groups
     or out, and → or ⏎ gives the card the keyboard, which ← gives back; a click on a line's box, sort, or group does as
     space, s, or g, and one on its label gives its card the keyboard. At the list's right stands the card of the field
-    under the keyboard, as wide as the widest field's, so the dialog stands still as the keyboard moves.
+    under the keyboard, as wide as the widest field's, so the dialog stands still as the keyboard moves. A table that
+    offers no field, because it has no row and groups by nothing, opens the dialog with its headings alone, and esc is
+    its only key; where a reload leaves the list shorter than the line the keyboard stood on, the keyboard is on the
+    list's last field.
   - Maximize, first in the tab's menu, gives the rows the bar's lines but one, for the session: the title names the
     tab, its count, and its :, and a click anywhere on them drops the tab's menu as the bar's does; a line in the tab's
     color runs under it, and the header follows; Restore, in its place, puts the bar back as it was, and a tab's
