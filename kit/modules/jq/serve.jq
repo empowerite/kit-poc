@@ -8,8 +8,8 @@
 #   - implied: the flags the server gives itself to any line that takes them, such as no-fetch for kit flow
 #   - word: the name of the property that holds a line's leading word, such as stage for kit flow
 #   - choices: the values of each argument whose choices are closed, by key, such as <package>
-#   - worktree: what the worktree property says of itself, for a tool that takes the checkout to run in; it is no
-#     word of the verb, so argv gives its value beside the words
+#   - worktree: the description of the worktree property, for a tool that takes the checkout to run in. The
+#     property is not a word of the verb, so argv returns its value beside the words.
 #
 # A flag is a boolean property, and an operand or an option is a string. One that repeats, alone or in a group that
 # repeats, is an array of strings. Each takes its description from the verb's header. An argument is required when

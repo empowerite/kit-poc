@@ -33,12 +33,13 @@
 # A call runs kit <verb> <word>… in a new process with stdin at end of file, so the verb cannot read the protocol
 # stream.
 #
-# A tool answers for the checkout the server runs in, the desk where a harness starts it from the repository's root.
-# check, context, kinds, and lint, which answer for a checkout's files, take a worktree: the path of a checkout of the
-# repository, the desk or a worktree, as git worktree list names them. The verb then runs there, on the release that
-# checkout pins, and its paths are read from that checkout's root. A value that names no checkout is refused with
-# -32602, and the refusal lists the checkouts. So an agent that works in worktrees/<N>-<slug> asks lint for what is
-# staged there, where a call without it reads the desk's index.
+# A tool answers for the checkout the server runs in. A harness starts the server from the repository's root, so that
+# checkout is usually the desk. check, context, kinds, and lint answer for the files of one checkout, and each takes a
+# worktree property: the path of a checkout of the repository, which is the desk or one of the worktrees that
+# git worktree list prints. With a worktree, the verb runs in that checkout, on the release it pins, and reads the
+# call's paths from that checkout's root. A value that is not a checkout of the repository is refused with -32602, and
+# the error lists the checkouts. An agent that works in worktrees/<N>-<slug> gives that path to lint, which then reads
+# the files staged there. Without it, lint reads the desk's index.
 #
 # A tool that reads only runs no command the repository's files name, takes no word that acts, reads no path outside
 # the repository, changes no file git sees, and never fetches. Of the workflow tools, only work writes the repository,
@@ -137,8 +138,8 @@ declare -grA serve_hidden=(
 # repository.
 declare -gra serve_paths=(context kinds lint)
 
-# The tools that answer for a checkout's files, and so take a worktree, the checkout to run in, and what the property
-# says of itself.
+# The tools that answer for the files of one checkout. Each takes a worktree property, the checkout to run in.
+# serve_worktree is that property's description.
 declare -gra serve_checkout_tools=(check context kinds lint)
 serve_worktree='the checkout to run in, by its path: a worktree of this repository, such as worktrees/7-fix-the-thing,'
 serve_worktree+=' whose root the paths are then read from; default: the checkout the server runs in'
@@ -513,7 +514,7 @@ serve:tools-list() {
 # serve:spec <tool> fills serve_specs[<tool>] with the verb's syntax, as syntax:spec prints it, and serve_opts[<tool>]
 # with what the server says of the tool, as serve.jq reads it: the words it does not offer, the flags it gives itself,
 # the name of the property for a line's leading word, the values of each argument whose choices are closed, and, for
-# a tool that takes a worktree, what that property says of itself.
+# a tool that takes a worktree, the description of that property.
 # Each is built once per process. It assigns rather than prints, so call it in the server's own shell.
 serve:spec() {
   local tool=$1 spec key choices='{}' takes worktree=''
@@ -564,10 +565,10 @@ serve:tool() {
 # serve:tools-call <id> <params> runs the tool's verb with the words its arguments make, and answers with what it
 # printed. Arguments the tool does not take are refused with -32602, and the verb never runs; a listing-only tool's
 # refusal says what it does not offer. A tool whose operands are paths refuses, the same way, a word outside the
-# repository. A call that gives a worktree runs the verb in that checkout, serve:checkout's, and reads its paths from
-# there; its command, in the answer and in the log, opens with the cd that takes it there. A worktree that names no
-# checkout of the repository is refused the same way, with the checkouts there are. A verb that exits non-zero sets
-# isError, and the text names its exit status; one the system will not
+# repository. When a call gives a worktree, serve:checkout finds that checkout, the verb runs in it, and the call's
+# paths are read from its root. The command in the answer and in the log then starts with the cd into that checkout.
+# A worktree that is not a checkout of the repository is refused with -32602, and the error lists the checkouts. A
+# verb that exits non-zero sets isError, and the text names its exit status; one the system will not
 # run, as when its words are longer than a command line carries, has status 126. The arguments reach jq on stdin, and
 # the words, the verb's output, and the command reach the server through files in its scratch directory, which each
 # call writes over, so no call leaves a file behind.
@@ -617,7 +618,7 @@ serve:tools-call() {
     return 0
   fi
   readarray -d '' -t words <"${words_file}"
-  # The = tells a worktree given as an empty string, which names no checkout, from none given.
+  # The leading = separates an empty worktree value, which is refused, from a call with no worktree property.
   there=$(jq --raw-output 'if has("worktree") then "=" + .worktree else "" end' <<<"${made}")
   if [[ -n "${there}" ]]
   then
@@ -671,10 +672,10 @@ serve:tools-call() {
 # serve_path_max is the longest path the system resolves, PATH_MAX, once serve:inside has asked for it.
 serve_path_max=''
 
-# serve:checkouts prints each checkout of the repository, the desk and every worktree git worktree list names, one per
-# line: the name a call gives it, a tab, and its physical path. The name is its path from the server's root, . for
-# the root itself, and its absolute path where it is not under the root. A checkout whose directory is gone is left
-# out.
+# serve:checkouts prints one line for each checkout of the repository: the desk and every worktree that
+# git worktree list prints. A line is the name a call uses for the checkout, a tab, and the checkout's physical path.
+# The name is the path from the server's root, or . for the root itself, or the absolute path when the checkout is
+# not under the root. A checkout whose directory no longer exists is left out.
 serve:checkouts() {
   local root line path
   root=$(pwd -P 2>/dev/null) || return 1
@@ -690,13 +691,14 @@ serve:checkouts() {
   done < <(git worktree list --porcelain 2>/dev/null)
 }
 
-# serve:checkout <value> prints the physical path of the checkout of the repository that <value> names, a path read
-# from the server's root, however it is spelled, and returns 1 when it names none: a directory that is not there, one
-# inside a checkout, or a clone that is no checkout of this repository, such as a submodule.
+# serve:checkout <value> prints the physical path of the checkout that <value> names. <value> is a path, read from
+# the server's root, and may be spelled in any way that resolves to a checkout's root. The function returns 1 when
+# <value> is not the root of a checkout of this repository: a directory that does not exist, a directory inside a
+# checkout, or another clone, such as a submodule.
 serve:checkout() {
   local value=$1 path listed
   [[ -n "${value}" ]] || return 1
-  # ./ keeps a value that starts with -, as - itself, a path and no option of cd
+  # The ./ makes cd read a value that starts with -, such as - itself, as a path and not as an option.
   [[ "${value}" == /* ]] || value="./${value}"
   path=$(cd "${value}" 2>/dev/null && pwd -P) || return 1
   while IFS=$'\t' read -r _ listed
@@ -711,8 +713,9 @@ serve:checkout() {
 }
 
 # serve:inside <path> [<root>] succeeds when the path, read from the root, is the root or under it, as the kernel
-# reads it and as a shell does. The root is the server's directory, or <root>, the checkout a call names. The two read a .. after a symbolic link differently, and a verb may use either: the kernel applies
-# .. to where the link leads, and a shell's cd removes the part before .. as text. A path with a .. is judged both
+# reads it and as a shell does. The two read a .. after a symbolic link differently, and a verb may use either: the
+# kernel applies .. to where the link leads, and a shell's cd removes the part before .. as text. The root is <root>,
+# the checkout a call names, or the server's directory when no <root> is given. A path with a .. is judged both
 # ways, and is inside only when both readings are; a .. that leaves nothing before it to remove leads out of /. A
 # path whose last part is .. is judged a third way, as context:relative reads it: the parts before it as a shell
 # reads them, then the .. as the kernel applies it. A path without a .. reads the same every way, and is judged

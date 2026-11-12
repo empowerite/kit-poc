@@ -104,8 +104,9 @@ reads the desk's index, and says there is nothing to lint while the agent's file
 {"name": "lint", "arguments": {"worktree": "worktrees/7-fix-the-thing"}}
 ```
 
-- The value is the path of a checkout of the repository: the desk, as `.`, or a worktree, as `git worktree list`
-  names them. It is read from the server's root, and a worktree outside the root is named by its absolute path.
+- The value is the path of a checkout of the repository: the desk, written `.`, or one of the worktrees that
+  `git worktree list` prints. The path is read from the server's root. A worktree outside the root is given by its
+  absolute path.
 - The verb runs in that checkout, on the release it pins. Here that is `kit lint` in the worktree, over the files
   staged there.
 - The tool's paths are read from that checkout's root, and held inside it.
@@ -136,9 +137,10 @@ name, takes no word that acts, reads no path outside the repository, changes no 
 - A path stays inside the repository. `context` and `kinds` refuse a path that leads outside it, as `lint` does,
   and every path when the server cannot read its own directory, as when that directory is gone. `flow` does not
   offer a workspace, which reads other clones: `--workspace=` is an option of `kit` itself, before the verb.
-- `context` answers for a file in a worktree under the desk from that worktree's kinds and rules, as `kit context`
-  does. A call places nothing there either: a worktree whose `.kit/` is not in place is refused, and the refusal
-  names it and `kit hydrate`. `kit work` places it when it makes the worktree.
+- For a file in a worktree under the desk, `context` answers from that worktree's kinds and rules, because
+  `kit context` does. A call places nothing in that worktree. When the worktree's `.kit/` is not in place, the
+  call fails, and its text names the worktree and `kit hydrate`. `kit work` places `.kit/` when it makes a
+  worktree.
 
 A tool's verb still writes the kit's own records, which git never sees: its line in `.kit/logs/`, the context log,
 and a toolchain's detection cache under `.kit/cache/`.

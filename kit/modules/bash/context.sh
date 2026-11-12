@@ -26,9 +26,10 @@
 # context:claude gives the same answer in Claude Code's hook protocol. It names the rules but does not quote them,
 # so the agent still reads each rule itself, and a hook on Read can record that.
 #
-# A path in another checkout of the repository, the desk or a worktree, is governed by that checkout: its kinds are
-# matched against the path from its own root, and its rules are its own files. Both ask it (context:elsewhere,
-# context:asked-there), so a file in a worktree is answered at the desk as it is in the worktree.
+# The kinds and rules of a checkout govern the files in it. A repository's checkouts are its desk and its worktrees.
+# For a path in another checkout than the one the command runs in, context:render and context:claude find that
+# checkout with context:elsewhere and get its answer with context:asked-there. A file in a worktree therefore gets
+# the same answer at the desk and in the worktree.
 #
 # see: docs/context.md
 
@@ -89,12 +90,13 @@ context:relative() {
   printf '%s\n' "${path#"${root}"/}"
 }
 
-# context:elsewhere <path> prints the root of the checkout <path> is in when that is another checkout of this
-# repository than the one the command runs in: the desk or a worktree, as git worktree list names them. It prints
-# nothing for a path in this checkout, and nothing for one in a clone that is no checkout of this repository, such
-# as a submodule, which is governed from here as any other path is. <path> is as context:relative prints it, and the
-# working directory is the root. The checkout is found from the file system, as kit:clone-root finds it: the nearest
-# directory at or above the path's nearest existing directory that holds .git.
+# context:elsewhere <path> prints the root of the checkout that holds <path>, when that checkout belongs to this
+# repository and is not the one the command runs in. The checkouts of a repository are its desk and its worktrees,
+# the ones git worktree list prints. The function prints nothing for a path in this checkout. It also prints nothing
+# for a path in a clone that is not a checkout of this repository, such as a submodule: this checkout's kinds and
+# rules govern that path. <path> is a path that context:relative printed, and the working directory is this
+# checkout's root. kit:clone-root finds the other checkout from the file system: the nearest directory that holds
+# .git, at or above the nearest existing directory of the path.
 context:elsewhere() {
   local path=$1 here dir other line
   here=$(pwd -P)
@@ -118,12 +120,13 @@ context:elsewhere() {
   done < <(git worktree list --porcelain)
 }
 
-# context:asked-there <checkout> <path> [--json] prints what governs <path>, which is in <checkout>, another checkout
-# of this repository: that checkout's own kit context answers, on the release it pins, from its own kinds and rules,
-# and logs the ask. Each rule it names is written as this checkout reads it: under <checkout>'s path from this root,
-# or under its absolute path where it is not under this root. With --json it prints the one object, its path as
-# this checkout names it. It returns 1, naming the checkout, when that checkout cannot answer. <path> is as
-# context:relative prints it, and the working directory is the root.
+# context:asked-there <checkout> <path> [--json] prints the rules that govern <path>, a file in <checkout>, which is
+# another checkout of this repository. It runs kit context in <checkout>, so the release that checkout pins answers
+# from that checkout's kinds and rules, and logs the request. It then puts <checkout>'s path in front of each rule,
+# so that the rule opens from this checkout's root: the path from this root when <checkout> is under it, and the
+# absolute path otherwise. With --json it prints one object, whose path is <path>. It returns 1 and names the
+# checkout when kit context fails there. <path> is a path that context:relative printed, and the working directory
+# is this checkout's root.
 context:asked-there() {
   local other=$1 path=$2 mode=${3:-} here absolute prefix answer rule
   here=$(pwd -P)
@@ -542,8 +545,9 @@ context:log() {
 }
 
 # context:render <path>… [--json] logs each path and prints the rules that govern the paths. Without --json, it
-# prints each rule's path once. With --json, it prints one object per path with its kinds and its rules. A path in
-# another checkout of the repository is answered, and logged, by that checkout, as context:asked-there says.
+# prints each rule's path once. With --json, it prints one object per path with its kinds and its rules. For a path
+# in another checkout of the repository, context:asked-there gets the answer from that checkout, which also logs the
+# request.
 context:render() {
   local json=false arg path rule other
   local -a paths=() rules
@@ -593,9 +597,9 @@ context:render() {
 
 # context:claude reads Claude Code's PreToolUse hook input on stdin and logs the file the tool is about to write.
 # It prints, as additional context, the paths of the rules that govern that file. It prints nothing when the tool
-# input has no file path or no rule governs the file. The harness runs the hook where the session started, the desk,
-# and names the file by its absolute path, so a file in a worktree is answered by the worktree, as context:asked-there
-# says.
+# input has no file path or no rule governs the file. The harness runs the hook in the folder where the session
+# started, which is usually the desk, and gives the file's absolute path. When the file is in a worktree,
+# context:asked-there gets the answer from that worktree.
 context:claude() {
   local input path rules text='' other
   input=$(cat)

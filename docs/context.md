@@ -9,14 +9,16 @@ kit context "${path}"
 
 - The output is the rule files to read, one per line. Given several paths, it prints each rule once.
 - `--json` prints one object per path, with that path's rules.
-- A path in another checkout of the repository, the desk or a worktree as `git worktree list` names them, is
-  governed by that checkout. Its kinds are matched against the path from its own root, and its rules are its own
-  files, so a branch that adds a kind or a rule is answered with them. That checkout's own `kit context` answers,
-  on the release it pins. Each rule is named by its path in that checkout, so it opens from where you asked: from
-  the desk, `kit context worktrees/7-fix-the-thing/.github/workflows/ci.yml` prints
-  `worktrees/7-fix-the-thing/.kit/rules/workflows.md`. From a worktree, a rule of the desk is named by its absolute
-  path. A path in a clone that is no checkout of the repository, such as a submodule, is governed from where you
-  asked.
+- The kinds and rules of a checkout govern the files in it. A repository's checkouts are its desk and its
+  worktrees, the ones `git worktree list` prints. When a path is in another checkout than the one you ask from,
+  `kit context` runs in that checkout, on the release it pins, and answers from its kinds and rules. A branch that
+  adds a kind or a rule is therefore answered with it.
+- Each rule of another checkout is printed with that checkout's path in front, so that it opens from where you
+  asked. From the desk, `kit context worktrees/7-fix-the-thing/.github/workflows/ci.yml` prints
+  `worktrees/7-fix-the-thing/.kit/rules/workflows.md`. From a worktree, a rule of the desk is printed with its
+  absolute path.
+- A path in a clone that is not a checkout of the repository, such as a submodule, is governed by the checkout you
+  ask from.
 - Every call appends one line per path to the context log in git's common directory, `.git/kit/context.log` at the desk
   and the desk's `.git/kit/context.log` from a worktree: the epoch time and the path. `kit context --claude` and
   `kit new file` append to it too.
@@ -147,8 +149,8 @@ This command:
 It prints nothing when the tool input has no file path or no rule governs the file. Nothing is kept
 between calls except the log line.
 
-The harness runs the hook in the folder the session started in, usually the desk, and names the file by its
-absolute path. A file in a worktree is answered by the worktree, as above, so the agent is told the same rules
+The harness runs the hook in the folder where the session started, which is usually the desk, and gives the file's
+absolute path. For a file in a worktree, the hook answers from that worktree, so the agent gets the same rules
 wherever its session started.
 
 A harness that speaks the Model Context Protocol also has `context` as a tool of `kit serve`; see

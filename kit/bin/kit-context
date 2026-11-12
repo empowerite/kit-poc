@@ -9,9 +9,10 @@
 # the path's kinds. Then come the rules of the kinds those kinds embed, so a justfile brings the bash rule. Each
 # request is logged to kit/context.log in git's common directory.
 #
-# A path in another checkout of the repository, the desk or a worktree, is governed by that checkout's kinds and
-# rules, so a file in a worktree gets the same answer from the desk as from the worktree. Each rule is then named
-# by its path in that checkout, so it opens from where you asked: worktrees/7-fix-the-thing/.kit/rules/bash.md.
+# The kinds and rules of a checkout govern the files in it. For a path in another checkout of the repository, which
+# is the desk or a worktree, kit context answers from that checkout, so a file in a worktree gets the same answer
+# from the desk and from the worktree. It prints each of those rules with the checkout's path in front, such as
+# worktrees/7-fix-the-thing/.kit/rules/bash.md, so that the rule opens from where you asked.
 #
 # Runs as Claude Code's PreToolUse hook. It reads the hook's input on stdin, and answers with the rules that govern
 # the file the tool is about to write, as additional context.
