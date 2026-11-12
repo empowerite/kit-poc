@@ -356,7 +356,7 @@ issue:settle() {
 # for:
 #
 #   1. the branch of an open pull request for the issue
-#   2. a branch on <remote> named <key>-*
+#   2. a branch on <remote> whose name starts with <key>-
 #
 # When neither exists, it creates the branch:
 #
@@ -406,9 +406,12 @@ issue:branch() {
   printf '%s\n' "${branch}"
 }
 
-# issue:remote-branch <remote> <key> prints the first branch on <remote> named <key>-*, or nothing.
+# issue:remote-branch <remote> <key> prints the first branch on <remote> whose name starts with <key>-, or nothing.
+# git matches a pattern against the tail of a ref from any slash, so the pattern is the whole ref, and a name is kept
+# only when it starts with the key: release/<key>-0 is never the issue's branch.
 issue:remote-branch() {
-  git ls-remote --heads --end-of-options "$1" "$2-*" 2>/dev/null | sed -n '1s@.*refs/heads/@@p'
+  git ls-remote --heads --end-of-options "$1" "refs/heads/$2-*" 2>/dev/null \
+    | awk -v head="refs/heads/$2-" '!found && index($2, head) == 1 { print substr($2, 12); found = 1 }'
 }
 
 # issue:worktree <main-root> <branch> <remote> prints the worktree the branch is checked out in. If there is none, it

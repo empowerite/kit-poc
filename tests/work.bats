@@ -569,6 +569,31 @@ issue-call() {
   [ -n "$(git ls-remote --heads origin 7-issue)" ]
 }
 
+@test "an issue's branch on the remote is one named <key>-…: release/7-0 and dependabot/7-zip are never issue 7's" {
+  local release
+  git commit --quiet --allow-empty --message init
+  world
+  # issue 7 has no branch; two branches of others end in a part that starts with 7-
+  git push --quiet origin --delete 7-fix-the-thing
+  git push --quiet origin main:release/7-0 main:dependabot/7-zip
+  release=$(git -C "${repo}.origin.git" rev-parse release/7-0)
+  run issue-call issue:remote-branch origin 7
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  # so kit names the issue's branch, and makes it, and the others stay where they were
+  run issue-call issue:branch '#7' main 'Fix the thing' origin
+  [ "$status" -eq 0 ]
+  [ "${lines[-1]}" = 7-fix-the-thing ]
+  [ "$(git -C "${repo}.origin.git" rev-parse release/7-0)" = "${release}" ]
+  # a branch that starts with the key is the issue's, a slash later in its name or not
+  run issue-call issue:remote-branch origin 7
+  [ "$output" = 7-fix-the-thing ]
+  git push --quiet origin --delete 7-fix-the-thing
+  git push --quiet origin main:7-fix/the-thing
+  run issue-call issue:remote-branch origin 7
+  [ "$output" = 7-fix/the-thing ]
+}
+
 @test "kit work refuses a worktree policy.worktree refuses before it assigns, and warns of a branch that exists" {
   desk-world
   printf "policy:\n  worktree: '^wt/'\n  branch: '^x'\n" >> kit.yml
