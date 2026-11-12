@@ -77,6 +77,13 @@ soon as a tab's view holds `@me`, as a view kept from the last session or a pres
 the issues tab's menu opens. Such a tab says loading until kit answers. When kit cannot say, the keys bar says so,
 `@me` matches no one, and the next card, chip, or menu asks again. Over a group kittui asks in a member's checkout,
 once kit has said the workspace.
+
+On the changes tab, a pull request's open row says what stands between it and its merge, above the issues it closes:
+a line for each of kit's states that the change's document says holds, with the state's glyph, its word, and what
+`kit help flow` says of it. The line of a check that failed or still runs names the failing check and says how many
+passed, the threads' line says how many are unresolved, and the review's line says who asked for changes and who is
+asked. kit's state names only the first that holds, so `conflicted` and `blocked:approval` show where no state before
+them does. A pull request that is ready has no such line.
 A link to a row of a tab the app does not have opens the app built around that tab's entity.
 
 Each screen reads what it shows from kit as JSON. A form reads `kit syntax <verb>`, the picture reads

@@ -21,7 +21,8 @@ def id($stage): if .screen then "\(.screen)/\($stage)" else $stage end;
 
 # go($d) gives the Go the glyphs region holds for the table $d, unformatted, after flow's package clause, so gofmt
 # takes it: a constant per glyph, its meaning as its comment; the title's entry; each stage's legend and marks; the
-# states, then any other; each stage's glyph; and each stage's group's color.
+# states, then any other; what kit says of each state beyond its word; each stage's glyph; and each stage's group's
+# color.
 def go($d):
   $d
   | "package flow",
@@ -54,6 +55,11 @@ def go($d):
     "var states = []entry{",
     ($d.states[] | "\t{\(.glyph | quote), \(.state | quote)},"),
     "\t{Other, \(glyph($d; "Other").meaning | quote)},",
+    "}",
+    "",
+    "// because gives what kit says of a pull request's state, by its state word, where kit says more than the word.",
+    "var because = map[string]string{",
+    ($d.states[] | select(.more) | "\t\(.state | quote): \(.more | quote),"),
     "}",
     "",
     "// stageGlyphs gives each stage's glyph, drawn beside its name on the line of stages.",

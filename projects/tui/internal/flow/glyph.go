@@ -342,6 +342,17 @@ var states = []entry{
 	{Other, "other state"},
 }
 
+// because gives what kit says of a pull request's state, by its state word, where kit says more than the word.
+var because = map[string]string{
+	"queued":           "a check is still running",
+	"conflicted":       "with its base",
+	"failing:gate":     "a check failed",
+	"no-check":         "no check has reported",
+	"comments:open":    "a review thread is unresolved",
+	"blocked:approval": "a review blocks the merge",
+	"ready":            "nothing is left to decide",
+}
+
 // stageGlyphs gives each stage's glyph, drawn beside its name on the line of stages.
 var stageGlyphs = map[string]string{
 	"issues":                Issue,

@@ -74,7 +74,7 @@ type checkout struct {
 	Behind   int    `json:"behind"`
 }
 
-// pull is one open pull request, with its labels and the issues it closes.
+// pull is one open pull request, with its labels, the issues it closes, and its reviewers.
 type pull struct {
 	Number     int           `json:"number"`
 	Ref        string        `json:"ref"`
@@ -88,7 +88,14 @@ type pull struct {
 	Branch     string        `json:"branch"`
 	Labels     []table.Label `json:"labels"`
 	Closes     []issue       `json:"closes"`
+	Reviewers  []reviewer    `json:"reviewers"`
 	Member     string        `json:"member"`
+}
+
+// reviewer is one of a pull request's reviewers, and what they said: requested, approved, changes, or commented.
+type reviewer struct {
+	Login string `json:"login"`
+	State string `json:"state"`
 }
 
 // checks is a pull request's checks: SUCCESS, FAILURE, or PENDING, the counts, the failing check's name, and how long
@@ -654,8 +661,9 @@ func ref(p pull) string {
 }
 
 // changeRows gives each pull request: number, title, author, state, age, checks, threads, labels, branch; open, the
-// title wrapped and every label, then the issues it closes, one row each, in flight. The pull request's glyph and its state's lead to its
-// page. A pull request belongs to its author.
+// title wrapped and every label, then what holds it back, a line each, as blockers says, then the issues it closes,
+// one row each, in flight. The pull request's glyph and its state's lead to its page. A pull request belongs to its
+// author.
 func (m Model) changeRows(s stage) []record {
 	var out []record
 	for _, p := range of[pull](s) {
@@ -670,6 +678,9 @@ func (m Model) changeRows(s stage) []record {
 			"threads": table.One(strconv.Itoa(p.Unresolved)), "branch": table.Some(p.Branch), "labels": table.Labelled(p.Labels),
 			"member": m.memberValue(p.Member),
 		}}
+		for _, line := range blockers(p) {
+			r.Detail = append(r.Detail, span(line))
+		}
 		for _, i := range p.Closes {
 			r.Detail = append(r.Detail, []cell{number("#" + strconv.Itoa(i.Number)), owners(i.Assignees),
 				text(InFlight + " in flight"), dimNumber(ageOf(i.Age)), fill(Issue + " " + i.Title)})
@@ -678,6 +689,63 @@ func (m Model) changeRows(s stage) []record {
 			r.Detail = append(r.Detail, span(style.Off("closes no issue")))
 		}
 		out = append(out, r)
+	}
+	return out
+}
+
+// blockers gives what stands between a pull request and its merge, a line for each of kit's states its document says
+// holds: the state's glyph, its word, and what kit says of it, as kit help flow's legend does, then what the document
+// adds. They stand in the order kit names the states, of which its state is the first that holds: a draft; queued,
+// where a check still runs, and failing:gate, where one failed, with the failing check's name and how many passed;
+// conflicted; no-check; comments:open, with how many threads are unresolved; and blocked:approval, with who asked for
+// changes and who is asked. kit's document says conflicted and blocked:approval only where no state before them holds.
+// A pull request that is ready, or in a state kit has not named, has none.
+func blockers(p pull) []string {
+	c := checks{}
+	if p.Checks != nil {
+		c = *p.Checks
+	}
+	passed := fmt.Sprintf("%d of %d passed", c.Passed, c.Total)
+	threads := fmt.Sprintf("%d threads", p.Unresolved)
+	if p.Unresolved == 1 {
+		threads = "1 thread"
+	}
+	var asked []string
+	for _, r := range p.Reviewers {
+		switch r.State {
+		case "changes":
+			asked = append(asked, r.Login+" asked for changes")
+		case "requested":
+			asked = append(asked, r.Login+" is asked")
+		}
+	}
+	var out []string
+	// every state kit names, but the last entry, which stands for any other
+	for _, s := range states[:len(states)-1] {
+		holds, more := p.State == s.meaning, ""
+		switch s.meaning {
+		case "queued":
+			holds, more = c.State == "PENDING", passed
+		case "failing:gate":
+			holds, more = c.State == "FAILURE", c.Failing+", "+passed
+		case "comments:open":
+			holds, more = p.Unresolved > 0, threads
+		case "blocked:approval":
+			more = strings.Join(asked, ", ")
+		case "ready":
+			holds = false
+		}
+		if !holds {
+			continue
+		}
+		line := s.glyph + " " + s.meaning
+		if said := because[s.meaning]; said != "" {
+			line += ": " + said
+		}
+		if more != "" {
+			line += "; " + more
+		}
+		out = append(out, line)
 	}
 	return out
 }
