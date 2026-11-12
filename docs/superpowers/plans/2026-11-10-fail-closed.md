@@ -257,7 +257,7 @@ the plan Workspaces 4's, in its Tasks 1 and 4.
 | --- | --- | --- | --- |
 | `context.sh:265-282` (Delivery 7) | awk dies on a kind's `content:` that is no regular expression | every path kindless: `kit lint` and `kit check` pass | `context:classify` returns 1 after `<file>: the kind <kind>'s content pattern '<pattern>' is not a regular expression`; `context:kinds` and `context:rules` return it |
 | `context.sh:256` (Delivery 30) | another worktree's compile deletes the matcher in use | no kinds | prune matchers older than a day, never the others |
-| `context.sh:80-113` | a repository that declares a kit version has no kind | nothing governed | return 1: `no kind is defined under .kit/kinds; run: kit hydrate` |
+| `context.sh:80-113` | a repository that declares a kit version, where kit places a kinds file, has no kind | nothing governed | return 1: `no kind is defined under .kit/kinds; run: kit hydrate`; where no active package delivers a kind, nothing is governed (#338) |
 | `bin/kit-lint:87,139` (Documents 7) | a named path that is no file; no rule governs any path | skipped; "✅ every governed path passes" | exit 2: `'<path>' is not a file or a directory here`; and `ok "no rule governs the <n> path(s); nothing was linted"`, exit 0 |
 | `generate.sh:378-381` (Delivery 25) | a named path that is no file | "no kit:generate directive to expand" | `generate:run` returns 2 with `kit lint`'s line |
 | `materialize.sh:274-297` (Delivery 8) | a file added under `.kit/packages/` since the last full run | hydrated: the pulled rule is not in force | return 1 when `find .kit/packages -newer .kit/.gitignore -print -quit` prints a path |

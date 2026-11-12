@@ -152,6 +152,45 @@ setup() {
   run ! grep --quiet '^excludes:' kit.yml
 }
 
+@test "with the kit package removed no active package delivers a kind, so nothing is governed, and the verbs that ask still run" {
+  "${kit_checkout}/bin/kit" install
+  git add --all && git commit --quiet --message init
+  run "${kit_checkout}/bin/kit" packages remove kit
+  [ "$status" -eq 0 ]
+  [ ! -e .kit/kinds ]
+  printf '#!/usr/bin/env bash\necho x\n' > foo.sh
+  run "${kit_checkout}/bin/kit" context foo.sh
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  run "${kit_checkout}/bin/kit" kinds
+  [ "$status" -eq 0 ]
+  [ "$output" = "• no kinds under .kit/kinds/; kit packages add kit brings the kit package's" ]
+  run "${kit_checkout}/bin/kit" kinds foo.sh
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  run "${kit_checkout}/bin/kit" lint foo.sh
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"no rule governs the 1 path(s); nothing was linted"* ]]
+  run "${kit_checkout}/bin/kit" new file foo.md
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"no template governs foo.md"* ]]
+  run "${kit_checkout}/bin/kit" policy
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"no kind is defined"* ]]
+  # a hydrate places nothing, and changes none of it
+  run "${kit_checkout}/bin/kit" hydrate
+  [ "$status" -eq 0 ]
+  run "${kit_checkout}/bin/kit" context foo.sh
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  # the package back, its kinds govern again
+  run "${kit_checkout}/bin/kit" packages add kit
+  [ "$status" -eq 0 ]
+  run "${kit_checkout}/bin/kit" context foo.sh
+  [ "$status" -eq 0 ]
+  [ "$output" = ".kit/rules/bash.md" ]
+}
+
 @test "a cycle among the packages refuses packages add with 1, and kit.yml stays as it was" {
   mkdir -p .kit/packages/a .kit/packages/b
   printf 'description: "A, which needs B"\ndepends:\n  - b\n' > .kit/packages/a/package.yml

@@ -61,8 +61,10 @@ A classification that cannot be made fails, and is never read as a path of no ki
 
 - A `content:` pattern that is no extended regular expression fails the compile, naming the kinds file, the kind,
   and the pattern, so `kit lint`, `kit context`, and `kit check` fail with it.
-- A repository that declares a kit version and has no kind under `.kit/kinds/` fails with `run: kit hydrate`. A
-  repository that declares no kit has no kinds, and nothing governs its paths.
+- A repository where kit places a kinds file and that has no kind under `.kit/kinds/` fails with
+  `run: kit hydrate`: its `.kit/` is not in place. kit places one where `.kit/.gitignore` names a path under
+  `kinds/`, or where that file is not written yet. A repository where no active package delivers a kind, as after
+  `kit packages remove kit`, has no kinds, and neither has one that declares no kit: nothing governs its paths.
 - Every worktree shares the compiled programs, and each lookup touches the one it uses. A compile removes the
   program of other kinds once a day has passed since its last use, and a program removed between a lookup and its
   read is compiled again.

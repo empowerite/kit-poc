@@ -196,9 +196,10 @@ context:glob-matches() {
 # context:load reads every kind under the kinds directory, .kit/kinds/ or the one context:kinds-from named, and the
 # kind: list of every rule and style, once. It runs from the repository root. A caller that loops over paths calls
 # it first, so the subshells of the loop inherit the tables instead of each reading the files again. In a repository
-# that declares a kit version, the kit's own package defines kinds, so none at all under .kit/kinds/ is a .kit/ not
-# yet in place, and it returns 1 naming kit hydrate; a repository that declares no kit has no kinds, and nothing is
-# governed there. A directory context:kinds-from named holds what its caller wrote, so none there is none.
+# that declares a kit version, where kit places a kinds file, as context:kinds-placed finds, none at all under
+# .kit/kinds/ is a .kit/ not yet in place, and it returns 1 naming kit hydrate. Where no active package delivers a
+# kind, as after kit packages remove kit, and in a repository that declares no kit, there are no kinds, and nothing
+# is governed. A directory context:kinds-from named holds what its caller wrote, so none there is none.
 context:load() {
   [[ "${context_loaded}" == true ]] && return 0
   local file kind field value version
@@ -230,7 +231,7 @@ context:load() {
   if (( ${#defined[@]} == 0 )) && [[ "${context_kinds}" == .kit/kinds ]]
   then
     version=$(settings:version) || return 1
-    if [[ -n "${version}" ]]
+    if [[ -n "${version}" ]] && context:kinds-placed
     then
       error "no kind is defined under .kit/kinds; run: kit hydrate"
       return 1
@@ -242,6 +243,19 @@ context:load() {
     context_file_kinds[${file}]=$(yaml:list "${file}" kind | paste -s -d ' ' -)
   done
   context_loaded=true
+}
+
+# context:kinds-placed succeeds when kit places a kinds file in this repository: .kit/.gitignore, which names every
+# path kit places under .kit/, names one under kinds/, or is not there, as before the first hydrate. The kit package
+# delivers the kit's kinds, and a repository can take it out, so a .kit/ in place may hold none. It starts no process.
+context:kinds-placed() {
+  local line
+  [[ -f .kit/.gitignore ]] || return 0
+  while IFS= read -r line
+  do
+    [[ "${line}" != /kinds/* ]] || return 0
+  done < .kit/.gitignore
+  return 1
 }
 
 # context:read-kinds <file>… prints every kind the kinds files define, one field to a line: "<file>", "<kind>",

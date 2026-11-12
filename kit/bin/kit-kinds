@@ -28,7 +28,7 @@ set -o errexit -o nounset -o pipefail
 # shellcheck source=modules/bash/1st.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
 kit:enter
-use context materialize
+use context materialize settings
 guard:arguments kinds "$@" || exit $?
 materialize:hydrate
 
@@ -104,8 +104,13 @@ then
 fi
 if (( ${#context_kind_paths[@]} == 0 ))
 then
-  # A repository with no package yet has no kinds: one dim line says so, where an empty screen would say nothing.
-  out:emit '•' '90' "no kinds under .kit/kinds/; kit install brings the kit package's"
+  # A repository where no package delivers a kind has no kinds: one dim line says so, where an empty screen would
+  # say nothing, and names what brings the kit package's: kit install, or, where kit is installed and the package
+  # was taken out, kit packages add kit.
+  brings='kit install'
+  version=$(settings:version) || exit 1
+  [[ -z "${version}" ]] || brings='kit packages add kit'
+  out:emit '•' '90' "no kinds under .kit/kinds/; ${brings} brings the kit package's"
   exit 0
 fi
 [[ -n "${kinds}" ]] || exit 0
