@@ -91,6 +91,67 @@ on-origin() { git ls-remote origin "refs/tags/$1*" | awk -v want="refs/tags/$1^{
   [ "$status" -eq 0 ]
 }
 
+@test "a release from a desk behind the default branch at origin is refused, saying how far, unless --behind confirms it" {
+  local old
+  # two commits land on origin's main that the desk never pulled
+  git clone --quiet "${repo}/origin.git" "${repo}/other" 2>/dev/null
+  (cd "${repo}/other" && commit two && commit three && git push --quiet origin main)
+  old=$(git rev-parse HEAD)
+  run "${kit_root}/bin/kit" release 0.1.0
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"0.1.0 is a release, and HEAD, ${old:0:7} one, is 2 commit(s) behind main at origin; run: cd "* ]]
+  [[ "$output" == *" && git pull --ff-only origin main, to tag its tip, or kit release 0.1.0 --behind, to tag this commit"* ]]
+  [ -z "$(on-origin release/0.1.0)" ]
+  [ -z "$(git tag --list release/0.1.0)" ]
+  # a pre-release may be tagged on any commit, so it has nothing to confirm
+  run "${kit_root}/bin/kit" release 0.1.0-rc.1
+  [ "$status" -eq 0 ]
+  # --behind confirms the older commit
+  run "${kit_root}/bin/kit" release 0.1.0 --behind
+  [ "$status" -eq 0 ]
+  [ "$(on-origin release/0.1.0)" = "${old}" ]
+  # level with origin, there is nothing to confirm
+  git pull --quiet --ff-only origin main
+  run "${kit_root}/bin/kit" release 0.2.0
+  [ "$status" -eq 0 ]
+  [ "$(on-origin release/0.2.0)" = "$(git -C "${repo}/origin.git" rev-parse main)" ]
+}
+
+@test "kit release --dry-run says the commit, the tag, and what the push would send, and tags and pushes nothing" {
+  run "${kit_root}/bin/kit" release 0.1.0 --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"would tag $(git rev-parse --short HEAD) one as release/0.1.0"* ]]
+  [[ "$output" == *"would push release/0.1.0 to origin, and no commit: a branch there has every one it reaches"* ]]
+  [[ "$output" == *"dry run: nothing is tagged, and nothing is pushed"* ]]
+  [[ "$output" != *"pushed release/0.1.0"* ]]
+  [ -z "$(git tag --list 'release/*')" ]
+  [ -z "$(git ls-remote --tags origin)" ]
+  # a pre-release off the default branch: the push would send its commits
+  git switch --quiet --create topic && commit two && commit three
+  run "${kit_root}/bin/kit" release 0.2.0-rc.1 --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"would tag $(git rev-parse --short HEAD) three as release/0.2.0-rc.1"* ]]
+  [[ "$output" == *"would push release/0.2.0-rc.1 to origin, with 2 commit(s) no branch there has"* ]]
+  [ -z "$(git tag --list 'release/*')" ]
+  # a dry run refuses what the release would, and says so the same way
+  run "${kit_root}/bin/kit" release 0.2.0 --dry-run
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"0.2.0 is a release, and HEAD is not on main at origin"* ]]
+  git switch --quiet main
+  git clone --quiet "${repo}/origin.git" "${repo}/other" 2>/dev/null
+  (cd "${repo}/other" && commit four && git push --quiet origin main)
+  run "${kit_root}/bin/kit" release 0.2.0 --dry-run
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"is 1 commit(s) behind main at origin"* ]]
+  run "${kit_root}/bin/kit" release 0.2.0 --dry-run --behind
+  [ "$status" -eq 0 ]
+  [ -z "$(git tag --list 'release/*')" ]
+  [ -z "$(git ls-remote --tags origin)" ]
+  # a dry run waits for nothing
+  run "${kit_root}/bin/kit" release 0.2.0 --dry-run --wait=1m
+  [ "$status" -eq 2 ]
+}
+
 @test "a release whose tags on origin cannot be read is refused, and nothing is tagged" {
   "${kit_root}/bin/kit" release 0.3.0
   # origin is read from a repository that is not there, and pushed to the one that is

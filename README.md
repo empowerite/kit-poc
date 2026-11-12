@@ -319,9 +319,11 @@ editor you run tests from as developer tools; that saves up to about 5 percent o
   into the packed kit and names the release after it.
 - Published releases cannot change, so a tag is never reused.
 
-`kit release <version>` checks these rules, then makes the tag and pushes only the tag. One more rule: a version that
-is not higher than every release on the primary remote needs `--lower`. `kit flow releases` lists what the code forge
-published.
+`kit release <version>` checks these rules, then makes the tag and pushes only the tag. Two more rules: a version that
+is not higher than every release on the primary remote needs `--lower`, and a release of a commit behind `main` at
+the primary remote, as a desk not pulled since a merge has, needs `--behind`. `kit release <version> --dry-run`
+checks the rules, says the commit, the tag, and what the push would send, and tags nothing. `kit flow releases` lists
+what the code forge published.
 
 The release workflow runs three commands:
 

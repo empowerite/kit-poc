@@ -35,13 +35,22 @@ releases:on-origin() {
   done <<<"${refs}" | LC_ALL=C sort --unique
 }
 
-# releases:release <version> [lower] tags HEAD as release/<version> and pushes that tag alone, to the primary remote,
-# after the rules: the version's shape (2 when it is wrong), a tag made once, a release on the default branch at the
-# primary, and a version above every release tag there unless lower is given. It returns 1 on any other refusal,
-# and leaves no tag behind when the push fails.
+# releases:release <version> [lower] [behind] [dry-run] tags HEAD as release/<version> and pushes that tag alone, to
+# the primary remote, after the rules: the version's shape (2 when it is wrong), a tag made once, a release on the
+# default branch at the primary, and at its tip unless behind is given, and a version above every release tag there
+# unless lower is given. With dry-run it stops after the rules: it says the commit, the tag, and what the push would
+# send, and tags and pushes nothing. It returns 1 on any other refusal, and leaves no tag behind when the push fails.
 releases:release() {
-  local version=$1 lower=${2:-} tag default highest sends subject primary text
+  local version=$1 lower='' behind='' dry=false word tag default highest sends subject primary text count
   local -a sign=() versions=()
+  for word in "${@:2}"
+  do
+    case "${word}" in
+      (lower) lower=lower ;;
+      (behind) behind=behind ;;
+      (dry-run) dry=true ;;
+    esac
+  done
   if ! releases:valid "${version}"
   then
     error "'${version}' is not a version: <major>.<minor>.<patch>, with -<suffix> for a pre-release;" \
@@ -67,6 +76,15 @@ releases:release() {
         "pre-release a suffix"
       return 1
     fi
+    # An ancestor of the default branch is on it, and may be far from its tip: a desk not pulled since a merge is.
+    count=$(git rev-list --count "HEAD..${primary}/${default}" 2>/dev/null) || count=0
+    if (( count > 0 )) && [[ -z "${behind}" ]]
+    then
+      error "${version} is a release, and HEAD, $(git log -1 --format='%h %s' HEAD), is ${count} commit(s) behind" \
+        "${default} at ${primary}; run: git pull --ff-only ${primary} ${default}, to tag its tip, or kit release" \
+        "${version} --behind, to tag this commit"
+      return 1
+    fi
   fi
   text=$(releases:on-origin) || return $?
   [[ -z "${text}" ]] || readarray -t versions <<<"${text}"
@@ -80,10 +98,22 @@ releases:release() {
     return 1
   fi
   subject=$(git log -1 --format=%s HEAD)
+  sends=$(git rev-list --count HEAD --not --remotes="${primary}")
+  if [[ "${dry}" == true ]]
+  then
+    step "would tag $(git rev-parse --short HEAD) ${subject} as ${tag}"
+    if (( sends == 0 ))
+    then
+      step "would push ${tag} to ${primary}, and no commit: a branch there has every one it reaches"
+    else
+      step "would push ${tag} to ${primary}, with ${sends} commit(s) no branch there has"
+    fi
+    ok "dry run: nothing is tagged, and nothing is pushed"
+    return 0
+  fi
   step "tagging $(git rev-parse --short HEAD) ${subject} as ${tag}"
   [[ "$(settings:value require_signing)" == true ]] && sign=(--sign)
   git tag --annotate "${sign[@]}" --message "release ${version}" "${tag}" || return 1
-  sends=$(git rev-list --count HEAD --not --remotes="${primary}")
   (( sends == 0 )) || step "the push sends ${sends} commit(s) no branch on ${primary} has, reachable from ${tag} alone"
   if ! git push --quiet --end-of-options "${primary}" "refs/tags/${tag}"
   then

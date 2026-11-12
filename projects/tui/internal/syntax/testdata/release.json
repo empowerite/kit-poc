@@ -2,7 +2,7 @@
   "verb": "release",
   "purpose": "tags HEAD as a release and pushes the tag",
   "usage": [
-    "kit release <version> [--lower] [--wait=<duration>]"
+    "kit release <version> [--lower] [--behind] [--dry-run | --wait=<duration>]"
   ],
   "syntax": [
     [
@@ -31,6 +31,27 @@
         "alternatives": [
           [
             {
+              "kind": "flag",
+              "name": "behind",
+              "repeat": false
+            }
+          ]
+        ],
+        "repeat": false
+      },
+      {
+        "kind": "group",
+        "optional": true,
+        "alternatives": [
+          [
+            {
+              "kind": "flag",
+              "name": "dry-run",
+              "repeat": false
+            }
+          ],
+          [
+            {
               "kind": "option",
               "name": "wait",
               "value": "duration",
@@ -48,6 +69,12 @@
     },
     "--lower": {
       "description": "confirms a version not higher than the primary remote's highest release"
+    },
+    "--behind": {
+      "description": "confirms a release of a commit that is behind the default branch at the primary remote"
+    },
+    "--dry-run": {
+      "description": "says what it would tag and push, after every refusal, and tags and pushes nothing"
     },
     "--wait": {
       "description": "then waits that long, at most, for every pull source to serve it: 30m, 2h, or 1d"

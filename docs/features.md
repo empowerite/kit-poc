@@ -172,7 +172,12 @@ release workflow. It refuses:
 - a version of the wrong shape
 - a tag that exists
 - a release, one with no suffix, whose commit is not on the default branch at the primary remote
+- a release whose commit is behind that branch, as a desk not pulled since a merge has, unless `--behind` confirms
+  it: the refusal names the commit, how many commits behind it is, and the pull
 - a version not higher than every release on the primary remote, unless `--lower` confirms it
+
+`kit release <version> --dry-run` runs every refusal, says the commit, the tag, and what the push would send, and
+tags and pushes nothing.
 
 ### Publishing, and pull behind push
 
