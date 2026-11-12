@@ -180,7 +180,7 @@ type Model struct {
 	stop          int                       // while onPreset, the heading over the groups' stop the keyboard is on, -1 the preset picker
 	inPanel       bool                      // whether the panel has the keyboard, before the rows, the line, or the bar
 	me            string                    // the caller's login, once kit has said it, which a filter's @me matches
-	asked         bool                      // whether kit has been asked for the caller's login
+	who           asked                     // whether kit has been asked for the caller's login, and what came of it
 	browse        func(url string) error    // opens a page in the browser
 	note          shell.Notice              // what kit did, or why something was not done, in place of the keys
 	copied        bool                      // whether the refusal's command was just copied, until the next key or click
@@ -337,7 +337,8 @@ func (m Model) Close() { m.cancel() }
 // env gives what the screen's reads of kit share: the screen's context, the deadline, and the screen's clock.
 func (m Model) env() source.Env { return source.Env{Ctx: m.ctx, Limit: m.limit, Clock: m.clock} }
 
-// Update takes a message, as update does; then a name typed for Save As… or Rename… on a preset line that no longer
+// Update takes a message, as update does; then kit is asked who the caller is, once, where a stage's panel filters by
+// @me and nothing has asked yet; a name typed for Save As… or Rename… on a preset line that no longer
 // has the keyboard is dropped, so the line does not come back to it; a stage that loaded has the marks read again, and
 // the rate limits, where it reads the forge; and a notice that says what was done, new, goes after Fades, unless a key
 // or another notice took its place first.
@@ -348,6 +349,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	next, cmd := m.update(msg)
 	n := next.(Model)
+	if n.who == unasked && n.holdsMe() && (n.runner.Group == "" || n.ws.Kind != "") {
+		// a panel filters by @me, as one kept from the last session or a preset may, and nothing has asked kit who
+		// the caller is; over a group the caller is asked in a member's checkout, once kit has said the workspace
+		cmd = tea.Batch(cmd, n.askMe())
+	}
 	if a, ok := msg.(source.Answer[[]byte]); ok && !a.Kept {
 		// the stage takes the next mark as its own, so the marks are read again; a load of a command that reads the
 		// forge, as its catalog entry's forge says, spends the rate limits, which are read again too; one that reads
@@ -402,10 +408,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.take(msg)
 	case meMsg:
-		if msg.err == nil {
-			m.me = msg.login
-			m.rebuild()
-		}
+		m.told(msg)
 	case browsedMsg:
 		switch {
 		case errors.Is(msg.err, shell.ErrNoDisplay):
@@ -741,14 +744,63 @@ func (m *Model) scrollRows(n int) {
 	s.Offset, _, _, _ = pane.Window(len(m.lines()), m.rowsHeight(), s.Offset+n)
 }
 
-// askMe runs kit flow --me, once, for the limit at most.
+// asked is whether kit has been asked for the caller's login, and what came of it.
+type asked int
+
+const (
+	unasked asked = iota // nothing has asked kit yet
+	asking               // kit was asked, and has not answered
+	said                 // kit said the login
+	unsaid               // kit could not say; the next card, chip, or menu asks again
+)
+
+// askMe runs kit flow --me, for the limit at most: once, unless kit could not say, and then again.
 func (m *Model) askMe() tea.Cmd {
-	if m.asked {
+	if m.who == asking || m.who == said {
 		return nil
 	}
-	m.asked = true
+	m.who = asking
 	return m.whoami()
 }
+
+// told takes kit's answer to who the caller is. The login is the one @me matches from then on, and the stages whose
+// rows waited for it group as they load now, as autoGroup says. A refusal says so in place of the keys, and @me
+// matches no one until a card, a chip, or the issues tab's menu asks kit again.
+func (m *Model) told(msg meMsg) {
+	if msg.err != nil {
+		m.who = unsaid
+		m.note.Text = fmt.Sprintf("%s kit flow --me failed, so @me matches no one: %v", Failed, msg.err)
+		m.note.Done = false
+	} else {
+		m.me, m.who = msg.login, said
+	}
+	m.rebuild()
+	for i := range m.stages {
+		m.autoGroup(m.stages[i].name)
+		m.clamp(i)
+	}
+	m.fit()
+}
+
+// holdsMe says whether a stage's panel filters by @me.
+func (m Model) holdsMe() bool {
+	return slices.ContainsFunc(m.stages, func(s stage) bool { return filtersByMe(s.View) })
+}
+
+// filtersByMe says whether a panel's filter on a field names the caller, @me.
+func filtersByMe(p grid.Panel) bool {
+	for _, f := range p.Fields {
+		if slices.Contains(f.Filter.Values, caller) {
+			return true
+		}
+	}
+	return false
+}
+
+// awaits says whether a stage's rows wait on kit to say who the caller is: its panel filters by @me, which matches no
+// one until kit answers, and kit has been asked and has not answered. The stage draws loading meanwhile, and gives no
+// row.
+func (m Model) awaits(s stage) bool { return m.who == asking && filtersByMe(s.View) }
 
 // whoami asks kit for the caller's login.
 func (m Model) whoami() tea.Cmd {
@@ -1088,7 +1140,7 @@ func (m *Model) blank(s *stage) {
 func (m *Model) autoGroup(name string) {
 	i := slices.IndexFunc(m.stages, func(s stage) bool { return s.name == name })
 	s := &m.stages[i]
-	if !s.Grouping || s.src.Loading || s.refusal != "" {
+	if !s.Grouping || s.src.Loading || s.refusal != "" || m.awaits(*s) {
 		return
 	}
 	s.Grouping = false

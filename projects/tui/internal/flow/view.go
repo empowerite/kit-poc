@@ -337,17 +337,18 @@ func (m Model) pane() []string {
 	return out
 }
 
-// allLines gives a stage's lines: loading, kit's line when it failed, the dim line of an empty stage, then, dim, each
+// allLines gives a stage's lines: loading, while it loads or its panel waits on kit for the caller's login, as awaits
+// says; kit's line when it failed, the dim line of an empty stage, then, dim, each
 // feature the forge has off here, where kit said so, the dim line of one whose rows all fold away, and how to open
 // them, or of one whose panel lets no row through, or its rows as the grid draws them, the one under the cursor on a
 // band while the rows have the keyboard.
 func (m Model) allLines(i int) []table.Line {
 	s := m.stages[i]
 	switch {
-	case s.src.Loading:
-		return []table.Line{{Row: -1, Text: lead + style.Off("loading")}}
 	case s.refusal != "":
 		return m.refusalLines(i)
+	case s.src.Loading || m.awaits(s):
+		return []table.Line{{Row: -1, Text: lead + style.Off("loading")}}
 	}
 	rows := m.rows(i)
 	switch p := m.panel(i); {

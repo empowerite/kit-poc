@@ -310,6 +310,7 @@ type shown struct {
 // build gives a stage's rows from what it loaded, as its panel lets them through, and what the panel shows of them,
 // as table.Build builds them. A stage that loads, or that kit refused, gives no row, whatever it holds of the load
 // before: the pane draws the line that says so in their place, and no key, click, or action reaches a row behind it.
+// Nor does one whose panel filters by @me while kit has not said who the caller is, as awaits says: it draws loading.
 // A refused stage whose rows grouped keeps the heading over the groups alone, with nothing folded under it, so the
 // refusal stands under the control line the rows stood under.
 func (m Model) build(i int) shown {
@@ -320,7 +321,7 @@ func (m Model) build(i int) shown {
 		over := b.Rows[0]
 		over.Folded = nil
 		b.Rows = []row{over}
-	case s.refusal != "" || s.src.Loading:
+	case s.refusal != "" || s.src.Loading || m.awaits(s):
 		b.Rows = nil
 	}
 	return shown{b.Rows, b.Names, b.Levels, b.All, b.Drawn}
