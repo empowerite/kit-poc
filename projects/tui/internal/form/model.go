@@ -6,7 +6,8 @@
 // names it only where the terminal said it does; esc goes back
 // to the palette and never quits; ctrl-q quits, and ctrl-c quits as interrupted. In a list, page down and page up move the cursor a page,
 // and home and end to the first and last row. Where a window hides rows, a dim line says how many. A paste is typed
-// where a key would be, as paste says.
+// where a key would be, as paste says. In a list of one value, Enter takes the row under the cursor, and backspace
+// with nothing typed takes an optional list's answer back; the keys bar names both for what they then do.
 //
 // The form stands in the frame every screen has: the menu bar first, kit help's, its kit menu, its workspace menu, the
 // verb's name, and the search field; the status bar last. A click on the kit menu or the workspace menu drops it down,
@@ -245,8 +246,9 @@ func (m Model) bottom() string { return m.keys().Line(m.width) }
 // =, -, and /, which the menu bar's glyphs show: the form, whose esc goes back to the palette,
 // or, opened on its own, whose ctrl-q quits, as esc never does; up and down move between fields, and enter takes the next field; and the field under the keyboard, with
 // the keys its kind takes: the arrows across a row of options, the space where it toggles, backspace where it erases
-// or clears, and the page keys on a list. On the command line, enter runs. Tab, which moves as down and up do, is left
-// unnamed. Shift-Enter is named only where the terminal answered Bubble Tea's ask for the kitty keyboard protocol;
+// or clears, and the page keys on a list. On a list, enter is named take while it takes an answer, as takes says, and
+// backspace clear while it takes one back, as clears says. On the command line, enter runs. Tab, which moves as down
+// and up do, is left unnamed. Shift-Enter is named only where the terminal answered Bubble Tea's ask for the kitty keyboard protocol;
 // elsewhere, Terminal.app among them, it arrives as Enter, and the way to run is Enter on the command line.
 func (m Model) keys() shell.Path {
 	if m.appMenu.Open || m.books.Open {
@@ -287,14 +289,39 @@ func (m Model) keys() shell.Path {
 		field.Bindings = append(field.Bindings, shell.Bind("⌫", "erase", "backspace"))
 	case Pick:
 		field.Types = true
+		erases := "erase"
+		if m.clears(f) {
+			erases = "clear"
+		}
 		field.Bindings = append(field.Bindings, shell.Bind("⇞⇟", "page", "pgup", "pgdown"),
-			shell.Bind("⌫", "erase", "backspace"))
+			shell.Bind("⌫", erases, "backspace"))
 	case PickMany:
 		field.Types = true
 		field.Bindings = append(field.Bindings, shell.Bind("⇞⇟", "page", "pgup", "pgdown"),
 			shell.Bind("␣", "toggle", "space"), shell.Bind("⌫", "erase", "backspace"))
 	}
+	if m.takes(m.fields[m.focus]) {
+		field.Bindings = append([]shell.Binding{shell.Bind("⏎", "take", "enter")}, field.Bindings...)
+	}
 	return shell.Path{form, field}
+}
+
+// takes says whether Enter on the field takes an answer, where the form's own Enter only moves on: on a list of one
+// value, the row under the cursor; on a list kit refused, what is typed.
+func (m Model) takes(f Field) bool {
+	switch f.Kind {
+	case Pick:
+		return m.cursor < len(m.filtered()) || m.failed[f.Key] && m.input != ""
+	case PickMany:
+		return m.failed[f.Key] && m.input != ""
+	}
+	return false
+}
+
+// clears says whether backspace on the field takes its answer back: an optional list of one value that has one, with
+// nothing typed to erase first. A list the command line needs keeps its answer, which another row replaces.
+func (m Model) clears(f Field) bool {
+	return f.Kind == Pick && !f.Required && len(f.Values) > 0 && m.input == ""
 }
 
 // legendKeys gives the binding of the legend: ? or F1, F1 alone where a field types what is pressed.
@@ -591,6 +618,9 @@ func (m *Model) list(k tea.KeyPressMsg, s string) tea.Cmd {
 		if r := []rune(m.input); len(r) > 0 {
 			m.input = string(r[:len(r)-1])
 			m.cursor = 0
+		} else if m.clears(*f) {
+			f.Values = nil
+			m.changed(f.Key)
 		}
 	case "up":
 		if m.cursor > 0 {
