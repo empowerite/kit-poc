@@ -50,6 +50,22 @@ setup() {
     "── kit check ──"
 }
 
+@test "kit lint is not one of the four checks: a workflow kit lint refuses does not fail kit ci" {
+  printf 'ci:\n  echo gate ran\n' > justfile
+  mkdir -p .github/workflows
+  printf 'on: push\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v7\n' \
+    > .github/workflows/w.yml
+  # staged, so kit lint with no path, and with --all-files, would each read it
+  git add .github/workflows/w.yml
+  run "${kit_checkout}/bin/kit" lint
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"uses: actions/checkout@v7 is not pinned to a commit SHA"* ]]
+  run env -u GITHUB_EVENT_PATH "${kit_checkout}/bin/kit" ci
+  # gh fails, so kit linked refuses, and it alone: no check of kit ci runs a rule's linter or its checks
+  [[ "$output" == *"1 of 4 checks refused"* ]]
+  [[ "$output" != *"is not pinned to a commit SHA"* ]]
+}
+
 # ----------------------------------------------------------------------------------------------------------------------
 
 @test "the CI workflow names the toolchain the ci_toolchain answer gives, ambient by default" {

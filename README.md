@@ -25,7 +25,8 @@ Checks:
 
   The delivered GitHub Actions job runs `kit ci`. Any other pipeline can run it too.
 - `kit lint` runs each rule's linter over the files the rule covers. It also refuses a workflow action that is not
-  pinned to a full commit SHA.
+  pinned to a full commit SHA. `kit ci` does not run it: `kit commit` and the lefthook hook do, and CI does where
+  your gate runs it.
 
 Everything else:
 

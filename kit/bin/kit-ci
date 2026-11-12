@@ -15,6 +15,10 @@
 # commands the repository's kit:generate directives name, so either could move a ref the judgements read. Every
 # check runs even when an earlier one fails, so one run reports every finding.
 #
+# kit lint is not one of the four, and kit ci never runs it. kit commit and the lefthook hook run it over the staged
+# paths; a repository whose CI should run the linters too runs it from its gate, as the gate setting
+# `kit lint --all-files` does.
+#
 # Arguments:
 #
 # Exits 0 when all four pass, 1 when any fails, and 2 on a usage error.

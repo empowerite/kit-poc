@@ -38,21 +38,25 @@ request: before one exists, `kit linked` fails, and the other three run without 
 | `kit linked` | the pull request is not linked to an open issue |
 | `kit policy` | a branch name, worktree, commit subject, pull request title, or file in the tree breaks the policy |
 
-`kit lint` runs each rule's linter over the staged files, or any files, before a commit or at any time. It does not
-need a hook manager; the `hooks/lefthook` package runs it from lefthook.
+`kit lint` is not one of the four, and `kit ci` never runs it. It runs each rule's linter, the kit's own checks the
+rule names, and the style's templates over the staged files, or any files. `kit commit` runs it over the staged
+paths, the `hooks/lefthook` package runs it from a pre-commit hook, and a person runs it at any time. In CI it runs
+only where the repository's gate runs it, as a `gate` setting of `kit lint --all-files` does.
 
-The four checks are fixed. What each one runs is found at run time, from the repository's files:
+The four checks are fixed. What they run, and what `kit lint` runs, is found at run time, from the repository's
+files:
 
-| What | Found from |
-| --- | --- |
-| the gate | the `gate` setting, else a `ci` recipe in the root justfile, a `ci` target in a Makefile, or a `ci` script in `package.json` |
-| the linters | the `lint:` command in the frontmatter of each rule and style that governs a file |
-| the kit's own checks | the names under `checks:` in that frontmatter; the workflows rule names `pinned`, which refuses an action not pinned to a full commit SHA |
-| the templates | the `templates:` list in that frontmatter |
-| the policy engine | the `policy_engine` setting, else Open Policy Agent when `.kit/policy/` holds a `.rego` file, else the patterns in `kit.yml` |
-| the toolchain | the one active or usable where kit runs, such as mise with a `mise.toml`, else the person's choice |
+| What | Run by | Found from |
+| --- | --- | --- |
+| the gate | `kit gate` | the `gate` setting, else a `ci` recipe in the root justfile, a `ci` target in a Makefile, or a `ci` script in `package.json` |
+| the policy engine | `kit policy` | the `policy_engine` setting, else Open Policy Agent when `.kit/policy/` holds a `.rego` file, else the patterns in `kit.yml` |
+| the toolchain | `kit gate`, `kit policy`, and `kit lint` | the one active or usable where kit runs, such as mise with a `mise.toml`, else the person's choice |
+| the linters | `kit lint` | the `lint:` command in the frontmatter of each rule and style that governs a file |
+| the kit's own checks | `kit lint` | the names under `checks:` in that frontmatter; the workflows rule names `pinned`, which refuses an action not pinned to a full commit SHA |
+| the templates | `kit lint` | the `templates:` list in that frontmatter |
 
-A repository that adds a rule or a style adds its linter, its checks, and its templates with it.
+A repository that adds a rule or a style adds its linter, its checks, and its templates with it, for `kit lint` to
+run.
 
 see: [architecture.md](architecture.md#the-checks), [policy.md](policy.md)
 
@@ -471,8 +475,12 @@ see: [modules.md](modules.md), [architecture.md](architecture.md#code-forges-sea
 
 ## What no check covers
 
+`kit ci` does not run `kit lint`. A rule's linter, a check such as `pinned`, and a style's templates hold in CI only
+where the repository's gate runs `kit lint`. Elsewhere they hold for a commit made with `kit commit` or through the
+lefthook hook, and a commit made any other way reaches the default branch without them.
+
 No check verifies that an agent followed a rule after reading it. The linters and templates cover the mechanical
-part for the kinds of file they handle. The rest is the report in the pull request body, which the integrity rules
-in `.kit/1st.md` govern.
+part for the kinds of file they handle, where `kit lint` runs. The rest is the report in the pull request body,
+which the integrity rules in `.kit/1st.md` govern.
 
 see: [architecture.md](architecture.md#what-verifies-what)

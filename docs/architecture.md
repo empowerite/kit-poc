@@ -237,6 +237,10 @@ branch, and any other pipeline can run it too. It runs four checks, each a kit c
 On a desk, `kit ci` passes only once the branch has a pull request. Before one exists, `kit linked` fails, and the
 other three, `kit gate`, `kit check`, and `kit policy`, run without one.
 
+`kit lint` is not one of the four, and `kit ci` never runs it. `kit commit` and the `hooks/lefthook` hook run it over
+the staged paths. In CI it runs only where the repository's gate runs it, as a `gate` setting of
+`kit lint --all-files` does.
+
 ## What verifies what
 
 | Claim | Verified by |
@@ -246,19 +250,19 @@ other three, `kit gate`, `kit check`, and `kit policy`, run without one.
 | The repository's own gate ran | `kit gate`, which fails when there is no gate to run |
 | Branch names, commit subjects, and pull request titles follow the policy | `kit policy`, with patterns or Open Policy Agent |
 | The gate ran with the pinned tools | `kit tools install`, then the gate run through the chosen toolchain, locally and in CI |
-| All four held, wherever CI runs | `kit ci`, which runs all four and reports each one |
+| All four held, wherever CI runs | `kit ci`, which runs `kit linked`, `kit policy`, `kit gate`, and `kit check`, and reports each one; it does not run `kit lint` |
 | An agent was shown a file's rules | the Claude Code hook; a file per kit rule, attached by its kind's paths, in Cursor and Copilot; `kit context` elsewhere |
 | An agent asked for a file's rules | no check; `.git/kit/context.log` records each request, one line per path, and nothing reads it |
-| A file follows its rule's mechanical checks | `kit lint`, each rule's linter over the files it governs |
-| A file keeps its style's shape | `kit lint`, against the style's templates; `kit new file` creates it in that shape |
+| A file follows its rule's mechanical checks | `kit lint`, each rule's linter over the files it governs: at `kit commit`, in the lefthook hook, and in CI only where the gate runs it |
+| A file keeps its style's shape | `kit lint`, against the style's templates, where the row above says it runs; `kit new file` creates it in that shape |
 | The forbidden git commands were not used | no check; the deny list prevents them where the harness has one (Claude Code, Gemini CLI), and elsewhere this rests on the report in the pull request body, which `kit ci` does not verify |
 | A verb's grammar, and the tools and resources `kit serve` offers, change only as a reviewed diff | this repository's gate: their snapshots, in `tests/syntax.bats` and `tests/serve.bats`; see [testing.md](testing.md#contracts) |
 | A page names verbs, flags, settings, and paths that exist, and counts and lists what the code holds as it holds them | this repository's gate: `tests/claims.bats` |
 | The desk was not changed | no check; `kit rebase` refuses the root checkout and `kit work` never switches its branch, and the deny lists refuse a few raw git commands where a harness has one |
 
 No check verifies that an agent followed a rule after reading it. The linters cover the mechanical part for the kinds
-of file they handle. The rest is the report in the pull request body, which the integrity rules in `.kit/1st.md`
-govern.
+of file they handle, where `kit lint` runs. The rest is the report in the pull request body, which the integrity
+rules in `.kit/1st.md` govern.
 
 ### Enforcement tiers
 
