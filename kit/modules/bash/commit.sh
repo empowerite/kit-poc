@@ -75,26 +75,26 @@ commit:parse() {
   done
 }
 
-# commit:branch prints the branch checked out here, or refuses: no branch, the root checkout, the default branch, or
-# a default branch that cannot be read.
+# commit:branch <word> prints the branch checked out here, or refuses: no branch, the root checkout, the default
+# branch, or a default branch that cannot be read. <word> is what the verb does, commit or push, for the refusal.
 commit:branch() {
-  local branch default_branch
+  local word=$1 branch default_branch
   branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)  # detached is refused below
   if [[ -z "${branch}" ]]
   then
-    error "no branch is checked out here, so there is nothing to commit to; run: kit work <N>"
+    error "no branch is checked out here, so there is nothing to ${word}; run: kit work <reference>"
     return 1
   fi
   if [[ "$(git rev-parse --show-toplevel)" == "$(git:main-root)" ]]
   then
-    error "refusing to commit on ${branch}: this is the root checkout, the human's desk; work in a worktree:" \
-      "kit work <N>"
+    error "refusing to ${word} ${branch}: this is the root checkout, the human's desk; work in a worktree:" \
+      "kit work <reference>"
     return 1
   fi
   default_branch=$(git:default-branch) || return 1
   if [[ "${branch}" == "${default_branch}" ]]
   then
-    error "refusing to commit on ${branch}: it is the default branch, which advances by a merged change"
+    error "refusing to ${word} ${branch}: it is the default branch, which advances by a merged change"
     return 1
   fi
   printf '%s\n' "${branch}"
@@ -679,7 +679,7 @@ commit:commit() {
       "--all alone"
     return 2
   fi
-  branch=$(commit:branch) || return 1
+  branch=$(commit:branch commit) || return 1
   # The facts the policy judges name each path's kinds, read from .kit/, so .kit/ is put in place first, as every
   # verb that reads a delivered file has it; a fresh worktree's commit is then judged by its kinds, never by none.
   materialize:hydrate || return 1
@@ -819,7 +819,7 @@ commit:git() {
 commit:submit() {
   local branch remote first=false ahead refused status=0
   local -a staged=()
-  branch=$(commit:branch) || return 1
+  branch=$(commit:branch push) || return 1
   list:read0 staged git diff --cached --name-only -z || return 1
   if (( ${#staged[@]} > 0 ))
   then

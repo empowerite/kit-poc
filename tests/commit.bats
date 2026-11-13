@@ -40,7 +40,7 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
   printf 'x\n' > x && git add x
   run kit commit --message='#1 x: a file'
   [ "$status" -eq 1 ]
-  [[ "$output" == *"the root checkout, the human's desk"* ]]
+  [[ "$output" == *"refusing to commit main: this is the root checkout, the human's desk"* ]]
   git reset --quiet -- x
   git switch --quiet --create holding
   git worktree add --quiet worktrees/main-too main
@@ -266,7 +266,14 @@ conventional() {
   cd "${work}/desk"
   run kit submit
   [ "$status" -eq 1 ]
-  [[ "$output" == *"the root checkout, the human's desk"* ]]
+  [[ "$output" == *"refusing to push main: this is the root checkout, the human's desk"* ]]
+  [[ "$output" == *"kit work <reference>"* ]]
+  [[ "$output" != *"commit"* ]]
+  git switch --quiet --detach
+  run kit submit
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"no branch is checked out here, so there is nothing to push"* ]]
+  git switch --quiet main
   cd "${work}/desk/worktrees/7-fix-the-thing"
   git push --quiet --set-upstream origin 7-fix-the-thing
   git clone --quiet --branch 7-fix-the-thing "${work}/origin.git" "${work}/other" 2>/dev/null
