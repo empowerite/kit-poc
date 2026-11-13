@@ -24,7 +24,8 @@ The pull request's own workflow file runs: on a `pull_request` event GitHub take
 merge commit, from a fork's too. The job asks for no more permission than before (`contents`, `issues`, and
 `pull-requests`, read), and a fork's pull request gets a read-only token and no secrets. Do not move the job to
 `pull_request_target` to get write access: it runs the base's workflow with secrets, and `kit ci` would then run the
-fork's code, the gate, with them.
+fork's code, the gate, with them. Only `Settle` runs on `pull_request_target`, because it runs none of the change's
+code.
 
 GitHub's hosted runners already have Homebrew and Docker. The job sets `KIT_TOOLCHAIN` to the `ci_toolchain` answer, so
 kit uses that toolchain and refuses, never replaces, one the runner cannot use. One bootstrap step runs for the
@@ -40,11 +41,12 @@ toolchain named, and none for the others:
 
 The job needs `jq` and `yq` on the runner, which the hosted runners have; a runner of the repository's own needs both.
 
-When a pull request closes, a second job, `Settle`, puts `kit` on `PATH` the same way and runs `kit settle` on it.
-An issue in another tracker that a merged pull request's body closes (`Closes AB#4521`) is closed with a comment
-naming the merge commit; the issues of a pull request closed without merging get a comment and lose its author, so
-they are backlog again. `Settle` alone may write to issues. For an Azure DevOps tracker it reads the repository's
-`AZURE_DEVOPS_EXT_PAT` secret, which `az` takes as its token.
+When a pull request closes, a second job, `Settle`, which runs on `pull_request_target` so that a fork's or
+Dependabot's pull request gets a token that can write and the secrets, puts `kit` on `PATH` the same way and runs `kit
+settle` on it. An issue in another tracker that a merged pull request's body closes (`Closes AB#4521`) is closed with
+a comment naming the merge commit; the issues of a pull request closed without merging get a comment and lose its
+author, so they are backlog again. `Settle` alone may write to issues. For an Azure DevOps tracker it reads the
+repository's `AZURE_DEVOPS_EXT_PAT` secret, which `az` takes as its token.
 
 A repository on another CI system calls `kit ci` from its own pipeline, with nothing of the change's installed before
 it; on a runner `kit ci` installs the tools after the two judgements.

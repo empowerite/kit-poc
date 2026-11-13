@@ -14,9 +14,9 @@
 # Nothing of the change's is installed or put on PATH before the two judgements, so no step here runs `kit tools`:
 # `kit ci` does, after them.
 #
-# When a pull request closes, a second job, Settle, runs `kit settle` on it: an issue in another tracker that a merged
-# pull request's body closes is closed, and the issues of one closed without merging are backlog again. It alone may
-# write to issues. It reads the other trackers with the repository's secrets: AZURE_DEVOPS_EXT_PAT for Azure DevOps.
+# When a pull request closes, a second job, Settle, runs `kit settle` on it, from the base's workflow and checkout: an
+# issue in another tracker that a merged pull request's body closes is closed, and the issues of one closed without
+# merging are backlog again. It alone may write to issues. It reads the other trackers with the repository's secrets: AZURE_DEVOPS_EXT_PAT for Azure DevOps.
 #
 # Added by kit's github/ci package. To remove it, run kit packages remove github/ci.
 # To change it, do not edit it here: see "Changing what kit adds" in .kit/1st.md.
@@ -29,7 +29,11 @@ name: kit
 
 on:
   pull_request:
-    types: [opened, edited, reopened, synchronize, closed]
+    types: [opened, edited, reopened, synchronize]
+  # Settle writes to issues, which a fork's or Dependabot's pull_request token cannot. This event runs the base's workflow
+  # with the base's checkout, and Settle runs none of the change's code.
+  pull_request_target:
+    types: [closed]
 
 permissions:
   contents: read
@@ -39,7 +43,7 @@ permissions:
 jobs:
   CI:
     if: >-
-      github.event.action != 'closed'
+      github.event_name == 'pull_request'
       && github.event.pull_request.base.ref == github.event.repository.default_branch
     runs-on: "ubuntu-latest"
     # A hung step fails the job after this many minutes, not after GitHub's six hours. fromJSON makes the answer a
@@ -133,7 +137,7 @@ jobs:
         run: kit ci
 
   Settle:
-    if: github.event.action == 'closed'
+    if: github.event_name == 'pull_request_target'
     runs-on: "ubuntu-latest"
     timeout-minutes: 10
     permissions:

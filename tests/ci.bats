@@ -232,6 +232,17 @@ run-job() {
   grep --quiet 'npm install --global @devcontainers/cli@[0-9][0-9.]*$' "${workflow}"
 }
 
+@test "Settle runs on pull_request_target with the base's checkout, and the CI job on pull_request, never on closed" {
+  fresh-repo other >/dev/null
+  "${kit_checkout}/bin/kit" install github/ci >/dev/null
+  workflow=.github/workflows/kit-ci.yml
+  [ "$(yq '.on.pull_request.types | join(",")' "${workflow}")" = "opened,edited,reopened,synchronize" ]
+  [ "$(yq '.on.pull_request_target.types | join(",")' "${workflow}")" = "closed" ]
+  [ "$(yq '.jobs.Settle.if' "${workflow}")" = "github.event_name == 'pull_request_target'" ]
+  # the checkout is the base's, so the step names no ref and no repository of the pull request's head
+  run ! grep --quiet 'github.event.pull_request.head' "${workflow}"
+}
+
 @test "the CI job stops after the minutes the ci_timeout_minutes answer gives, 30 by default" {
   fresh-repo other >/dev/null
   "${kit_checkout}/bin/kit" install github/ci >/dev/null
