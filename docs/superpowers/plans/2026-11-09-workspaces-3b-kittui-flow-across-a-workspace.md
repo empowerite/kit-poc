@@ -1,5 +1,9 @@
 # Workspaces 3b: kittui's Flow across a workspace Implementation Plan
 
+**Status, 2026-11-12:** The review of 2026-11-12 read this plan against commit `0e76266c`, where it found 4 of the 5
+tasks built and Task 4 built in part: the repos tab counts no other tab, which #138 dropped on purpose. [The review's
+page](../reviews/2026-11-12-review-plans.md) has each task's evidence.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

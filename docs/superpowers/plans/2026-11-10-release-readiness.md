@@ -1,5 +1,14 @@
 # Release Readiness Implementation Plan
 
+**Status, 2026-11-12:** read against the code at `1ba9b1b0`. Of Part A's nine tasks, Task 1 is built (#298) and Task 2
+is overtaken: its test moved to `tests/issues-underway.bats`, and passes. Task 5 is built but for git's minimum, 2.31,
+which nothing checks or states. Tasks 3, 4, 6, 7, 8, and 9 are not built: `pack` still packs the working tree, a
+release is run only after it is published (`bin/release fetch`, #298), `kit update` still stops at a package the
+release dropped, no release needs a changelog entry, and there is no `SECURITY.md`. Part B is not started; under
+Decision 5, the README's Homebrew line is dropped (#347). Next, in the plan's order: Task 3, then 4, the rest of 5,
+and 6 to 9, each with its line numbers taken from the tree as it is now, then Part B. Each task below has a line of
+its own.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -61,6 +70,8 @@ Left out: Command line 12 and 13 reach a checkout alone; a release has a `versio
 
 ### Task 1: The packed tarball's digest verifies
 
+- **Status, 2026-11-12:** built in #298: `pack` writes the digest with `file:digest` and refuses when none comes back
+  (`bin/release:124`), and `tests/release.bats` holds both tests.
 - **Files:** `bin/release:114-115`; test `tests/release.bats:54-76`.
 - **Interfaces:** line 114 calls `release:digest`, which exists nowhere, so `.sha256` holds no digest and `pack`
   exits 0 (Infrastructure 1). `file:digest [<path>]` (`kit/modules/bash/file.sh:150`) comes with `use release`. `pack`
@@ -77,6 +88,8 @@ Left out: Command line 12 and 13 reach a checkout alone; a release has a `versio
 
 ### Task 2: The gate is green at HEAD
 
+- **Status, 2026-11-12:** overtaken. `tests/underway.bats` is now `tests/issues-underway.bats`, whose legend test
+  reads `kit help flow` as it is, and passes. Step 3, the whole suite, was not run for this status.
 - **Files:** `tests/underway.bats:199`.
 - **Interfaces:** the whole suite at HEAD (736 tests, macOS) fails line 199 alone (Infrastructure 2). The five failures
   of run 42778922819, on the pushed head `6edaa6b6`, each run by name at `2dad3552` on macOS, pass at HEAD:
@@ -85,15 +98,17 @@ Left out: Command line 12 and 13 reach a checkout alone; a release has a `versio
   - 340, `tests/materialize.bats:73`, `bin/tutorials: No such file or directory`: since `38079cad`.
   - 466, `tests/template.bats:291`, forge's header lists `quota` and its template does not: since `72440e78`.
   - 570, `tests/underway.bats:81`, `labels` is among the keys: since `87bc1a4d`.
-- [ ] **Step 1: Run `tests/underway.bats`.** Expected: `not ok 12 kit help flow holds the underway legend…`.
-- [ ] **Step 2: Replace line 199** with the line `kit help flow` prints for `kit/bin/kit-flow:157`, which wraps:
+- [x] **Step 1: Run `tests/underway.bats`.** Expected: `not ok 12 kit help flow holds the underway legend…`.
+- [x] **Step 2: Replace line 199** with the line `kit help flow` prints for `kit/bin/kit-flow:157`, which wraps:
   `[[ "$output" == *$'\n    🌱  a local branch: this desk has it: under underway, and no checkout does;\n'* ]]`
 - [ ] **Step 3: Run the suite** as `bin/ci:62` does, after `kit/bin/kit hydrate`, which a fresh clone needs first:
   `kit/bin/kit tools run bats --jobs "$(getconf _NPROCESSORS_ONLN)" --timing tests/`. Expected: no `not ok`.
-- [ ] **Step 4: Commit:** `#1 tests: kit help flow's underway legend reads as kit flow's header has it`
+- [x] **Step 4: Commit:** `#1 tests: kit help flow's underway legend reads as kit flow's header has it`
 
 ### Task 3: A release is its tag, and a pre-release outlives its branch
 
+- **Status, 2026-11-12:** not built. `pack` copies the working tree's `kit/` (`bin/release:114`), `publish` checks
+  neither HEAD nor the tag, `retire` deletes on branch reach alone, and `tests/helper.bash` has no `tag-checkout`.
 - **Files:** `bin/release` (header, `build-kittui`, `pack`, `publish`, `retire`), `tests/helper.bash`,
   `tests/release.bats`, `tests/tui.bats:106` (Infrastructure 7, 8, 20).
 - **Interfaces:**
@@ -133,6 +148,9 @@ Left out: Command line 12 and 13 reach a checkout alone; a release has a `versio
 
 ### Task 4: The packed release runs before it is published
 
+- **Status, 2026-11-12:** not built. kittui takes no `--version`, `bin/release` has no `smoke`, and `release.yml` has
+  no timeout and no concurrency. #298 added `bin/release fetch`, which runs the release after it is published, not
+  before.
 - **Files:** `projects/tui/cmd/kittui/main.go`, `main_test.go` beside it, `bin/release`, `tests/fakes/fake-go`,
   `tests/release.bats`, `.github/workflows/release.yml`.
 - **Interfaces:**
@@ -159,6 +177,10 @@ Left out: Command line 12 and 13 reach a checkout alone; a release has a `versio
 
 ### Task 5: The minimums are checked, and a remedy names no tool manager
 
+- **Status, 2026-11-12:** built in part. Built: the bash 4.4 refusal, which is in `kit/libexec/kit-call` since the
+  loader became POSIX sh (`tests/loader.bats:239`); `template.jq` on jq 1.7 (#312); the jq 1.7 test (#319); and
+  `guard:missing`, with no `run: mise install` left. Left: `kit welcome` does not hold git to 2.31, and neither the
+  README nor the welcome page states that minimum.
 - **Files:** `kit/bin/kit:18-21`, `kit/modules/jq/template.jq:102`, `kit/modules/bash/welcome.sh:539`,
   `kit/modules/bash/1st.sh:345`, `syntax.sh:329`, `yaml.sh:78,81`, and `tui.sh:91` beside it, `kit/bin/kit-check:67`,
   `README.md:94`, `kit/packages/kit/files/repo/.kit/welcome/2-before-toolchains.md:8`; the tests named below.
@@ -198,6 +220,9 @@ import "template" as template; template::parts | template::match("# Guía ⚠️
 
 ### Task 6: CI covers what ships, and a test stands apart from its caller
 
+- **Status, 2026-11-12:** not built. There is no `macos.yml`; the delivered `kit-ci.yml` sets no origin HEAD and has
+  neither `concurrency` nor `pull_request_target`; `dependabot.yml` covers github-actions alone; `bin/ci` has no
+  `validate`; and `helper:isolate-in` unsets none of the variables named here. The test lines of Step 3 were not read.
 - **Files:** create `.github/workflows/macos.yml`; modify
   `kit/packages/github/ci/templates/repo/.github/workflows/kit-ci.yml`, `docs/packages/github/ci.md`,
   `.github/dependabot.yml`, `.github/workflows/retire-pre-releases.yml`, `bin/ci:27-57`, `tests/helper.bash:68-76`,
@@ -243,6 +268,8 @@ import "template" as template; template::parts | template::match("# Guía ⚠️
 
 ### Task 7: `kit update` holds across two packed releases
 
+- **Status, 2026-11-12:** not built. `kit update` has no words for a package the release dropped, `place:retire` takes
+  no dropped packages, and no test updates between two packed releases.
 - **Files:** `kit/bin/kit-update:28,50`, `kit/modules/bash/place.sh:227-247`, `docs/packages.md`; test
   `tests/release.bats`, with Task 3's `tag-checkout` and `pack`, and `fake-curl` as `tests/fetch.bats:12-21` has it.
 - **Interfaces:**
@@ -280,6 +307,9 @@ import "template" as template; template::parts | template::match("# Guía ⚠️
 
 ### Task 8: A release needs its changelog entry
 
+- **Status, 2026-11-12:** not built. `kit.yml` has no `changelog` key, `kit release` refuses nothing for want of an
+  entry, and `bin/release publish` writes the mise pin alone. The entry, `projects/tutorials/src/changelog/0.1.0.mdx`,
+  is there.
 - **Files:** `kit/modules/bash/releases.sh:38-91`, `kit/bin/kit-release:9-13`, `kit/modules/bash/settings.sh:44`,
   `kit/packages/kit/files/repo/.kit/kit.schema.json`, `docs/packages.md:268`, `kit.yml`, `bin/release:131-137`;
   tests `tests/releases.bats`, `tests/release.bats`.
@@ -303,6 +333,9 @@ import "template" as template; template::parts | template::match("# Guía ⚠️
 
 ### Task 9: The documents that describe the release are true
 
+- **Status, 2026-11-12:** not built, but for the README's `bin/` row, which names `bin/tutorials` (#345). There is no
+  `SECURITY.md`; `AGENTS.md` and the README's table still say `libexec/kittui`, built from `tui/`; and the README's
+  Release section says what is built today, since Tasks 3, 4, and 8 are not.
 - **Files:** create `SECURITY.md`; modify `AGENTS.md:15`, `README.md:271,275,329-354`, `docs/testing.md:8-9`,
   `projects/tui/README.md:215`, `.github/workflows/release.yml:1-19`, `bin/ci:2,49`.
 - **Interfaces:**
@@ -323,6 +356,9 @@ import "template" as template; template::parts | template::match("# Guía ⚠️
 - [ ] **Step 4: Commit:** `#1 docs: the release as it is packed, run, and retired, and a security policy`
 
 ## Part B: the owner's checklist
+
+**Status, 2026-11-12:** not started, and none of it can be checked from this tree. Step 6 is open: nothing publishes a
+formula, so the README and `docs/install.md` lead with the download and name no tap (#347).
 
 - [ ] **1. Push.** `git push origin 1-the-first-release-v0-1-0`, then `gh pr checks 2 --watch`. Expected: `CI` and
   `macos` pass. No run has passed on Linux since `6edaa6b6`; a failure there is fixed under Part A's rules.

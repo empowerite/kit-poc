@@ -11,6 +11,10 @@
 # kit:claims skip, in an HTML comment, <!-- kit:claims skip -->, or in MDX, {/* kit:claims skip */}: nothing is judged
 # up to the next blank line, or, where a fence opens next, to its close.
 #
+# A plan under docs/superpowers/plans/ is such a record, and it says where it stands: its third line, under its title,
+# is a status line with its date, **Status, 2026-11-12:** and what is built, what is not, and what is next. The last
+# test holds the line's form alone; what it says is a reading of the code on that date, which no test can make.
+#
 # The docs check is a test, not a rule's check that kit lint runs: kit lint is not one of kit ci's four checks, and
 # what these tests hold is this repository's pages to this repository's code, which no repository that installs the
 # kit has.
@@ -392,5 +396,15 @@ EOF
   modules=$(sed -n 's/^| `\([a-z-]*\.jq\)` |.*/\1/p' "${root}/docs/modules.md" | LC_ALL=C sort)
   [ "${modules}" = "$(jq --raw-output '.jq[]' "${BATS_TEST_TMPDIR}/facts.json" | LC_ALL=C sort)" ] \
     || found+=("docs/modules.md: its table of jq modules is not kit/modules/jq/'s")
+  (( ${#found[@]} == 0 )) || { printf '%s\n' "${found[@]}"; return 1; }
+}
+
+@test "every plan says where it stands, on a dated status line under its title" {
+  local plan found=()
+  for plan in "${root}"/docs/superpowers/plans/*.md
+  do
+    [[ "$(sed -n 3p "${plan}")" =~ ^\*\*Status,\ [0-9]{4}-[0-9]{2}-[0-9]{2}:\*\*\ [^\ ] ]] \
+      || found+=("${plan#"${root}/"}:3: no status line; write **Status, <date>:** and where the plan stands")
+  done
   (( ${#found[@]} == 0 )) || { printf '%s\n' "${found[@]}"; return 1; }
 }

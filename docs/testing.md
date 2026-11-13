@@ -67,6 +67,11 @@ A page that shows a command meant to fail puts `<!-- kit:claims skip -->` on the
 `{/* kit:claims skip */}`: nothing is judged up to the next blank line, or to the end of the fenced block that opens
 next.
 
+A plan under `docs/superpowers/plans/` is a dated record, so none of that is held in it. It says where it stands
+instead: its third line, under its title, is a status line with its date, `**Status, 2026-11-12:**` and what is
+built, what is not, and what is next. `tests/claims.bats` holds that every plan has the line. What the line says is
+a reading of the code on that date, which no test makes.
+
 ## Time limits
 
 A test that waits forever must fail fast, not run until GitHub stops it. One did: a test started the real `kittui`
