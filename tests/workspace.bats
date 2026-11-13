@@ -239,6 +239,20 @@ EOF
   [ "$(jq -r .branches <<<"$output")" = "$(jq -r .branches <<<"${before}")" ]
 }
 
+@test "the worktrees mark moves when the primary's default branch, which each worktree is counted against, moves" {
+  history-at "${BATS_TEST_TMPDIR}/r" github.com/o/r
+  cd "${BATS_TEST_TMPDIR}/r"
+  git remote add upstream "${BATS_TEST_TMPDIR}/origins/github.com_o_r.git"
+  git fetch --quiet upstream
+  git remote set-head upstream main
+  printf 'primary: upstream\n' > kit.yml
+  run "${kit_root}/bin/kit" workspace --marks
+  before=$output
+  git update-ref refs/remotes/upstream/main "$(git rev-parse 7-fix)"
+  run "${kit_root}/bin/kit" workspace --marks
+  [ "$(jq -r .worktrees <<<"$output")" != "$(jq -r .worktrees <<<"${before}")" ]
+}
+
 @test "on a terminal, kit workspace hands off to kittui with its stage and workspace; a form stays in text" {
   fake-tui
   history-at "${BATS_TEST_TMPDIR}/r" github.com/o/r

@@ -177,7 +177,7 @@ workspace:tags() {
 workspace:marks() {
   (
     cd "$(git:main-root)" || exit 1
-    local path
+    local path base
     local -a paths
     jq --null-input --compact-output \
       --arg repos "$({ pwd; git worktree list --porcelain; git for-each-ref --format='%(refname)' refs/heads; } \
@@ -187,6 +187,8 @@ workspace:marks() {
       --arg branches "$(git for-each-ref --format='%(refname) %(objectname) %(upstream) %(worktreepath)' \
         refs/heads refs/remotes | git hash-object --stdin)" \
       --arg worktrees "$({ git worktree list --porcelain
+        # What each worktree is counted against moves the stage too: the primary's default branch.
+        base=$(workspace:base) && [[ -z "${base}" ]] || git rev-parse --verify --quiet "${base}"
         # The mark only has to change when the worktrees do: a list git cannot give, or a worktree removed while it
         # is read, changes what is hashed, and the stage is drawn again.
         list:read paths workspace:paths || exit 1
