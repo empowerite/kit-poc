@@ -5,7 +5,8 @@
 #
 #   - kit-YYYY-MMDD.log has a line for each call of the kit CLI, written when the call ends: when it started, its
 #     process, its depth (a call another kit call made is one deeper), its exit status, its seconds, the directory it
-#     was typed in relative to the root, and the command line, quoted so it can be pasted back.
+#     was typed in relative to the root, and the command line, quoted so it can be pasted back, with a URL's password
+#     and an option's secret value (see log:redact) written as ***.
 #   - mcp-YYYY-MMDD.log has a line for each message kit serve answers, and one when it starts and stops: the request's
 #     id and method, the tool and its arguments or the resource, the outcome, and its seconds.
 #
@@ -52,12 +53,32 @@ log:prune() {
   find "$1" -maxdepth 1 -type f -name '*.log' -mtime "+$2" -exec rm -f {} + 2>/dev/null || true
 }
 
+# log:redact <var> <line> sets <var> to <line> with each secret it can see taken out: the user and password of a URL,
+# as in https://user:password@host, and the value of an option whose name holds token, password, secret, or key, as in
+# --api-token=value, each now ***. The logs rest on the desk for log_days days, so a credential typed on a command line
+# must not rest in them. It starts no process.
+log:redact() {
+  local log_text=$2 log_tail='' log_value='(\\.|[^[:space:]\\])+'
+  while [[ "${log_text}" =~ ^(.*://)[^/@[:space:]]+@(.*)$ ]]
+  do
+    log_tail="***@${BASH_REMATCH[2]}${log_tail}"
+    log_text=${BASH_REMATCH[1]}
+  done
+  log_text+=${log_tail} log_tail=''
+  while [[ "${log_text}" =~ ^(.*[[:space:]]--[A-Za-z_-]*(token|password|secret|key)[A-Za-z_-]*=)${log_value}(.*)$ ]]
+  do
+    log_tail="***${BASH_REMATCH[4]}${log_tail}"
+    log_text=${BASH_REMATCH[1]}
+  done
+  printf -v "$1" '%s' "${log_text}${log_tail}"
+}
+
 # log:write <name> <line> appends <line> to today's <name> log, .kit/logs/<name>-YYYY-MMDD.log at the root, where
 # .kit/.gitignore lists /logs/ and log_days is not 0. The day's first line prunes the logs first. It writes nothing
 # where .kit, .kit/logs, or the log is a link, which a clone could point out of itself, so a line would be appended
-# wherever it leads. It always succeeds.
+# wherever it leads. It writes the line as log:redact leaves it. It always succeeds.
 log:write() {
-  local root ignore='' days file
+  local root ignore='' days file line
   log:root root || return 0
   [[ ! -L "${root}/.kit" && ! -L "${root}/.kit/logs" && -f "${root}/.kit/.gitignore" ]] || return 0
   # read -d '' meets the end of the file before any NUL, so it returns 1, the whole of it read.
@@ -72,7 +93,8 @@ log:write() {
     log:prune "${root}/.kit/logs" "${days}"
   fi
   [[ ! -L "${file}" ]] || return 0
-  { printf '%s\n' "$2" >> "${file}"; } 2>/dev/null || true  # a log never fails the command it logs
+  log:redact line "$2"
+  { printf '%s\n' "${line}" >> "${file}"; } 2>/dev/null || true  # a log never fails the command it logs
 }
 
 # log:now <var> sets <var> to the time now in microseconds, or in whole seconds times a million where the shell has

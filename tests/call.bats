@@ -108,16 +108,24 @@ sent() {
   [[ "${lines[0]}" == *" status=0 in=. kit fake read" ]]
 }
 
-@test "Ctrl-C at a terminal ends the verb, and kit lives to log the call with 130" {
+@test "Ctrl-C at a terminal ends the verb, and kit lives to log the call with 130, then dies of the INT" {
   started=${SECONDS}
   run at-terminal '\003' "'${kit}' fake wait '${ended}'"
-  [ "$status" -eq 130 ]
+  # script reports a command that died of the INT as 130 or, as on macOS, as the signal's number
+  [[ "$status" -eq 130 || "$status" -eq 2 ]]
   [[ "$output" == *waiting* ]]
   # the verb ended at the Ctrl-C, not when its 30 seconds were up; at-terminal itself takes four
   (( SECONDS - started <= 6 ))
   [ "$(cat "${ended}")" = ended ]
   run logged
   [[ "${lines[0]}" == *" status=130 in=. kit fake wait ${ended}" ]]
+}
+
+@test "Ctrl-C ends a script that calls kit in a loop, as it ends one that calls the verb: kit dies of the INT it was sent" {
+  run at-terminal '\003' "bash -c 'for each in 1 2 3; do \"${kit}\" fake wait \"${ended}\" || echo failed; done; echo finished'"
+  [[ "$output" == *waiting* ]]
+  [[ "$output" != *finished* ]]
+  [[ "$output" != *failed*failed* ]]
 }
 
 @test "the verb's own status is kit's, and the logged one, a status above 128 too" {

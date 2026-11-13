@@ -16,7 +16,8 @@
 # verb ends, with its exit status, which it then exits with. modules/bash/log.sh says what a line holds. The loader
 # execs this file, so this process is the one timeout, a supervisor, or a closed terminal signals: it sends a TERM or
 # HUP on to the verb, and the call is logged with the verb's status, 143 or 129 where the signal ended it. Ctrl-C
-# reaches the verb from the terminal, which ends with it, and the call is logged with status 130.
+# reaches the verb from the terminal, which ends with it, the call is logged with status 130, and kit then dies of the
+# INT itself, so a script that called it stops as it would for the verb.
 #
 # see: bin/kit, .kit/1st.md
 
@@ -46,7 +47,17 @@ source "${kit_bin}/../modules/bash/log.sh"
 started=0
 log:now started
 line=''
-(( $# == 0 )) || printf -v line ' %q' "$@"
+# What follows kit tools run is another command's, whose arguments the log has no business holding.
+for word in "$@"
+do
+  if [[ "${verb}" == tools && "${word}" == run ]]
+  then
+    line+=' run …'
+    break
+  fi
+  printf -v word ' %q' "${word}"
+  line+=${word}
+done
 printf -v line 'kit %q%s' "${verb}" "${line}"
 log:root root || root=${PWD}
 directory=${PWD#"${root}"}
@@ -98,6 +109,13 @@ do
   wait "${verb_pid}" || status=$?
 done
 log:call kit "${started}" "pid=$$" "depth=${kit_depth:-0}" "status=${status}" "in=${directory}" "${line}"
+# A verb that Ctrl-C ended makes kit die of the INT too, as a verb run directly does, so a script or a loop that called
+# kit stops with it, and does not take the 130 as a failure to go on from.
+if (( status == 130 ))
+then
+  trap - INT
+  kill -s INT "$$"
+fi
 exit "${status}"
 
 # ----------------------------------------------------------------------------------------------------------------------
