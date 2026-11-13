@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 )
 
 // Workspace is what kit workspaces --current --json prints: its kind, repository, group, or none, empty while kit has
@@ -61,7 +60,7 @@ func (r Runner) Workspace(ctx context.Context, given string) (Workspace, error) 
 	if given != "" {
 		args = append([]string{"--workspace=" + given}, args...)
 	}
-	out, err := r.within(ctx, callLimit, append(os.Environ(), "NO_COLOR=1"), args...)
+	out, err := r.within(ctx, callLimit, environment(), args...)
 	if err != nil {
 		return Workspace{}, err
 	}
@@ -74,7 +73,7 @@ func (r Runner) Workspace(ctx context.Context, given string) (Workspace, error) 
 
 // UseWorkspace keeps a group as the last used, which kit starts on outside a repository.
 func (r Runner) UseWorkspace(ctx context.Context, name string) error {
-	_, err := r.within(ctx, callLimit, append(os.Environ(), "NO_COLOR=1"), "workspaces", "--use="+name)
+	_, err := r.within(ctx, callLimit, environment(), "workspaces", "--use="+name)
 	return err
 }
 
@@ -98,7 +97,7 @@ type ListedGroup struct {
 
 // Workspaces gives the groups and the favorites, as kit workspaces --json lists them.
 func (r Runner) Workspaces(ctx context.Context) (WorkspaceList, error) {
-	out, err := r.within(ctx, callLimit, append(os.Environ(), "NO_COLOR=1"), "workspaces", "--json")
+	out, err := r.within(ctx, callLimit, environment(), "workspaces", "--json")
 	if err != nil {
 		return WorkspaceList{}, err
 	}

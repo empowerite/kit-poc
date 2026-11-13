@@ -101,6 +101,12 @@ A link to a row of a tab the app does not have opens the app built around that t
 Each screen reads what it shows from kit as JSON. A form reads `kit syntax <verb>`, the picture reads
 `kit flow <stage> --json`, and the workspace's reads `kit workspace <stage> --json`. `kittui` never parses kit's text.
 
+Every kit that a screen starts runs with no terminal, in a session of its own, with `GIT_TERMINAL_PROMPT=0`. A git,
+an ssh, or a kit verb that would ask for a password or an answer there fails at once, and the screen shows its line;
+it never writes a prompt over the screen or waits on one. A stage's read has two minutes, and so has an action, a
+verb that changes something: past that, kit is stopped, and the screen says which command it was. Two things keep
+the terminal, since they are the person's own: a fix the welcome guide runs, and the verb a form runs.
+
 ## Where kit finds it
 
 `kit tui` looks for `kittui` in this order:

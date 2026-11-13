@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -825,5 +826,121 @@ func TestAnEndedCommandLeavesNothingOfItsGroupBehind(t *testing.T) {
 			_ = syscall.Kill(pid, syscall.SIGKILL)
 			t.Fatal("the child that ignored SIGTERM outlived the command")
 		}
+	}
+}
+
+// Kit's children have no terminal to ask on: each runs in a session of its own, whatever call starts it, with git
+// told not to ask, so a git, an ssh, or a kit that would ask fails where it stands. The child here is this test
+// binary, which says whether it leads its session, whether it can open the terminal, and what git is told.
+func TestKitsChildrenRunInASessionOfTheirOwnWithNoTerminal(t *testing.T) {
+	t.Setenv("KIT_TEST_HELPER", "session")
+	r := Runner{Kit: os.Args[0], Dir: t.TempDir()}
+	const want = "leads its session true, opens the terminal false, GIT_TERMINAL_PROMPT=0, NO_COLOR=1"
+	acted, err := r.Act(context.Background(), "-test.run=TestHelperSession")
+	if err != nil || !strings.Contains(acted, want) {
+		t.Errorf("an action's child: %v\n%s", err, acted)
+	}
+	rows, err := r.Rows(context.Background(), []string{"-test.run=TestHelperSession"}, false)
+	if err != nil || !strings.Contains(string(rows), want) {
+		t.Errorf("a read's child: %v\n%s", err, rows)
+	}
+	called, err := r.run("-test.run=TestHelperSession")
+	if err != nil || !strings.Contains(string(called), want) {
+		t.Errorf("a call's child: %v\n%s", err, called)
+	}
+}
+
+// TestHelperSession is the body of TestKitsChildrenRunInASessionOfTheirOwnWithNoTerminal's child; it runs only there.
+func TestHelperSession(t *testing.T) {
+	if os.Getenv("KIT_TEST_HELPER") != "session" {
+		t.Skip("the helper runs under TestKitsChildrenRunInASessionOfTheirOwnWithNoTerminal alone")
+	}
+	sid, _ := syscall.Getsid(0)
+	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
+	if err == nil {
+		tty.Close()
+	}
+	fmt.Printf("leads its session %v, opens the terminal %v, GIT_TERMINAL_PROMPT=%s, NO_COLOR=%s\n",
+		sid == os.Getpid(), err == nil, os.Getenv("GIT_TERMINAL_PROMPT"), os.Getenv("NO_COLOR"))
+}
+
+// On a terminal, a child that asks for a password is refused at once, with a line the screen can show, and draws
+// nothing on the terminal: it is never stopped there, waiting, until its limit. script(1) gives the terminal, as it
+// does in tests/tui.bats; the helper under it runs the client over a kit that asks as git does.
+func TestAChildThatAsksOnTheTerminalIsRefusedAndDrawsNothing(t *testing.T) {
+	script, err := exec.LookPath("script")
+	if err != nil {
+		t.Skip("no script(1) to give the helper a terminal")
+	}
+	cmd := exec.Command(script, "-q", "/dev/null", os.Args[0], "-test.run=TestHelperAsks")
+	if exec.Command(script, "--version").Run() == nil {
+		// util-linux's script takes the command as one line
+		cmd = exec.Command(script, "--quiet", "--return", "--command", "'"+os.Args[0]+"' -test.run=TestHelperAsks",
+			"/dev/null")
+	}
+	cmd.Env = append(os.Environ(), "KIT_TEST_HELPER=asks")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("the helper under script: %v\n%s", err, out)
+	}
+	if drawn := string(out); strings.Contains(drawn, "Password for kit") ||
+		!strings.Contains(drawn, "the helper had a terminal true, kit refused true: could not read Password") {
+		t.Errorf("on the terminal:\n%s", drawn)
+	}
+}
+
+// TestHelperAsks is the body of TestAChildThatAsksOnTheTerminalIsRefusedAndDrawsNothing's helper; it runs only there,
+// on the terminal script(1) gives it.
+func TestHelperAsks(t *testing.T) {
+	if os.Getenv("KIT_TEST_HELPER") != "asks" {
+		t.Skip("the helper runs under TestAChildThatAsksOnTheTerminalIsRefusedAndDrawsNothing alone")
+	}
+	dir := t.TempDir()
+	kit := filepath.Join(dir, "kit")
+	// as git asks: the prompt on the terminal, the answer read from it, and its own line when it cannot
+	body := "#!/bin/sh\n{ printf 'Password for kit: ' > /dev/tty; } 2>/dev/null\n" +
+		"if ! { read -r answer < /dev/tty; } 2>/dev/null; then echo '❌ could not read Password' >&2; exit 1; fi\n" +
+		"echo \"read $answer\"\n"
+	if err := os.WriteFile(kit, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
+	if err == nil {
+		tty.Close()
+	}
+	// a child stopped on the terminal ends only with this context
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, acted := Runner{Kit: kit, Dir: dir}.Act(ctx, "work")
+	var refusal *ExitError
+	line := ""
+	if errors.As(acted, &refusal) {
+		line = refusal.Error()
+	}
+	fmt.Printf("the helper had a terminal %v, kit refused %v: %s\n", err == nil, line != "", line)
+}
+
+// An action has a limit, as a read has: a kit that hangs is stopped at it, and the error names the command and how
+// long it had.
+func TestAnActionThatHangsIsStoppedAtItsLimit(t *testing.T) {
+	limit0 := actLimit
+	t.Cleanup(func() { actLimit = limit0 })
+	actLimit = 300 * time.Millisecond
+	t.Setenv("FAKE_KIT_HANG", "5")
+	start := time.Now()
+	_, err := fake(t, t.TempDir()).Act(context.Background(), "assign", "#7")
+	if took := time.Since(start); took > 3*time.Second || err == nil ||
+		err.Error() != "kit assign #7 took longer than 300ms; it was stopped" {
+		t.Errorf("a hung action: %v after %s", err, took)
+	}
+	// an action whose screen ends is stopped as before, with what kit said until then, and is no call past its limit
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+		cancel()
+	}()
+	_, err = fake(t, t.TempDir()).Act(ctx, "assign", "#7")
+	if err == nil || strings.Contains(err.Error(), "took longer") {
+		t.Errorf("an action whose screen ended: %v", err)
 	}
 }

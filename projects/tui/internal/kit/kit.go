@@ -41,6 +41,10 @@ func (r Runner) over(words ...string) []string {
 	return words
 }
 
+// environment gives the environment a kit call runs in: kittui's own, with color off, and with git told not to ask
+// on a terminal, which a call has none of, as grouped starts it.
+func environment() []string { return append(os.Environ(), "NO_COLOR=1", "GIT_TERMINAL_PROMPT=0") }
+
 // New reads the runner from the environment.
 func New() Runner {
 	r := Runner{Kit: os.Getenv("KIT"), Dir: os.Getenv("kit_invoked_in")}
@@ -242,7 +246,7 @@ func (r Runner) StagesOf(verb string) ([]string, error) {
 // matched against. Kit's refusal, as when the forge cannot be read, is the error.
 func (r Runner) Me(ctx context.Context) (string, error) {
 	cmd := grouped(ctx, r.Kit, "flow", "--me")
-	cmd.Env = append(os.Environ(), "NO_COLOR=1")
+	cmd.Env = environment()
 	out, err := r.output(cmd)
 	if err != nil {
 		return "", err
@@ -270,7 +274,7 @@ type Limit struct {
 // them costs a request of each forge at most. Over a group, the limits of the members kit could read are kept, as
 // partial says. ctx ends it with the screen.
 func (r Runner) Quota(ctx context.Context) ([]Quota, error) {
-	out, err := partial(r.within(ctx, callLimit, append(os.Environ(), "NO_COLOR=1"), r.over("flow", "--quota")...))
+	out, err := partial(r.within(ctx, callLimit, environment(), r.over("flow", "--quota")...))
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +294,7 @@ func (r Runner) Marks(ctx context.Context) (map[string]string, error) { return r
 // MarksOf asks kit for a mark per stage of a verb's picture, kit flow's or kit workspace's, as <verb> --marks prints
 // them, as Marks says. Over a group, errors, beside the marks, names the members kit could not read; it is no stage.
 func (r Runner) MarksOf(ctx context.Context, verb string) (map[string]string, error) {
-	out, err := partial(r.within(ctx, callLimit, append(os.Environ(), "NO_COLOR=1"), r.over(verb, "--marks")...))
+	out, err := partial(r.within(ctx, callLimit, environment(), r.over(verb, "--marks")...))
 	if err != nil {
 		return nil, err
 	}
@@ -343,14 +347,14 @@ func (r Runner) Status(ctx context.Context, stage string, args []string) ([]byte
 // Rows gives what a kit command prints, kit's words after kit, as a stage's catalog entry names them: with over, the
 // workspace the runner reads, before the verb, as over says, so a command that reads a group's members reads every
 // one. A command kit refuses is kit's refusal, an ExitError; one kit read in part, its document with exit 1, is that
-// document, as partial says. Kit runs in a process group of its own until ctx ends: then the group is sent SIGTERM, so
-// a gh or an ssh kit started dies with it, and the error is ctx's.
+// document, as partial says. Kit runs in a session and a process group of its own, as grouped starts it, until ctx
+// ends: then the group is sent SIGTERM, so a gh or an ssh kit started dies with it, and the error is ctx's.
 func (r Runner) Rows(ctx context.Context, words []string, over bool) ([]byte, error) {
 	if over {
 		words = r.over(words...)
 	}
 	cmd := grouped(ctx, r.Kit, words...)
-	cmd.Env = append(os.Environ(), "NO_COLOR=1")
+	cmd.Env = environment()
 	out, err := r.output(cmd)
 	if err != nil && ctx.Err() != nil {
 		return nil, ctx.Err()
@@ -372,7 +376,7 @@ type Tracker struct {
 // Trackers asks kit for the trackers a new issue can be filed in, the forge's own first, which the forge's tool may
 // take a moment to say; ctx ends it with the screen.
 func (r Runner) Trackers(ctx context.Context) ([]Tracker, error) {
-	out, err := r.within(ctx, callLimit, append(os.Environ(), "NO_COLOR=1"), "new", "issue", "--list", "--json")
+	out, err := r.within(ctx, callLimit, environment(), "new", "issue", "--list", "--json")
 	if err != nil {
 		return nil, err
 	}
@@ -383,12 +387,14 @@ func (r Runner) Trackers(ctx context.Context) ([]Tracker, error) {
 	return trackers, nil
 }
 
-// Act runs a verb that changes something, kit <words>…, as the tab's menu asks, and gives what it printed, stdout and
-// stderr as they came, where kit says what it did. Kit's refusal is an ExitError whose line is the last kit marked
-// as failed, or its last line.
+// Act runs a verb that changes something, kit <words>…, as the tab's menu asks, for actLimit at most, and gives what
+// it printed, stdout and stderr as they came, where kit says what it did. Kit's refusal is an ExitError whose line is
+// the last kit marked as failed, or its last line; past the limit, the error names the command and how long it had.
 func (r Runner) Act(ctx context.Context, words ...string) (string, error) {
-	cmd := grouped(ctx, r.Kit, words...)
-	cmd.Env = append(os.Environ(), "NO_COLOR=1")
+	limited, cancel := context.WithTimeout(ctx, actLimit)
+	defer cancel()
+	cmd := grouped(limited, r.Kit, words...)
+	cmd.Env = environment()
 	cmd.Dir = r.Dir
 	var out bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &out
@@ -397,6 +403,9 @@ func (r Runner) Act(ctx context.Context, words ...string) (string, error) {
 	switch {
 	case err == nil:
 		return out.String(), nil
+	case ctx.Err() == nil && limited.Err() != nil:
+		return out.String(), fmt.Errorf("kit %s took longer than %s; it was stopped", strings.Join(words, " "),
+			actLimit)
 	case errors.As(err, &exit):
 		return out.String(), &ExitError{Code: exit.ExitCode(), Stderr: refusal(out.String())}
 	default:
@@ -415,13 +424,15 @@ func refusal(out string) string {
 	return lines[len(lines)-1]
 }
 
-// grouped gives the command kit runs as: in a process group of its own, sent SIGTERM when ctx ends, so what kit
-// started dies with it, then, grace later, SIGKILL to whatever of the group is left, and waited for waitDelay at most
-// after the first. A child kit forked while SIGTERM went out was not in the group yet and never saw it: it outlives
-// kit, holding its pipes open, until the second ends it.
+// grouped gives the command kit runs as: in a session of its own, so it has no terminal, and a git, an ssh, or a kit
+// that would ask there fails where it stands; in kittui's session it would write its prompt over the screen and be
+// stopped at its read, a background group of kittui's terminal. The session is a process group of its own too, sent
+// SIGTERM when ctx ends, so what kit started dies with it, then, grace later, SIGKILL to whatever of the group is
+// left, and waited for waitDelay at most after the first. A child kit forked while SIGTERM went out was not in the
+// group yet and never saw it: it outlives kit, holding its pipes open, until the second ends it.
 func grouped(ctx context.Context, name string, args ...string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, name, args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	cmd.Cancel = func() error {
 		group := -cmd.Process.Pid
 		time.AfterFunc(grace, func() { _ = syscall.Kill(group, syscall.SIGKILL) }) // ESRCH: nothing of it was left
@@ -494,7 +505,7 @@ func (r Runner) WelcomeChecks(ctx context.Context, told func(Progress)) ([]Check
 	if told != nil {
 		args = append(args, "--progress")
 	}
-	out, err := r.telling(ctx, checksLimit, append(os.Environ(), "NO_COLOR=1"), told, args...)
+	out, err := r.telling(ctx, checksLimit, environment(), told, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -573,7 +584,7 @@ func (r Runner) WelcomeFix(c Check) *exec.Cmd {
 // it is, so it holds from now on. It gives the check as kit now judges it, or nil where kit did not ask the terminal,
 // so the screen reads only that one again. Kit's refusal, as for a check that is no terminal's finding, is the error.
 func (r Runner) WelcomeKeep(ctx context.Context, c Check) (*Check, error) {
-	out, err := r.within(ctx, callLimit, append(os.Environ(), "NO_COLOR=1"),
+	out, err := r.within(ctx, callLimit, environment(),
 		r.over("welcome", "--keep="+c.ID, "--json")...)
 	if err != nil {
 		return nil, err
@@ -631,7 +642,7 @@ func (r Runner) Tutorials(ctx context.Context, tags []string) (Catalogue, error)
 		args = append(args, "--tag="+tag)
 	}
 	var c Catalogue
-	out, err := r.within(ctx, callLimit, append(os.Environ(), "NO_COLOR=1"), args...)
+	out, err := r.within(ctx, callLimit, environment(), args...)
 	if err != nil {
 		return c, err
 	}
@@ -725,7 +736,7 @@ func withAnswers(args, answers []string) []string {
 // run runs kit with the arguments, in Dir and with color off, and gives its stdout. A non-zero exit is an ExitError
 // carrying kit's stderr; a kit that cannot run at all is a plain error.
 func (r Runner) run(args ...string) ([]byte, error) {
-	return r.runIn(append(os.Environ(), "NO_COLOR=1"), args...)
+	return r.runIn(environment(), args...)
 }
 
 // runIn runs kit as run does, in the environment env, for callLimit at most.
@@ -734,10 +745,12 @@ func (r Runner) runIn(env []string, args ...string) ([]byte, error) {
 }
 
 // The limits of kit's calls: a call that reads the grammar, a page, or choices has callLimit, and kit welcome's checks
-// have checksLimit, as long as a stage of kit flow. The tests shorten them.
+// have checksLimit, as long as a stage of kit flow; an action, a verb that changes something, has actLimit, as long
+// as a stage too. The tests shorten them.
 var (
 	callLimit   = 30 * time.Second
 	checksLimit = 2 * time.Minute
+	actLimit    = 2 * time.Minute
 )
 
 // within runs kit in the environment env until ctx ends or the limit passes, whichever is first; past the limit, the
