@@ -705,6 +705,24 @@ answering() {
   [ "$status" -eq 1 ]
 }
 
+@test "bin/refresh gives the export of the index a trust file of its own: a commit leaves yours the same file, with the same text" {
+  # this repository's tracked files, as the working tree holds them, in a clone of their own that you trust
+  checkout="${BATS_TEST_TMPDIR}/checkout"
+  mkdir "${checkout}"
+  (cd "${BATS_TEST_DIRNAME}/.." && git ls-files -z | tar --null -T - -cf -) | tar -xf - -C "${checkout}"
+  cd "${checkout}"
+  git init --quiet . && git add --all --force . && git commit --quiet --message init
+  kit/bin/kit trust --yes
+  # a link to the file is the same file until something moves another over it, as kit trust does
+  ln "${trusted}" "${BATS_TEST_TMPDIR}/trusted.same"
+  cp "${trusted}" "${BATS_TEST_TMPDIR}/trusted.text"
+  run bin/refresh
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"refreshed from the index"* ]]
+  [ "${trusted}" -ef "${BATS_TEST_TMPDIR}/trusted.same" ]
+  cmp "${trusted}" "${BATS_TEST_TMPDIR}/trusted.text"
+}
+
 @test "on a terminal, bare kit and kit tui run kittui in a clone you have not trusted, which asks itself" {
   # the fake go and the fake kittui first on PATH, as tests/flow.bats puts them: kit builds kittui with the fake go,
   # and it prints "kittui native-native" and its arguments

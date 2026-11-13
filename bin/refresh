@@ -39,21 +39,23 @@ export-base() {
   git archive HEAD kit/packages | tar -x -C "$1" --strip-components 1
 }
 
-# update-staged <staged> <base> runs the staged kit's update over the staged files. The ceiling stops git from
-# finding this repository above the export, which is not a repository of its own. The export holds a kit.yml and is
-# in no clone, so kit holds it to a trust record of its own, by its path. It is the commit as it stands in this
-# clone, which you trust, so the staged kit records it first, as a CI job trusts its own checkout, and forget-staged
-# takes the record back when the script ends. A staged kit that cannot record it goes on to its update, which says
-# why when it is refused.
+# update-staged <staged> <base> <config> runs the staged kit's update over the staged files. The ceiling stops git
+# from finding this repository above the export, which is not a repository of its own. The export holds a kit.yml
+# and is in no clone, so kit holds it to a trust record of its own, by its path. It is the commit as it stands in
+# this clone, which you trust, so the staged kit records it first, as a CI job trusts its own checkout. It records
+# it in a trust file of the run's own, kit/trusted under <config>, which the two kit commands here are given as
+# XDG_CONFIG_HOME. Your trust file is neither read nor written, so a commit cannot drop a line that another commit,
+# or your own kit trust, is writing, and the record goes with the script's directory, whatever ends the script. A
+# staged kit that cannot record the export goes on to its update, which says why when it is refused.
+#
+# Of your files under XDG_CONFIG_HOME, kit update reads the trust file alone: the workspace file, the bots, and the
+# forges' logins are other verbs' to read. mise keeps its own config there, and a desk whose tools are mise's shims
+# needs it, so MISE_CONFIG_DIR names where it is.
 update-staged() {
-  (cd "$1" && { kit/bin/kit trust --yes >/dev/null 2>&1 || true; } \
+  local mise=${MISE_CONFIG_DIR:-${XDG_CONFIG_HOME:-${HOME}/.config}/mise}
+  (cd "$1" && export XDG_CONFIG_HOME="$3" MISE_CONFIG_DIR="${mise}" \
+    && { kit/bin/kit trust --yes >/dev/null 2>&1 || true; } \
     && GIT_CEILING_DIRECTORIES="$(dirname "$1")" KIT_BASE="$2" kit/bin/kit update >/dev/null)
-}
-
-# forget-staged <staged> takes the export's trust record back, so the trust file keeps no line for a folder that is
-# gone. It says nothing where there is no export, or no record of it.
-forget-staged() {
-  [[ ! -x "$1/kit/bin/kit" ]] || (cd "$1" && kit/bin/kit trust --revoke >/dev/null 2>&1) || true
 }
 
 # stage-export <staged> makes the index match the export, by adding it under a copy of the index and then reading
@@ -75,11 +77,11 @@ update-desk() {
 cd "$(git rev-parse --show-toplevel)"
 pinned-tools-first
 work=$(mktemp -d)
-trap 'forget-staged "${work}/staged"; rm -rf "${work}"' EXIT
+trap 'rm -rf "${work}"' EXIT
 
 export-staged "${work}/staged"
 export-base "${work}/base"
-update-staged "${work}/staged" "${work}/base"
+update-staged "${work}/staged" "${work}/base" "${work}/config"
 stage-export "${work}/staged"
 update-desk "${work}/base"
 
