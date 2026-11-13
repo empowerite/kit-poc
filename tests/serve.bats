@@ -775,6 +775,51 @@ await() {
   grep --quiet ' event=reload-refused .*/kit/modules/bash/serve.sh$' .kit/logs/mcp-*.log
 }
 
+@test "a changed module and a kit.yml that cannot be read at once: the new server answers, -32603 until kit.yml places" {
+  checkout-copy
+  mkfifo "${BATS_TEST_TMPDIR}/in"
+  kit/bin/kit serve <"${BATS_TEST_TMPDIR}/in" >"${BATS_TEST_TMPDIR}/out" 2>"${BATS_TEST_TMPDIR}/err" &
+  server=$!
+  exec 7>"${BATS_TEST_TMPDIR}/in"
+  modern 1 server/discover >&7
+  await "${server}" 1
+  cp kit.yml "${BATS_TEST_TMPDIR}/kit.yml"
+  sed -i.bak "s/^serve_instructions='kit holds/serve_instructions='edited: kit holds/" kit/modules/bash/serve.sh
+  printf 'packages: [\n' > kit.yml
+  touch -t 209901010000 kit.yml
+  call 2 version >&7
+  await "${server}" 2
+  answer 2 | jq --exit-status '.error.code == -32603'
+  cp "${BATS_TEST_TMPDIR}/kit.yml" kit.yml
+  touch -t 209901010001 kit.yml
+  call 3 version >&7
+  await "${server}" 3
+  exec 7>&-
+  wait "${server}"
+  answer 3 | jq --exit-status '.result.isError == false'
+}
+
+@test "a package made while the server runs is on the packages tool's enum from the next list, which the client is told changed" {
+  mkfifo "${BATS_TEST_TMPDIR}/in"
+  "${kit_checkout}/bin/kit" serve <"${BATS_TEST_TMPDIR}/in" >"${BATS_TEST_TMPDIR}/out" 2>"${BATS_TEST_TMPDIR}/err" &
+  server=$!
+  exec 7>"${BATS_TEST_TMPDIR}/in"
+  modern 1 tools/list >&7
+  await "${server}" 1
+  answer 1 | jq --exit-status '.result.tools[] | select(.name == "packages") | .inputSchema.properties.package.items.enum
+    | index("fresh") | not'
+  mkdir -p .kit/packages/fresh
+  printf 'description: "fresh"\n' > .kit/packages/fresh/package.yml
+  touch -t 209901010000 .kit/packages/fresh/package.yml
+  modern 2 tools/list >&7
+  await "${server}" 2
+  exec 7>&-
+  wait "${server}"
+  answer 2 | jq --exit-status '.result.tools[] | select(.name == "packages") | .inputSchema.properties.package.items.enum
+    | index("fresh")'
+  grep --quiet '"method":"notifications/tools/list_changed"' "${BATS_TEST_TMPDIR}/out"
+}
+
 @test "a .kit/.gitignore that changed between messages tells the client the resources changed" {
   mkfifo "${BATS_TEST_TMPDIR}/in"
   "${kit_checkout}/bin/kit" serve <"${BATS_TEST_TMPDIR}/in" >"${BATS_TEST_TMPDIR}/out" 2>"${BATS_TEST_TMPDIR}/err" &

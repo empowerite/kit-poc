@@ -313,8 +313,9 @@ serve:changed() {
 # changed and every changed bash file parses. It passes the era a client chose with initialize in kit_serve_era, and
 # in kit_serve_pending a file that holds the line, since a line may be longer than the environment carries.
 # Otherwise it returns, and the running server answers <line>. Before that, it places .kit/ again when kit.yml
-# changed, since a call does not place anything; a placing that fails sets serve_unplaced until one succeeds. It sends
-# notifications/resources/list_changed when .kit/.gitignore changed, and says so on stderr when a file did not parse.
+# changed, since a call does not place anything; a placing that fails sets serve_unplaced until one succeeds. A placing,
+# or a package.yml under .kit/packages/ changed, makes the tools built again and sends notifications/tools/list_changed.
+# It sends notifications/resources/list_changed when .kit/.gitignore changed, and says so on stderr when a file did not parse.
 serve:reload() {
   local file now pending
   local -a changed broken=()
@@ -322,7 +323,7 @@ serve:reload() {
   if (( ${#changed[@]} == 0 ))
   then
     local placed=false
-    if [[ kit.yml -nt "${serve_marker}" ]]
+    if [[ kit.yml -nt "${serve_marker}" || "${serve_unplaced}" == true ]]
     then
       # Placing writes its steps to stderr. One that fails leaves the marker as it is, so the next message places
       # again, and until one places, serve:placed refuses every call and every read the old .kit/ would answer.
@@ -332,6 +333,14 @@ serve:reload() {
         return 0
       fi
       serve_unplaced=false
+      placed=true
+    fi
+    # A package made, added, or changed since is one the tools' closed choices may lack, so the tools are built again.
+    if [[ "${placed}" == true || -n "$(find .kit/packages -maxdepth 3 -name package.yml -newer "${serve_marker}" \
+      -print -quit 2>/dev/null)" ]]
+    then
+      serve_tool_list='' serve_specs=() serve_opts=()
+      serve:notify notifications/tools/list_changed
       placed=true
     fi
     if [[ .kit/.gitignore -nt "${serve_marker}" ]]

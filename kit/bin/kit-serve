@@ -77,10 +77,20 @@ use materialize
 
 guard:arguments serve "$@" || exit $?
 guard:require tool:jq || exit 1
-# Hydrating writes its steps to stderr, and places the files the resources name before the first request.
-materialize:hydrate >&2
+# Hydrating writes its steps to stderr, and places the files the resources name before the first request. A server
+# started again by a changed module, or by a clone's trust, is answering a request already, and a kit.yml it cannot
+# place is that request's refusal, as serve:reload makes it, and not the server's end.
+unplaced=false
+if [[ -z "${kit_serve_pending:-}" ]]
+then
+  materialize:hydrate >&2
+else
+  materialize:hydrate >&2 || unplaced=true
+fi
 
 use serve
+# shellcheck disable=SC2034  # read in modules/bash/serve.sh
+serve_unplaced=${unplaced}
 started=0
 log:now started
 log:call mcp "${started}" "pid=$$" event=start

@@ -246,7 +246,9 @@ on its own:
 - A changed bash file that does not parse is kept out. The server goes on with the code it runs, says so on stderr,
   and tries again after the next change.
 - A `kit.yml` changed since, as when the agent adds a package, is placed by the server before the next message.
-  Then `.kit/.gitignore` changes too, and the client hears that the resources changed.
+  Then `.kit/.gitignore` changes too, and the client hears that the resources changed. The server builds its tools
+  again then, and after any `package.yml` under `.kit/packages/` that changed, so a package made while it runs is a
+  choice of the `packages` tool, and the client hears `notifications/tools/list_changed`.
 - A `kit.yml` that cannot be placed, as one that does not parse, leaves every tool call and resource read refused
   with -32603, `run: kit hydrate`, and the steps that failed on the server's stderr. The server places again before
   each message, and answers as before once a placing succeeds.
