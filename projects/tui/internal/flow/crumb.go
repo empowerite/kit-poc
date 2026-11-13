@@ -53,15 +53,22 @@ func (m Model) Spot() (string, any) {
 }
 
 // Restore puts the picture back where a spot says it stood: each stage it had, its table as it was, the cursor on the
-// row it was on, or where it was when the row is gone; the tab selected, maximized or not, and what had the keyboard.
+// row it was on, or where it was when the row is gone; the blank columns and groups of a tab whose rows came since
+// made again; the tab selected, maximized or not, and what had the keyboard.
 // A jump still waiting for its row is dropped.
 func (m Model) Restore(v any) tea.Model {
 	p, ok := v.(spot)
 	if !ok {
 		return m
 	}
+	var since []string
 	for i := range m.stages {
 		if t, ok := p.tables[m.stages[i].name]; ok {
+			if t.Grouping && !m.stages[i].Grouping {
+				// its rows came after the spot was taken: the spot has no blank columns or groups of theirs, so they
+				// are made again, as the load made them
+				since = append(since, m.stages[i].name)
+			}
 			m.stages[i].Table = t
 		}
 	}
@@ -72,6 +79,12 @@ func (m Model) Restore(v any) tea.Model {
 		p.barView, p.maximized, p.inRows, p.inPanel, p.onPreset, p.stop
 	m.landing = ""
 	m.rebuild()
+	for _, name := range since {
+		s := m.find(name)
+		m.blank(s)
+		m.rebuild()
+		m.autoGroup(name)
+	}
 	for i := range m.stages {
 		key, ok := p.under[m.stages[i].name]
 		if k := slices.IndexFunc(m.rows(i), func(r row) bool { return r.Key == key }); ok && k >= 0 {

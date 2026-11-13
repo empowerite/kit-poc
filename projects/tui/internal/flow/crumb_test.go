@@ -1,9 +1,13 @@
 package flow
 
 import (
+	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/empowerite/kit/projects/tui/internal/shell"
@@ -97,5 +101,34 @@ func TestTheLegendSaysTheCrumb(t *testing.T) {
 	m = m.Crumbed("issues").(Model)
 	if !strings.Contains(m.View().Content, "back: click or ⌫") {
 		t.Errorf("the legend does not name the crumb:\n%s", ansi.Strip(m.View().Content))
+	}
+}
+
+// A tab that loads while the picture is away, answering after the spot was taken, keeps what its load made, the blank
+// columns it hides and the groups its rows stand under, when the spot is put back: the crumb puts back what the person
+// set, and a tab that had no rows then had no blank columns or groups to put back.
+func TestAGroupingTheLoadMadeWhileAwaySurvivesTheCrumb(t *testing.T) {
+	read := func(name string) string {
+		b, err := os.ReadFile(filepath.Join("testdata", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(b)
+	}
+	o := options()
+	o.Stages = []string{"issues", "changes"}
+	m := New(runner(t), o)
+	m = drive(m, tea.WindowSizeMsg{Width: 120, Height: 24}, answer("issues", read("issues.json")))
+	_, spot := m.Spot()
+	m = drive(m, answer("changes", read("changes.json")))
+	blank, groups := slices.Clone(m.stages[1].Blank), m.stages[1].View.Groups()
+	if len(blank) == 0 && len(groups) == 0 {
+		t.Fatal("the load made no blank columns and no groups to keep")
+	}
+	m = m.Restore(spot).(Model)
+	if got := m.stages[1].Blank; !slices.Equal(got, blank) || !slices.Equal(m.stages[1].View.Groups(), groups) ||
+		m.stages[1].Grouping {
+		t.Errorf("after the crumb: blank %q, groups %q, grouping %v; before: %q, %q", got,
+			m.stages[1].View.Groups(), m.stages[1].Grouping, blank, groups)
 	}
 }
