@@ -643,6 +643,19 @@ context:claude() {
     '{ hookSpecificOutput: { hookEventName: "PreToolUse", additionalContext: $text } }'
 }
 
+# context:claude-untrusted <status> answers Claude Code's PreToolUse hook in a clone you have not trusted, by
+# kit:trusted's <status>: as additional context, that kit read no rule for the file, and modules/bash/trust.sh's
+# trust:refusal, which says the trust is the person's to give and names the command the person runs. It reads the
+# hook's input to its end, and nothing of the clone.
+context:claude-untrusted() {
+  local root
+  cat >/dev/null
+  root=$(kit:trust-root .) || return 1
+  jq --null-input --compact-output \
+    --arg text "kit: no rule was read for this file. $(trust:refusal "$(kit:trust-name "${root}")" "$1")" \
+    '{ hookSpecificOutput: { hookEventName: "PreToolUse", additionalContext: $text } }'
+}
+
 # context:choices <key> [<answer>…] answers kit syntax --choices for <path>: an open set, every tracked file, named from
 # where the command was typed, as kit context resolves a path; a path it takes need not be among them.
 context:choices() {

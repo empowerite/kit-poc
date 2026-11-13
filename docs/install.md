@@ -138,6 +138,10 @@ kit runs nothing in a clone until you trust it.
   Bare `kit` and `kit tui` open kittui, which asks in a dialog before it reads anything: Trust, or Not now, which
   leaves the clone untrusted and opens the help palette. A plain click takes either. `kit syntax`, which the palette
   reads, runs in an untrusted clone too, on the kit you installed.
+- An agent's harness runs two commands with no terminal: `kit serve`, and the hook, `kit context --claude`. In a
+  clone you have not trusted each says so in the form the harness reads, an MCP error and the hook's JSON: the
+  trust is yours to give, and the command is `kit trust`. Neither reads anything of the clone or trusts it, and
+  the server answers from the clone once you have trusted it.
 - A pull that changes what the clone asks, such as a new gate or a new `lint:` command, withdraws the trust, and kit
   asks again. A pull that changes only the code those name keeps it, and so does what kit writes itself, such as the
   files it places under `.kit/` and the version `kit update` moves.

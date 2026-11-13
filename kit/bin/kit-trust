@@ -9,7 +9,8 @@
 #   kit trust --revoke [<path>]
 #
 # kit runs nothing in a clone until you trust it: in a clone you do not trust, bin/kit, the loader, runs kit help,
-# kit version, and kit trust alone, on the kit you installed, and every other verb refuses. kit trust shows what the
+# kit version, and kit trust alone, on the kit you installed, and every other verb refuses; kit serve and the hook,
+# kit context --claude, which an agent's harness runs, say so in the form the harness reads. kit trust shows what the
 # clone asks kit to run: the release it pins, read as the loader reads it, and whether that is the clone's own kit/,
 # which version: unreleased names whether or not the clone holds one yet; the bash it loads; its gate; the sources
 # it brings packages from; the tools it has kit download; and the lint: command of each rule and style. Each is one

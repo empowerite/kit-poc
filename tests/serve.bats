@@ -661,6 +661,57 @@ call() {
   [ "$(answer 2 | jq --raw-output '.result.contents[0].text')" = "$(cat .kit/workflow.md)" ]
 }
 
+@test "in a clone you have not trusted, the server says so in the protocol and runs nothing there, and the clone's own server answers once the person trusts it" {
+  : > "${XDG_CONFIG_HOME}/kit/trusted"
+  mkdir mods
+  printf ': > "%s/sourced"\n' "${BATS_TEST_TMPDIR}" > mods/serve.sh
+  printf 'bash_path:\n  - kit:modules/bash/\n  - mods\n' >> kit.yml
+  here=$(pwd -P)
+  said="kit runs nothing in ${here} until a person trusts it. The trust is the person's to give, never an agent's:"
+  said+=" stop, and ask them to run: kit trust ${here}"
+  # the earlier revisions: the session opens and says so, ping is answered, and every list, call, and read is refused
+  serve '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}' \
+    '{"jsonrpc":"2.0","id":2,"method":"ping"}' '{"jsonrpc":"2.0","id":3,"method":"tools/list"}' \
+    '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"version","arguments":{}}}' \
+    '{"jsonrpc":"2.0","id":5,"method":"resources/list"}' \
+    '{"jsonrpc":"2.0","id":6,"method":"resources/read","params":{"uri":"kit://1st.md"}}'
+  [ "$(answer 1 | jq -r .result.instructions)" = "${said}" ]
+  [ "$(answer 2 | jq -c .result)" = '{}' ]
+  for id in 3 4 5 6
+  do
+    [ "$(answer "${id}" | jq -r .error.code)" = -32003 ]
+    [ "$(answer "${id}" | jq -r .error.message)" = "Not trusted: ${said}" ]
+  done
+  # 2026-07-28: server/discover says so, and a request that names its revision is refused the same way
+  serve '{"jsonrpc":"2.0","id":1,"method":"server/discover"}' "$(modern 2 tools/list)" "$(call 3 version)"
+  [ "$(answer 1 | jq -r .result.instructions)" = "${said}" ]
+  [ "$(answer 2 | jq -r .error.message)" = "Not trusted: ${said}" ]
+  [ "$(answer 3 | jq -r .error.code)" = -32003 ]
+  # the verb called directly answers as the loader's call does
+  printf '%s\n' "$(modern 1 tools/list)" | "${kit_checkout}/bin/kit-serve" >"${BATS_TEST_TMPDIR}/out" 2>/dev/null
+  [ "$(answer 1 | jq -r .error.code)" = -32003 ]
+  # nothing of the clone ran, no log was written there, and nothing was trusted
+  [ ! -e "${BATS_TEST_TMPDIR}/sourced" ]
+  run compgen -G '.kit/logs/mcp-*'
+  [ "$status" -ne 0 ]
+  [ ! -s "${XDG_CONFIG_HOME}/kit/trusted" ]
+  # the person trusts the clone between two messages: the second is answered by the clone's own server
+  {
+    printf '%s\n' "$(modern 1 tools/list)"
+    for _ in {1..300}
+    do
+      ! grep --quiet '"id":1' "${BATS_TEST_TMPDIR}/out" 2>/dev/null || break
+      sleep 0.2
+    done
+    "${kit_checkout}/bin/kit" trust --yes >/dev/null 2>&1
+    printf '%s\n' "$(modern 2 tools/list)"
+  } | "${kit_checkout}/bin/kit" serve >"${BATS_TEST_TMPDIR}/out" 2>"${BATS_TEST_TMPDIR}/err"
+  [ "$(answer 1 | jq -r .error.code)" = -32003 ]
+  [ "$(answer 2 | jq -r '.result.tools | map(.name) | index("context") != null')" = true ]
+  grep --quiet --fixed-strings '{"jsonrpc":"2.0","method":"notifications/tools/list_changed"}' "${BATS_TEST_TMPDIR}/out"
+  [ -e "${BATS_TEST_TMPDIR}/sourced" ]
+}
+
 @test "kit serve takes no arguments" {
   run "${kit_checkout}/bin/kit" serve --stdio
   [ "$status" -eq 2 ]

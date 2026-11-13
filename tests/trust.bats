@@ -83,6 +83,12 @@ answering() {
   [[ "$output" == *"is not trusted; kit runs nothing there"* ]]
   [[ "$output" != *"${kit_checkout}"* ]]
   [ ! -s "${trusted}" ]
+  # kit serve, which a harness's call is let through to say so in the protocol, asks first on a terminal, as any verb
+  run answering n "'${kit}' serve"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Trust $(pwd -P)? [y/N]"* ]]
+  [[ "$output" == *"is not trusted; kit runs nothing there"* ]]
+  [ ! -s "${trusted}" ]
 }
 
 @test "outside a clone, a folder with no kit.yml is asked nothing, and names nothing kit trust could record" {
@@ -738,6 +744,49 @@ answering() {
   [[ "$output" == *"kittui native-native -- commit"* ]]
   [ ! -s "${trusted}" ]
   [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
+}
+
+@test "in a clone you have not trusted, the Claude hook says so in the hook's JSON: the trust is the person's to give, and nothing of the clone runs" {
+  own-kit
+  printf 'version: unreleased\nbash_path:\n  - kit:modules/bash/\n  - lib/bash/\n' > kit.yml
+  mkdir -p lib/bash
+  for module in context trust yaml syntax
+  do
+    printf ': > "%s/sourced"\n' "${BATS_TEST_TMPDIR}" > "lib/bash/${module}.sh"
+  done
+  input=$(printf '{"session_id":"s1","tool_name":"Write","tool_input":{"file_path":"%s/a.sh"}}' "${PWD}")
+  said="The trust is the person's to give, never an agent's: stop, and ask them to run: kit trust $(pwd -P)"
+  # through the loader, as the harness runs it, and the verb called directly
+  for hook in "${kit} context" "${kit_checkout}/bin/kit-context"
+  do
+    run --separate-stderr bash -c "$hook --claude" <<<"${input}"
+    [ "$status" -eq 0 ]
+    [ "${#lines[@]}" -eq 1 ]
+    [ "$(jq -r .hookSpecificOutput.hookEventName <<<"$output")" = PreToolUse ]
+    [ "$(jq -r .hookSpecificOutput.additionalContext <<<"$output")" \
+      = "kit: no rule was read for this file. kit runs nothing in $(pwd -P) until a person trusts it. ${said}" ]
+    [[ "$output" != *--yes* ]]
+  done
+  # every other form of the verb is refused, as before
+  run "${kit}" context a.sh
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit runs nothing in $(pwd -P) until you trust it"* ]]
+  [ ! -s "${trusted}" ]
+  [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
+  [ ! -e "${BATS_TEST_TMPDIR}/sourced" ]
+  # a clone that came to ask something new says that, in the same form
+  rm -rf kit lib kit.yml
+  "${kit}" trust --yes
+  printf 'gate: bin/ci\n' > kit.yml
+  run --separate-stderr "${kit}" context --claude <<<"${input}"
+  [ "$status" -eq 0 ]
+  [ "$(jq -r .hookSpecificOutput.additionalContext <<<"$output")" \
+    = "kit: no rule was read for this file. $(pwd -P) asks kit to run something new since a person trusted it, so kit runs nothing there. ${said}" ]
+  # trusted, the hook answers with the rules, and here there are none
+  "${kit}" trust --yes
+  run --separate-stderr "${kit}" context --claude <<<"${input}"
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
 }
 
 @test "kit syntax runs in a clone you have not trusted, on the installed kit, reading its verbs alone, and asks nothing" {

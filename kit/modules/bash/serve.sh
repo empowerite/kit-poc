@@ -69,6 +69,11 @@
 # changed, with notifications/tools/list_changed and notifications/resources/list_changed, so it asks for them again.
 # A .kit/.gitignore changed since, which kit hydrate rewrites when what it places changes, sends the second alone.
 #
+# In a clone you have not trusted, serve:untrusted answers in serve:main's place: the session opens, with
+# instructions that say the clone is not trusted, ping is answered, and every list, call, and read is refused with
+# -32003, in the words of modules/bash/trust.sh's trust:refusal. Nothing of the clone is read, placed, run, or
+# logged, and once the person has trusted it, the clone's own server takes the next message.
+#
 # A resource is one of the kit's files under .kit/: kit://1st.md, kit://workflow.md with the workflow package,
 # kit://rules/<kind> and kit://styles/<kind> for each rule and style, and kit://kinds/<file> for each kinds file, which
 # may define several kinds. Each tool's whole help page is a resource too, kit://help/<verb>, as kit help <verb>
@@ -81,7 +86,7 @@
 #
 # see: kit/bin/kit-serve, docs/serve.md, https://modelcontextprotocol.io/specification/2026-07-28
 
-use context help release syntax log file materialize
+use context help release syntax log file materialize trust
 
 # The protocol revisions the server answers, the newest first. The first is the one without a session.
 declare -gra serve_versions=(2026-07-28 2025-11-25 2025-06-18 2025-03-26)
@@ -192,6 +197,63 @@ serve:main() {
     serve:reload "${line}"
     serve:answer "${line}"
   done
+}
+
+# serve_untrusted holds, while the server runs in a clone you have not trusted, what it says of that, trust:refusal's
+# words, and is empty in a clone you trust. serve_git holds GIT_CONFIG_COUNT and GIT_TERMINAL_PROMPT as the
+# environment had them before kit:enter hardened git there, each empty where it was not set.
+serve_untrusted=''
+declare -ga serve_git=('' '')
+
+# serve:untrusted <status> <count> <prompt> answers each message on stdin in a clone you have not trusted, by
+# kit:trusted's <status>; <count> and <prompt> are serve_git's two values, which bin/kit-serve read before kit:enter.
+# A harness reads the protocol alone, so the refusal is said in it: initialize and server/discover are answered,
+# with trust:refusal's words as the instructions, ping is answered, and serve:trusted refuses every list, call, and
+# read with the same words. It reads nothing of the clone, places nothing, runs no verb, and writes no log there.
+# Before each message it reads the trust file again, and once the person has trusted the clone, serve:handover
+# starts the clone's own server to answer the message.
+serve:untrusted() {
+  local line root name
+  root=$(kit:trust-root .) || return 1
+  name=$(kit:trust-name "${root}")
+  serve_untrusted=$(trust:refusal "${name}" "$1")
+  serve_instructions=${serve_untrusted}
+  serve_git=("${2:-}" "${3:-}")
+  serve:guard-nul
+  while IFS= read -r line || [[ -n "${line}" ]]
+  do
+    [[ -n "${line//[[:space:]]/}" ]] || continue
+    ! kit:trusted "${name}" "${root}" || serve:handover "${line}"
+    serve:handle "${line}"
+  done
+}
+
+# serve:handover <line> starts kit serve again in the clone the person has now trusted, to answer <line>, as
+# serve:reload hands one on: the era in kit_serve_era and the line in a file kit_serve_pending names. It starts it
+# through bin/kit, the loader, which chooses the clone's release, with what this process's run in a clone not
+# trusted left in the environment taken out: the release the loader chose for it, the module path read without the
+# clone's bash_path, and git's hardening, put back as serve_git holds it. When the line cannot be kept, it returns,
+# and the line is refused once more.
+serve:handover() {
+  local pending
+  if ! { file:temp pending pending && printf '%s\n' "$1" >"${pending}"; }
+  then
+    warn "kit serve: the line could not be kept for a new process; the server refuses until it is started again"
+    return 0
+  fi
+  unset KIT_VERSION KIT_VERSION_ROOT kit_bash_path_dirs kit_bash_path_from GIT_CONFIG_COUNT GIT_TERMINAL_PROMPT
+  [[ -z "${serve_git[0]}" ]] || export GIT_CONFIG_COUNT=${serve_git[0]}
+  [[ -z "${serve_git[1]}" ]] || export GIT_TERMINAL_PROMPT=${serve_git[1]}
+  export kit_serve_era=${serve_era} kit_serve_pending=${pending}
+  exec "${kit_root}/bin/kit" serve
+}
+
+# serve:trusted <id> succeeds in a clone you trust. In one you have not, it answers request <id> with -32003 and
+# what serve:untrusted says of the clone, so no list, call, or read reaches it, and returns 1.
+serve:trusted() {
+  [[ -n "${serve_untrusted}" ]] || return 0
+  serve:error "$1" -32003 "Not trusted: ${serve_untrusted}"
+  return 1
 }
 
 # serve:guard-nul puts jq between stdin and the server, once for the stream. bash's read drops a 0x00 byte without a
@@ -402,11 +464,14 @@ serve:handle() {
     (initialize) serve:initialize "${id}" "${params}" ;;
     (ping) serve:reply "${id}" '{}' ;;
     (server/discover) serve:version "${id}" "${params}" discover && serve:discover "${id}" ;;
-    (tools/list) serve:version "${id}" "${params}" && serve:tools-list "${id}" ;;
-    (tools/call) serve:version "${id}" "${params}" && serve:placed "${id}" && serve:tools-call "${id}" "${params}" ;;
-    (resources/list) serve:version "${id}" "${params}" && serve:resources-list "${id}" ;;
+    (tools/list) serve:version "${id}" "${params}" && serve:trusted "${id}" && serve:tools-list "${id}" ;;
+    (tools/call)
+      serve:version "${id}" "${params}" && serve:trusted "${id}" && serve:placed "${id}" \
+        && serve:tools-call "${id}" "${params}" ;;
+    (resources/list) serve:version "${id}" "${params}" && serve:trusted "${id}" && serve:resources-list "${id}" ;;
     (resources/read)
-      serve:version "${id}" "${params}" && serve:placed "${id}" && serve:resources-read "${id}" "${params}" ;;
+      serve:version "${id}" "${params}" && serve:trusted "${id}" && serve:placed "${id}" \
+        && serve:resources-read "${id}" "${params}" ;;
     (*) serve:error "${id}" -32601 "Method not found: ${method:0:200}"
   esac
   return 0

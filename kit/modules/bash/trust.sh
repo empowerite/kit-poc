@@ -138,6 +138,18 @@ trust:asks() {
   done
 }
 
+# trust:refusal <name> <status> prints, for an agent, why kit runs nothing in the clone or folder <name>, by
+# kit:trusted's <status>, 1 where no line names it and 3 where it asks something new, and what the agent does: the
+# trust is the person's to give, so it stops and asks them to run kit trust, by the path, from anywhere. It names no
+# option, so an agent that follows it trusts nothing. bin/kit-context says it in the hook's JSON, and
+# modules/bash/serve.sh in the protocol's error.
+trust:refusal() {
+  local why="kit runs nothing in $1 until a person trusts it"
+  [[ "$2" != 3 ]] || why="$1 asks kit to run something new since a person trusted it, so kit runs nothing there"
+  printf "%s. The trust is the person's to give, never an agent's: stop, and ask them to run: kit trust %s\n" \
+    "${why}" "$(out:folder "$1")"
+}
+
 # trust:joined <word>… prints the words joined by a comma and a space.
 trust:joined() {
   local IFS=,

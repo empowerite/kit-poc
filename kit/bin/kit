@@ -34,6 +34,12 @@
 # the clone asks kit to run and asks you; after a yes, the call runs as it was typed. Without a terminal, or after a no,
 # it is refused. kit trust runs on this release in a clone you trust too.
 #
+# Two commands are an agent's harness's to run, with no terminal: kit serve, and kit context --claude, its hook. The
+# harness reads each one's answer in a form of its own, so a refusal on stderr tells the agent nothing. There the
+# loader runs each on this release too, and each says, in the protocol's error and in the hook's JSON, that the
+# clone is not trusted, that the trust is the person's to give, and the command the person runs. Neither reads
+# anything of the clone, and neither trusts it.
+#
 # Outside a clone, a folder that holds a kit.yml, or the .kit/settings.yml a release moves there, is held to the same
 # trust, by its own path, when kit is typed in it: an unpacked archive of a repository is such a folder. Until you
 # trust it, kit reads no bash_path there and runs nothing its kit.yml names, the same four verbs run, and every other
@@ -577,6 +583,15 @@ then
   case ${1:-tui} in
     (help | version | trust | syntax) untrusted=yes ;;
   esac
+  # An agent's harness runs kit serve, and kit context --claude as its hook, and reads each one's answer in a form of
+  # its own, the protocol's messages and the hook's JSON: a line on stderr is a bare failure to it. With no terminal
+  # to ask on, each runs on this release, says in that form that the clone is not trusted, and reads nothing there.
+  if ! { [ -t 0 ] && [ -t 2 ]; }
+  then
+    case ${1:-}:${2:-} in
+      (serve:* | context:--claude) untrusted=yes ;;
+    esac
+  fi
   # kit tui, as bare kit runs it, on a terminal, where kittui asks to trust the clone before it reads anything there
   if [ "${1:-tui}" = tui ] && [ -t 0 ] && [ -t 1 ] && [ -t 2 ]
   then

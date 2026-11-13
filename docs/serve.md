@@ -212,6 +212,20 @@ The command is `kit serve`, with `kit` found on `PATH`, as the hook in `.claude/
 When the kit places an entry, `kit install`, `kit packages add`, and `kit update` say what the harness does next.
 Claude Code, for one, asks once, at the start of the next session, whether to use a project's servers.
 
+## In a clone you have not trusted
+
+kit runs nothing in a clone until you trust it, and a harness that starts the server reads only the protocol. So
+the server starts there too, on the kit you installed, and says so in the protocol:
+
+- `initialize` and `server/discover` are answered, with instructions that say the clone is not trusted, and `ping`
+  is answered.
+- Every list, call, and read is refused with `-32003`, `Not trusted`, and the same words: the trust is the person's
+  to give, so the agent stops and asks the person to run `kit trust` with the clone's path.
+- The server reads nothing of the clone, places nothing, runs no verb, writes no log there, and trusts nothing.
+
+Once you have run `kit trust`, the next message is answered by the clone's own server, which starts in the first
+one's place and tells the client to list the tools and the resources again. There is no reconnect.
+
 ## When the kit changes
 
 A harness starts the server once per session, with the `PATH` it started with. What the server runs stays current

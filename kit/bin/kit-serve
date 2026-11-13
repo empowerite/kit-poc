@@ -37,6 +37,13 @@
 #   - kit://kinds/<file>, for each kinds file
 #   - kit://help/<verb>, for each tool
 #
+# In a clone you have not trusted, the server starts all the same, since a harness reads the protocol alone and a
+# refusal on stderr is a server that did not start. It opens the session with instructions that say the clone is
+# not trusted, answers ping, and refuses every list, call, and read with -32003, Not trusted, which says that the
+# trust is the person's to give and names the command the person runs. It reads nothing of the clone, places
+# nothing, runs no verb, writes no log there, and trusts nothing. Once the person has trusted the clone, the next
+# message is answered by the clone's own server, started in this one's place.
+#
 # An agent's harness starts it from the entry an agents package merges into the harness's MCP configuration. For
 # Claude Code, that is mcpServers.kit in .mcp.json. It answers the 2026-07-28 revision of the protocol, and the ones
 # before it to a client that opens with initialize.
@@ -50,6 +57,21 @@
 set -o errexit -o nounset -o pipefail
 # shellcheck source=modules/bash/1st.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
+# A clone you have not trusted is answered in the protocol, by modules/bash/serve.sh's serve:untrusted, which is
+# given the two variables of git's that kit:enter hardens there, as the environment had them, for the server the
+# trust starts.
+trust=0
+kit:trusted-at . || trust=$?
+if (( trust != 0 ))
+then
+  git_count=${GIT_CONFIG_COUNT-} git_prompt=${GIT_TERMINAL_PROMPT-}
+  kit:enter --any-clone
+  guard:arguments serve "$@" || exit $?
+  guard:require tool:jq || exit 1
+  use serve
+  serve:untrusted "${trust}" "${git_count}" "${git_prompt}"
+  exit 0
+fi
 kit:enter
 use materialize
 
