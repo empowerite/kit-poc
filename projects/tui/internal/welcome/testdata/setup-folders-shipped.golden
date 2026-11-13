@@ -19,6 +19,6 @@
          ❌ the git hooks are not installed; lefthook runs none
             cd /code/a && lefthook install
     ▾ 🌳 7-the-topic          7-the-topic  none   ✅   💡         ·     ·
-↓¹⁴
-
+         💡 kit is not installed here; it runs on what it infers
+↓¹³
  = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ folders 1-5 jump : t…

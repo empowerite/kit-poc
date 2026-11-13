@@ -19,6 +19,6 @@
    installs them.
 
    When a check fails, the line under it gives the command that fixes it, or
-↓¹⁰
-
+   says where to read more. Run the command yourself, or have kit run it and
+↓⁹
  = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ checks 1-5 jump : ta…

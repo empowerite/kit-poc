@@ -25,6 +25,6 @@
    For people:
 
    • Rules drift between repositories, branches, and colleagues. kit delivers the same rules and checks to each, and
-↓²⁶
-
+     kit check says when a delivered file drifted.
+↓²⁵
  = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ page 1-5 jump : tab menu

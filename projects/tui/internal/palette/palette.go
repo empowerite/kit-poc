@@ -192,13 +192,13 @@ func (m *Model) lay() {
 	}
 }
 
-// place puts the table's pane under the lines over it, down to the gap over the keys bar, when the screen or those
+// place puts the table's pane under the lines over it, down to the keys bar, the gap over it the line that says how many rows are hidden below, when the screen or those
 // lines changed since; placed again, the rows' window follows the cursor.
 func (m *Model) place() {
 	top := len(m.top())
 	if at := [3]int{top, m.width, m.height}; at != m.placed {
 		m.placed = at
-		m.sheet.Place(top, max(1, m.height-top-2), m.width, m.height)
+		m.sheet.Place(top, max(1, m.height-top-1), m.width, m.height)
 	}
 }
 

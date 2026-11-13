@@ -516,7 +516,7 @@ func TestARefusalOfTheChecksShowsInRed(t *testing.T) {
 	}
 }
 func TestAPageScrollsWithWhatIsHiddenCounted(t *testing.T) {
-	m, _ := house(t, tea.WindowSizeMsg{Width: 120, Height: 12}, esc, stepKey(ourTeam))
+	m, _ := house(t, tea.WindowSizeMsg{Width: 120, Height: 11}, esc, stepKey(ourTeam))
 	if m.step != ourTeam {
 		t.Fatal(m.step)
 	}

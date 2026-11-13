@@ -53,7 +53,7 @@ func TestTheWheelScrollsAPage(t *testing.T) {
 
 func TestTheWheelScrollsAStepsChecksAndLeavesTheCursor(t *testing.T) {
 	// on a short screen the pane has scrolled down to the cursor's row; a turn up scrolls back past it
-	m, _ := atChains(t, tea.WindowSizeMsg{Width: 120, Height: 10})
+	m, _ := atChains(t, tea.WindowSizeMsg{Width: 120, Height: 9})
 	at, from := m.cursor, m.offsets[chains]
 	m = drive(m, turn(10, paneTop+1, false))
 	if from < wheel || m.offsets[chains] != from-wheel || m.cursor != at || !m.inPane {

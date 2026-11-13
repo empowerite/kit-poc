@@ -139,8 +139,9 @@ func (m Model) bar() tabs.Bar {
 	return b
 }
 
-// paneHeight gives the lines the pane has: the screen's, from the pane's top, less the gap and the keys under it.
-func (m Model) paneHeight() int { return max(1, m.height-m.paneTop()-2) }
+// paneHeight gives the lines the pane has: the screen's, from the pane's top, less the keys under it. The gap over the
+// keys is the pane's last line, where a window says how many rows it hides below, so the rows have the line above it.
+func (m Model) paneHeight() int { return max(1, m.height-m.paneTop()-1) }
 
 // menuBar gives the menu bar, as internal/shell draws every screen's: the kit menu's = before kit welcome; the
 // workspace menu, which names the workspace; maximized, the selected tab, as the bar draws it but its number in place

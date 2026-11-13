@@ -25,6 +25,6 @@
     ▾ 💻 b                    main         0.2.0  ✅   ✅         ✅    ·      ❌         ❌     ❌
          ❌ several tool managers are usable for the project: mise, brew; choose one
             cd /code/b && kit toolchains use mise
-↓⁸
-
+            or: kit toolchains use brew
+↓⁷
  = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ folders 1-5 jump : tab menu
