@@ -150,7 +150,7 @@ failed job and its `failure_reason`.
 | Capability | Command |
 | --- | --- |
 | Recent runs | `glab ci list -F json -P 50`; filter with `--source push`, `--source schedule`, `--source web`, `--scope tags`, `-r "${branch}"`; kit reads `glab api 'projects/:id/pipelines?${kind}&per_page=20'` by kind, so a merge request's pipelines take no room: `scope=tags&source=push`, whose pipelines are each a tag's, which the list does not say, `source=push&ref=${default}`, `source=schedule`, and `source=web` |
-| A run's jobs | `glab ci get -p "${pipeline_id}" -d -F json`, or `glab api projects/:id/pipelines/${pipeline_id}/jobs` |
+| A run's jobs | `glab ci get -p "${pipeline_id}" -d -F json`, or `glab api projects/:id/pipelines/${pipeline_id}/jobs`; kit reads the second for the five newest runs it draws, and a failed job's `failure_reason` is its step |
 | A change's checks | `glab ci get --merge-request "${n}" -F json`; kit reads the merge request's head pipeline and its jobs |
 | A job's log | `glab ci trace "${job_id}"`, which follows a running job; `glab api projects/:id/jobs/${job_id}/trace` for the raw text |
 | Artifacts | `glab job artifact "${ref}" "${job_name}"` downloads the latest; `--list-paths` lists them; `glab api projects/:id/jobs/${job_id}/artifacts` for one job; kit reads `glab api 'projects/:id/jobs?scope[]=success&per_page=100'` (raw API), the 100 newest successful jobs, each with an `artifacts_file` an archive, with no digest GitLab shows, and `kit delivery artifacts` draws them, each named `<job>: <file>` |

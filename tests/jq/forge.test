@@ -98,6 +98,11 @@ import "forge" as forge; forge::gitlab_runs | map([.name, .verdict])
 [{"name": "flaky", "status": "failed", "allow_failure": true}, {"name": "hard", "status": "failed", "allow_failure": false}, {"name": "hook", "status": "waiting_for_callback"}, {"name": "gone", "status": "canceled", "allow_failure": true}]
 [["flaky","passed"],["hard","failed"],["hook","pending"],["gone","failed"]]
 
+# A GitLab pipeline's jobs fold into the builds stage's jobs: a failed job gives its failure_reason as its step.
+import "forge" as forge; forge::gitlab_build_jobs
+[{"name": "a", "status": "success", "started_at": "1970-01-12T13:45:00Z", "finished_at": "1970-01-12T13:46:40Z"}, {"name": "b", "status": "failed", "failure_reason": "script_failure", "started_at": null, "finished_at": null}, {"name": "c", "status": "running", "started_at": "1970-01-12T13:45:00Z", "finished_at": null}]
+[{"name":"a","state":"passed","took":100,"step":null},{"name":"b","state":"failed","took":null,"step":"script_failure"},{"name":"c","state":"running","took":null,"step":null}]
+
 # A GitLab pipeline that waits for a callback is running, not cancelled.
 import "forge" as forge; map(forge::gitlab_build_state)
 [{"status": "waiting_for_callback"}, {"status": "canceled"}]

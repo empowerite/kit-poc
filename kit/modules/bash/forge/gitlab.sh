@@ -631,9 +631,10 @@ forge/gitlab:rulesets() {
 # room in what it reads: the pushes to a tag, scope=tags, each of which is a tag's, which the list itself does not
 # say; the pushes to the default branch, source=push and ref; the scheduled, source=schedule; and those started from
 # the web page, source=web. The four lists are joined, each pipeline once, and forge.jq's builds keeps the 20 newest.
-# A pipeline's jobs would cost a call each, so every run carries none.
+# The five newest runs carry their jobs, a call each, as GitHub's do; a run whose jobs cannot be read carries none.
 forge/gitlab:runs() {
-  local list lists='' default tags ref kind
+  local list lists='' default tags ref kind runs jobs id
+  local -i index=0
   default=$(git:default-branch) || return 1
   tags=$(forge:tags) || return 1
   ref=$(jq --null-input --raw-output --arg s "${default}" '$s | @uri')
@@ -642,11 +643,23 @@ forge/gitlab:runs() {
     forge/gitlab:ask list 'the pipelines' "pipelines?${kind}&per_page=20" || return 1
     lists+=${list}$'\n'
   done
-  forge/gitlab:fold 'the pipelines' "${lists}" --slurp --compact-output --argjson now "$(date +%s)" \
+  runs=$(forge/gitlab:fold 'the pipelines' "${lists}" --slurp --compact-output --argjson now "$(date +%s)" \
     --arg default "${default}" --argjson tags "${tags}" \
     'import "forge" as forge;
      if all(.[]; type == "array") then (.[0] |= map(.tag = true)) | add | unique_by(.id) else error end
-     | forge::gitlab_builds($now; $default; $tags)'
+     | forge::gitlab_builds($now; $default; $tags)') || return 1
+  while IFS= read -r id
+  do
+    # The run's own state stands whatever its jobs say, so a run whose jobs cannot be read is drawn with none.
+    if forge/gitlab:pages jobs "the jobs of pipeline ${id}" "pipelines/${id}/jobs?per_page=100" 2>/dev/null
+    then
+      runs=$(forge/gitlab:fold 'the pipelines' "${runs}" --compact-output --argjson index "${index}" \
+        --argjson jobs "$(forge/gitlab:fold 'the jobs' "${jobs}" --compact-output \
+          'import "forge" as forge; forge::gitlab_build_jobs')" '.[$index].jobs = $jobs') || return 1
+    fi
+    index=$(( index + 1 ))
+  done < <(jq --raw-output '.[:5][].id' <<<"${runs}")
+  printf '%s\n' "${runs}"
 }
 
 # forge/gitlab:secret-scanning-alerts prints one document per secret detection vulnerability, open or dismissed, as

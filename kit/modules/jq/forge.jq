@@ -475,6 +475,15 @@ def gitlab_build_state:
   elif .status == "failed" then "failed"
   else "cancelled" end;
 
+# gitlab_build_jobs reads the jobs of a GitLab pipeline, as its jobs list gives them, and gives each as
+# {name, state, took, step}, as github_jobs does: state as gitlab_build_state reads a status, took null while it runs,
+# and step the failure_reason of a failed job, or null.
+def gitlab_build_jobs:
+  [.[]? | { name, state: gitlab_build_state,
+            took: (if .started_at != null and .finished_at != null
+                   then (.finished_at | epoch) - (.started_at | epoch) else null end),
+            step: (if .status == "failed" then .failure_reason else null end) }];
+
 # gitlab_builds($now; $default; $tags) reads GitLab's pipelines and gives the same runs. GitLab names the event the
 # source, and a pipeline started from the web page is workflow_dispatch here; a pipeline has a name only when the
 # project gives one. A pipeline marked as a tag's counts as one, as does a ref named as a local tag. The list gives no

@@ -1871,6 +1871,16 @@ runs-world() {
   route glab "${pipelines}?source=schedule&per_page=20" gl-schedule.json
   route glab "${pipelines}?source=web&per_page=20" gl-web.json
   route glab "${pipelines}?per_page=50" gl-any.json
+  fixture gl-jobs-103.json <<'JSON'
+[{"name": "ci", "status": "success", "started_at": "2026-10-01T10:00:03.000Z", "finished_at": "2026-10-01T10:03:33.000Z"},
+ {"name": "lint", "status": "running", "started_at": "2026-10-01T10:00:03.000Z", "finished_at": null}]
+JSON
+  fixture gl-jobs-102.json <<'JSON'
+[{"name": "ci", "status": "failed", "failure_reason": "script_failure", "started_at": "2026-10-01T09:00:00.000Z",
+  "finished_at": "2026-10-01T09:04:00.000Z"}]
+JSON
+  route glab "${pipelines}/103/jobs?per_page=100*" gl-jobs-103.json
+  route glab "${pipelines}/102/jobs?per_page=100*" gl-jobs-102.json
 }
 
 # runs-fixtures writes every run each forge has, the same six: a pull request's, a push to main, a push to the tag
@@ -1959,13 +1969,18 @@ runs-expected() {
   do
     runs-world "${forge}"
     run call runs
-    [ "$status" -eq 0 ]
+    [ "$status" -eq 0 ] || { echo "${forge}: ${output}"; return 1; }
     [ "$(jq --compact-output --sort-keys 'map(del(.age, .url, .jobs, .title))' <<<"$output")" = "$(runs-expected)" ] \
       || { echo "${forge}: ${output}"; return 1; }
     [ "$(jq 'map(.age > 0 and (.url | startswith("https://"))) | all' <<<"$output")" = true ]
   done
-  # GitLab's list gives no title, nor jobs; GitHub's runs carry their title, and the newest their jobs, a call each
-  [ "$(call runs | jq --compact-output 'map([.title, .jobs])')" = '[["",[]],["",[]],["",[]],["",[]]]' ]
+  # GitLab's list gives no title; each of its newest runs carries its jobs, a call each, a failed job with the reason
+  # GitLab gives, and a run whose jobs GitLab did not answer carries none
+  [ "$(call runs | jq --compact-output 'map(.title)')" = '["","","",""]' ]
+  [ "$(call runs | jq --compact-output 'map(.jobs)')" \
+    = '[[{"name":"ci","state":"passed","took":210,"step":null},{"name":"lint","state":"running","took":null,"step":null}],'"\
+"'[{"name":"ci","state":"failed","took":240,"step":"script_failure"}],[],[]]' ]
+  # GitHub's runs carry their title, and the newest their jobs, a call each
   runs-world github
   [ "$(call runs | jq --compact-output 'map(.title)')" = '["title 103","title 102","title 101","title 99"]' ]
   : > "${FAKE_DIR}/gh.calls"
