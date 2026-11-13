@@ -165,7 +165,9 @@ manifest:text() {
 # manifest:write-all [--keep] <excluded> <package>… writes every base's manifest, as manifest:write does, with
 # --keep when the caller did not place every path, then the repository's declaration in kit.yml, keeping the clone's
 # trust across it, as trust:keeping does. <excluded> is the excluded packages as a space-separated list, empty when
-# there are none.
+# there are none. A manifest that cannot be written stops it there: it returns 1, and the declaration stays as it
+# was, so kit.yml never declares what no manifest records. Every caller runs it where a failure is tested, under
+# trust:keeping, where errexit does not stop it, so each write is tested here.
 manifest:write-all() {
   local excluded base
   local -a keep=()
@@ -183,7 +185,12 @@ manifest:write-all() {
   shift
   for base in $(release:bases)
   do
-    manifest:write "${keep[@]}" "${base}" "${excluded}" "$@"
+    if ! manifest:write "${keep[@]}" "${base}" "${excluded}" "$@"
+    then
+      error "$(manifest:path "${base}") could not be written, as said above; the declaration in kit.yml is left" \
+        "as it was"
+      return 1
+    fi
   done
   settings:declare "$(release:version)" "${excluded}" "$@"
 }

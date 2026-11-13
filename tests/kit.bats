@@ -964,6 +964,32 @@ tree-digest() {
   [ -f .cursor/rules/kit-bash.mdc ]
 }
 
+@test "a manifest that cannot be written fails the verb, and kit.yml does not declare what no manifest records" {
+  "${kit_checkout}/bin/kit" install
+  local kit_bash_modules=manifest before
+  before=$(cat kit.yml)
+  run kit-bash 'manifest:write() { return 1; }; manifest:write-all --keep "" kit github/ci || exit 1'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *".kit/manifest could not be written"* ]]
+  [ "$(cat kit.yml)" = "${before}" ]
+  # for real: .kit/ takes no new file, so the manifest cannot be replaced; root writes there all the same
+  if (( EUID != 0 ))
+  then
+    chmod a-w .kit
+    run "${kit_checkout}/bin/kit" packages add github/ci
+    chmod u+w .kit
+    [ "$status" -eq 1 ]
+    [[ "$output" == *".kit/manifest could not be written"* ]]
+    [[ "$output" != *"packages: kit github/ci"* ]]
+    [ "$(cat kit.yml)" = "${before}" ]
+    # the person mends it and runs the verb again
+    run "${kit_checkout}/bin/kit" packages add github/ci
+    [ "$status" -eq 0 ]
+    grep --quiet '  .github/workflows/kit-ci.yml$' .kit/manifest
+    [ "$(declared packages)" = "kit github/ci" ]
+  fi
+}
+
 @test "update retires nothing when the paths the release delivers cannot be read" {
   "${kit_checkout}/bin/kit" install
   local before kit_bash_modules=place
