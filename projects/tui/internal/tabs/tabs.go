@@ -94,8 +94,8 @@ type Bar struct {
 	Stale    []bool
 }
 
-// Update takes a message the bar acts on, and says whether it did: tab and shift-tab while the bar has the keyboard, at
-// an end too, where they move nothing; a number that names a tab; and a left click on any of the bar's lines. A number
+// Update takes a message the bar acts on, and says whether it did: tab and shift-tab, and right and left, which fold
+// nothing while the bar has the keyboard, at an end too, where they move nothing; a number that names a tab; and a left click on any of the bar's lines. A number
 // and a click give the bar the keyboard.
 func (b Bar) Update(msg tea.Msg) (Bar, bool) {
 	n := len(b.Tabs)
@@ -105,10 +105,10 @@ func (b Bar) Update(msg tea.Msg) (Bar, bool) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch k := msg.String(); {
-		case b.Focused && k == "shift+tab":
+		case b.Focused && (k == "shift+tab" || k == "left"):
 			b.Scroll, b.Selected = b.layout().scroll, max(b.Selected-1, 0)
 			return b, true
-		case b.Focused && k == "tab":
+		case b.Focused && (k == "tab" || k == "right"):
 			b.Scroll, b.Selected = b.layout().scroll, min(b.Selected+1, n-1)
 			return b, true
 		}
@@ -581,13 +581,16 @@ func (b Bar) OnSelected(x, y int) bool {
 }
 
 // hit gives the tab a column of the screen falls on: the one whose part covers it. A triangle, which Update takes
-// first, and the margin without one are no tab's: -1.
+// first, the margin without one, and the cells right of the last tab are no tab's: -1.
 func (b Bar) hit(x int) int {
 	l, w := b.layout(), b.screen()
 	if x < Gutter || x >= Gutter+w || x == Gutter+w-1 && l.scroll+w < l.width {
 		return -1
 	}
 	at := x - Gutter + l.scroll
+	if at >= l.width {
+		return -1 // right of the last tab
+	}
 	hit := 0
 	for i, start := range l.at {
 		if start <= at {

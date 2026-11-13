@@ -572,9 +572,9 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 	case k.String() == "esc":
 		m.toControls()
-	case k.String() == "shift+tab":
-		m.cursor = max(m.cursor-1, 0)
-	case k.String() == "tab":
+	case k.String() == "shift+tab" || k.String() == "left":
+		m.cursor = max(m.cursor-1, 0) // the cards lie left to right, and fold nothing
+	case k.String() == "tab" || k.String() == "right":
 		m.cursor = min(m.cursor+1, n-1)
 	case k.String() == "up":
 		if to, ok := m.vertical(-1); ok {

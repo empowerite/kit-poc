@@ -58,6 +58,9 @@ func TestArrowsMoveBetweenCardsAndRows(t *testing.T) {
 	}{
 		{backTab, 0}, {tabKey, 1}, {tabKey, 2}, {tabKey, 3}, {down, 6}, {tabKey, 7}, {tabKey, 7}, {down, 7}, {up, 4},
 		{backTab, 3}, {backTab, 2}, {down, 5}, {down, 7}, {up, 4}, {up, 1},
+		// left and right fold nothing on the cards: they go along as shift-tab and tab do, and stop at the ends
+		{press(tea.KeyRight), 2}, {press(tea.KeyLeft), 1}, {press(tea.KeyLeft), 0}, {press(tea.KeyLeft), 0},
+		{press(tea.KeyRight), 1},
 	} {
 		if m = drive(m, step.key); m.cursor != step.cursor || !m.inPane {
 			t.Fatalf("%s: cursor %d, want %d, in the pane %v", step.key, m.cursor, step.cursor, m.inPane)

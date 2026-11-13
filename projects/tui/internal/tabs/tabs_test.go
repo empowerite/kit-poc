@@ -322,12 +322,22 @@ func TestTabAndShiftTabMoveOnlyWhileTheBarHasTheKeyboard(t *testing.T) {
 	}
 }
 
-// Left and right fold and unfold, and nothing folds on the bar: they move nothing on it.
-func TestLeftAndRightAreNotTheBars(t *testing.T) {
+// Left and right fold and unfold, and nothing folds on the bar: while it has the keyboard they move along it as shift-tab
+// and tab do, the way the tabs lie, and stop at the ends; while the pane has it they are the pane's.
+func TestLeftAndRightMoveAlongTheBarWhileItHasTheKeyboard(t *testing.T) {
 	b := stages(3, 80)
+	for k, want := range map[tea.KeyPressMsg]int{{Code: tea.KeyLeft}: 2, {Code: tea.KeyRight}: 4} {
+		if got, ok := b.Update(k); !ok || got.Selected != want {
+			t.Errorf("%s on the bar: %d, %v, want %d", k, got.Selected, ok, want)
+		}
+	}
+	if got, _ := stages(0, 80).Update(tea.KeyPressMsg{Code: tea.KeyLeft}); got.Selected != 0 {
+		t.Errorf("left on the first tab: %d", got.Selected)
+	}
+	b.Focused = false
 	for _, k := range []tea.KeyPressMsg{{Code: tea.KeyLeft}, {Code: tea.KeyRight}} {
 		if got, ok := b.Update(k); ok || got.Selected != 3 {
-			t.Errorf("%s on the bar: %d, %v", k, got.Selected, ok)
+			t.Errorf("%s while the pane has the keyboard: %d, %v", k, got.Selected, ok)
 		}
 	}
 }
@@ -377,6 +387,18 @@ func TestAClickOnTheBarSelectsTheTabUnderIt(t *testing.T) {
 	}
 	if _, ok := b.Update(tea.MouseClickMsg{X: x, Y: 1, Button: tea.MouseRight}); ok {
 		t.Error("a right click was taken")
+	}
+}
+
+// A click right of the last tab is on no tab: it selects nothing, and drops no menu.
+func TestAClickRightOfTheLastTabIsOnNoTab(t *testing.T) {
+	b := Bar{Selected: 0, Width: 118, Row: 1, Tabs: []Tab{{"👋", "intro", ""}, {"🧱", "basics", ""}}}
+	if got, ok := b.Update(testkit.Click(100, 1)); ok || got.Selected != 0 {
+		t.Errorf("a click at 100 on two tabs: tab %d, taken %v", got.Selected, ok)
+	}
+	b.Selected = 1
+	if b.OnSelected(100, 1) || b.hit(100) != -1 || b.hit(Gutter) != 0 {
+		t.Errorf("right of the tabs: on the selected %v, hit %d", b.OnSelected(100, 1), b.hit(100))
 	}
 }
 
