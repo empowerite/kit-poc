@@ -141,10 +141,10 @@ name, takes no word that acts, reads no path outside the repository, changes no 
 - A path stays inside the repository. `context` and `kinds` refuse a path that leads outside it, as `lint` does,
   and every path when the server cannot read its own directory, as when that directory is gone. `flow` does not
   offer a workspace, which reads other clones: `--workspace=` is an option of `kit` itself, before the verb.
-- For a file in a worktree under the desk, `context` answers from that worktree's kinds and rules, because
-  `kit context` does. A call places nothing in that worktree. When the worktree's `.kit/` is not in place, the
-  call fails, and its text names the worktree and `kit hydrate`. `kit work` places `.kit/` when it makes a
-  worktree.
+- For a file in a worktree under the desk, `context`, `kinds`, and `lint` answer from that worktree's kinds and
+  rules, because their verbs do. A call places nothing in that worktree. When the worktree's `.kit/` is not in
+  place, the call fails, and its text names the worktree and `kit hydrate`. `kit work` places `.kit/` when it makes
+  a worktree.
 
 A tool's verb still writes the kit's own records, which git never sees: its line in `.kit/logs/`, the context log,
 and a toolchain's detection cache under `.kit/cache/`.

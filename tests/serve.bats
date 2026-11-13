@@ -345,19 +345,28 @@ call() {
   [ ! -e .kit/styles/yaml.md ]
 }
 
-@test "the context tool, asked at the desk about a file in a worktree, answers from the worktree, and places nothing there" {
+@test "the context, kinds, and lint tools, asked at the desk about a file in a worktree, answer from it, and place nothing there" {
   git add --all && git commit --quiet --message=init
   git worktree add --quiet -b 7-fix-the-thing worktrees/7-fix-the-thing
   git worktree add --quiet -b 8-other worktrees/8-other
   (cd worktrees/7-fix-the-thing && "${kit_checkout}/bin/kit" hydrate) >/dev/null 2>&1
   serve "$(call 1 context '{"path":["worktrees/7-fix-the-thing/.github/workflows/w.yml"],"json":true}')" \
-    "$(call 2 context '{"path":["worktrees/8-other/.github/workflows/w.yml"]}')"
+    "$(call 2 context '{"path":["worktrees/8-other/.github/workflows/w.yml"]}')" \
+    "$(call 3 kinds '{"path":["worktrees/7-fix-the-thing/.github/workflows/w.yml"]}')" \
+    "$(call 4 kinds '{"path":["worktrees/8-other/.github/workflows/w.yml"]}')" \
+    "$(call 5 lint '{"path":["worktrees/8-other/kit.yml"]}')"
   answer 1 | jq --exit-status '.result.isError == false and (.result.content[0].text | fromjson
     | .path == "worktrees/7-fix-the-thing/.github/workflows/w.yml" and .kinds == ["any", "text", "workflows", "yaml"]
       and .rules == ["worktrees/7-fix-the-thing/.kit/rules/workflows.md", "worktrees/7-fix-the-thing/.kit/rules/bash.md"])'
   # the server placed its own checkout alone, and a call places nothing: the refusal names the worktree and the remedy
   answer 2 | jq --exit-status '.result.isError and (.result.content[0].text
     | contains("worktrees/8-other && kit hydrate") and contains("worktrees/8-other, the checkout"))'
+  # kinds and lint answer from the worktree too, as their verbs do, and place nothing there either
+  answer 3 | jq --exit-status '.result.isError == false and .result.content[0].text == "any\ntext\nworkflows\nyaml\n"'
+  answer 4 | jq --exit-status '.result.isError and (.result.content[0].text
+    | contains("worktrees/8-other && kit hydrate") and contains("worktrees/8-other, the checkout"))'
+  answer 5 | jq --exit-status '.result.isError and (.result.content[0].text
+    | contains("worktrees/8-other && kit hydrate") and contains("worktrees/8-other: kit lint runs in that checkout"))'
   [ ! -e worktrees/8-other/.kit ]
 }
 

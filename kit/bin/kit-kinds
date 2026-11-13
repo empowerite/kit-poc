@@ -14,6 +14,9 @@
 # A path is of every kind whose glob matches it, or whose pattern matches its first line. It is also of every kind
 # made of one of those. A path need not exist; it is then matched by its name alone. kit new kind makes a kind.
 #
+# The kinds are the ones of the checkout the path is in. A path in another checkout of the repository, the desk or a
+# worktree, is classified by that checkout's kinds, from that checkout's root, as kit context answers for it.
+#
 # Arguments:
 #   --json    one JSON object per kind, or per path with its kinds
 #   --jq      the same JSON, formatted by jq for a person
@@ -74,15 +77,33 @@ then
       paths[index]=${path#./}
     fi
   done
+  classified=$(printf '%s\n' "${paths[@]}" | context:classify) || exit 1
+  readarray -t rows <<<"${classified}"
+  # A path in another checkout of the repository, the desk or a worktree, is of the kinds that checkout's own kit
+  # kinds prints, as kit context answers for it.
+  for index in "${!paths[@]}"
+  do
+    path=${paths[${index}]}
+    ! context:here "${path}" || continue
+    other=$(context:elsewhere "${path}")
+    [[ -n "${other}" ]] || continue
+    if ! kinds=$(context:there "${other}" kinds "$(context:absolute "${path}")")
+    then
+      other=$(context:from-here "${other}")
+      error "${other%/}, the checkout ${path} is in, could not answer; see above"
+      exit 1
+    fi
+    rows[index]="${path}"$'\t'"${kinds//$'\n'/ }"
+  done
   if [[ "${json}" == true ]]
   then
-    printf '%s\n' "${paths[@]}" | context:classify \
+    printf '%s\n' "${rows[@]}" \
       | jq --raw-input --compact-output 'split("\t") | {path: .[0], kinds: (.[1] | split(" ") | map(select(. != "")))}'
   elif (( ${#paths[@]} == 1 ))
   then
-    printf '%s\n' "${paths[0]}" | context:classify | cut -f 2 | tr ' ' '\n' | awk 'NF'
+    printf '%s\n' "${rows[0]}" | cut -f 2 | tr ' ' '\n' | awk 'NF'
   else
-    printf '%s\n' "${paths[@]}" | context:classify
+    printf '%s\n' "${rows[@]}"
   fi
   exit 0
 fi

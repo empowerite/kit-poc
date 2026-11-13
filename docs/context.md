@@ -17,6 +17,10 @@ kit context "${path}"
   asked. From the desk, `kit context worktrees/7-fix-the-thing/.github/workflows/ci.yml` prints
   `worktrees/7-fix-the-thing/.kit/rules/workflows.md`. From a worktree, a rule of the desk is printed with its
   absolute path.
+- `kit kinds`, `kit lint`, and `kit new file` answer the same way. For a path in another checkout, each runs in
+  that checkout: `kit kinds` prints that checkout's kinds for the path, `kit lint` runs its rules' linters there,
+  after a line that names the checkout, and `kit new file` makes the file from its templates. Given paths in several
+  checkouts, `kit lint` lints each checkout's own and exits as the worst of them did.
 - A path in a clone that is not a checkout of the repository, such as a submodule, is governed by the checkout you
   ask from.
 - Every call appends one line per path to the context log in git's common directory, `.git/kit/context.log` at the desk

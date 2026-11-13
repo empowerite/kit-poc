@@ -10,7 +10,8 @@
 # neither is refused before anything is linted. The staged files leave out a path the commit deletes, and a staged
 # path that is not on the disk is refused, since a commit would take the staged file with nothing here to lint. Each
 # file is matched to the rules of its kinds, as kit context matches. The rules of the kinds a kind embeds are left
-# out, so no linter runs over a file it cannot parse. Then, for each rule:
+# out, so no linter runs over a file it cannot parse. A path in another checkout of the repository, the desk or a
+# worktree, is linted by that checkout's own kit lint, by its rules and with its linters. Then, for each rule:
 #
 #   - a `lint:` command in the rule's frontmatter runs once over all the rule's files, with the chosen toolchain's
 #     directories and each installed dependency provider's first on PATH; a linter found in none is a failure, not a
@@ -83,6 +84,52 @@ then
     (( gone == 0 )) || exit 2
   fi
 else
+  # A path in another checkout of the repository, the desk or a worktree, is linted by that checkout's own kit lint,
+  # by its rules and with its linters, as kit context answers for it. Where a path names one, each checkout lints the
+  # paths in it, this one among them, and the call exits as the worst of them did.
+  declare -A theirs=()
+  mine=() others=()
+  root=$(pwd -P)
+  for name in "${paths[@]}"
+  do
+    # A path typed at the root needs no resolving; any other goes through context:relative, which forks git.
+    # shellcheck disable=SC2154  # kit_invoked_in is exported by kit:enter
+    if [[ "${name}" == /* || "${kit_invoked_in}" != "${root}" || "${name}" == *..* ]]
+    then
+      path=$(context:relative "${name}")
+    else
+      path=${name#./}
+    fi
+    other=''
+    context:here "${path}" || other=$(context:elsewhere "${path}")
+    if [[ -z "${other}" ]]
+    then
+      mine+=("${path}")
+      continue
+    fi
+    [[ -n "${theirs[${other}]+x}" ]] || others+=("${other}")
+    theirs[${other}]+=$(context:absolute "${path}")$'\n'
+  done
+  if (( ${#others[@]} > 0 ))
+  then
+    worst=0
+    for other in "${others[@]}"
+    do
+      readarray -t named < <(printf '%s' "${theirs[${other}]}")
+      prefix=$(context:from-here "${other}")
+      step "${prefix%/}: kit lint runs in that checkout"
+      status=0
+      context:there "${other}" lint -- "${named[@]}" || status=$?
+      (( status <= worst )) || worst=${status}
+    done
+    if (( ${#mine[@]} > 0 ))
+    then
+      status=0
+      run kit lint -- "${mine[@]}" || status=$?
+      (( status <= worst )) || worst=${status}
+    fi
+    exit "${worst}"
+  fi
   context:named "${paths[@]}" || exit $?
   # shellcheck disable=SC2154  # context_named is set by context:named
   paths=("${context_named[@]}")

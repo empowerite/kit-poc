@@ -26,10 +26,11 @@
 # context:claude gives the same answer in Claude Code's hook protocol. It names the rules but does not quote them,
 # so the agent still reads each rule itself, and a hook on Read can record that.
 #
-# The kinds and rules of a checkout govern the files in it. A repository's checkouts are its desk and its worktrees.
-# For a path in another checkout than the one the command runs in, context:render and context:claude find that
-# checkout with context:elsewhere and get its answer with context:asked-there. A file in a worktree therefore gets
-# the same answer at the desk and in the worktree.
+# The kinds, rules, and templates of a checkout govern the files in it. A repository's checkouts are its desk and its
+# worktrees. For a path in another checkout than the one the command runs in, a verb finds that checkout with
+# context:elsewhere and runs itself there with context:there: context:render and context:claude through
+# context:asked-there, and kit kinds, kit lint, and kit new file themselves. A file in a worktree therefore gets the
+# same answer at the desk and in the worktree.
 #
 # see: docs/context.md
 
@@ -90,19 +91,36 @@ context:relative() {
   printf '%s\n' "${path#"${root}"/}"
 }
 
+# context:here <path> succeeds when <path>, a path that context:relative printed, is surely in this checkout: it is
+# under this root, and neither it nor a folder between it and the root holds a .git. It forks nothing, so a verb
+# that loops over many paths asks it first, and asks context:elsewhere, in a subshell, only about a path it fails
+# for. The working directory is this checkout's root.
+context:here() {
+  local dir=$1
+  [[ "${dir}" != /* && "/${dir}/" != */../* ]] || return 1
+  until [[ -e "${dir}/.git" ]]
+  do
+    [[ "${dir}" == */* ]] || return 0
+    dir=${dir%/*}
+  done
+  return 1
+}
+
 # context:elsewhere <path> prints the root of the checkout that holds <path>, when that checkout belongs to this
 # repository and is not the one the command runs in. The checkouts of a repository are its desk and its worktrees,
 # the ones git worktree list prints. The function prints nothing for a path in this checkout. It also prints nothing
 # for a path in a clone that is not a checkout of this repository, such as a submodule: this checkout's kinds and
 # rules govern that path. <path> is a path that context:relative printed, and the working directory is this
 # checkout's root. kit:clone-root finds the other checkout from the file system: the nearest directory that holds
-# .git, at or above the nearest existing directory of the path.
+# .git, at or above the nearest existing directory of the path, which is the path itself when it is a directory, as
+# the root of a worktree that kit lint is given.
 context:elsewhere() {
   local path=$1 here dir other line
   local -a worktrees=()
+  ! context:here "${path}" || return 0
   here=$(pwd -P)
   [[ "${path}" == /* ]] || path="${here}/${path}"
-  dir=${path%/*}
+  dir=${path}
   while [[ -n "${dir}" && ! -d "${dir}" ]]
   do
     dir=${dir%/*}
@@ -123,21 +141,44 @@ context:elsewhere() {
   done
 }
 
+# context:there <checkout> <verb> <argument>… runs kit <verb> in <checkout>, another checkout of this repository, so
+# the release that checkout pins answers from that checkout's kinds, rules, and templates. A path among the arguments
+# is absolute, as context:absolute prints it, since the verb reads a relative one from the folder it runs in. It
+# returns the verb's status.
+context:there() {
+  local other=$1
+  shift
+  (cd "${other}" && run kit "$@")
+}
+
+# context:absolute <path> prints <path>, a path that context:relative printed, as an absolute path. The working
+# directory is this checkout's root.
+context:absolute() {
+  if [[ "$1" == /* ]]
+  then printf '%s\n' "$1"
+  else printf '%s/%s\n' "$(pwd -P)" "$1"
+  fi
+}
+
+# context:from-here <checkout> prints what stands in front of a path in <checkout>, another checkout of this
+# repository, so that the path opens from this checkout's root: the path of <checkout> from this root when it is
+# under it, and its absolute path otherwise, and then a /. The working directory is this checkout's root.
+context:from-here() {
+  local prefix="$1/"
+  printf '%s\n' "${prefix#"$(pwd -P)"/}"
+}
+
 # context:asked-there <checkout> <path> [--json] prints the rules that govern <path>, a file in <checkout>, which is
-# another checkout of this repository. It runs kit context in <checkout>, so the release that checkout pins answers
-# from that checkout's kinds and rules, and logs the request. It then puts <checkout>'s path in front of each rule,
-# so that the rule opens from this checkout's root: the path from this root when <checkout> is under it, and the
-# absolute path otherwise. With --json it prints one object, whose path is <path>. It returns 1 and names the
-# checkout when kit context fails there. <path> is a path that context:relative printed, and the working directory
-# is this checkout's root.
+# another checkout of this repository. It runs kit context in <checkout>, with context:there, so the release that
+# checkout pins answers from that checkout's kinds and rules, and logs the request. It then puts <checkout>'s path in
+# front of each rule, as context:from-here prints it, so that the rule opens from this checkout's root. With --json
+# it prints one object, whose path is <path>. It returns 1 and names the checkout when kit context fails there.
+# <path> is a path that context:relative printed, and the working directory is this checkout's root.
 context:asked-there() {
-  local other=$1 path=$2 mode=${3:-} here absolute prefix answer rule
-  here=$(pwd -P)
-  absolute=${path}
-  [[ "${absolute}" == /* ]] || absolute="${here}/${path}"
-  prefix="${other}/"
-  prefix=${prefix#"${here}"/}
-  if ! answer=$(cd "${other}" && run kit context ${mode:+"${mode}"} "${absolute}")
+  local other=$1 path=$2 mode=${3:-} absolute prefix answer rule
+  absolute=$(context:absolute "${path}")
+  prefix=$(context:from-here "${other}")
+  if ! answer=$(context:there "${other}" context ${mode:+"${mode}"} "${absolute}")
   then
     error "${prefix%/}, the checkout ${path} is in, could not answer; see above"
     return 1

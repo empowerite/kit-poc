@@ -31,7 +31,8 @@
 #
 # The defaults, and the limits:
 #
-#   - <path> may be absolute inside the repository; a path outside it is refused
+#   - <path> may be absolute inside the repository; a path in another checkout of the repository, the desk or a
+#     worktree, is made there, from that checkout's templates; any other path outside the repository is refused
 #   - --rule defaults to the most specific rule that governs the path and has templates; a script with no extension
 #     needs the flag
 #   - --variant defaults to the first variant the rule lists that the path allows
@@ -132,16 +133,35 @@ do
     (*) path=${arg}
   esac
 done
-# An absolute path inside the repository is made relative to the root. A path outside the repository is refused.
+# An absolute path inside the repository is made relative to the root. A path in another checkout of the repository,
+# the desk or a worktree, is made by that checkout's own kit new file, from its templates, as kit context answers for
+# it; its rules are named so that each opens from here. Any other path outside the repository is refused.
 root=$(pwd -P)
+named=${path}
+[[ "${path}" != /* ]] || path=$(context:relative "${path}")
+other=$(context:elsewhere "${path}")
+if [[ -n "${other}" ]]
+then
+  declare -a rules
+  words=()
+  for arg in "$@"
+  do
+    [[ "${arg}" != "${named}" ]] || arg=$(context:absolute "${path}")
+    words+=("${arg}")
+  done
+  prefix=$(context:from-here "${other}")
+  step "${prefix%/}: kit new file runs in that checkout"
+  list:read rules context:there "${other}" new file "${words[@]}" || exit $?
+  for rule in "${rules[@]}"
+  do
+    printf '%s%s\n' "${prefix}" "${rule}"
+  done
+  exit 0
+fi
 if [[ "${path}" == /* ]]
 then
-  path=$(context:relative "${path}")
-  if [[ "${path}" == /* ]]
-  then
-    error "${path} is outside the repository at ${root}"
-    exit 2
-  fi
+  error "${path} is outside the repository at ${root}"
+  exit 2
 fi
 path=${path#./}
 if [[ "${path}" == ../* || "${path}" == */../* ]]

@@ -205,6 +205,64 @@ setup() {
   [ "${#lines[@]}" -eq 2 ]
 }
 
+@test "kit kinds, kit lint, and kit new file give a file in another checkout the answer that checkout gives" {
+  git add --all && git commit --quiet --message=init
+  git worktree add --quiet -b 7-fix-the-thing worktrees/7-fix-the-thing
+  desk=$(pwd -P)
+  wt=worktrees/7-fix-the-thing
+  # the branch adds a kind, its rule, and a template, which the desk does not have
+  mkdir -p "${wt}/.kit/packages/toml/files/repo/.kit/kinds" "${wt}/.kit/packages/toml/files/repo/.kit/rules"
+  printf 'description: "The TOML kind and its rule"\ndepends:\n  - kit\n' > "${wt}/.kit/packages/toml/package.yml"
+  printf '# The TOML kind\nname: toml\npaths:\n  - "**/*.toml"\n' > "${wt}/.kit/packages/toml/files/repo/.kit/kinds/toml.yml"
+  printf -- '---\nkind:\n  - toml\n---\n# TOML\n' > "${wt}/.kit/packages/toml/files/repo/.kit/rules/toml.md"
+  (cd "${wt}" && "${kit_checkout}/bin/kit" packages add toml \
+    && "${kit_checkout}/bin/kit" new template toml file --package=toml) >/dev/null 2>&1
+  # kinds: a workflow's glob is anchored at its checkout's root, and the worktree's own kind is no kind at the desk
+  run "${kit_checkout}/bin/kit" kinds "${wt}/.github/workflows/w.yml"
+  [ "$status" -eq 0 ]
+  [ "$output" = $'any\ntext\nworkflows\nyaml' ]
+  run "${kit_checkout}/bin/kit" kinds "${wt}/Cargo.toml" Cargo.toml
+  [ "$output" = "${wt}/Cargo.toml"$'\tany toml\nCargo.toml\tany' ]
+  run "${kit_checkout}/bin/kit" kinds --json "${wt}/Cargo.toml" Cargo.toml
+  [ "$output" = "{\"path\":\"${wt}/Cargo.toml\",\"kinds\":[\"any\",\"toml\"]}"$'\n{"path":"Cargo.toml","kinds":["any"]}' ]
+  # lint: the worktree's workflows rule refuses what the desk has no rule for, a file or the directory above it
+  mkdir -p "${wt}/.github/workflows"
+  printf 'name: w\non: push\njobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n' \
+    > "${wt}/.github/workflows/w.yml"
+  git -C "${wt}" add .github  # a directory stands for the tracked files under it
+  for named in "${wt}/.github/workflows/w.yml" "${wt}/.github" "${wt}"
+  do
+    run "${kit_checkout}/bin/kit" lint "${named}"
+    [ "$status" -eq 1 ] || { echo "${named}: ${output}"; false; }
+    [[ "$output" == *"${wt}: kit lint runs in that checkout"* ]]
+    [[ "$output" == *".github/workflows/w.yml:7: uses: actions/checkout@v4 is not pinned to a commit SHA"* ]]
+  done
+  # paths of both checkouts are linted, each by its own, and one refusal fails the call
+  printf '#!/usr/bin/env bash\necho ok\n' > clean.sh
+  run "${kit_checkout}/bin/kit" lint clean.sh "${wt}/.github/workflows/w.yml"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *".kit/rules/bash.md: shellcheck"*"over 1 path(s)"* ]]
+  [[ "$output" == *"uses: actions/checkout@v4 is not pinned"* ]]
+  git -C "${wt}" rm --quiet --force .github/workflows/w.yml
+  run "${kit_checkout}/bin/kit" lint clean.sh "${wt}/.kit/packages/toml/package.yml"
+  [ "$status" -eq 0 ] || { echo "${output}"; false; }
+  # new file: the worktree's template makes the file there, and its rules are named so they open from the desk
+  run --separate-stderr "${kit_checkout}/bin/kit" new file "${wt}/Cargo.toml" --body='[package]'
+  [ "$status" -eq 0 ] || { echo "${stderr}"; false; }
+  [ "$output" = "${wt}/.kit/rules/toml.md" ]
+  [[ "$stderr" == *"${wt}: kit new file runs in that checkout"* ]]
+  [[ "$stderr" == *"made Cargo.toml from .kit/templates/toml/file"* ]]
+  [ "$(cat "${wt}/Cargo.toml")" = '[package]' ]
+  # from the worktree, a file at the desk is the desk's: its kinds, and its templates, which have none for TOML
+  cd "${wt}"
+  run "${kit_checkout}/bin/kit" kinds ../../Cargo.toml Cargo.toml
+  [ "$output" = "${desk}/Cargo.toml"$'\tany\nCargo.toml\tany toml' ]
+  run "${kit_checkout}/bin/kit" new file "${desk}/notes.toml" --body=x
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"no template governs notes.toml"* ]]
+  [ ! -e "${desk}/notes.toml" ]
+}
+
 @test "a file in a clone that is no checkout of the repository is governed from where it was asked, and a checkout that cannot answer is named" {
   git add --all && git commit --quiet --message=init
   git init --quiet vendor/lib
