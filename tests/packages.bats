@@ -11,6 +11,12 @@ setup() {
   fresh-repo
 }
 
+@test "policy/opa is described by the names its rules judge, and its Rego reads no file of the tree" {
+  [ "$(yq '.description' "${kit_checkout}/packages/policy/opa/package.yml")" \
+    = "The policy as Rego on Open Policy Agent, covering the names of branches, worktrees, commits, and pull requests" ]
+  run ! grep --quiet 'input.tree' "${kit_checkout}/packages/policy/opa/files/repo/.kit/policy/kit.rego"
+}
+
 @test "select adds and removes to reach exactly the named set, keeps what the set needs, and says so" {
   "${kit_checkout}/bin/kit" install agents/claude agents/copilot
   [ -f .github/instructions/kit-bash.instructions.md ]

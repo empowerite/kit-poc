@@ -2,6 +2,6 @@
 # ----------------------------------------------------------------------------------------------------------------------
 # see: docs/packages.md
 
-description: "The policy as Rego on Open Policy Agent, covering names and files"
+description: "The policy as Rego on Open Policy Agent, covering the names of branches, worktrees, commits, and pull requests"
 depends:
   - kit
