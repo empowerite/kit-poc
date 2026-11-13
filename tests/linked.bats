@@ -182,14 +182,17 @@ EOF
   route gh 'pr view 3 --json *' pr.json
   run "${kit_checkout}/bin/kit" linked 3
   [ "$status" -eq 1 ]
-  [[ "$output" == *"kit cannot read its state in the LIN# tracker, which it reaches through its pages alone"* ]]
-  [[ "$output" == *"LIN#12's state could not be read, so it does not count"* ]]
+  [[ "$output" == *"LIN#12 is in the LIN# tracker, which kit reaches through its pages alone, so its state is not judged here; open https://linear.app/example/issue/ENG-12"* ]]
+  # the tracker cannot answer, so no retry is named: the change needs an issue kit reads
+  [[ "$output" == *"no linked issue is open in this repository, and 1 is in a tracker kit cannot read; link an issue of this repository"* ]]
+  [[ "$output" != *"again once the tracker answers"* && "$output" != *"could not be read, so it does not count"* ]]
+  grep --quiet 'No linked issue is open' "${GITHUB_STEP_SUMMARY}"
   # with an open issue of the repository linked beside it, the change passes
   fixture closing.json <<<'{"data": {"repository": {"pullRequest": {"closingIssuesReferences": {"nodes": [
     {"number": 7, "state": "OPEN", "repository": {"nameWithOwner": "empowerite/example"}}]}}}}}'
   run "${kit_checkout}/bin/kit" linked 3
   [ "$status" -eq 0 ]
-  [[ "$output" == *"LIN#12's state could not be read, so it does not count"* ]]
+  [[ "$output" == *"LIN#12 is in the LIN# tracker, which kit reaches through its pages alone, so its state is not judged here"* ]]
 }
 
 @test "on a branch, kit linked fails when the base is not here, since the logins it exempts cannot be read" {

@@ -188,14 +188,19 @@ YAML
   [ "$output" = "https://linear.app/example/issue/ENG-12" ]
   # a web tracker does nothing but open its pages: the rest refuses, naming the page to do it on, or the setting
   run in_tracker tracker:of 'LIN#12' title
-  [ "$status" -eq 1 ]
+  [ "$status" -eq 3 ]
   [[ "$output" == *"kit cannot read its title in the LIN# tracker, which it reaches through its pages alone; open https://linear.app/example/issue/ENG-12"* ]]
   run in_tracker tracker:at 'LIN#' create 'Fix it'
-  [ "$status" -eq 1 ]
+  [ "$status" -eq 3 ]
   [[ "$output" == *"run: cd "*" && kit new issue LIN#, which opens its page"* ]]
   run in_tracker tracker:at 'BZ#' new-url
   [ "$status" -eq 1 ]
   [[ "$output" == *"the BZ# tracker has no new page; set new in its record under trackers in kit.yml"* ]]
+  run in_tracker tracker:of 'BZ#3' assign ada
+  [ "$status" -eq 3 ]
+  run in_tracker tracker:of 'LIN#12' state
+  [ "$status" -eq 3 ] && [ -z "$output" ]
+  [[ "$(in_tracker tracker:pages-only 'LIN#12')" == "LIN#12 is in the LIN# tracker, which kit reaches through its pages alone, so its state is not judged here; open https://linear.app/example/issue/ENG-12" ]]
   run in_tracker tracker:of 'BZ#3' assign ada
   [[ "$output" == *"kit cannot assign it in the BZ# tracker"*"open its tracker's page"* ]]
   # on GitLab, the page is under the project's /-/, the title as issue[title]
@@ -321,6 +326,23 @@ JSON
   [ "$status" -eq 0 ]
   run grep -c update "${FAKE_DIR}/az.calls"
   [ "$output" = 0 ]
+}
+
+@test "kit settle leaves an issue of a tracker kit only opens the pages of as it is, names its page, and exits 0" {
+  fixture repo.json <<<'{"nameWithOwner": "empowerite/example", "url": "https://github.com/empowerite/example"}'
+  fixture merged.json <<<'{"state": "MERGED", "mergeCommit": {"oid": "abcdef0123456789"}}'
+  fixture body.json <<<'{"body": "Does the work.\nCloses LIN#12"}'
+  fixture user.json <<<'{"login": "ada"}'
+  route gh 'api user*' user.json
+  route gh 'repo view*' repo.json
+  route gh 'pr view 3 --json state,mergeCommit*' merged.json
+  route gh 'pr view * --json body*' body.json
+  printf 'forge: github\ntrackers:\n  - prefix: "LIN#"\n    provider: web\n' >> kit.yml
+  printf '    url: https://linear.app/example/issue/ENG-{id}\n' >> kit.yml
+  run "${kit_root}/bin/kit" settle 3
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"LIN#12 is in the LIN# tracker, which kit reaches through its pages alone, so its state is not judged here; open https://linear.app/example/issue/ENG-12"* ]]
+  [[ "$output" != *"could not be closed"* && "$output" != *"could not be read"* ]]
 }
 
 @test "the settings take a tracker with a prefix and a provider, and refuse one without" {

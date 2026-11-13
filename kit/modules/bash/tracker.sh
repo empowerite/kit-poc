@@ -37,7 +37,7 @@
 #
 #   title <id>              the issue's title
 #   body <id>               the issue's body, as Markdown, and nothing for an empty one
-#   state <id>              OPEN or CLOSED
+#   state <id>              OPEN or CLOSED; a tracker kit reaches through its pages alone prints none and answers 3
 #   assignees <id>          the assignees' logins, space-separated
 #   assign <id> <login>     adds the assignee
 #   unassign <id> <login>   removes the assignee
@@ -53,6 +53,9 @@
 #                           issues prints none and answers 3
 #   create <title> [<body>] the number of the issue it creates
 #   url <id>                the issue's browser URL
+#
+# A call a provider cannot make answers 3, as the forge seam's unsupported answer does, so a caller tells a tracker kit
+# cannot read from one that failed: tracker:pages-only says it in one line. Any other failure is 1.
 #
 # see: docs/trackers.md
 
@@ -147,6 +150,16 @@ tracker:of() {
   provider=$(tracker:provider "${prefix}") || return 1
   use "tracker/${provider}" || return 1
   TRACKER_PREFIX=${prefix} "tracker/${provider}:${call}" "${number}" "$@"
+}
+
+# tracker:pages-only <reference> prints the line a caller gives for an issue whose state a provider answered 3 for: its
+# tracker is one kit reaches through its pages alone, so its state is not judged here, and where its page is.
+tracker:pages-only() {
+  local prefix page
+  prefix=$(tracker:parse "$1" | cut -f 1)
+  page=$(tracker:of "$1" url 2>/dev/null) || page="its tracker's page"
+  printf '%s is in the %s tracker, which kit reaches through its pages alone, so its state is not judged here; open %s\n' \
+    "$1" "${prefix}" "${page}"
 }
 
 # tracker:at <prefix> <call> <argument>… runs a call that names no issue, such as me or create, on the prefix's

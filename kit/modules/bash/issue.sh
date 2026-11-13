@@ -172,7 +172,14 @@ issue:close() {
       failed=1
       continue
     fi
-    if ! state=$(tracker:of "${ref}" state)
+    status=0
+    state=$(tracker:of "${ref}" state) || status=$?
+    if (( status == 3 ))
+    then
+      error "${ref} could not be closed: $(tracker:pages-only "${ref}")"
+      failed=1
+      continue
+    elif (( status != 0 ))
     then
       error "${ref} could not be closed: its state could not be read"
       failed=1
@@ -308,7 +315,7 @@ issue:named() {
 # issue:settle <change> settles the issues a closed pull request names, as kit settle describes. It is safe to run
 # again: an issue already closed, or no longer assigned, is left as it is.
 issue:settle() {
-  local pr=${1#[#!]} line state sha sigil noun url body author ref login failed=0 own=false
+  local pr=${1#[#!]} line state sha sigil noun url body author ref login failed=0 own=false status
   local current assignees
   local -a refs=()
   IFS=$'\t' read -r sigil noun < <(forge:noun) || return 1
@@ -325,7 +332,13 @@ issue:settle() {
       list:read refs issue:named "${pr}" "${body}" "${own}" || return 1
       for ref in "${refs[@]}"
       do
-        if ! current=$(tracker:of "${ref}" state)
+        status=0
+        current=$(tracker:of "${ref}" state) || status=$?
+        if (( status == 3 ))
+        then
+          warn "$(tracker:pages-only "${ref}")"
+          continue
+        elif (( status != 0 ))
         then
           error "${ref} could not be closed: its state could not be read"
           failed=1

@@ -105,7 +105,9 @@ organization.
 A `web` tracker is a ticket system kit has no command line for, such as Jira or Linear. kit opens its pages and does
 nothing else there: the calls that read or change an issue refuse, naming the issue's page. So `kit work LIN#12`
 refuses, since it cannot read the issue's title, and `kit linked` does not count a `Closes LIN#12` line: the change
-passes only when it also links an open issue of a tracker kit reads.
+passes only when it also links an open issue of a tracker kit reads. Such an issue is named, with its page, and a
+change linked to nothing else is refused with no retry named, since the tracker will not answer later. `kit settle`
+leaves it as it is, names its page, and exits 0: close it there.
 
 ```yaml
 trackers:

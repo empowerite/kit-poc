@@ -12,8 +12,9 @@
 #       url: https://linear.app/example/issue/ENG-{id}
 #
 # kit opens those pages and does nothing else there: it cannot read, assign, close, or comment on an issue, nor say who
-# the caller is, so those calls refuse, naming the page to do it on; nor list its open issues, so kit flow issues has
-# none of them.
+# the caller is, so those calls refuse, naming the page to do it on, and answer 3, the seam's answer for a call a
+# provider cannot make; its state prints nothing, for the caller to name the page; nor list its open issues, so kit
+# flow issues has none of them.
 
 tracker/web:assign() { tracker/web:refuse "$1" 'assign it'; }
 
@@ -27,7 +28,7 @@ tracker/web:comment() { tracker/web:refuse "$1" 'comment on it'; }
 
 tracker/web:create() {
   error "kit cannot create an issue in the ${TRACKER_PREFIX} tracker; run: kit new issue ${TRACKER_PREFIX}, which opens its page"
-  return 1
+  return 3
 }
 
 tracker/web:me() {
@@ -49,7 +50,8 @@ tracker/web:new-url() {
 # tracker/web:open-issues lists none, and answers 3: kit reads nothing of a tracker it reaches through its pages alone.
 tracker/web:open-issues() { return 3; }
 
-tracker/web:state() { tracker/web:refuse "$1" 'read its state'; }
+# tracker/web:state prints nothing and answers 3: a caller that judges an issue says it is in a tracker kit cannot read.
+tracker/web:state() { return 3; }
 
 tracker/web:title() { tracker/web:refuse "$1" 'read its title'; }
 
@@ -75,12 +77,13 @@ tracker/web:field() {
   printf '%s\n' "${value}"
 }
 
-# tracker/web:refuse <id> <what> refuses to do what was asked to an issue, naming its page, where a person does it.
+# tracker/web:refuse <id> <what> refuses to do what was asked to an issue, naming its page, where a person does it, and
+# answers 3.
 tracker/web:refuse() {
   local page
   page=$(tracker/web:url "$1" 2>/dev/null) || page="its tracker's page"
   error "kit cannot $2 in the ${TRACKER_PREFIX} tracker, which it reaches through its pages alone; open ${page}"
-  return 1
+  return 3
 }
 
 # ----------------------------------------------------------------------------------------------------------------------
