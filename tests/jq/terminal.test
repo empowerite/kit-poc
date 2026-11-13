@@ -3,10 +3,11 @@
 # Each case is a program, an input, and the outputs it gives, one JSON value per line, then a blank line. The input
 # is null; a case gives its table as an argument, a small one with iTerm2's two findings, its probe rows, and ssh.
 
-# fill puts each key's value where the string names it in braces, and leaves a name it lacks as it is.
+# fill puts each key's value where the string names it in braces, and a name it lacks is shown in angle brackets, for
+# the person to fill in, never as braces left in a sentence.
 import "terminal" as terminal; "{name} in {profile}, {missing}, {n}" | terminal::fill({"name": "iTerm2", "profile": "Work", "n": 2})
 null
-"iTerm2 in Work, {missing}, 2"
+"iTerm2 in Work, <missing>, 2"
 
 # The heading comes first and holds; a failed finding names its profile, and its fix; more is the terminal's section.
 import "terminal" as terminal; terminal::checks({"docs": "D", "probes": {}, "terminals": {"iterm": {"name": "iTerm2", "anchor": "iterm2", "findings": [{"id": "triggers", "need": "speed", "line": "triggers run in {profile}", "held": "no triggers", "fix": "untick it in {profile}"}]}}}; "iterm"; {"profile": "Work"}; {"triggers": true}; null; [])

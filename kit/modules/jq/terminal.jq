@@ -27,10 +27,12 @@ import "terminals" as $terminals;
 # data gives terminals.json.
 def data: $terminals::terminals[0];
 
-# fill($o) reads a string and gives it with each {key} that $o has replaced by its value.
+# fill($o) reads a string and gives it with each {key} that $o has replaced by its value. A {key} that $o lacks, such
+# as when the terminal's reader failed, is shown as <key>, which the person reads as theirs to fill in.
 def fill($o):
   reduce ($o | to_entries[] | select(.value | type != "object" and type != "array")) as $e
-    (.; gsub("\\{" + $e.key + "\\}"; $e.value | tostring));
+    (.; gsub("\\{" + $e.key + "\\}"; $e.value | tostring))
+  | gsub("\\{(?<key>[a-z_]+)\\}"; "<\(.key)>");
 
 # measured_badly($probe) is true when the probes object says the terminal does not give kittui what $probe asks. A
 # width the terminal did not report was not measured, so it is not bad.

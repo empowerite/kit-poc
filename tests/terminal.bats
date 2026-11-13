@@ -473,6 +473,21 @@ kitty-config() {
     "add config.enable_kitty_keyboard = true to /home/me/.wezterm.lua" ]
 }
 
+@test "WezTerm is read by the wezterm WEZTERM_EXECUTABLE_DIR names, off PATH, and a fix of a terminal kit could not read shows <config>" {
+  export WEZTERM_CONFIG_FILE=/home/me/.wezterm.lua KIT_TERMINAL_PROBES='{"answered":true,"kitty_keyboard":false}'
+  # no wezterm anywhere: the reader fails, and the fix is not left with braces
+  run kit-bash 'PATH=$(dirname "$(command -v jq)"):/usr/bin:/bin TERM_PROGRAM=WezTerm terminal:checks'
+  [ "$(jq -sr 'map(select(.id == "terminal-probe-kitty-keyboard"))[0].fix' <<<"$output")" = \
+    "add config.enable_kitty_keyboard = true to <config>" ]
+  # WezTerm's own folder is named by WEZTERM_EXECUTABLE_DIR, as macOS app bundles are off PATH
+  mkdir -p "${BATS_TEST_TMPDIR}/app"
+  printf '#!/bin/sh\nprintf "Default key table\\n-----------------\\n"\n' > "${BATS_TEST_TMPDIR}/app/wezterm"
+  chmod +x "${BATS_TEST_TMPDIR}/app/wezterm"
+  run kit-bash 'PATH=$(dirname "$(command -v jq)"):/usr/bin:/bin WEZTERM_EXECUTABLE_DIR="${BATS_TEST_TMPDIR}/app" TERM_PROGRAM=WezTerm terminal:checks'
+  [ "$(jq -sr 'map(select(.id == "terminal-probe-kitty-keyboard"))[0].fix' <<<"$output")" = \
+    "add config.enable_kitty_keyboard = true to /home/me/.wezterm.lua" ]
+}
+
 # alacritty-config <toml>… writes Alacritty's config where it looks first.
 alacritty-config() {
   export XDG_CONFIG_HOME="${BATS_TEST_TMPDIR}/config"
