@@ -12,8 +12,11 @@
 # up to the next blank line, or, where a fence opens next, to its close.
 #
 # A plan under docs/superpowers/plans/ is such a record, and it says where it stands: its third line, under its title,
-# is a status line with its date, **Status, 2026-11-12:** and what is built, what is not, and what is next. The last
+# is a status line with its date, **Status, 2026-11-12:** and what is built, what is not, and what is next. One
 # test holds the line's form alone; what it says is a reading of the code on that date, which no test can make.
+#
+# The README shows one screen of kittui as a text block. A test holds the block to the golden file kittui's own tests
+# draw, so the screen a stranger sees is one kittui draws. When that golden changes, copy it into the block.
 #
 # The docs check is a test, not a rule's check that kit lint runs: kit lint is not one of kit ci's four checks, and
 # what these tests hold is this repository's pages to this repository's code, which no repository that installs the
@@ -480,4 +483,21 @@ EOF
         "built from the tool's documented output, not yet against a live project")
   done
   (( ${#found[@]} == 0 )) || { printf '%s\n' "${found[@]}"; return 1; }
+}
+
+@test "the screen the README shows is one kittui draws: Flow's golden at 80 columns, less the spaces that end a line" {
+  local golden=projects/tui/internal/flow/testdata/issues.golden shown drawn
+  # the first text block under the heading, as the page shows it
+  shown=$(awk '
+    $0 == "## The terminal UI" { under = 1; next }
+    under && /^```text$/ { inside = 1; next }
+    inside && /^```$/ { exit }
+    inside { print }' "${root}/README.md")
+  drawn=$(sed 's/[[:space:]]*$//' "${root}/${golden}")
+  [ -n "${shown}" ] || { echo "README.md shows no screen in a text block under ## The terminal UI"; return 1; }
+  [ "${shown}" = "${drawn}" ] || {
+    echo "README.md's screen under ## The terminal UI is not ${golden}; copy the golden into the block:"
+    diff <(printf '%s\n' "${shown}") <(printf '%s\n' "${drawn}") || true
+    return 1
+  }
 }

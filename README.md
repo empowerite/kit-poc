@@ -12,6 +12,65 @@ AI coding agents take the same shortcuts people do: they call work done when it 
 other people's branches. kit writes down the rules an agent must follow, puts them where each agent reads, and checks
 them in CI. It ships as a versioned release that any repository can install and keep up to date.
 
+kit also takes the work from an issue to a merged pull request, with the same few commands wherever the repository
+is hosted. kittui, its terminal UI, shows where that work is.
+
+## The terminal UI
+
+Type `kit` at a terminal, and kit opens kittui on the welcome guide. kittui has nine apps, one for each part of the
+work. The first is Flow, which follows the work from an issue to a release. This is `kit flow` in a terminal 80
+columns wide, drawn from the sample data that kittui's tests use:
+
+```text
+  = kit flow · - empowerite/kit                                      🔎 /search
+  ➊╶───────────────╮➁╶────────────────╮➂╶───────────────╮➃╶──────────────────╮➄╶
+  │ 🎫 issues  7 : │  🔀 changes  3   │  🏭 builds  4   │  🛬 incoming  7    │
+  ╵                ╰──────────────────╰─────────────────╰────────────────────╰──
+  Issues — What is open, who has it, and where the work on it stands
+
+  ▾ source · organization · repository ▾ 7            📇 Fields  All Issues ▼
+    ·────────·──────────────·─────────────
+  ▾ github · empowerite 7
+
+      ▸ id   status  assign  age  change  state  where    labels   title
+        ·────·───────×·──────·────·───────·──────·────────×·───────·───────────
+    ▾ jig 1
+      ▸ #7   💤      ada +1  40d                                   🎫 Fix the …
+    ▾ kit 6
+      ▸ #1   🛫      jeffr…   8d  🔀 #2   🏁     🌿 here  p… +1  🎫 The firs…
+      ▸ #8   🛫               2d  🔀 #4   🔥     👤 bob            🎫 Lint the…
+      ▸ #8   🛫               2d  🔀 #11  🔨     🌱 loc…           🎫 Lint the…
+      ▸ #46  💤      jeffr…   2d                          bug    🎫 A noun l…
+      ▸ #31  🛫      ada      3h  🔀 #12  💬     👤 ada            🎫 kit comm…
+      ▸ #45  💤               2h                          k… +2  🎫 kit flow…
+
+
+ = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ groups 1-5 jump : ta…
+```
+
+To read the screen:
+
+- The first line is the menu bar. Press `=` for the menu of apps, `-` for the menu of workspaces, and `/` to
+  search. A workspace is what kit looks at: one repository, or a group of them.
+- Each tab is a stage of the work, with a count of its rows. The fifth tab, releases, runs past the right edge
+  at this width.
+- The rows are the open issues, grouped by repository. 💤 marks an issue in the backlog, and 🛫 one that is
+  underway. An issue underway shows its pull request and the state of that pull request.
+- The last line names the keys that work now. Press `?` for a legend of every glyph on the screen. `esc` goes
+  back one step and never quits. `⌃Q` quits.
+
+Every action also works with a plain click. Beyond Flow:
+
+- The other eight apps are Issues, Changes, Repositories, Delivery, People, Trust, Platform, and Packages. Open
+  one from the `=` menu, or run its verb, such as `kit changes`; see [docs/apps.md](docs/apps.md).
+- `kit help` lists every verb. Pick one, and kittui opens a form that builds its command line. A verb that you run
+  without an argument it needs opens the same form.
+- `kit tutorials` teaches the parts of the screen; see [docs/tutorials.md](docs/tutorials.md).
+
+kittui shows only what kit prints. Each screen reads the JSON of a kit command, so a script or an agent can read
+the same facts, for example with `kit flow --json`. Without a terminal, such as in a pipe or in CI, kit never opens
+kittui, and `kit flow` prints its picture as text.
+
 ## What kit does
 
 Checks:
@@ -170,11 +229,10 @@ Claude Code reads `AGENTS.md` only when there is no `CLAUDE.md`. So the `agents/
 `kit packages` lists the packages. `kit packages add` and `kit packages remove` change which are active. The package
 format is in [docs/packages.md](docs/packages.md).
 
-kit works with no packages at all. The workflow verbs (`kit flow`, `kit work`, `kit assign`, `kit unassign`,
-`kit close`, `kit gather`, `kit commit`, `kit submit`, `kit rebase`, `kit settle`, `kit tidy`, and `kit release`)
-and the checks that read `kit.yml` (`kit gate`, `kit policy`, and `kit check`) run without any. Kinds, rules, and
-templates come from the `kit` package. Without it, `kit context` names no rule, `kit kinds` lists no kind,
-`kit lint` covers no file, and `kit new file` refuses because there is no template.
+kit works with no packages at all. The workflow verbs, such as `kit flow`, `kit work`, `kit commit`, `kit submit`,
+and `kit release`, run without any. So do the checks that read `kit.yml`: `kit gate`, `kit policy`, and
+`kit check`. Kinds, rules, and templates come from the `kit` package. Without it, `kit context` names no rule,
+`kit kinds` lists no kind, `kit lint` covers no file, and `kit new file` refuses because there is no template.
 
 Once kit has hydrated a repository, every kit call and every message `kit serve` answers is a line in a daily log
 under `.kit/logs/`; see [docs/logs.md](docs/logs.md).
@@ -208,170 +266,16 @@ For each file:
 - A delivered file you never edited is replaced.
 - A delivered file you edited is merged three ways, with the previous release as the base. `kit update` downloads
   the previous release from GitHub when it is not on the machine. Where it cannot, set `KIT_BASE` to a copy of it.
-- Where the release brings no change to a file, as in a `kit update` at the same version, there is nothing to merge.
-  A file that is not as kit placed it stays, and `kit update` names it. To take the release's file, as after you
-  change an answer in `kit.yml`, move the file aside or remove it, then run `kit update` again.
+- Where the release brings no change to a file, there is nothing to merge. A `kit update` at the same version is
+  such a case. A file that differs from what kit placed stays, and `kit update` names it. To take the release's
+  file, for example after you change an answer in `kit.yml`, move the file aside or remove it, then run
+  `kit update` again.
 - Your own deny list entries and settings keys are kept.
 
 `kit uninstall` removes everything kit placed. Add `--dry-run` to see what it would remove first. Your own files,
 your own packages under `.kit/packages/`, and any delivered file you edited stay.
 
-## Setup
+## Working on kit
 
-The rest of this README is for working on this repository. It is kit's own source, and it also uses kit.
-
-Tools come from the kit toolchain: `tools:` in `kit.yml` pins them, and direnv puts them on `PATH` through the
-`.envrc`. Every commit must be signed; the branch ruleset rejects unsigned commits. If you have no signing key that
-GitHub verifies, create and register one:
-
-- [generating a new GPG key](https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key)
-- [adding a GPG key to your GitHub account](https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-gpg-key-to-your-github-account)
-
-Then, once per clone, with the key's id in `signing_key`:
-
-```sh
-git config gpg.format openpgp
-git config user.signingkey "${signing_key}"
-git config commit.gpgsign true
-brew bundle install
-direnv allow
-kit/bin/kit toolchains use kit
-kit tools install
-kit hydrate && lefthook install
-kit welcome
-```
-
-`kit tools install` puts each tool `tools.lock` pins for this platform under `~/.kit/tools/`, shared by every clone
-and worktree. On a desk it also installs lefthook, which `kit.yml` limits to desks. A runner, where `CI` is set,
-skips it. See [using kit as the toolchain](docs/toolchains/using-kit.md).
-
-## Getting started
-
-Work here follows [.kit/workflow.md](.kit/workflow.md), from the `workflow` package:
-
-1. Start from an issue. A change without an issue has not started.
-2. Run `kit work <N>`. It creates `worktrees/<N>-<slug>`, links the branch to the issue under Development, and opens
-   a draft pull request. It never switches the branch of the checkout you run it from. For an issue in another
-   tracker, use that tracker's reference, such as `kit work AB#4521` for an Azure DevOps work item; see
-   [docs/trackers.md](docs/trackers.md).
-3. Work in that worktree. Commits are signed. Each commit subject starts with its issue's reference, as in
-   `#<N> <subject>`, and the policy checks it.
-   - `kit commit` commits what is staged, after it runs the linters, the policy, and a check that nothing kit placed
-     is in the commit.
-   - `kit submit` pushes the branch and commits nothing. `kit rebase` rebases it onto `main` and pushes it.
-   - `kit flow` shows where work stands. `kit flow <stage>` prints one stage.
-   - `kit` with no verb opens the welcome guide. `kit help` opens a list of the verbs and a form for the one you
-     pick. A verb run without an argument it needs opens the same form.
-4. Run the gate, `kit gate`. It runs `bin/ci`, which lists what it checks.
-5. Mark the pull request ready for review when the work is done, with its report: `kit ready --report-file=<path>`,
-   on any forge. The pull request body is the report, and `kit ready` writes it there above the `Closes` lines.
-6. A person merges it. Then `kit tidy` removes the worktree and its branch.
-
-## Maintaining
-
-| Directory | Contents |
-| --- | --- |
-| `kit/` | the release, packed as it is: everything in it ships. The tarball adds only a generated `version` file and `libexec/kittui`, built from `tui/` |
-| `kit/bin/` | the kit CLI, `kit`, and its verbs |
-| `kit/modules/` | the modules the verbs share: `bash/` and `jq/`, one directory per language |
-| `kit/packages/` | everything a release delivers |
-| `bin/` | this repository's own commands, not on `PATH`: its gate, `bin/ci`; `bin/refresh`; `bin/release`; and `bin/tutorials` |
-| `docs/` | the documentation, with the packages' pages under `docs/packages/` |
-
-[docs/architecture.md](docs/architecture.md) describes how the pieces fit, with diagrams.
-[docs/packages.md](docs/packages.md) describes the package format.
-[docs/modules.md](docs/modules.md) describes the bash and jq modules the verbs are built on, and how a repository
-extends them.
-
-This repository installs its own kit. What kit places under `.kit/` is a link into the package that delivers it. The
-link is live and ignored by git, so editing through it edits the source. `bin/refresh` writes the installed copies
-outside `.kit/` by running `kit update` from the index. Do not edit those by hand:
-
-| Installed copy | Written from |
-| --- | --- |
-| `.kit/1st.md`, `.kit/README.md`, `.kit/kinds/`, `.kit/rules/`, `.kit/kit.schema.json` | links into `kit/packages/kit/files/repo/.kit/` |
-| `.kit/styles/<kind>.md`, `.kit/templates/<kind>/`, `.kit/markdownlint.jsonc` | links into `kit/packages/style/<kind>/files/repo/.kit/` |
-| `.kit/templates/bash/`, `.kit/templates/gitignore/file`, `.kit/templates/just/` | links into `.kit/packages/house/files/repo/.kit/templates/`, this repository's own style, which replaces the style packages' |
-| `.kit/styles/house.md` | a link into `.kit/packages/house/files/repo/.kit/styles/`, this repository's own style beyond the style packages' |
-| `.kit/lefthook.yml` | a link into `kit/packages/hooks/lefthook/files/repo/.kit/` |
-| `.github/workflows/kit-ci.yml` | `kit/packages/github/ci/templates/repo/.github/workflows/kit-ci.yml`, with `ci_runner`, `ci_timeout_minutes`, and `ci_toolchain` filled in |
-| `.claude/CLAUDE.md` | `kit/packages/agents/claude/regions/repo/.claude/CLAUDE.md`, a region; the rest of the file belongs to this repository |
-| `.claude/settings.json` | `kit/packages/agents/claude/files/repo/.claude/settings.json`, merged by key; here only the kit's entries |
-| `.mcp.json` | `kit/packages/agents/claude/files/repo/.mcp.json` and `.kit/packages/house/files/repo/.mcp.json`, merged by key |
-| `.kit/policy/kit.rego`, `.kit/policy/house.rego` | links into `kit/packages/policy/opa/files/repo/.kit/policy/` and `.kit/packages/house/files/repo/.kit/policy/` |
-| `AGENTS.md` | `kit/packages/agents/generic/regions/repo/AGENTS.md`, a region; the rest of the file belongs to this repository |
-| `.gitignore` | `kit/packages/kit/regions/repo/.gitignore`, a region; the rest of the file belongs to this repository |
-| `.kit/.gitignore`, `.kit/manifest` | written by kit beside what it placed under `.kit/`, and ignored like it: the paths git never sees, and a digest per delivered path. The release version (`unreleased` here) and the active packages are declared in `kit.yml` |
-
-`kit.yml` belongs to this repository and is not delivered. kit writes only its `version`, `packages`, and `excludes`
-keys. A `.kit/settings.yml` from an earlier release is moved into `kit.yml` whole, once. A fresh clone or worktree has
-nothing else under `.kit/` until a kit verb runs, or until `cd` hydrates it through the `.envrc`.
-
-When a commit changes a file under `kit/` or `.kit/packages/`, or changes `kit.yml`, the installed copies must change
-in the same commit:
-
-- With the pre-commit hook installed, this happens on its own: the hook runs `bin/refresh`, which regenerates the
-  copies from the index and stages them.
-- Without the hook, stage your change, run `bin/refresh`, and commit.
-
-`kit/bin/kit check`, which the gate runs, names any installed copy that does not match its source. Every delivered
-file except a template says in its header that kit delivered it. A region's `kit:generate` line is its notice, and
-the table above is the notice for `settings.json`.
-
-### The test suite
-
-`kit gate` runs the suite the way `bin/ci` does: bats, one job per CPU, on GNU parallel from `kit.yml`. To run one
-file, use `kit tools run bats tests/<file>.bats`, which puts the pinned tools first on `PATH`.
-
-Most of the suite's time goes to starting short processes: bash, jq, yq, and git. macOS starts processes more slowly
-than Linux, so a test takes 1.5 to 2.4 times as long on a Mac as on a runner. On a Mac, list the terminal and the
-editor you run tests from as developer tools; that saves up to about 5 percent of a run.
-[docs/testing.md](docs/testing.md) has the numbers, the time limits, and the steps.
-
-## Release
-
-- A release is the tag `release/<version>` on any commit on `main`, not only the latest one.
-- A pre-release is `release/<version>-<suffix>`, such as `release/0.1.0-rc.1`, on any commit, on `main` or off it.
-  It is published as a GitHub pre-release.
-- The tag is the version. The repository has no version file. The release workflow writes the part after `release/`
-  into the packed kit and names the release after it.
-- Published releases cannot change, so a tag is never reused.
-
-`kit release <version>` checks these rules, then makes the tag and pushes only the tag. Two more rules: a version that
-is not higher than every release on the primary remote needs `--lower`, and a release of a commit behind `main` at
-the primary remote, as a desk not pulled since a merge has, needs `--behind`. `kit release <version> --dry-run`
-checks the rules, says the commit, the tag, and what the push would send, and tags nothing. `kit flow releases` lists
-what the code forge published.
-
-The release workflow runs three commands:
-
-1. `bin/release verify` rejects a tag that is not `release/<version>`, and a release tag on a commit not on `main`.
-2. `bin/release publish` packs `kit/` (`bin/`, `modules/`, and `packages/`), `version`, and `libexec/` into
-   `kit-<version>.tar.gz` and publishes it, with a `.sha256` that holds the tarball's digest. `libexec/` holds
-   `kittui`, built from `projects/tui/` for Linux and macOS on amd64 and arm64.
-3. `bin/release fetch` downloads the published release as any machine does, through the loader, checks it against
-   that digest, and runs `kit version` in it. A release that cannot be fetched fails the run.
-
-`bin/release pack` builds the same tarball locally. `bin/release publish` refuses to publish a release anywhere but
-the CI runner, so only the workflow publishes releases. A pre-release can be published from a developer machine.
-
-A release is permanent. A pre-release is deleted, tag and all, once no branch contains its commit, which happens when
-the branch it was tagged on is deleted. A pre-release on `main` stays.
-
-The tutorials workflow publishes the site that `kit tutorials` opens. GitHub Pages serves the `gh-pages` branch, and
-each copy of the site is one directory of it:
-
-| Push | Directory | Whose kit opens it |
-| --- | --- | --- |
-| to `main` | `tutorials/main/` | a checkout's |
-| of the tag `release/X.Y.Z` | `tutorials/X.Y/` | every `X.Y` release's |
-| of the tag `release/X.Y.Z-<suffix>` | `tutorials/X.Y.Z-<suffix>/` | that pre-release's |
-
-`bin/tutorials site` names the copy a ref builds, at the address `kit tutorials` opens. The build runs with a token
-that only reads, and `bin/tutorials publish` then replaces the copy's directory in one commit and pushes it.
-`bin/tutorials publish` refuses to run anywhere but the CI runner, so only the workflow publishes the site.
-`bin/tutorials answers` then asks the copy's address, and the run fails when it does not answer. A pre-release's
-copy is removed once its tag is deleted. Pages is turned on once, in the repository's settings; see
-[Publishing](projects/tutorials/README.md#publishing).
-
-The branch ruleset is managed in [empowerite/infrastructure](https://github.com/empowerite/infrastructure).
+This repository is kit's own source, and it also uses kit. [CONTRIBUTING.md](CONTRIBUTING.md) is the page for
+people and agents who change kit itself: the setup, the workflow, the layout, the tests, and how a release is made.

@@ -69,6 +69,9 @@ renames or removes a key of a stage's document, or gives one another meaning, ra
   tools of `kit serve` that read only and that run what the files name, the steps of `kit welcome`, and the tracker
   providers. A list of the stages is the stages, in their order, and the tables of the seams, of the tools, and of the
   jq modules name every one.
+- The screen the README shows under "The terminal UI" is the golden file
+  `projects/tui/internal/flow/testdata/issues.golden`, less the spaces that end a line. When the golden changes, copy
+  it into the README's block.
 
 A page that shows a command meant to fail puts `<!-- kit:claims skip -->` on the line before it, and an MDX page
 `{/* kit:claims skip */}`: nothing is judged up to the next blank line, or to the end of the fenced block that opens

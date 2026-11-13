@@ -461,7 +461,7 @@ see: [packages.md](packages.md), the "Changing what kit adds" section of `.kit/1
   `kit hydrate` places the files from that declaration in a fresh clone or worktree, and every verb that reads a
   delivered file hydrates first. With mise, a hook can hydrate as a shell enters the checkout.
 
-see: [packages.md](packages.md), the Release section of [README.md](../README.md#release)
+see: [packages.md](packages.md), the Release section of [CONTRIBUTING.md](../CONTRIBUTING.md#release)
 
 ## Regions
 
