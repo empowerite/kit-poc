@@ -4,7 +4,7 @@
   <desc id="desc">An agent or a person runs kit context with a path. The kit matches the path and the file's first
     line against the kinds under .kit/kinds/, names the rules and styles of those kinds and the rules of the kinds
     they embed, and appends the ask to the context log. Claude Code's PreToolUse hook makes the same call before
-    every write.</desc>
+    each Write, Edit, and MultiEdit.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>

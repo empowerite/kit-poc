@@ -2,7 +2,7 @@
   aria-labelledby="title desc">
   <title id="title">Delivery: a release's packages, through the kit's verbs, into a repository and a home</title>
   <desc id="desc">The release carries bin/, modules/, and packages/. The verbs render templates, merge JSON by key, and copy the
-    rest into the repository root and the user's home, each recorded in its own manifest.</desc>
+    rest into the repository root and the user's home, each recorded in its own manifest of digests.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
@@ -31,7 +31,7 @@
   <text class="m" x="68" y="192">place.sh region.sh context.sh …</text>
   <text class="d" x="258" y="212">sourced modules</text>
 
-  <rect class="box" x="40" y="236" width="268" height="268" fill="#ffffff"/>
+  <rect class="box" x="40" y="236" width="268" height="244" fill="#ffffff"/>
   <text class="m" x="52" y="258">packages/&lt;name&gt;/</text>
   <text class="m" x="68" y="282">package.yml</text>
   <text class="d" x="180" y="282">description, default,</text>
@@ -42,11 +42,9 @@
   <text class="d" x="180" y="346">mirrored at ~</text>
   <text class="m" x="68" y="370">templates/&lt;base&gt;/</text>
   <text class="d" x="180" y="386">@key@ rendered; regions/&lt;base&gt;/</text>
-  <text class="m" x="68" y="412">docs/</text>
-  <text class="d" x="180" y="412">packed, placed nowhere</text>
-  <text class="d" x="52" y="446">kit is default; github/ci, hooks/lefthook,</text>
-  <text class="d" x="52" y="462">and agents/claude are named; each may depend</text>
-  <text class="d" x="52" y="478">on others, resolved at install.</text>
+  <text class="d" x="52" y="422">kit is default; github/ci, hooks/lefthook,</text>
+  <text class="d" x="52" y="438">and agents/claude are named; each may depend</text>
+  <text class="d" x="52" y="454">on others, resolved at install.</text>
   <text class="m" x="52" y="500">version</text>
   <text class="d" x="140" y="500">stamped by the release workflow</text>
 
@@ -79,9 +77,9 @@
   <text class="d" x="912" y="226">merged</text>
   <line x1="732" y1="244" x2="1000" y2="244" stroke="#4ade80" stroke-width="1"/>
   <text class="m" x="732" y="268">.kit/manifest</text>
-  <text class="d" x="856" y="268">version, packages, digests</text>
+  <text class="d" x="856" y="268">a digest for each path</text>
   <text class="m" x="732" y="290">kit.yml</text>
-  <text class="d" x="856" y="290">yours, never written</text>
+  <text class="d" x="856" y="290">yours; 3 keys written</text>
   <text class="m" x="732" y="312">AGENTS.md .gitignore</text>
   <text class="d" x="912" y="312">regions</text>
 

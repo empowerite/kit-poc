@@ -77,12 +77,13 @@
   <text class="d" x="480" y="436">removes worktree and branch</text>
 
   <!-- harness guards -->
-  <rect class="box" x="736" y="340" width="280" height="120" fill="#e0f2fe"/>
+  <rect class="box" x="736" y="340" width="280" height="136" fill="#e0f2fe"/>
   <text class="h" x="752" y="368">The harness adapter</text>
   <text class="d" x="752" y="392">Deny list: the raw git spellings .kit/1st.md</text>
   <text class="d" x="752" y="408">forbids, rebase, push --force, and the rest.</text>
-  <text class="d" x="752" y="432">Hook: kit context before every write.</text>
-  <text class="d" x="752" y="448">Nothing copied from the rules.</text>
+  <text class="d" x="752" y="432">Hook: kit context before each Write,</text>
+  <text class="d" x="752" y="448">Edit, and MultiEdit.</text>
+  <text class="d" x="752" y="464">Nothing copied from the rules.</text>
 
   <!-- edges -->
   <path class="edge" d="M 324 250 C 350 250, 350 92, 376 92"/>
