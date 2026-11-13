@@ -89,9 +89,10 @@
 #
 # The tools a judgement runs come from no directory of the checkout either (policy:judging-path): kit policy and kit
 # linked take each off PATH, so an opa or a forge tool the branch carries in node_modules/.bin or .venv/bin is never
-# run. That is as far as it goes. The tools the chosen toolchain installs are the ones the branch's own files pin,
-# and a pipeline that installs from the branch's files before the judgements has run the branch's install scripts
-# by then; docs/policy.md says so.
+# run. On a runner, nothing the chosen toolchain installs from the branch's own files judges: kit policy puts no
+# toolchain directory first, and with the opa engine installs the opa the base's tools.lock pins (policy:base-tools).
+# kit ci installs the change's tools after the two judgements, and the delivered workflow before neither. docs/policy.md
+# says what that covers and what it leaves open.
 #
 # A base with no kit.yml is one the kit is not installed on: there, both read the checkout's own settings and Rego, as
 # on the default branch, so the change that installs the kit sets its first policy. A base that is not here, as in a
@@ -364,6 +365,41 @@ policy:judging-path() {
     kept+=${kept:+:}${dir}
   done
   PATH=${kept}
+}
+
+# policy:base-tools <dir> makes the opa engine, on a CI runner, the one the base pins in tools.lock, and puts it first
+# on PATH. <dir> is the directory policy:from-base wrote the base's kit.yml into, <dir>/base.yml. Only the opa engine
+# on a runner needs it: at a desk the person's own tools judge, and the patterns engine runs none. The base's tools.lock
+# row for opa, and its kit.yml's opa entry and sources, are copied into a directory of their own, and the kit toolchain
+# installs from them into a home and a download cache that are new, so a copy an earlier run left, as the runner's cache
+# restores ~/.kit/tools, is never trusted: the download is checked against the hash the base's lock holds, and nothing
+# else is. Where the base pins no opa in tools.lock, as where the kit toolchain is not its tool manager or it is the
+# first change of a repository, nothing is installed and the opa on the runner's PATH judges, never one the branch
+# pins. It returns 1, saying so, when the pin cannot be installed.
+policy:base-tools() {
+  local dir=$1 object tools engine
+  policy:on-runner || return 0
+  [[ -f "${dir}/base.yml" ]] || return 0
+  engine=$(policy:engine) || return 1
+  [[ "${engine}" == opa ]] || return 0
+  # a head that is no commit of the base's cannot be asked for its lock, and policy:base has said so already
+  object=$(policy:object "$(policy:base)" tools.lock) || return 1
+  [[ -n "${object}" ]] || return 0
+  tools=${dir}/tools
+  rm -rf "${tools:?}" && mkdir -p "${tools}" || return 1
+  policy:blob "${object}" "${tools}/tools.lock.all" "tools.lock in the base" || return 1
+  awk -F '\t' '$1 == "opa"' "${tools}/tools.lock.all" > "${tools}/tools.lock"
+  [[ -s "${tools}/tools.lock" ]] || return 0
+  yq '{"tools": {"opa": .tools.opa}, "sources": .sources}' "${dir}/base.yml" > "${tools}/kit.yml" || return 1
+  use toolchain
+  if ! (cd "${tools}" && export KIT_HOME=${tools}/home XDG_CACHE_HOME=${tools}/cache \
+    && toolchain:call kit install && toolchain:call kit path > dirs)
+  then
+    error "opa, as the base pins it in tools.lock, could not be installed, so the policy cannot be judged"
+    return 1
+  fi
+  [[ -s "${tools}/dirs" ]] || return 0
+  PATH="$(paste -s -d ':' - < "${tools}/dirs"):${PATH}"
 }
 
 # policy:branch prints the branch to check: the change's source branch on a CI runner, or a merge group's head there,

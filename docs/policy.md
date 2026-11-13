@@ -119,12 +119,26 @@ section says what that does not cover.
   default `branch` pattern refuses. A repository that runs `kit ci` on `merge_group` events sets `policy.branch` to
   allow it.
 - `kit ci` runs `kit linked` and `kit policy` first, before the gate and `kit check`, which run commands of the
-  branch's own: the gate itself, and the commands the `kit:generate` directives name.
+  branch's own: the gate itself, and the commands the `kit:generate` directives name. On a runner it installs the
+  change's tools, `kit tools install`, only after those two, and the delivered workflow installs nothing before
+  `kit ci`, so no install script of the branch has run when they judge.
 - The two verbs run their tools, `opa`, `jq`, `yq`, `git`, and the code forge's tool, from no directory of the
   checkout, which the branch fills. Each takes every such directory off `PATH` first, `node_modules/.bin` and
   `.venv/bin` among them, whether a pipeline put it there, as `kit tools path` names them, or no one did. `kit
-  policy` then puts the chosen toolchain's directories first. So an `opa` or a `gh` the branch carries in its own
-  files never answers for it.
+  policy` then puts the chosen toolchain's directories first at a desk. So an `opa` or a `gh` the branch carries in
+  its own files never answers for it.
+- On a runner, the opa engine is the one the base pins. `kit policy` puts no toolchain directory first there, since
+  those tools are the ones the branch's own files pin, and it installs the `opa` the base's `tools.lock` holds, with
+  the kit toolchain, into a home and a download cache it makes new for the run. A copy an earlier run left, as the
+  runner's cache of `~/.kit/tools` restores one, is never used; the download must have the hash the base's lock
+  records, and a branch that pins a different engine in its own `kit.yml` and `tools.lock` changes nothing.
+  `jq`, `yq`, `git`, and `gh` are the runner's own. A base whose `tools.lock` holds no `opa` row, as one whose tool
+  manager is mise or nix, or the first pull request of a repository, installs nothing: the `opa` on the runner's
+  `PATH` judges, and `kit policy` fails, saying so, where there is none. It never takes the branch's.
+  A runner image that carries `opa`, or a step of the repository's own before `kit ci` that installs it from the
+  base's files, supplies one.
+- The delivered workflow takes the kit release from the base's `kit.yml`, the commit the pull request's event names,
+  and sets `KIT_VERSION` to it, since kit otherwise chooses its release by the `kit.yml` it is run in, the branch's.
 - `policy`, `policy_engine`, `linked_exempt`, `facts`, `forge`, and `forges` come from the base's `kit.yml`. Where
   the base has none of one, it is absent, and the kit's default applies, not the branch's: for `forge` and `forges`,
   the provider the remote's host names.
@@ -165,17 +179,24 @@ section says what that does not cover.
 A base with no `kit.yml` is one the kit is not installed on. There, both read the checkout's own settings and Rego,
 as on the default branch, so the pull request that installs the kit sets its first policy.
 
-The guarantee covers what a branch holds in its files. It does not cover two things:
+The guarantee covers what a branch holds in its files, with the tools a runner starts with. What it does not cover:
 
-- The tools the toolchain installs are the ones the branch's own files pin: `tools.lock`, `mise.toml`, a flake. A
-  branch that pins another `opa`, `jq`, or `yq` there is judged with it. kit does not yet take the engine as the
-  base pins it.
-- Whatever ran before the judgements has run. A pipeline that installs from the branch's files first, as the
-  delivered workflow does with `kit tools install`, has run the branch's install scripts by then, such as npm's
-  `postinstall`, and such a script can change any file on the runner, kit's own among them.
+- The workflow file. On a `pull_request` event GitHub runs the workflow as the pull request's merge commit holds it,
+  so a branch can edit `.github/workflows/kit-ci.yml`, reorder it, or drop `kit ci`. `kit check` reports a delivered
+  file that differs, but it runs inside that same job. Hold the workflow with a ruleset that requires a workflow from
+  the base repository, or with a code owner's review of `.github/workflows/`. See
+  [integrations/gh.md](integrations/gh.md#pull-requests-from-forks-and-the-event-that-runs-the-workflow).
+- A base that pins its `opa` outside `tools.lock`, in `mise.toml`, a flake, a Brewfile, or an image, and a runner with
+  no `opa`: kit does not install it from there before the judgements, so the engine is the runner's own, or none and
+  the judgement fails. Installing the base's `mise.toml` would need `mise trust` on a file kit has not read; that
+  is left to the repository's own step.
+- A repository whose kit is `unreleased`, the kit's own: the judge is the checkout's `kit/bin`, which a branch edits.
+- `jq`, `yq`, `git`, and `gh` are the runner's own, so a self-hosted runner that earlier jobs left tools on is that
+  runner's to keep clean.
+- The gate and `kit check` run the branch's own commands and tools, as they must. They run after the judgements.
 
-A repository that must hold its policy against its own contributors requires a review of the files that pin its
-tools, or runs `kit linked` and `kit policy` in a job that installs nothing from the branch.
+None of this was run on a live GitHub runner: the order and the tools are held by tests that run the delivered
+workflow's steps and `kit ci` offline, and what GitHub does with a fork's pull request is as its documentation says.
 
 A base that is not here, as in a clone that lacks `<primary>/<default>` or the event's commit, fails both verbs
 wherever they run. They say `the base, <base>, is not here, so its policy cannot be read; fetch it with full

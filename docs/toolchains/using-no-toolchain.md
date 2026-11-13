@@ -19,6 +19,7 @@ The dependency providers still work ambient; see [dependencies](../toolchains.md
 
 ## On a runner
 
-`ambient` is the CI package's default `ci_toolchain`. The workflow then installs nothing. It fails at the `toolchain`
-step, naming each tool the rules need that is missing, unless the runner already has them; see
+`ambient` is the CI package's default `ci_toolchain`. The workflow then installs nothing. `kit ci` fails when it
+installs the change's tools, after the two judgements, naming each tool the rules need that is missing, unless the
+runner already has them; see
 [packages/github/ci.md](../packages/github/ci.md).

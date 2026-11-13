@@ -201,8 +201,9 @@ kit hydrate --quick
 
 ## On a runner
 
-The delivered workflow runs `kit tools install`, then appends the output of `kit tools path` to the runner's
-`PATH`. [packages/github/ci.md](packages/github/ci.md) says what else the job sets up.
+On a runner, `kit ci` runs `kit tools install` after `kit linked` and `kit policy`, then puts the tools first on `PATH`
+for the gate and `kit check`; the delivered workflow installs nothing before it, since the tools are the change's own
+pins. [packages/github/ci.md](packages/github/ci.md) says what else the job sets up.
 
 - A runner with several usable tool managers has no terminal to ask, so the run names one with `KIT_TOOLCHAIN`.
 - The brew provider needs `brew` on `PATH`. `kit welcome` offers the `shellenv` line when brew is installed at a prefix

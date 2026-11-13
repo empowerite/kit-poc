@@ -244,6 +244,23 @@ fills `{owner}` and `{repo}` from the repository `GH_REPO` names, as kit sets it
 A check run, `POST repos/{owner}/{repo}/check-runs`, takes a GitHub App's token, so a person's token or `gh` alone
 posts only a commit status. `gh` has no command that validates a workflow file.
 
+### Pull requests from forks, and the event that runs the workflow
+
+As GitHub documents them, and as kit's workflow depends on them; none was run live.
+
+- On `pull_request`, GitHub runs the workflow file as the pull request's merge commit holds it, so a change can edit
+  or drop `kit-ci.yml`. A pull request from a fork gets a read-only `GITHUB_TOKEN` and no secrets, whatever the
+  workflow's `permissions:` ask for. The delivered job asks for `contents`, `issues`, and `pull-requests`, read.
+- On `pull_request_target`, GitHub runs the workflow file of the base branch, with a token that may write and with
+  the repository's secrets, and checks out the base unless the workflow asks for the pull request's code. A job
+  that then checks out and runs a fork's code, as `kit ci` does with the gate, runs it with those rights. The
+  delivered workflow does not use it, and gains no privilege from kit's order of steps.
+- The event's `pull_request.base.sha` is the base's commit at the time of the event, which a change cannot move. The
+  workflow reads the kit release from `kit.yml` at that commit, and `kit policy` and `kit linked` take the base from
+  it, as [../policy.md](../policy.md#what-judges-a-branch) says.
+- What holds the workflow file against the change is outside the file: a ruleset that requires a workflow from the base
+  repository, or a code owner's review of `.github/workflows/`.
+
 ### GitHub Actions schemas
 
 - [GitHub workflow JSON Schema](https://www.schemastore.org/github-workflow.json), SchemaStore's "GitHub Workflow"

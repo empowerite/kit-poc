@@ -5,10 +5,14 @@
 #   1. puts the toolchain the ci_toolchain answer names on the runner: mise, nix, or the devcontainer CLI (brew and
 #      docker are already on GitHub's runners, kit is kit itself, and ambient needs nothing), and for kit, restores
 #      ~/.kit/tools from the cache when tools.lock is as it was
-#   2. puts kit on PATH: the release kit.yml declares, downloaded from its GitHub release and unpacked only when
-#      its bytes have the digest published beside it, or the checkout's own kit/bin/ when it declares unreleased
-#   3. installs the gate's tools with `kit tools install`, through that toolchain: KIT_TOOLCHAIN names it
-#   4. runs `kit ci`: `kit linked`, `kit policy`, the gate, and `kit check`, and reports every result
+#   2. puts kit on PATH: the release the target branch's kit.yml declares, downloaded from its GitHub release and
+#      unpacked only when its bytes have the digest published beside it, or the checkout's own kit/bin/ when it
+#      declares unreleased
+#   3. runs `kit ci`: `kit linked` and `kit policy`, then the change's tools are installed (`kit tools install`, through
+#      that toolchain: KIT_TOOLCHAIN names it), then the gate and `kit check`; it reports every result
+#
+# Nothing of the change's is installed or put on PATH before the two judgements, so no step here runs `kit tools`:
+# `kit ci` does, after them.
 #
 # When a pull request closes, a second job, Settle, runs `kit settle` on it: an issue in another tracker that a merged
 # pull request's body closes is closed, and the issues of one closed without merging are backlog again. It alone may
@@ -69,10 +73,16 @@ jobs:
           set -o errexit -o nounset -o pipefail
           npm install --global @devcontainers/cli@0.90.0
 
+      # The release is the one the target branch's kit.yml declares, never the change's: a change cannot choose the kit
+      # that judges it. unreleased is the checkout's own kit, which is for a repository of the kit itself. The first
+      # change of a repository, whose target has no kit.yml, declares its own.
       - name: kit-on-path
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -o errexit -o nounset -o pipefail
-          version=$(sed -n 's/^version: *//p' kit.yml 2>/dev/null | sed "s/[[:space:]]*#.*//; s/^[\"']//; s/[\"']$//")
+          declared=$(git show "${BASE_SHA}:kit.yml" 2>/dev/null || cat kit.yml 2>/dev/null || true)
+          version=$(sed -n 's/^version: *//p' <<<"${declared}" | sed "s/[[:space:]]*#.*//; s/^[\"']//; s/[\"']$//")
           if [[ -z "${version}" ]]
           then
             echo '::error::run kit install and commit what it writes; kit.yml declares no kit version'
@@ -101,6 +111,8 @@ jobs:
               --strip-components 1
             printf '%s/kit/bin\n' "${RUNNER_TEMP}" >> "${GITHUB_PATH}"
           fi
+          # kit chooses its release by the kit.yml it is run in, which is the change's; the base's is the one it takes.
+          echo "KIT_VERSION=${version}" >> "${GITHUB_ENV}"
 
       # kit runs nothing in a clone until it is trusted, and a runner has no one to ask: the job trusts the checkout
       # it made, of the repository whose workflow this is.
@@ -114,11 +126,6 @@ jobs:
         with:
           path: ~/.kit/tools
           key: kit-tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools.lock') }}
-
-      - name: toolchain
-        run: |
-          set -o errexit -o nounset -o pipefail
-          kit tools install && kit tools path >> "${GITHUB_PATH}"
 
       - name: kit-ci
         env:

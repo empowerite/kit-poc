@@ -77,5 +77,5 @@ enter = "kit hydrate --quick"
 ## On a runner
 
 Set `ci_toolchain: mise` under `answers:` in `kit.yml`. The workflow puts mise on `PATH` with
-`jdx/mise-action`, without installing. Then `kit tools install` installs the pinned tools; see
-[packages/github/ci.md](../packages/github/ci.md).
+`jdx/mise-action`, without installing. Then `kit ci` installs the pinned tools with `kit tools install`, after the
+two judgements; see [packages/github/ci.md](../packages/github/ci.md).

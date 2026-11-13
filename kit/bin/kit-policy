@@ -35,10 +35,13 @@
 # first policy. --input prints the facts that policy judges; --facts judges by the disk's.
 #
 # The engine and the tools beside it, opa, jq, yq, and git, are run from no directory of the checkout, which the
-# branch fills: kit policy takes each off PATH, node_modules/.bin and .venv/bin among them, then puts the chosen
-# toolchain's directories first. So an opa the branch carries in its own files never judges it. The tools the
-# toolchain installs are the ones the branch's own files pin, and a pipeline that installs from those files before
-# kit policy has run the branch's install scripts by then: docs/policy.md says what that leaves open.
+# branch fills: kit policy takes each off PATH, node_modules/.bin and .venv/bin among them. At a desk it then puts the
+# chosen toolchain's directories first. On a CI runner it puts none of them first, since the toolchain's tools are the
+# ones the branch's own files pin; with the opa engine, it installs the opa the base's tools.lock pins, fresh, into a
+# directory of its own, checking the download against the lock's hash, and runs that. A base that pins no opa there,
+# as one whose tool manager is mise or whose repository has no kit.yml yet, leaves the opa on the runner's PATH to judge,
+# and kit policy fails where there is none. kit ci runs it before it installs anything of the change's, and the
+# delivered workflow installs nothing before kit ci: docs/policy.md says what that covers and what it does not.
 #
 # On the default branch, and on a detached HEAD at a desk, only the tree is judged. On a CI runner, a detached HEAD
 # that names no change fails: there is no branch to judge, and a check that cannot judge never passes. Check the
@@ -85,13 +88,17 @@ kit:enter
 use policy settings materialize yaml file context flow dependencies
 guard:arguments policy "$@" || exit $?
 # The engine and the tools beside it come from no directory of the checkout, which the branch being judged fills:
-# those go off PATH, then the chosen toolchain's directories go first, as kit gate has them, and no dependency
-# provider's, since node_modules/.bin and .venv/bin are the checkout's.
+# those go off PATH. At a desk the chosen toolchain's directories then go first, as kit gate has them, and no
+# dependency provider's, since node_modules/.bin and .venv/bin are the checkout's. On a runner the toolchain's tools
+# are the ones the branch's own files pin, so none of them goes first: policy:base-tools installs the opa the base pins.
 policy:judging-path policy || exit 1
-toolchain=$(dependencies:toolchain-dirs)
-PATH="${toolchain:+${toolchain}:}${PATH}"
-# A toolchain can name a directory of the checkout too, as a dev shell's PATH may.
-policy:judging-path policy || exit 1
+if ! policy:on-runner
+then
+  toolchain=$(dependencies:toolchain-dirs)
+  PATH="${toolchain:+${toolchain}:}${PATH}"
+  # A toolchain can name a directory of the checkout too, as a dev shell's PATH may.
+  policy:judging-path policy || exit 1
+fi
 materialize:hydrate
 
 # shellcheck disable=SC2154  # syntax_options is set by guard:arguments
@@ -178,6 +185,8 @@ then
     exit 0
   done
 fi
+# On a runner the opa engine is the one the base pins, installed fresh, and no tool of the change's is installed yet.
+[[ -z "${past:-}" ]] || policy:base-tools "${judged}" || exit 1
 engine=$(policy:engine)
 warnings=$(policy:warn "${input}") || exit 1
 refusals=$(policy:deny "${input}") || exit 1

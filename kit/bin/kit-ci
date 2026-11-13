@@ -11,11 +11,13 @@
 #   3. kit gate: the repository's gate, its own CI command, passes
 #   4. kit check: every delivered file matches the pinned release
 #
-# The two judgements run first, before any command of the branch's own that kit ci runs: the gate is one, and kit
-# check runs the commands the repository's kit:generate directives name, so either could move a ref the judgements
-# read. What a pipeline runs before kit ci is its own: an install from the branch's files, as kit tools install, has
-# run the branch's install scripts by then, and docs/policy.md says what that leaves open. Every check runs even
-# when an earlier one fails, so one run reports every finding.
+# The two judgements run first, before anything of the change's is installed, put on PATH, or run: the gate is a command
+# of the change's, and kit check runs the commands the repository's kit:generate directives name. On a CI runner, kit ci
+# installs the change's tools with kit tools install only after the two judgements, then puts them first on PATH for
+# the gate and kit check, so a delivered workflow installs nothing before it; at a desk, the person's own tools are
+# already there and kit ci installs none. A failed install is reported, fails kit ci, and stops no check. The
+# judgements run their own tools, as kit policy and kit linked say. Every check runs even when an earlier one fails, so
+# one run reports every finding.
 #
 # kit lint is not one of the four, and kit ci never runs it. kit commit and the lefthook hook run it over the staged
 # paths; a repository whose CI should run the linters too runs it from its gate, as the gate setting
@@ -23,7 +25,8 @@
 #
 # Arguments:
 #
-# Exits 0 when all four pass, 1 when any fails, and 2 on a usage error.
+# Exits 0 when all four pass, 1 when any fails or the change's tools cannot be installed on a runner, and 2 on a usage
+# error.
 #
 # see: bin/kit-gate, bin/kit-check, bin/kit-linked, bin/kit-policy
 
@@ -31,21 +34,32 @@ set -o errexit -o nounset -o pipefail
 # shellcheck source=modules/bash/1st.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
 kit:enter
-use materialize
+use materialize policy toolchain
 guard:arguments ci "$@" || exit $?
 materialize:hydrate
 
-refused=0
+refused=0 unbuilt=0
 for verb in linked policy gate check
 do
+  if [[ "${verb}" == gate ]] && policy:on-runner
+  then
+    section "kit tools install"
+    if run kit tools install
+    then
+      PATH="$(toolchain:path | paste -s -d ':' -):${PATH}"
+    else
+      error "the change's tools could not be installed; see above"
+      unbuilt=1
+    fi
+  fi
   section "kit ${verb}"
   run kit "${verb}" || refused=$(( refused + 1 ))
 done
 if (( refused > 0 ))
 then
   error "${refused} of 4 checks refused; see above"
-  exit 1
 fi
+(( refused == 0 && unbuilt == 0 )) || exit 1
 ok "kit ci: the issue link, the policy, the gate, and the kit's check all passed."
 
 # ----------------------------------------------------------------------------------------------------------------------

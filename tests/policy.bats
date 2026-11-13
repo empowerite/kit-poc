@@ -974,6 +974,124 @@ REGO
   [[ "$output" == *"kit linked runs in a git repository, whose branch it judges"* ]]
 }
 
+# pinned-engines serves two engines through the fake curl, for the kit toolchain to pin as opa: 1.0.0 refuses every
+# branch, and 2.0.0 allows everything and leaves a mark. It makes the base pin 1.0.0 and name opa as its engine.
+pinned-engines() {
+  hide-system-toolchains
+  export FAKE_RELEASES="${BATS_TEST_TMPDIR}/releases"
+  mkdir -p "${FAKE_RELEASES}"
+  ln -sf "${BATS_TEST_DIRNAME}/fakes/fake-curl" "${FAKE_DIR}/bin/curl"
+  cat > "${FAKE_RELEASES}/opa-1.0.0" <<'SH'
+#!/bin/sh
+case "$*" in
+  *data.kit.policy.deny) echo '{"result": [{"expressions": [{"value": ["the engine the base pins refuses every branch"]}]}]}' ;;
+  *) echo '{"result": [{"expressions": [{"value": []}]}]}' ;;
+esac
+SH
+  printf '#!/bin/sh\ntouch %s\necho %s\n' "${BATS_TEST_TMPDIR}/hijacked" \
+    "'{\"result\": [{\"expressions\": [{\"value\": []}]}]}'" > "${FAKE_RELEASES}/opa-2.0.0"
+  engine-pin 1.0.0
+  "${kit_root}/bin/kit" tools install --toolchain=kit >/dev/null 2>&1
+  git add kit.yml tools.lock
+  git commit --quiet --message "#2 kit: the engine, pinned" && git push --quiet origin main
+}
+
+# engine-pin <version> writes a kit.yml that names opa as the engine and pins it at <version>.
+engine-pin() {
+  cat > kit.yml <<YAML
+forge: github
+policy_engine: opa
+tools:
+  opa:
+    version: "$1"
+    url: https://example.com/opa/opa-{version}
+YAML
+}
+
+# as-runner names the change a GitHub runner builds: the branch checked out, its head, and the event's base commit.
+as-runner() {
+  printf '{"pull_request": {"number": 3, "base": {"sha": "%s"}}}\n' "$(git rev-parse origin/main)" \
+    > "${BATS_TEST_TMPDIR}/event.json"
+  export CI=true GITHUB_HEAD_REF=7-fix-the-thing GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json"
+}
+
+@test "on a runner, a branch that pins an engine of its own in tools.lock is judged by the engine its base pins" {
+  pinned-engines
+  branch 7-fix-the-thing "#7 cli: fix the thing"
+  change "Fix the thing"
+  as-runner
+  run "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the engine the base pins refuses every branch"* ]]
+  # the attack: the branch pins an engine that allows everything, locks it, installs it, and commits both files
+  engine-pin 2.0.0
+  env -u CI "${kit_root}/bin/kit" tools install --toolchain=kit >/dev/null 2>&1
+  grep --quiet $'^opa\t2\\.0\\.0\t' tools.lock
+  git add kit.yml tools.lock
+  git commit --quiet --message "#7 cli: an engine of our own, pinned"
+  run "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the engine the base pins refuses every branch"* ]]
+  [[ "$output" != *"policy allows"* ]]
+  [ ! -e "${BATS_TEST_TMPDIR}/hijacked" ]
+  # a pipeline that put the branch's tools on PATH, as kit tools path names them, changes nothing
+  PATH="$("${kit_root}/bin/kit" tools path --toolchain=kit | paste -s -d ':' -):${PATH}" run "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the engine the base pins refuses every branch"* ]]
+  [ ! -e "${BATS_TEST_TMPDIR}/hijacked" ]
+}
+
+@test "on a runner, the engine the base pins is fetched afresh: an installed copy, as a cache restores one, never judges" {
+  pinned-engines
+  branch 7-fix-the-thing "#7 cli: fix the thing"
+  change "Fix the thing"
+  platform=$(kit-bash 'use toolchain/kit && toolchain/kit:platform')
+  # the copy the base's pin is installed as allows everything now, its recorded hash as it was, as a cache a change's
+  # earlier run saved would restore it
+  cp "${FAKE_RELEASES}/opa-2.0.0" "${KIT_HOME}/.kit/tools/opa/1.0.0/${platform}/opa"
+  git switch --quiet --detach
+  as-runner
+  run "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the engine the base pins refuses every branch"* ]]
+  [[ "$output" != *"policy allows"* ]]
+  [ ! -e "${BATS_TEST_TMPDIR}/hijacked" ]
+  # a download whose bytes have another hash than the base's lock records is refused, and nothing judges
+  cp "${FAKE_RELEASES}/opa-2.0.0" "${FAKE_RELEASES}/opa-1.0.0"
+  run "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"opa"*"as the base pins it"* ]]
+  [[ "$output" != *"policy allows"* ]]
+  [ ! -e "${BATS_TEST_TMPDIR}/hijacked" ]
+}
+
+@test "on a runner, a base that pins no engine leaves the runner's own to judge, never the one the branch pins" {
+  hide-system-toolchains
+  export FAKE_RELEASES="${BATS_TEST_TMPDIR}/releases"
+  mkdir -p "${FAKE_RELEASES}"
+  ln -sf "${BATS_TEST_DIRNAME}/fakes/fake-curl" "${FAKE_DIR}/bin/curl"
+  printf '#!/bin/sh\ntouch %s\necho %s\n' "${BATS_TEST_TMPDIR}/hijacked" \
+    "'{\"result\": [{\"expressions\": [{\"value\": []}]}]}'" > "${FAKE_RELEASES}/opa-2.0.0"
+  printf 'forge: github\npolicy_engine: opa\n' > kit.yml
+  git add kit.yml
+  git commit --quiet --message "#2 kit: the engine, not pinned" && git push --quiet origin main
+  branch 7-fix-the-thing "#7 cli: fix the thing"
+  engine-pin 2.0.0
+  "${kit_root}/bin/kit" tools install --toolchain=kit >/dev/null 2>&1
+  git add kit.yml tools.lock
+  git commit --quiet --message "#7 cli: an engine of our own, pinned"
+  change "Fix the thing"
+  git switch --quiet --detach
+  as-runner
+  # the runner has no opa of its own
+  path-without opa
+  run "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"pin opa in the repository's toolchain"* ]]
+  [[ "$output" != *"policy allows"* ]]
+  [ ! -e "${BATS_TEST_TMPDIR}/hijacked" ]
+}
+
 @test "nothing on the disk under .kit/policy/ is read while a branch is judged" {
   printf 'policy:\n  commit_subject: "^#[0-9]+ "\n' > kit.yml
   git add kit.yml
