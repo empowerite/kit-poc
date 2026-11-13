@@ -145,7 +145,7 @@ fi
 
 # On a terminal, with no form chosen, the guide is kittui's, which runs this kit, over the workspace kit --workspace=
 # named. Without a kittui, the guide prints, as it does without a terminal.
-if [[ -z "${syntax_options[--text]+x}" && -t 0 && -t 1 && -t 2 ]] && tui:binary --probe >/dev/null 2>&1
+if [[ -z "${syntax_options[--text]+x}" && -t 0 && -t 1 && -t 2 ]] && tui:binary --probe >/dev/null
 then
   binary=$(tui:binary) || exit 1
   export KIT="${kit_root}/bin/kit"

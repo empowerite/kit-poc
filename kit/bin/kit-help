@@ -51,7 +51,7 @@ do
 done
 # On a terminal, one name or none opens the palette, which runs this kit: on the verb when the name matches one, on
 # the group when it names one. Without a kittui, the help prints, as it does without a terminal.
-if [[ "${text}" == false ]] && (( $# <= 1 )) && [[ -t 0 && -t 1 && -t 2 ]] && tui:binary --probe >/dev/null 2>&1
+if [[ "${text}" == false ]] && (( $# <= 1 )) && [[ -t 0 && -t 1 && -t 2 ]] && tui:binary --probe >/dev/null
 then
   target=''
   if (( $# == 1 ))

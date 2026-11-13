@@ -186,6 +186,58 @@ platform() {
   [ "$(grep -c ' build ' "${FAKES}/go.calls")" -eq 2 ]
 }
 
+@test "the build's name follows every file the build reads, in a path with a space, and not a test or its testdata" {
+  export FAKES="${BATS_TEST_TMPDIR}/gofakes" XDG_CACHE_HOME="${BATS_TEST_TMPDIR}/cache"
+  mkdir -p "${FAKES}" "${BATS_TEST_TMPDIR}/sp ace/internal/palette/testdata"
+  ln -s "${BATS_TEST_DIRNAME}/fakes/fake-go" "${FAKES}/go"
+  local tui="${BATS_TEST_TMPDIR}/sp ace"
+  printf 'package main\n' > "${tui}/main.go"
+  printf '[]\n' > "${tui}/internal/palette/verbs.json"
+  cached() { PATH="${FAKES}:${PATH}" kit-bash "tui:cached '${tui}'"; }
+  export kit_bash_modules=tui
+  first=$(cached)
+  [[ "${first}" == "${XDG_CACHE_HOME}/kit/kittui-"* ]]
+  printf 'package main // changed\n' > "${tui}/main.go"
+  second=$(cached)
+  [ "${second}" != "${first}" ]
+  printf '[1]\n' > "${tui}/internal/palette/verbs.json"
+  third=$(cached)
+  [ "${third}" != "${second}" ]
+  printf 'package main\n' > "${tui}/main_test.go"
+  printf 'x\n' > "${tui}/internal/palette/testdata/golden"
+  [ "$(cached)" = "${third}" ]
+}
+
+@test "a build that kit made more than two weeks ago is removed when a new one is made, and a recent one is kept" {
+  export FAKES="${BATS_TEST_TMPDIR}/gofakes" XDG_CACHE_HOME="${BATS_TEST_TMPDIR}/cache"
+  mkdir -p "${FAKES}" "${XDG_CACHE_HOME}/kit"
+  ln -s "${BATS_TEST_DIRNAME}/fakes/fake-go" "${FAKES}/go"
+  : > "${XDG_CACHE_HOME}/kit/kittui-old"
+  : > "${XDG_CACHE_HOME}/kit/kittui-recent"
+  touch -t 202001010000 "${XDG_CACHE_HOME}/kit/kittui-old"
+  run terminal "env PATH='${FAKES}:$(without-kittui)' '${kit_root}/bin/kit' tui -- version"
+  [ "$status" -eq 0 ]
+  [ ! -e "${XDG_CACHE_HOME}/kit/kittui-old" ]
+  [ -e "${XDG_CACHE_HOME}/kit/kittui-recent" ]
+}
+
+@test "a build that fails ends kit tui with 1, and a verb that prints text without a kittui prints it, with the failure said" {
+  export FAKES="${BATS_TEST_TMPDIR}/gofakes" XDG_CACHE_HOME="${BATS_TEST_TMPDIR}/cache" FAKE_GO_FAIL=1
+  mkdir -p "${FAKES}"
+  ln -s "${BATS_TEST_DIRNAME}/fakes/fake-go" "${FAKES}/go"
+  run terminal "env PATH='${FAKES}:$(without-kittui)' '${kit_root}/bin/kit' tui"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kittui could not be built from"* ]]
+  run terminal "env PATH='${FAKES}:$(without-kittui)' '${kit_root}/bin/kit' tutorials"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"kittui could not be built from"* ]]
+  [[ "$output" == *"kit-tutorials"* ]]
+  run terminal "env PATH='${FAKES}:$(without-kittui)' '${kit_root}/bin/kit' help"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"kittui could not be built from"* ]]
+  [[ "$output" == *"kit help"* ]]
+}
+
 @test "a copy of the kit with no projects/tui/ and no binary of its own runs the kittui on PATH" {
   mkdir -p "${BATS_TEST_TMPDIR}/copy"
   cp -R "${kit_root}/bin" "${kit_root}/libexec" "${kit_root}/modules" "${kit_root}/packages" "${BATS_TEST_TMPDIR}/copy/"

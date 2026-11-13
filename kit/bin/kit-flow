@@ -266,7 +266,7 @@ if [[ "${syntax_literals[0]:-}" == backlog || "${syntax_literals[0]:-}" == under
 then
   if [[ -z "${syntax_options[--text]+x}${syntax_options[--json]+x}${syntax_options[--jq]+x}" \
     && -t 0 && -t 1 && -t 2 ]] && { [[ -n "${workspace}" ]] || workspaces:in-repository >/dev/null; } \
-    && tui:binary --probe >/dev/null 2>&1
+    && tui:binary --probe >/dev/null
   then
     binary=$(tui:binary) || exit 1
     terminal:export-probes
@@ -297,7 +297,7 @@ fi
 if [[ -n "${workspace}" && -z "${syntax_literals[0]:-}${syntax_options[--text]+x}${syntax_options[--json]+x}" \
   && -z "${syntax_options[--jq]+x}${syntax_options[--stages]+x}${syntax_options[--marks]+x}" \
   && -z "${syntax_options[--quota]+x}${syntax_options[--me]+x}" && -t 0 && -t 1 && -t 2 ]] \
-  && tui:binary --probe >/dev/null 2>&1
+  && tui:binary --probe >/dev/null
 then
   binary=$(tui:binary) || exit 1
   terminal:export-probes
@@ -368,7 +368,7 @@ then
   fi
 fi
 if [[ "${pictured}" == true && -z "${syntax_options[--text]+x}${syntax_options[--json]+x}" && -t 0 && -t 1 && -t 2 ]] \
-  && workspaces:in-repository >/dev/null && tui:binary --probe >/dev/null 2>&1
+  && workspaces:in-repository >/dev/null && tui:binary --probe >/dev/null
 then
   binary=$(tui:binary) || exit 1
   terminal:export-probes

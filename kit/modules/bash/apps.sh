@@ -55,7 +55,7 @@ apps:main() {
   workspace=$(workspaces:across "${KIT_WORKSPACE:-}") || return $?
   # On a terminal, with no form chosen, the app is kittui's, which runs this kit, the stage named maximized.
   if [[ -z "${form}" && -t 0 && -t 1 && -t 2 ]] && { [[ -n "${workspace}" ]] || workspaces:in-repository >/dev/null; } \
-    && tui:binary --probe >/dev/null 2>&1
+    && tui:binary --probe >/dev/null
   then
     command=$(tui:binary) || return 1
     terminal:export-probes

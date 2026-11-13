@@ -150,7 +150,7 @@ workspace=$(workspaces:across "${workspace}") || exit $?
 # On a terminal, with no form chosen, the picture is kittui's, which runs this kit, the stage named maximized.
 if [[ -z "${syntax_options[--text]+x}${syntax_options[--json]+x}${syntax_options[--jq]+x}${syntax_options[--marks]+x}" \
   && -t 0 && -t 1 && -t 2 ]] && { [[ -n "${workspace}" ]] || workspaces:in-repository >/dev/null; } \
-  && tui:binary --probe >/dev/null 2>&1
+  && tui:binary --probe >/dev/null
 then
   binary=$(tui:binary) || exit 1
   terminal:export-probes

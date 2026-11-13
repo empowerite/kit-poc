@@ -64,7 +64,7 @@ done
 screen() {
   local binary tag
   local -a args=()
-  [[ -z "${form}" && -t 0 && -t 1 && -t 2 ]] && tui:binary --probe >/dev/null 2>&1 || return 0
+  [[ -z "${form}" && -t 0 && -t 1 && -t 2 ]] && tui:binary --probe >/dev/null || return 0
   binary=$(tui:binary) || exit 1
   terminal:export-probes
   export KIT="${kit_root}/bin/kit"

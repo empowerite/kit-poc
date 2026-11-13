@@ -88,7 +88,7 @@ guard:arguments packages "$@" || exit $?
 # terminal with kittui, or names a workspace to draw across.
 if [[ -n "${syntax_options[--stages]+x}${syntax_options[--marks]+x}" || "${syntax_literals[0]:-}" == packages ]] \
   || { (( $# == 0 )) && { [[ -n "${KIT_WORKSPACE:-}" && "${KIT_WORKSPACE}" != none ]] \
-    || { [[ -t 0 && -t 1 && -t 2 ]] && tui:binary --probe >/dev/null 2>&1; }; }; }
+    || { [[ -t 0 && -t 1 && -t 2 ]] && tui:binary --probe >/dev/null; }; }; }
 then
   apps:main packages "$@"
   exit
