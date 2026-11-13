@@ -719,14 +719,3 @@ func TestTheTitleLineNamesTheVerbThatOpensTheApp(t *testing.T) {
 	}
 }
 
-// The title line names the verb that opens the app, not the app: Trust is kit audit, Repositories kit workspace.
-func TestTheTitleLineNamesTheVerbThatOpensTheApp(t *testing.T) {
-	for _, a := range apps {
-		if got, want := (Model{app: a.screen}).appLabel(), "kit "+a.verb; got != want {
-			t.Errorf("%s is titled %q, not %q", a.screen, got, want)
-		}
-	}
-	if got := (Model{app: shell.Flow}).appLabel(); got != "kit flow" {
-		t.Errorf("Flow is titled %q", got)
-	}
-}
