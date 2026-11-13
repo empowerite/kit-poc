@@ -1,396 +1,253 @@
 # kittui
 
-`kittui` is the kit's interactive terminal UI. It is a Go binary, and `kit tui`, `kit flow`, `kit workspace`, the app
-verbs below, `kit welcome`, and `kit tutorials` exec it. It runs `kit` for everything it knows, so it holds no verb by
-name.
+kittui is kit's terminal UI. It is one Go binary, and kit runs it at a terminal for `kit` with no verb, `kit tui`,
+`kit help`, `kit welcome`, `kit tutorials`, `kit flow`, and each app verb, such as `kit workspace`.
 
-It has six screens:
+kittui knows nothing on its own. It runs `kit` for everything it shows, reads the JSON that kit prints, and never
+parses kit's text. It holds no verb by name: the verbs, their forms, and their help come from `kit syntax` and
+`kit help`.
 
-- **The palette.** `kit help` opens it, focus in the rows, so the arrows move at once. It is a table of every verb, its
-  group, command, and description, grouped by group and sorted by command; / gives the search focus, and typing
-  filters the rows; ⏎ or ↓ gives the rows focus again, → opens a row to the verb's help page, and ⏎, or a click on
-  the verb's name, opens the verb's form. [ and ] move to the group before and after, { and } to the first and the
-  last.
-- **A verb's form.** It opens when a verb at a terminal is short of its arguments. It finishes the command line. In
-  one opened from the palette, esc, or a click on ‹ verbs, goes back. A click on a field gives it the keyboard. A
-  click on a flag's name flips it, and one on a name in a row of options chooses or flips that option, as the space
-  does. A click on a row of the list that has the keyboard picks it. A click on the command line gives it the
-  keyboard, and a second click there runs it, as ⏎ does, so no single click runs a command. The verb runs where the
-  form read its choices: in the folder kittui started in, or, after a switch in the workspace menu, in the checkout
-  of the repository shown, or over the group shown, as `kit --workspace=<group> <verb>`.
-- **The flow picture.** `kit flow` at a terminal draws its stages here. Over a group, `kit --workspace=<group> flow`
-  or one picked from the 📚 workspace menu, every tab gathers every cloned member's rows, grouped by member as they
-  load. An action acts on the rows selected, or, with none selected, on the row under the cursor, and runs in each
-  row's member's checkout. An action that writes, on issues or on packages, asks first, once, in one dialog: its title
-  says what it will do, a line for each issue or package says which it changes, the repository is named under them,
-  and for `kit work`, what it makes. The dialog has two buttons. ⏎, or a click on the button that does it, runs kit.
-  Esc, a click on Cancel, or a click off the dialog runs nothing and keeps the selection. Where an action ran more
-  than one command, the notice says how many. An issue's row and a pull request's open the page kit printed for each,
-  `url`, which its forge's provider gives; kittui builds no address of its own, so a row kit gave none leads nowhere.
-- **The workspace picture.** `kit workspace` at a terminal draws what git holds across the workspace here: the 📚 repos
-  tab first, a row per member of the workspace, then a tab for each of git's entities, remotes, branches, worktrees,
-  commits, and tags. It is the flow picture's screen on kit workspace's stages, which kittui knows after `workspace/`,
-  so their fields and presets stay apart from another verb's stage of the same name. A stage's rows are drawn from the
-  catalog alone: kit prints each row's values by the field's id, and where a value leads, a page on the forge or a row
-  of another tab, so a stage needs no Go of its own. It reads no forge, so it spends no rate limit, and a tab is stale,
-  its dot lit, when `kit workspace --marks` moves. The other apps are the same screen; see The apps, below.
-- **The welcome guide.** `kit welcome` at a terminal walks its steps here, and bare `kit` opens it too.
-- **The tutorials.** `kit tutorials` at a terminal shows a card for each tutorial here, tabbed by audience.
+This page is for someone who changes the Go code. For what a person sees and does, read these:
 
-Search works the same on every screen. `/` or a click on the search field at the menu bar's right gives it focus, and
-typing filters as it goes. ⏎, ↓, esc, or tab gives the view focus and keeps the filter, ⌃U clears it, and ⌃R recalls
-a past search.
+- [The terminal UI](../../README.md#the-terminal-ui) in the README shows one screen.
+- The tutorials in [kit/modules/tutorials/](../../kit/modules/tutorials/) have one page for each part of the
+  screen. `kit tutorials` opens them.
+- [docs/apps.md](../../docs/apps.md) describes the JSON each app reads, and
+  [docs/workspaces.md](../../docs/workspaces.md) describes workspaces and the workspace menu.
 
-A paste is typed wherever a key would be: in the search, a form's field, a dialog's line, a preset's name, and the
-line of a field's card that takes a range. A pasted line break never stands for ⏎. A field of one line drops it, and a
-form's field of lines takes each pasted line as a line. While a dialog is open the paste goes to the dialog, and under
-an open menu it types nothing. In Open Repository…, a paste that starts with `/` or `~` is a whole path, and takes the
-place of what is typed.
+## Screens
 
-`kit <verb> <argument>` opens the verb's screen on the argument. `kit flow issues` opens the picture with the issues
-stage maximized, and both `kit flow backlog` and `kit flow underway` open it the same way, issues set as its Backlog
-or Underway preset. `kit tutorials screens` opens the tutorials with the cursor on that card. `kit help commit` opens
-the palette on the commit verb's page, and `kit tui commit` opens its form. After `kit --workspace=<workspace>`, kit
-tui starts kittui with `--workspace=<workspace>` before the verb, and every screen opens over that workspace: a form
-shows and runs its verb with the option.
+kittui shows one screen at a time. The `=` menu, which every screen has, switches between them. `internal/screens`
+makes a screen the first time it is shown, and keeps it as you left it while another screen shows.
+
+| Screen | Opens with | Package | Shows |
+| --- | --- | --- | --- |
+| Welcome | `kit`, `kit welcome` | `internal/welcome` | a tab for each page under `.kit/welcome/`, with kit's checks |
+| Help | `kit help` | `internal/palette` | the palette: a table of every verb but `tui` |
+| A verb's form | `kit tui <verb>`, or a verb short of an argument | `internal/form` | the verb's arguments as fields |
+| The nine apps | `kit flow`, or an app verb | `internal/flow` | a tab for each stage, each tab a table |
+| Tutorials | `kit tutorials` | `internal/tutorials` | a card for each tutorial |
+| Workspaces | Manage… in the workspace menu | `internal/workspaces` | the groups of repositories kit keeps |
+
+Two dialogs open over a screen:
+
+- `internal/trust` asks before kittui reads anything in a clone that kit does not trust yet. Trust runs
+  `kit trust --yes` on the clone. Not now leaves it untrusted and opens the palette, which an untrusted clone allows.
+- `internal/opener` is Open Repository… in the workspace menu. Type a folder, or find the clones under it.
+
+A word after the verb opens the screen at a place:
+
+| Command | Opens |
+| --- | --- |
+| `kit flow issues` | Flow, with the issues tab maximized |
+| `kit flow backlog`, `kit flow underway` | Flow, with the issues tab maximized on its Backlog or Underway preset |
+| `kit issues milestones` | Issues, with the milestones tab maximized |
+| `kit tutorials screen` | the tutorials, with the cursor on that tutorial's card |
+| `kit help commit` | the palette, on the page of `kit commit` |
+| `kit tui commit` | the form of `kit commit` |
+
+After `kit --workspace=<workspace>`, kit starts kittui with `--workspace=<workspace>` before the verb. Every screen
+then opens over that workspace, and a form shows and runs its verb with the option.
+
+What each screen does beyond the tutorials:
+
+- Welcome. A check that failed offers its fix on the cursor's row: ⧉ or `c` copies it, and ▶️ or `r` runs it where
+  kit can. The terms and customize pages are drawn as tables, from `terms.json` and `customize.json`. The setup
+  step draws its folders as a table, from `folders.json`.
+- Help. `→` opens a row to the verb's help page. `⏎`, or a click on the verb's name, opens the verb's form.
+- A form. It builds the command line and shows it. `⏎` on the command line runs the verb. A click on the command
+  line gives it the keyboard, and a second click runs it, so no single click runs a command. `esc`, or a click on
+  ‹ verbs, goes back to the palette. The verb runs where the form read its choices: in the folder kittui started
+  in, in the repository the workspace menu switched to, or over the group shown.
+- Tutorials. A tutorial that ships with kit opens as a page in place of the cards. A tutorial online opens in the
+  browser. A link on a page to a screen of kittui opens that screen, and leaves a crumb back to the page.
+- Workspaces. Each action is a `kit workspaces` command that kittui runs. kittui never writes the workspaces file.
 
 ## The apps
 
-Flow and the workspace's picture are two of nine apps, each this screen over its own tabs, one stage of kit for each,
-drawn from the catalog alone. `kit <verb>` at a terminal opens the app on its first tab, and `kit <verb> <tab>` opens it
-on that tab, maximized; a tab of kit flow's, as `kit issues issues`, opens the same way, and the app that holds it
-opens. `kit issues backlog` and `kit issues underway` open Issues on its issues tab, set as that preset. Each tab reads
-one kit command with `--json`, the entry of that stage in `internal/flow/fields.json`:
+An app is one screen, `internal/flow`, over its own tabs. Each tab is a stage of kit. `kit <verb>` opens the app on
+its first tab, and `kit <verb> <tab>` opens it on that tab, maximized.
 
-| App | Verb | Tab and the command it reads |
+| App | Verb | Tabs |
 | --- | --- | --- |
-| Flow | `kit flow` | each stage of the `flow` setting that kittui draws, as `kit flow <stage> --json` |
-| Issues | `kit issues` | issues, `kit flow issues`, the backlog and underway; milestones and iterations, `kit issues <tab>` |
-| Changes | `kit changes` | changes, `kit flow changes`; reviews, checks, and merged, `kit changes <tab>` |
-| Repositories | `kit workspace` | repos, worktrees, branches, commits, tags, remotes: `kit workspace <tab>`; incoming: `kit flow` |
-| Delivery | `kit delivery` | releases and builds, `kit flow`'s; artifacts, environments, deployments, `kit delivery <tab>` |
-| People | `kit people` | people, teams, and agents, `kit people <tab>` |
-| Trust | `kit audit` | evidence, findings, controls, waivers, policy, and enforcement, `kit audit <tab>` |
-| Platform | `kit platform` | services, toolchains, tools, and settings, `kit platform <tab>` |
-| Packages | `kit packages` | packages, `kit packages packages` |
+| Flow | `kit flow` | the stages the `flow` setting names: issues, changes, builds, incoming, releases |
+| Issues | `kit issues` | issues, milestones, iterations |
+| Changes | `kit changes` | changes, reviews, checks, merged |
+| Repositories | `kit workspace` | repos, worktrees, branches, commits, tags, remotes, incoming |
+| Delivery | `kit delivery` | releases, builds, artifacts, environments, deployments |
+| People | `kit people` | people, teams, agents |
+| Trust | `kit audit` | evidence, findings, controls, waivers, policy, enforcement |
+| Platform | `kit platform` | services, toolchains, tools, settings |
+| Packages | `kit packages` | packages |
 
-Every tab has a source, so none is drawn empty. A tab is stale, its dot lit, when its verb's `--marks` moves for it, and
-Watch reads it again then. A tab kit marks null, as kit flow's now are, has its Watch dim, and one the catalog says is
-not `marked`, as People's three, Trust's controls and waivers, and Issues' iterations, offers no Watch at all; each is
-read again on Refresh only. A calendar day, as a due, start, or end, draws as its UTC day. A tab of a stage that reads
-the forge reads the rate limits again as it loads; any tab reads them as it loads while the app has none, so every app
-draws them, Platform's too. A tab kit read only part of, as a capped list, counts what it drew with a +, `50+`; a
-feature the forge has off here, as secret scanning, says so, dim, under the rows, and is no failure. A tab whose read
-fails, the first or a later one, shows kit's line in place of its rows, under the heading over its groups where the
-rows grouped. The rows of the read before are gone until the tab is read again, so no key, click, or action reaches
-one behind the line. A tab read again keeps the cursor on the row it was on, wherever the new rows put that row, so
-a key pressed after a watched tab reloads acts on the same row; where the row is gone, the cursor stays in place.
+Some tabs belong to two apps: the issues tab is in Flow and in Issues. `apps` in `internal/flow/apps.go` lists the
+tabs of each app. A word that names a tab of kit flow opens the app that holds it: `kit issues issues` opens
+Issues on its issues tab.
 
-A filter on a person can name the caller, `@me`: the login `kit flow --me` prints. kittui asks kit for it once, as
-soon as a tab's view holds `@me`, as a view kept from the last session or a preset may, and when a card, a chip, or
-the issues tab's menu opens. Such a tab says loading until kit answers. When kit cannot say, the keys bar says so,
-`@me` matches no one, and the next card, chip, or menu asks again. Over a group kittui asks in a member's checkout,
-once kit has said the workspace.
+Over a group of repositories, each tab gathers the rows of every cloned member, and an action runs in the checkout
+of each row's member. Start kittui with `kit --workspace=<group> flow`, or pick the group in the workspace menu;
+see [docs/workspaces.md](../../docs/workspaces.md).
 
-On the changes tab, a pull request's open row says what stands between it and its merge, above the issues it closes:
-a line for each of kit's states that the change's document says holds, with the state's glyph, its word, and what
-`kit help flow` says of it. The line of a check that failed or still runs names the failing check and says how many
-passed, the threads' line says how many are unresolved, and the review's line says who asked for changes and who is
-asked. kit's state names only the first that holds, so `conflicted` and `blocked:approval` show where no state before
-them does. A pull request that is ready has no such line.
-A link to a row of a tab the app does not have opens the app built around that tab's entity.
+## How a screen reads kit
 
-Each screen reads what it shows from kit as JSON. A form reads `kit syntax <verb>`, the picture reads
-`kit flow <stage> --json`, and the workspace's reads `kit workspace <stage> --json`. `kittui` never parses kit's text.
+- Each tab reads one kit command with `--json`. The catalog, `internal/flow/fields.json`, names the command for
+  each stage.
+- The catalog states the contract number of the stage documents that kittui reads. A tab whose document states
+  another number shows a line with both numbers in place of its rows; see [docs/apps.md](../../docs/apps.md).
+- kittui starts every kit with no terminal, in a session of its own, with `GIT_TERMINAL_PROMPT=0`. A git, an ssh,
+  or a kit that would ask for a password fails at once, and the screen shows its line. Nothing writes a prompt
+  over the screen.
+- A stage's read has two minutes, and so has an action. After that, kittui stops kit, and the screen says which
+  command it was.
+- Two commands keep the terminal, because the person answers them: a fix that the welcome guide runs, and the verb
+  that a form runs.
+- A stage whose catalog entry takes `cached` opens on the copy kit kept of its last answer, while its first read
+  runs. Its tab is stale until the read lands. See `internal/flow/kept.go`.
+- kittui reads the stages' marks, such as `kit flow --marks`, after a stage loads and then once a minute. A mark
+  that changes makes its tab stale, which the tab shows as a yellow dot. Watch reads a stale tab again at once. A
+  stage whose catalog entry says `"marked": false` offers no Watch.
+- A tab whose read fails shows kit's line in place of its rows. The rows of the read before are gone until the
+  tab is read again, so no key or click reaches a row behind the line.
+- A tab that loads again keeps the cursor on the row it was on, wherever the new rows put that row.
+- A row opens the page whose address kit printed as `url`. kittui builds no address of its own.
+- A filter on a person can name the caller as `@me`. kittui asks kit for the login, with `kit flow --me`, when a
+  view first holds `@me`.
+- Every action runs a kit verb. kittui changes nothing itself, so a terminal, an agent over `kit serve`, and a
+  menu do the same thing. An action that writes asks first, in one dialog that lists what it will change.
 
-Every kit that a screen starts runs with no terminal, in a session of its own, with `GIT_TERMINAL_PROMPT=0`. A git,
-an ssh, or a kit verb that would ask for a password or an answer there fails at once, and the screen shows its line;
-it never writes a prompt over the screen or waits on one. A stage's read has two minutes, and so has an action, a
-verb that changes something: past that, kit is stopped, and the screen says which command it was. Two things keep
-the terminal, since they are the person's own: a fix the welcome guide runs, and the verb a form runs.
+`internal/source` holds the two kinds of read. A load is a read that a screen shows, such as a stage. A poll is a
+read that repeats, such as the marks. Every wait goes through a clock, so a test fires the timers it means to.
+
+## The parts every screen shares
+
+The tutorials describe each part for the person who uses it. This table says where its code is.
+
+| Part | Code | Tutorial |
+| --- | --- | --- |
+| The screen, top to bottom | `internal/shell/view.go` | [screen.md](../../kit/modules/tutorials/screen.md) |
+| Menu bar, kit menu, workspace menu, crumb | `internal/shell` | [menu-bar.md](../../kit/modules/tutorials/menu-bar.md) |
+| Search | `internal/shell/search.go` | [search.md](../../kit/modules/tutorials/search.md) |
+| Tab bar and the tab's menu | `internal/tabs` | [tab-bar.md](../../kit/modules/tutorials/tab-bar.md) |
+| Control line: groups, presets, Fields | `internal/table` | [control-line.md](../../kit/modules/tutorials/control-line.md) |
+| Header, rule, rows, selection | `internal/table`, `internal/grid` | [rows.md](../../kit/modules/tutorials/rows.md) |
+| Status bar and notices | `internal/shell/keybar.go`, `notice.go` | [status-bar.md](../../kit/modules/tutorials/status-bar.md) |
+| Legend | `internal/legend`, and each screen's `legend.go` | [legend.md](../../kit/modules/tutorials/legend.md) |
+
+Other shared code:
+
+- `internal/shell/layers.go`: the menus, dialogs, and cards a screen opens over itself, in one order. The topmost
+  open layer takes every key and click.
+- `internal/shell/dropdown.go` and `placed.go`: what every menu and every dialog shares.
+- `internal/shell/settings.go`: the Settings dialog, with Auto-group, Auto-hide, and Repeated emoji.
+- `internal/shell/paste.go`: a paste, which a field types where it would type a key.
+- `internal/fix`: the copy and run buttons on a line that names a command.
+- `internal/markdown`: a page drawn as text, with its links.
+
+## Tables
+
+Every table is `internal/table`'s, whatever its rows hold. The control line, the Fields dialog, a field's card, the
+presets, and the outline of the rows are the same code on every screen.
+
+- A catalog is a JSON file beside the code. It declares a table's fields and its own presets. The catalogs are
+  `fields.json` for the apps, `verbs.json` for the palette, `tutorials.json`, `workspaces.json`, `clones.json` for
+  Open Repository…, and the three of the welcome guide.
+- A field has a stable id, a label, a type, what it can sort, group, and filter by, and its renderings in order.
+  Presets and code use the id. Only the header shows the label.
+- A renderer is a Go function registered by name, so a catalog stays data. `internal/table/render.go` holds the
+  renderers every table shares, and a screen registers its own.
+- A stage's `carries` lists the keys its rows hold that no field shows. The bats suite holds the fields and the
+  carries to what kit prints; see [Contracts](../../docs/testing.md#contracts).
+- The stages of `kit workspace` and of the app verbs are drawn from the catalog alone. Such a stage needs no Go of
+  its own.
+- A panel, in `internal/grid/panel.go`, is how a table is set now: the placement, sort, and filter of each field.
+  A preset sets a panel, and a panel reads back as a preset.
+- A screen that shows several tables implements `table.Host` once, for the table selected. `internal/flow` does.
+  A `table.Sheet` is one whole table that hosts its own controls. The other screens use it.
+
+A table has three kinds of preset:
+
+| Preset | Kept in | Changes |
+| --- | --- | --- |
+| built in | the catalog | never |
+| the person's | `presets.json` under `~/.config/kit/`, or under `XDG_CONFIG_HOME` | Save, Save As…, Rename…, Delete |
+| the team's | `.kit/presets/<stage>/<slug>.json` in the clone | the same, as changes in the working tree |
+
+- `presets.json` is at version 2. It also keeps the person's favorites, and each table as the person last left it,
+  so a tab opens as it was. Where there is no `presets.json`, kittui reads an older `views.json` once and leaves
+  that file as it is.
+- kittui reads the team's presets only in a clone that kit trusts and that has kit installed. A person commits a
+  change to them like any other change.
+- A screen saves through `table.KeepPresets`. It reads the file again and applies what the screen did, so two
+  kittui on one file keep each other's presets.
+- The search history is `search-history.json` and the settings are `kittui.json`, both beside `presets.json`.
+
+## Rules a change keeps
+
+- Every action has a path of plain clicks. Some terminals, iTerm among them, keep ⌥, ⌃, and the right button for
+  their own selection and menus, and others keep shift. A modified click may add a shortcut, never the only way.
+- With `NO_COLOR`, what the keyboard is on is drawn in reverse video: the line in a menu or dialog, the stop in a
+  control line, and the row under the cursor. `internal/screens` tells `internal/style` which colors the terminal
+  draws.
+- `esc` goes back one step and never quits. `⌃Q` quits with 0, and `⌃C` quits with 130.
+- A menu line that cannot act now stays in the menu, dim.
+- A screen never writes its own key hints. It gives the path from the screen to the control that has the keyboard,
+  and each control on the path names the keys it answers; see `internal/shell/keybar.go`.
+- A sort's mark is a small number on the rule, raised for ascending and lowered for descending. It is never a
+  triangle. ▼ is the presets menu.
+- Widths are terminal cells, so a two-cell glyph counts as two; see `internal/pane`.
+- A paste is typed where a key would be typed. A pasted line break never counts as `⏎`.
+- Every glyph a screen draws is in its legend. The glyphs of the apps come from `kit/modules/jq/glyphs.json`, which
+  the help of `kit flow` and of each app verb also reads, and a test holds the two together.
+- Every statement has a test; see [Testing](#testing).
 
 ## Where kit finds it
 
-`kit tui` looks for `kittui` in this order:
+`kit tui` looks for kittui in this order:
 
-1. In a checkout of the kit, with `go` on `PATH`, it builds `kittui` from this directory. It builds once for each
-   change to these sources or to `go`, into the cache.
-2. In a release, it runs the binary for this platform from `libexec/`. `bin/release` builds those for linux and
-   darwin on amd64 and arm64.
+1. In a checkout of kit, with `go` on `PATH`, it builds kittui from this directory into the cache. It builds once
+   for each change to these sources or to `go`.
+2. In a release, it runs the binary for this platform from `libexec/`. `bin/release` builds those for Linux and
+   macOS on amd64 and arm64.
 3. Otherwise, it runs a `kittui` on `PATH`.
 
-[kit/modules/bash/tui.sh](../../kit/modules/bash/tui.sh) holds that lookup.
+[kit/modules/bash/tui.sh](../../kit/modules/bash/tui.sh) holds that lookup. kittui needs a terminal on stdin,
+stdout, and stderr. Without one it exits 2 and names the command that prints text.
 
-## Layout
+## Packages
 
-- `cmd/kittui/` is the binary. It picks a screen from its arguments.
-- `internal/app/` is the root model: the palette, a verb's form, and the slide between them.
-- `internal/palette/` is the table of verbs that `kit help` opens.
-- `internal/form/` turns a verb's grammar into form fields, and the fields back into a command line.
-- `internal/syntax/` decodes the grammar `kit syntax` prints.
-- `internal/flow/` draws `kit flow`: the stages as tabs, and each stage's rows. `fields.json` is the catalog. It
-  states the contract of kit's stage documents that it reads, and a tab whose document states another shows a line
-  with both numbers in place of its rows; see [apps.md](../../docs/apps.md#the-contract-of-the-stage-documents). It
-  declares each stage's fields, each by a stable id, with its label, its type, what it can sort, group, and filter by,
-  and its renderings in order, and the stage's own presets, the first the one it opens on: Default and Compact, or for
-  issues All Issues, Backlog, Underway, By Milestone, By Iteration, By Swimlane, and Compact; a table with no presets of
-  its own has Default. A stage's carries names the keys its rows hold that no field shows, as a change's closes, which the
-  screen reads apart; the bats suite holds the fields and the carries to what kit prints. A field that holds a list,
-  as assignees or labels, names one of its values, assignee or label, and sorts by size while a row holds all of them,
-  how many each holds, and by value once flattened. Where a row holds more than one, its column says how many, dim, as
-  labels' 3, or, for a list with a glyph for many, after it, as assignees' 👥 2 in place of 👤 and a name; the row open
-  lists them all under its lines. The renderers are Go functions, registered by name with `internal/table`, which has
-  those every table shares. A preset says, per field by id, its placement, its sort, its filter, and the rendering it
-  pins. The person's presets are kept in `~/.config/kit/presets.json`, version 2. Where there is none, kittui reads the
-  `views.json` beside it once, maps each column's label to its field's id, notes a label the catalog no longer knows,
-  and leaves the old file as it is.
-  - The tab's view starts with the control line: the heading over the groups at its left, which, where the rows group by
-    nothing, is the rows' ▾ and their count alone, and the preset line at its right end. After how many rows are
-    selected, a chip per filter, which a click opens its field's card under, on its filter, and 📇 Fields, which opens
-    the columns dialog, as f on the line does, it names the preset the table is set as and ▼, a pill on the tab's color,
-    as a label is, on the menus' cyan while the line has the keyboard; the name is struck through and italic once the
-    table differs from every preset. ↓ from the tabs reaches the line, on the heading over the groups' first stop; ⇥ and
-    ⇧⇥ move between the groups' names, the rows' ▾ and count after them, and the pill; → opens the level of the stop
-    under the keyboard and ← closes it, as ␣ turns it. ↓ from the line enters the rows on the outline's first line, the
-    first group's heading where the rows group, as ↑ from there comes back. On a name ⏎ opens the column's card; on the
-    rows' ⏎ opens or closes them. ⏎ or a click on the pill drops down the presets' menu, in the tab's color, as the pill
-    is, titled Presets at its left as a dialog is, from the control line, its right edge over the ▼: Save, Save As…,
-    Manage…, and the presets, in sections under dim headings: the person's favorites, in their order, then the team's,
-    team, then the stage's own, built in, then the person's, mine, each preset once. Each has ★ at its right where the
-    person starred it, ☆ where not, and `*` on its line, or a click on the star, stars it or no longer, the menu left
-    open; the presets file keeps the favorites beside the presets, and a favorite follows its preset's rename, and goes
-    when it is deleted. Save As… takes a name in the selector's place, the person's preset the line was set to typed
-    already, and ⏎ saves. Save acts on the person's preset the line was set to, or the team's, and is dim on the stage's
-    own. Manage…, in `manage.go`, opens the presets dialog, on the preset the line was set to: every preset a line, its
-    star, its name, and team, built in, or mine, the favorites first, a rule under them; ↑↓ move, ␣ or `*` stars the
-    preset, ⇧↑↓ moves a favorite among the favorites, and, on one of the person's own, r renames it, its new name typed
-    in the selector's place as Save As… takes one, and d deletes it, the table set as the one it opens on where it was
-    set as that preset; Rename… and Delete under the presets do the same by a click, and a stage's own preset has
-    neither. The team's presets are checked into the workspace, in `team.go` and kit flow's own: a file each, named by
-    its preset's slug, under `.kit/presets/<stage>` at the clone's root, read only where kit trust --check says kit
-    trusts the clone and its kit.yml declares a kit version, so a clone without the kit gets no `.kit/`. In the dialog,
-    s, Share with team, moves one of the person's own there, refused where the team has its slug already, and dim, as
-    it does nothing, where the clone keeps no team's; c, Copy to mine, copies one of the team's into the person's,
-    named copy after it; Save, r, and d on one of the team's change its file. Each is a change in the working tree,
-    which kit commit carries. Each stage
-    opens on its panel as the person last left it, unsaved changes and all, which the presets file keeps as last, a
-    stage's own each time the panel changes: set as the view it was, its name struck through where the panel has changed
-    from it, or as the stage's opening view where that one is gone; a preset named on the command line wins. What was
-    done is said in place of the keys, for five seconds or until a key; why something was not done stays until a key.
-  - The columns dialog, in `columns.go`, titled by the stage's fields, opens from 📇 Fields on the control line, the
-    header drawing no icon of its own: every field a line, those the rows group by first, then the columns as they
-    stand, then the hidden, a dim rule between each two of those it has, each with whether it shows, its sort and its
-    place among the keys, and its group's depth.
-    What it sets applies at once: space shows or hides, s turns the sort, g groups, ⇧↑↓ moves a field, into the groups
-    or out, and → or ⏎ gives the card the keyboard, which ← gives back; a click on a line's box, sort, or group does as
-    space, s, or g, and one on its label gives its card the keyboard. At the list's right stands the card of the field
-    under the keyboard, as wide as the widest field's, so the dialog stands still as the keyboard moves. A table that
-    offers no field, because it has no row and groups by nothing, opens the dialog with its headings alone, and esc is
-    its only key; where a reload leaves the list shorter than the line the keyboard stood on, the keyboard is on the
-    list's last field.
-  - Maximize, first in the tab's menu, gives the rows the bar's lines but one, for the session: the title names the
-    tab, its count, and its :, and a click anywhere on them drops the tab's menu as the bar's does; a line in the tab's
-    color runs under it, and the header follows; Restore, in its place, puts the bar back as it was, and a tab's
-    number selects a tab either way.
-  - A link to another app leaves a crumb, last on the title line of the app it opens, after the workspace menu and a
-    maximized tab: ↩ and the app and tab it was followed from. A plain click on it, or ⌫, goes back there, the view put
-    back as `Spot` kept it, with that place's own crumb, so crumbs chain, each one deep; the root, in
-    `internal/screens/crumb.go`, keeps the chain for the session. Only the app menu shows an app with no crumb.
-  - A menu line's key stands at its right, dim, a letter in upper case, R as ⌃A, as a macOS menu draws it, and the
-    letter alone does the same with the menu closed as choosing the line does with it open: r Refresh, w Watch, m
-    Maximize or Restore, o Open Page, ⌃A Select All, and on issues n New… and a Assign to Me. With a menu open, a
-    line's key chooses it before a letter moves to the next line starting with it.
-    [ and ] move the cursor to the group heading before and after it, { and } to the first and the last, as they move
-    between the palette's groups.
-  - A row has a menu of its own, in `rowmenu.go`: ⏎ on a row drops it down under the row, or over it near the
-    screen's bottom, and a plain click on the row under the cursor drops it down where the click fell. Its lines are
-    Open Page, first, Select or Unselect, and, on issues and on packages, the stage's actions; a line that cannot act
-    stays, dim. It acts on its own row, or, where that row is among the selected, on all of them. Esc or a click off
-    it closes it, and a reload that takes its row away closes it too. The keys bar names ⏎ while the rows have the
-    keyboard.
-  - Every action on rows has a path of plain clicks. A click on a row puts the cursor on it, and a click on the row
-    under the cursor opens its menu, so one click moves, as an arrow does, and the next opens, as ⏎ does. A click on
-    the box in a row's gutter, the two cells before its ▸, selects the row or unselects it, as space does, and a
-    heading's box selects its group. The row under the cursor draws the box, a dim □, while it is not selected, and
-    the legend names it.
-  - The search stands at the menu bar's right end, every screen's, and ⏎ or esc there gives the rows focus. No sidebar:
-    the rows take the screen's width. While the person groups by no column, a value every row shares moves into one
-    heading over them, the column grouping on its own; a group the person chooses overrides that, and the rows then
-    group as chosen alone. Auto-group, which turns that on or off, Auto-hide, which hides a column no row has a value
-    in, and Repeated emoji, which shows an emoji every row has instead of dropping it, are kittui's settings, in
-    = Settings…, every view's alike. The Settings dialog opens over the menu, which stays open, its own Settings…
-    lying over the menu's line; esc closes it back to the menu.
-  - The legend, in `legend.go`, says which glyphs `kit flow` draws and on which of its lines each stands: the menu bar's,
-    the tab bar's, the control line's, the rule's, the rows', and the status bar's. A glyph means what the line it
-    stands on says: a plain · between items, in the menu bar or a heading, is not explained, only the · on the rule, a
-    column that can sort and is not sorted; ▼ is the presets' menu on the control line and says it is not a sort, a sort
-    being a raised ¹ or a lowered ₁ and never a triangle. `internal/legend/` draws it.
-  - A field's card, in `popover.go`, holds every setting of one field. A click on a column's name opens it under the
-    name, its title over the name, as ='s and :'s menus hang around theirs, and a second click on the name closes it:
-    its sort, a radio, Ascending, Descending, or Unsorted, which takes it out of the keys, as a shift-click on its sort
-    does; its rows, ☐ Group, which groups the rows by it, innermost, or no longer, its depth after it while it groups,
-    and, for a list, One row per assignee, which flattens it, or All assignees on one row, which gathers it again; its
-    filter, the checklist of values it lets through or holds back, for an enum, a person, a label, a time, or a number;
-    its rendering; and ☑ Show. What it sets applies at once, and the card stays open; a section the field cannot use is
-    left out. A card opened from a name or a chip has all ▸ at the right of its top edge, which a click, or ⇥, widens
-    into the columns dialog, on its field. Beside the dialog's list the card leaves out the sort, the grouping, and
-    Show, which the list's line shows already. Flattened, a row stands once per value it holds, and once where it holds
-    none, the header names one value, and the column sorts; a preset keeps it flat. Grouping by a list places a row
-    under each of its values as flattening does, so a list the rows group by sorts its groups. Every count, the tab's
-    and each heading's, counts a row once, however many copies of it stand. A card opened from a column's name, in the
-    header or the heading over the groups, takes shift with ← or →, which moves the column a place among those the
-    header names, or a depth among the groups, the card with it.
-    Sorting always adds to the keys: a column that did not sort comes after the others, and one that did turns in its
-    place; grouping always adds the column innermost, and the columns dialog orders both. The groups order the rows
-    before any key, the outermost 1, so a column's sort is its place after them, always a small number, raised for
-    ascending and lowered for descending, as each points, ¹ and ₁ for the first, ² and ₂ for the second, as
-    grid.DirectionMark gives it to the rule, the columns dialog, the card and the legend, never a full-size ▲ or ▼; the
-    card's lines carry ¹ and ₁ alone, ⁿ and ₙ where other things order the rows. The line under the keyboard in a menu
-    or a dialog stands on the menu's bright cyan, in black, and a dialog's keys are the keys bar's alone, except in
-    the dialog an action asks in, whose two buttons name ⏎ and esc. With `NO_COLOR`, that line is in reverse video,
-    and so are the stop under the keyboard in a control line and the row under the cursor. A column's
-    sort mark stands on the rule under the first cell of its name, wherever the name aligns. A dim · there says the
-    column can sort and does not; a column that cannot sort has the rule alone.
-    A list has its mark under that first cell, what a click on it does: ×, dim, while a row holds all its values, which
-    flattens it, and ÷ once flattened, which gathers it. Its sort's mark stands after it, which sorts by size while the
-    list is whole.
-    Every column's card stands in one order: its sort, by size for a list a row holds whole, then its rows, grouping
-    before flattening, then its filter, its rendering, and Show.
-    A plain click on the rule under the name turns the sort a step: ascending, after the other keys; descending, in its
-    place; then off on the last key, and ascending again on any other, so a turn never moves the keys after it. A
-    shift-click turns it off wherever it stands, as Unsorted on the card does. A terminal such as iTerm keeps ⌥, ⌃, and
-    the right button with a click for its own selection and menu, and others keep shift, so a plain click and the card
-    are the ways that work everywhere. Where the terminal sends them, ⌥ with a click turns a sort, ⌃ groups or ungroups,
-    and the right button opens the card too. The presets' menu hangs around the preset line's selector the same way.
-  - A field whose rendering is auto drops a glyph every row shown shares, and, while the columns are short of width,
-    steps down to its next, shorter rendering, from the rightmost column leftward. A glyph that links, to a page or to
-    another stage's row, is a button, so it stays, and a field drawn without its glyph links from nothing. The title
-    never steps, and a rendering pinned always wins.
-  - The rows are an outline, in `outline.go`: a group's heading, a row, and a header of more than one line each open and
-    close by its ▾ or ▸, and a click opens or closes one only there; a click elsewhere on it puts the cursor on it, so
-    space selects it without folding anything. One map per stage holds which stand open, a heading open and a row closed
-    until changed. Two primitives fold it. Show and Hide open or close one node and nothing under it, so Hide then
-    Show puts back exactly what showed: → shows the node under the cursor, or steps into an open heading's first row;
-    ← hides it, or steps out to the heading over it; a click on its ▸ or ▾ does either. Where the heading over the
-    groups folds a level, Show on one heading of it shows that heading's alone, the others hidden still. More and Less
-    work a level at a time: More shows the shallowest level where something hides, every node of it, and hides
-    nothing, so what stood open under them comes back as it stood; Less hides the deepest level open, down to the
-    outermost headings. > and < do them over the whole table, as the tab's menu's Show More and Show Less do; ⌥ with →
-    or ←, or with a click on a ▸ or ▾, does them under the one node, where the terminal sends ⌥. The key hints name ⌥
-    with an arrow only where the terminal answered the kitty keyboard protocol: a macOS terminal with its default
-    settings, iTerm among them, sends it as another key, or as the arrow alone, which is why > and < stand for it. The
-    tab's menu has Show Selected, which shows the selected rows and every heading over them, and Hide Selected, which
-    hides the selected rows and nothing over them, both dim while none are selected. Space on a heading selects every
-    row of its group, or none once all are, and the heading's mark, ▣ or ◩, says whether all are or some. What stands
-    open lasts the session; a preset does not keep it. Grouped rows stand under one heading that names the grouped
-    columns, `▾ source ▾ assignees ▾ 3`, at the control line's left, apart from the rows, a blank line under it, and a
-    heading per value under the line. A heading whose one heading under it heads the same rows takes it onto its line,
-    across, `▾ jeffrey-aguilera · github · #2 53`, and so on down: one node, with one fold, before its first value,
-    which opens and closes it, and a dim · before each value after it; what stands under the line steps in once from it,
-    not once a level it took. In the heading over the groups, a level whose every level over it has one value, its
-    headings frozen over the header, folds as the first does, so a dim · stands in its fold's place, and where every
-    level has one value the rows' fold is not drawn: `▾ source · assignees ▾ 3`, `▾ source 21`. Otherwise the ▾ or ▸
-    before each name opens or closes that level, and the one after the last name the rows under the groups: a level
-    closed hides its headings and everything under them, and the levels under it show ▸ too; nothing else changes, so
-    each level and each heading keeps its own state, and opening a level again shows what was under it as it was left.
-    With the first level closed, nothing shows. A ▸ opens its level and every level over it; a value's heading shown
-    shows what it holds alone, as Show does. A click on a column's name there drops the column's own menu, in
-    `heading.go`, as a name in the header does. A field of several values, as assignees or labels, groups too: a row
-    stands under each of its values, the same row, its selection one. A group's values stand in their natural order,
-    each run of digits by its number and letters without regard to case; two values that order ties, `Bug` and `bug`,
-    or `v7` and `v07`, are two groups, in the order of their exact text, the upper case first, each with every row of
-    its value.
-  - The column names and the rule under them, with each sort's mark, start at the first column. They stand under the
-    headings of the outermost levels that have one value alone, the rows' context, and over the first item of the
-    first level of more than one value, or over the first row, a blank line apart from those headings, as from the
-    control line. Those headings and the header are frozen, as a pane freezes in a spreadsheet: everything under them
-    scrolls, and they stay. While no row shows, every one folded away, there is no header. A stage with no control
-    line says how many rows are selected at the rule's right end. The band under the cursor runs the pane's width.
-  - Auto-group, a setting, groups a view's rows as the view loads, as the screen opens or the preset line sets it,
-    when the view groups by nothing: by each groupable column shown whose value is the same on every row, left to
-    right. From then on they are groups like any other, to move, ungroup, or save; a reload changes nothing, and
-    the preset line still names the view.
-  - Auto-hide, a setting, keeps a column no row loaded holds a value in from showing, its header with it: a header
-    over nothing says nothing. It places nothing, so the view, the columns dialog, and a preset saved are as they
-    were, and the column shows again once a load gives a row a value in it. Two columns always stay, as a row of one
-    cell reads as a heading.
-  - An open row breaks a value too wide for its column across lines, and one a field draws with a glyph hangs: the
-    lines after its first start under the text, not under the glyph.
-- `internal/welcome/` draws `kit welcome`: one tab per page under `.kit/welcome/`. A page of `##` sections can stand
-  as a table, a `Sheet` of `internal/table`'s, as the flow picture's stages stand: `sections.go` reads a page's
-  sections, each its heading, its text, and its lines of one backticked command, and draws the step's table under the
-  text before the first heading; each step drawn so is a catalog, its fields and presets, and the few lines that make
-  its records. A page with no such heading, as a house package's may be, is drawn as a page. The terms' page, in
-  `terms.go`, has its fields in `terms.json`: each `## <topic>` heading is a topic, and each `### <term>, <term>`
-  heading under it a row, its columns its command, what its first example is run with, its tool and its verb, as
-  `kit flow`; its terms, the heading's comma-separated names, a list drawn as pills, as an issue's labels are; its
-  meaning, the paragraphs under it as one line; and its examples, each line of one backticked command, a list too. A
-  page with no `###` heading has a row to a `##` heading, under one topic, its title. Default groups the rows by
-  topic, and stands both in the page's order, the topics by the catalog's `"order": "given"`; By command flattens the
-  terms, a row a term, sorted, and groups them by command; Compact flattens them too, and hides the command and the
-  examples. The command, the terms, and the examples keep their whole width, `"width": "whole"` in the catalog, and
-  the meaning gives way first. The customize page, in `customize.go`, has its fields in `customize.json`: each
-  `## <part>` heading is a row, its columns its part, the heading, a title; its settings, the `kit.yml` keys its text
-  names, each backticked with its colon, as `packages:`, a list drawn as pills; what it is about, its paragraphs and
-  list items as one line; and its commands. Its command, what its first command is run with, is hidden, and so is its
-  order, the section's place on the page. Default stands the rows in the page's order; By command groups them by
-  command; Compact hides the settings and the commands. The text before the first heading stands over the table,
-  where the pane has room for it.
-- `internal/tutorials/` draws `kit tutorials`: a card for each tutorial, one tab for each audience.
-- `internal/legend/` is the legend, which every screen has, on every tab: F1 or ? floats it over the rows, and again
-  hides it. It says what each glyph the screen shows under it means, in the order each first appears, reading from the
-  top left, and nothing of a glyph the screen does not show; a glyph a click leads somewhere from is marked. A glyph
-  that means more than one thing on the screen is listed once, its meanings under it, in the order each first appears;
-  a legend taller than the room under the tab bar stands in columns, a glyph's meanings in one. It opens in the bottom
-  right corner; the arrows on its top edge, ↖ ↗ ↙ ↘, and home, end, page up, and page down move it to another, the one it
-  stands in dim. It takes no other key or click, so the rows under it go on as they were. Each screen says which glyphs
-  it draws and on which lines, as `legend.go` of its package does, from the parts `frame.go` gives every screen: the menu
-  bar's, the tab bar's, and the table's. In a field that types, as the search or a form's text, ? is typed, and F1 shows
-  the legend.
-- `internal/tabs/` is the tab bar `kit flow`, `kit welcome`, and `kit tutorials` share: three lines of numbered tabs,
-  and the keys and the clicks that select them.
-- `internal/table/` is what a table is made of, whatever its rows hold: the catalog's fields and presets, read from
-  a screen's JSON; the values a row holds; the renderers that draw a field down its column, registered by name; the
-  automatic choice among a field's renderings; a preset set on a panel, and read back from it; a table's views, and
-  the rules of which it is set as and what the person's can be saved, renamed, and deleted as; the file the person's
-  presets are kept in; and a table's state, as a screen keeps one for each table. A table's controls take a `Host`,
-  which a screen implements once, for the table selected: the field's card, the columns dialog, the
-  outline, the heading over the groups, the preset line and its menu, the pane's layout, the cursor's moves, and the
-  selection. It also builds a table's rows from its records, draws their lines, the header, the rule with each sort's
-  mark, and the control line, names the keys of the rows, the preset line, and the heading over the groups, takes
-  their keys and clicks, and gives a screen the table's layers in their order. `flow` is the host of each of its
-  stages' tables. A `Sheet`, in `sheet.go`, is one table on a screen, whole, the host of its own controls: a screen
-  gives it a catalog's table and its records, places it in a pane, hands it the keys and the clicks the pane takes,
-  and draws its lines and its layers; it keeps the person's presets of it in the presets file under its catalog's
-  name for it, beside every other table's. Each screen saves what it did to a table's presets and favorites with
-  `KeepPresets`: it gives them as it last read or wrote them and as it wants them now, and the store reads the file
-  again and does to the table's lists there what the screen did to its own. What another kittui saved, starred, or
-  deleted since stays as that kittui left it, in the same table as in every other, and the screen then holds what
-  the file holds.
-- `internal/kit/` runs the `kit` CLI for the other packages.
-- `internal/source/` reads kit for a screen. A load is a read the screen shows, as each of `kit flow`'s stages is: a
-  read started again supersedes and ends the one before, the copy kit kept stands in, stale, while the first runs,
-  and the marks say when what it shows has changed, a watched load read again at once. A stale tab has a yellow • after
-  its name, on the bar or a maximized tab's title, and a plain click on it reads the stage again, as its menu's Refresh
-  does. A poll is a read asked again a
-  while after each answer, as `kit flow` reads the rate limits and the stages' marks each minute. Every wait goes
-  through a clock: the program's is a `tea.Tick`, and a test's fires none until the test says.
-- `internal/transcript/` writes the command line that `kittui` ran into the scrollback.
-- `internal/shell/` is what every screen shares: the menu bar, with the kit menu, the workspace menu, the crumb, and
-  the search field, laid out alike on every screen, a verb's form included; the Settings dialog and kittui's settings
-  file; and the key hints on the status bar. A screen never writes its key hints. It gives the path from the screen to
-  the control that has the keyboard, and each control on the path names the keys it answers. A deeper control hides an
-  ancestor's key for a press it takes. The bar draws each control's keys between rules. When the line is too narrow,
-  it keeps the screen's keys and drops the controls between them and the one with the keyboard, then clips that one's
-  end.
-- `internal/style/` is the look: one accent color, the glyphs, the keys bar's styles, and the pill a label or an
-  audience is drawn as, its text on its color between half circles. It honors `NO_COLOR`: the colors go, and what
-  the keyboard is on is drawn in reverse video. `internal/screens/` tells it the colors the terminal draws.
-- `internal/testkit/` holds what the tests share, the test's clock among them. Only tests import it.
+| Package | What it is |
+| --- | --- |
+| `cmd/kittui/` | the binary: it picks a screen from its arguments |
+| `internal/screens/` | the root: the screens, one shown at a time, the workspace, and the crumbs |
+| `internal/app/` | the Help screen's model: the palette, a verb's form, and the slide between them |
+| `internal/palette/` | the table of verbs that `kit help` opens |
+| `internal/form/` | a verb's grammar as form fields, and the fields as a command line |
+| `internal/syntax/` | the grammar that `kit syntax` prints, decoded |
+| `internal/flow/` | the apps: the tab bar, the selected stage's table, the menus, and the actions |
+| `internal/welcome/` | `kit welcome`: a tab for each page, its checks, and its fixes |
+| `internal/tutorials/` | `kit tutorials`: the cards, and a tutorial's page |
+| `internal/workspaces/` | the Workspaces screen |
+| `internal/opener/` | the Open Repository… dialog |
+| `internal/trust/` | the dialog that asks to trust a clone |
+| `internal/table/` | what every table is made of: catalog, values, renderers, presets, controls |
+| `internal/grid/` | rows laid out in columns, and a table's panel |
+| `internal/tabs/` | the tab bar that the apps and the welcome guide share |
+| `internal/shell/` | what every screen shares: menu bar, menus, dialogs, search, settings, status bar |
+| `internal/legend/` | the legend that floats over a screen |
+| `internal/fix/` | the copy and run buttons of a line that names a command |
+| `internal/markdown/` | a markdown page drawn as text |
+| `internal/pane/` | text fitted into a space: clipped, wrapped, padded, or scrolled |
+| `internal/style/` | the look: the colors, the glyphs, reverse video under `NO_COLOR`, and the pill a label is drawn as |
+| `internal/kit/` | runs the `kit` CLI for every other package |
+| `internal/source/` | a screen's reads of kit: loads, polls, and the clock they wait on |
+| `internal/transcript/` | writes the command line kittui ran into the scrollback |
+| `internal/testkit/` | what the tests share; only tests import it |
+
+Each package's comment, at the top of the file named for it, describes its keys and clicks in full.
 
 ## Testing
 
-Run these from this directory. `bin/ci` runs the same three:
+Run these from this directory:
 
 ```sh
 test -z "$(gofmt -l .)"
@@ -398,19 +255,46 @@ go vet ./...
 go test ./...
 ```
 
-The flow, form, and welcome screens are checked against golden files in their `testdata/`. After a change you mean
-to make, rewrite them and review the diff:
+`bin/ci` runs the same three, and then fails on any statement that no test reaches. To see what is not covered:
 
 ```sh
-go test ./internal/flow ./internal/form ./internal/welcome -update
+go test -coverprofile=cover.out ./...
+go tool cover -func=cover.out | awk '$NF != "100.0%"'
 ```
 
-Name the packages. `./...` fails, because packages that do not import `internal/testkit` have no `-update` flag.
+Only the total line may print, at 100.0%.
 
-`internal/syntax/testdata/*.json` are copies of what `kit syntax <verb>` prints, one for every verb, and
-`internal/form/testdata/*.golden` the form drawn from each. `tests/syntax.bats` fails when one is stale or a verb has
-none, and `bin/contracts` at the root writes them afresh; see [testing.md](../../docs/testing.md#contracts).
+### Golden files
 
-Tests that run kit run a fake one, a `testdata/fake-kit` script, never the real one. The flow legend tests read the
-real [kit/bin/kit-flow](../../kit/bin/kit-flow), and each app verb's header, as kit-issues, so the picture and the
-help agree on every glyph.
+A golden file is a screen as text, without its escapes, under a package's `testdata/`. Five packages have them:
+flow, form, trust, tutorials, and welcome. After a change you mean to make, rewrite them:
+
+```sh
+go test ./internal/flow ./internal/form ./internal/trust ./internal/tutorials ./internal/welcome -update
+```
+
+- Name the packages. `./...` fails, because a package that does not import `internal/testkit` has no `-update`
+  flag.
+- Read every line of the diff. A golden that changed without your meaning it to is a bug.
+- The README at the root shows `internal/flow/testdata/issues.golden`. When that file changes, copy it into the
+  README's block. `tests/claims.bats` fails until you do.
+
+### Fixtures
+
+- `internal/syntax/testdata/<verb>.json` is a copy of what `kit syntax <verb>` prints, one file for each verb.
+  `internal/form/testdata/<verb>.golden` is the form drawn from it. `tests/syntax.bats` fails when a copy is stale
+  or a verb has none. `bin/contracts` at the root writes them again; see
+  [Contracts](../../docs/testing.md#contracts).
+- `internal/flow/testdata/<stage>.json` is what a stage prints, written by hand. The bats suite holds each to what
+  kit prints.
+
+### The fake kit
+
+A test that runs kit runs a fake, the `testdata/fake-kit` script of its package, and never the real kit. Three
+more rules keep a test from reaching outside itself:
+
+- `testkit.Main` points `HOME` and the XDG directories at a directory of the run's own, so no test reads or writes
+  what the person keeps.
+- A test's clock fires a timer only when the test says so.
+- The legend tests are the exception to the fake. They read the real [kit/bin/kit-flow](../../kit/bin/kit-flow)
+  and the header of each app verb, so the screen and the help agree on every glyph.
