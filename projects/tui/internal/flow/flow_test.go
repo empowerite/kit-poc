@@ -620,20 +620,28 @@ func TestQuitCodes(t *testing.T) {
 	}
 }
 
-// Esc walks back from the rows to the bar and leaves the legend as it is: only F1 or ? takes it away.
-func TestEscWalksBackFromTheRowsToTheBarAndKeepsTheLegend(t *testing.T) {
+// Esc closes an open legend first; with it closed, esc walks back from the rows to the bar, and ? or F1 shows it again.
+func TestEscClosesTheLegendThenWalksBackFromTheRowsToTheBar(t *testing.T) {
 	m := loaded(t, options(), tab, tab, down, down, press('?'))
 	if !m.legend.Open || !strings.Contains(view(m), "builds legend") {
 		t.Fatalf("? did not show the legend:\n%s", view(m))
 	}
+	// the first esc closes the legend and stays in the rows
 	next, cmd := m.Update(press(tea.KeyEscape))
-	if m = next.(Model); cmd != nil || !m.legend.Open || m.inRows || m.stage != 2 || cursor(m) != "" {
-		t.Fatalf("esc in the rows: legend %v, in rows %v, stage %d\n%s", m.legend.Open, m.inRows, m.stage, view(m))
+	if m = next.(Model); cmd != nil || m.legend.Open || !m.inRows || m.stage != 2 {
+		t.Fatalf("esc with the legend open: legend %v, in rows %v, stage %d\n%s", m.legend.Open, m.inRows, m.stage, view(m))
+	}
+	next, cmd = m.Update(press(tea.KeyEscape))
+	if m = next.(Model); cmd != nil || m.inRows || m.stage != 2 || cursor(m) != "" {
+		t.Fatalf("esc in the rows: in rows %v, stage %d\n%s", m.inRows, m.stage, view(m))
 	}
 	// on the bar, esc does nothing
 	next, _ = m.Update(press(tea.KeyEscape))
-	if m = next.(Model); !m.legend.Open || m.ctx.Err() != nil {
-		t.Errorf("esc on the bar: legend %v, context %v", m.legend.Open, m.ctx.Err())
+	if m = next.(Model); m.ctx.Err() != nil || m.inRows {
+		t.Errorf("esc on the bar: context %v", m.ctx.Err())
+	}
+	if m = drive(m, press('?')); !m.legend.Open {
+		t.Error("? did not show the legend")
 	}
 	if m = drive(m, press('?')); m.legend.Open {
 		t.Error("? did not take the legend away")
