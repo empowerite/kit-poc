@@ -425,6 +425,11 @@ EOF
   [ -z "${found}" ] || { printf '%s\n' "${found}"; return 1; }
 }
 
+@test "docs/packages/workflow.md names no code forge command: the delivered workflow uses the kit verbs on every forge" {
+  run grep --line-number --extended-regexp 'gh pr ready|glab mr' "${root}/docs/packages/workflow.md"
+  [ "${status}" -eq 1 ]
+}
+
 @test "a count a page gives of what the code holds is the count, and a list it gives is the list, in its order" {
   local found
   facts > "${BATS_TEST_TMPDIR}/facts.json"
