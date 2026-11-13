@@ -357,10 +357,22 @@ welcome:version() {
   printf '%s\n' "${out%%$'\n'*}"
 }
 
+# welcome:answers <tool> succeeds when the tool is on PATH and answers: with a version for --version or for version,
+# as go does, or, as gofmt does, with a usage for -h. A tool manager's shim with no version behind it is on PATH and
+# answers none of them, so it fails as a missing tool does.
+welcome:answers() {
+  local out
+  welcome:version "$1" >/dev/null && return 0
+  command -v "$1" >/dev/null 2>&1 || return 1
+  out=$("$1" version 2>/dev/null) && [[ -n "${out}" ]] && return 0
+  out=$("$1" -h 2>&1 || true)
+  [[ "${out}" == *[Uu]sage* ]]
+}
+
 # welcome:tool <id> <tool> <what it does> [<more>] prints the check that a tool runs, for a tool any version of which
 # will do.
 welcome:tool() {
-  if welcome:version "$2" >/dev/null
+  if welcome:answers "$2"
   then
     welcome:record "$1" true "$2 is on PATH; $3"
   else

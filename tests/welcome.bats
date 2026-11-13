@@ -335,6 +335,16 @@ ambient-system() {
   [[ "$output" != *"is not on PATH"* ]]
 }
 
+@test "a tool that answers version or -h but not --version is installed, and one that answers none of them is not" {
+  # go and gofmt: go's version is a word, and gofmt has none; neither takes --version
+  fake-script go 'case "$1" in version) echo "go version go1.27.3 darwin/arm64" ;; *) echo "flag provided but not defined: -version" >&2; exit 2 ;; esac'
+  fake-script gofmt 'echo "usage: gofmt [flags] [path ...]" >&2; exit 2'
+  fake-script shim 'exit 1'
+  run --separate-stderr kit-bash 'use welcome; welcome:tool t-go go "it formats"; welcome:tool t-gofmt gofmt "it formats"
+    welcome:tool t-shim shim "it does nothing"'
+  [ "$(jq --slurp --compact-output 'map([.id, .ok])' <<<"$output")" = '[["t-go",true],["t-gofmt",true],["t-shim",false]]' ]
+}
+
 @test "welcome holds a linter npm installed, off PATH, since kit lint looks in its directory" {
   "${kit_root}/bin/kit" install >/dev/null 2>&1
   printf '{"devDependencies": {"shellcheck": "^0.1.0"}}\n' > package.json
