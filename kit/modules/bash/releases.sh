@@ -11,9 +11,10 @@
 
 use git forge flow settings workspaces
 
-# releases:valid <version> says whether the version has the shape a release tag needs.
+# releases:valid <version> says whether the version has the shape a release tag needs, and the one the loader pins:
+# three numbers, and for a pre-release a hyphen and then letters, digits, and dots.
 releases:valid() {
-  [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+  [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]
 }
 
 # releases:on-origin prints the version of every release tag on the primary remote, one per line, those of a valid

@@ -30,9 +30,12 @@ setup() {
   [ "$status" -eq 0 ]
   run "${repo_bin}/release" verify release/1.2.3-rc.1
   [ "$status" -eq 0 ]
+  # the loader, kit update, and the release's download read a suffix of letters, digits, and dots alone, so a tag with
+  # a hyphen in it would be published and could never be pinned
   git tag release/1.2.3-rc-2 main
   run "${repo_bin}/release" verify release/1.2.3-rc-2
-  [ "$status" -eq 0 ]
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"is not a release tag"* ]]
   run "${repo_bin}/release" verify release/1.2.4
   [ "$status" -eq 1 ]
   [[ "$output" == *"is not on main"* ]]
