@@ -140,6 +140,7 @@ A passage that a patch release made true is wrapped in `<Since>`, which a page n
 ```
 
 kit opens every page with its own version in the address, as `?kit=0.4.7`. A passage newer than the reader's kit
-says so, "Needs kit 0.4.9; you have 0.4.7.", and how to upgrade: install that version or later, then run
-`kit update`. A pre-release of the passage's own version, `0.4.9-rc.1`, has the passage. Without `?kit=`, or with
-`unreleased` or anything that is not a version, the passage is marked plainly, "Since 0.4.9".
+says so, "Needs kit 0.4.9; you have 0.4.7.", and how to upgrade: install that version or later, then run `kit
+--version=<version> update`, with that version. A pre-release of the passage's own version, `0.4.9-rc.1`, has the
+passage. Without `?kit=`, or with `unreleased` or anything that is not a version, the passage is marked plainly,
+"Since 0.4.9".
