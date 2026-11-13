@@ -119,6 +119,26 @@ ambient-system() {
   [[ "$output" == *$'\n'"repo, the desk on main, no kit: $(pwd -P)"$'\n✅ this folder is a git repository\n'* ]]
 }
 
+@test "no line of a page kit ships starts with ✅, 💡, or ❌, which in the text guide starts a check" {
+  # The text guide prints a page's lines and its step's checks one after the other, so its readers, outline and under
+  # here among them, take a line that starts with a check's glyph for a check. The pages are every package's.
+  pages=$(find "${kit_root}/packages" -path '*/files/repo/.kit/welcome/*.md')
+  [ "$(grep --count . <<<"${pages}")" -ge 5 ]
+  while IFS= read -r page
+  do
+    run bash -c 'source "${kit_root}/modules/bash/1st.sh" && use welcome && welcome:page "$1"' _ "${page}"
+    [ "$status" -eq 0 ]
+    [ -n "$output" ]
+    run grep --line-number --extended-regexp '^(✅|💡|❌)' <<<"$output"
+    [ "$status" -eq 1 ] || { echo "${page#"${kit_root}/"} starts a line with a check's glyph: ${output}"; false; }
+  done <<<"${pages}"
+  # so in the guide the lines that start with one are the checks, and no other line
+  run --separate-stderr "${kit_root}/bin/kit" welcome --text
+  guide=$(grep --extended-regexp '^(✅|💡|❌)' <<<"$output")
+  run --separate-stderr "${kit_root}/bin/kit" welcome --checks
+  [ "${guide}" = "$(grep --extended-regexp '^(✅|💡|❌)' <<<"$output")" ]
+}
+
 @test "welcome offers the shellenv line when brew is at a prefix but not on PATH, and shows no check otherwise" {
   # on PATH: no check
   run --separate-stderr check brew-path

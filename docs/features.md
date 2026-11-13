@@ -275,7 +275,9 @@ with the kit, `kit tutorials applications`; see [tutorials.md](tutorials.md).
   `kit welcome --fix=<check>` runs one fix and checks again, and `--folder=<path>` names a folder's check.
 - The workspace is the one kit starts on, or `kit --workspace=<workspace> welcome`'s: a repository's desk and
   worktrees, or every member's. With none, only the machine is checked; see [workspaces.md](workspaces.md).
-- Each step is a page under `.kit/welcome/`, from the `kit` package. A house package replaces or adds a page.
+- Each step is a page under `.kit/welcome/`, from the `kit` package. A house package replaces or adds a page. No
+  line of a page starts with ✅, 💡, or ❌: `kit welcome --text` prints a step's checks under its page, each on a line
+  that starts with its glyph, so a page line that starts with one reads as a check.
 
 ## The terminal UI
 

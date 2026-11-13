@@ -50,7 +50,8 @@ A house package holds your team's own rules, styles, and templates. It lives in 
 - To replace a file kit delivers, depend on the package that delivers it, and place yours at the same path. The
   later package wins.
 - These pages are files too, under `.kit/welcome/`. A house package replaces one by its name, or adds one, such as
-  `7-our-team.md`.
+  `7-our-team.md`. Start no line of a page with ✅, 💡, or ❌: in `kit welcome --text`, a line that starts with one is
+  a check.
 
 → [.kit/packages/](.kit/packages/) · [docs/packages.md](https://github.com/empowerite/kit/blob/main/docs/packages.md)
 

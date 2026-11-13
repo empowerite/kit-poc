@@ -1216,7 +1216,9 @@ welcome:page-step() {
 }
 
 # welcome:page <path> prints a page without the kit:generated and see: comments it opens with, each link drawn as
-# text, markdown:unlink's.
+# text, markdown:unlink's. The guide prints a step's checks under its page, each as welcome:show writes it, on a line
+# that starts with ✅, 💡, or ❌, and a reader tells a check by that glyph. So no line of a page starts with one: the
+# customize page says so to whoever adds a page.
 welcome:page() {
   awk 'started || !/^<!--.*-->$/ { started = 1; print }' "$1" | markdown:unlink
 }
