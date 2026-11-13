@@ -24,6 +24,10 @@
 #   - where the previous release's file is the same as this release's, as at the same version, there is nothing to
 #     merge: a file that is not as kit placed it is named, and stays as it is
 #
+# A path the previous release delivered and this one does not is retired: removed when it is as the previous release
+# placed it, which the manifest's digest says, or, where the manifest records none, as in a fresh clone, the previous
+# release's own; named and left otherwise.
+#
 # A file that stays may hold an edit, an answer since changed in kit.yml, or a file kit never placed, as in a fresh
 # clone, which has no manifest; kit cannot tell them apart. To take the release's file, with the answers kit.yml
 # holds now, move the file aside or remove it, then run kit update again. kit check names the same remedy.

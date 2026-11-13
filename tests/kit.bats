@@ -947,6 +947,32 @@ tree-digest() {
   [ "$status" -eq 0 ]
 }
 
+@test "update in a clone with no manifest retires a path the new release no longer delivers, judged by the base release's digest of it" {
+  "${kit_checkout}/bin/kit" install agents/claude github/ci
+  later-release "${repo}.later"
+  rm "${repo}.later/packages/github/ci/templates/repo/.github/workflows/kit-ci.yml" \
+    "${repo}.later/packages/kit/files/repo/.kit/rules/gitignore.md"
+  # a fresh clone holds the delivered files and no manifest, which git does not track
+  rm .kit/manifest
+  run env KIT_BASE="${kit_checkout}" "${repo}.later/bin/kit" update
+  [ "$status" -eq 0 ]
+  [[ "$output" == *".github/workflows/kit-ci.yml: retired in 9.9.9, removed"* ]]
+  [ ! -e .github/workflows/kit-ci.yml ]
+  [ ! -e .kit/rules/gitignore.md ]
+}
+
+@test "update in a clone with no manifest leaves a retired path that was edited, naming it" {
+  "${kit_checkout}/bin/kit" install agents/claude github/ci
+  later-release "${repo}.later"
+  rm "${repo}.later/packages/github/ci/templates/repo/.github/workflows/kit-ci.yml"
+  printf '# mine\n' >> .github/workflows/kit-ci.yml
+  rm .kit/manifest
+  run env KIT_BASE="${kit_checkout}" "${repo}.later/bin/kit" update
+  [ "$status" -eq 0 ]
+  [ -e .github/workflows/kit-ci.yml ]
+  [[ "$output" == *".github/workflows/kit-ci.yml: retired in 9.9.9, but edited"* ]]
+}
+
 @test "a verb that hydrates under a newer release keeps the record of a path that release retired, so update removes the file; packages remove keeps none" {
   "${kit_checkout}/bin/kit" install agents/claude github/ci
   later-release "${repo}.later"

@@ -366,14 +366,16 @@ place:refusals() {
   printf '%s\n' "${refused}"
 }
 
-# place:retire <base-root> <base> <previous> <current> <package>… handles the paths that the base's manifest
-# records and the current release no longer delivers. <base-root> is the base release (the previous version), or
-# empty when it is not available. For each such path that still exists:
+# place:retire <base-root> <base> <previous> <current> <package>… handles the paths that the current release no
+# longer delivers and that the base's manifest records, or the base release delivers for these packages: a clone with
+# no manifest, as a fresh one, has no record, and the base release says what it placed. <base-root> is the base
+# release (the previous version), or empty when it is not available. For each such path that still exists:
 #
 #   - a merged .json file: the previous release's entries are removed when the base release is available;
 #     otherwise it warns and leaves the file as it is
-#   - any other file: it is removed when its content still matches the digest the manifest records; otherwise it
-#     warns that the file was edited and leaves it as it is
+#   - any other file: it is removed when its content still matches the digest the manifest records, or, for a path
+#     the manifest does not record, the digest of what the base release placed; otherwise it warns that the file was
+#     edited and leaves it as it is
 #
 # Under home, whose manifest every repository shares, it touches only paths the previous release delivered for
 # these packages, and nothing without the base release. It fails, and touches nothing, when the manifest or a
@@ -381,7 +383,9 @@ place:refusals() {
 # it leaves alone, as materialize:linked says.
 place:retire() {
   local base_root=$1 base=$2 previous=$3 current=$4 path dest previous_src recorded now was='' root_of refused=0
+  local digest kind
   local -a paths candidates=()
+  local -A seen=()
   shift 4
   # Each list is read before any path is touched, so one that cannot be read touches nothing.
   recorded=$(manifest:paths "${base}" | LC_ALL=C sort) || return 1
@@ -394,9 +398,18 @@ place:retire() {
     place:key was "${base_root}" "${base}" "$@"
   fi
   readarray -t paths <<<"${recorded}"
+  # what the base release delivers joins what the manifest records, each path once
+  if [[ -n "${base_root}" ]]
+  then
+    while IFS=$'\t' read -r path _
+    do
+      paths+=("${path}")
+    done <<<"${place_delivered[${was}]}"
+  fi
   for path in "${paths[@]}"
   do
-    [[ -n "${path}" && -z "${place_source[${now}${path}]+x}" ]] || continue
+    [[ -n "${path}" && -z "${place_source[${now}${path}]+x}" && -z "${seen[${path}]+x}" ]] || continue
+    seen[${path}]=1
     # Under home, a candidate is a path the previous release delivered for these packages.
     [[ "${base}" == repo || -n "${place_source[${was}${path}]+x}" ]] || continue
     candidates+=("${path}")
@@ -427,11 +440,17 @@ place:retire() {
       # A materialized path is kit's link or copy, never the repository's edit, so it goes whatever it holds.
       step "${dest}: retired in ${current}, removed"
       rm -f "${dest}"
-    elif [[ "$(manifest:recorded "${base}" "${path}")" \
-      == "$(place:installed "${previous_src:-/dev/null}" "${dest}" | file:digest)" ]]
+    elif digest=$(manifest:recorded "${base}" "${path}") \
+      && { [[ -n "${digest}" ]] || { [[ -n "${previous_src}" ]] && place:kind "${previous_src}" "${path}" kind \
+        && [[ "${kind}" == copy ]] && digest=$(file:digest < "${previous_src}"); }; } \
+      && [[ "${digest}" == "$(place:installed "${previous_src:-/dev/null}" "${dest}" | file:digest)" ]]
     then
       step "${dest}: retired in ${current}, removed"
       place:remove "${previous_src:-/dev/null}" "${dest}"
+    elif [[ -z "${digest}" ]]
+    then
+      # no record, and nothing the base release placed to compare it with, as a region has none
+      warn "${dest}: retired in ${current}, but nothing says what kit placed there; it is left as it was"
     else
       warn "${dest}: retired in ${current}, but edited since ${previous}; it is left as it was"
     fi

@@ -2,9 +2,10 @@
 
 **Status, 2026-11-12:** read against the code at `1ba9b1b0`. Of Part A's nine tasks, Task 1 is built (#298) and Task 2
 is overtaken: its test moved to `tests/issues-underway.bats`, and passes. Task 5 is built but for git's minimum, 2.31,
-which nothing checks or states. Tasks 3, 4, 6, 7, 8, and 9 are not built: `pack` still packs the working tree, a
-release is run only after it is published (`bin/release fetch`, #298), `kit update` still stops at a package the
-release dropped, no release needs a changelog entry, and there is no `SECURITY.md`. Part B is not started; under
+which nothing checks or states. Tasks 3, 4, 6, 8, and 9 are not built, and Task 7 is built in part: `pack` still packs
+the working tree, a release is run only after it is published (`bin/release fetch`, #298), `kit update` still stops
+at a package the release dropped, though in a clone with no manifest it now retires what the base release delivered
+(#418), no release needs a changelog entry, and there is no `SECURITY.md`. Part B is not started; under
 Decision 5, the README's Homebrew line is dropped (#347). Next, in the plan's order: Task 3, then 4, the rest of 5,
 and 6 to 9, each with its line numbers taken from the tree as it is now, then Part B. Each task below has a line of
 its own.
@@ -268,8 +269,13 @@ import "template" as template; template::parts | template::match("# Guía ⚠️
 
 ### Task 7: `kit update` holds across two packed releases
 
-- **Status, 2026-11-12:** not built. `kit update` has no words for a package the release dropped, `place:retire` takes
-  no dropped packages, and no test updates between two packed releases.
+- **Status, 2026-11-12:** built in part. `place:retire`'s candidates are `manifest:paths` joined with what the base
+  release delivers for the packages, less what this release delivers, and a path the manifest does not record is
+  judged by the base's digest of it, so a clone with no manifest retires what the release dropped (#418; review
+  finding R1-8, with the tests "update in a clone with no manifest …" in `tests/kit.bats`, which build the two
+  releases with `later-release`). Not built: `kit update` has no words for a package the release dropped, where
+  `resolve:require` still exits 2, `place:retire` takes no dropped packages, and no test updates between two packed
+  releases, which wait for Task 3's `pack` from a tag.
 - **Files:** `kit/bin/kit-update:28,50`, `kit/modules/bash/place.sh:227-247`, `docs/packages.md`; test
   `tests/release.bats`, with Task 3's `tag-checkout` and `pack`, and `fake-curl` as `tests/fetch.bats:12-21` has it.
 - **Interfaces:**
@@ -308,8 +314,8 @@ import "template" as template; template::parts | template::match("# Guía ⚠️
 ### Task 8: A release needs its changelog entry
 
 - **Status, 2026-11-12:** not built. `kit.yml` has no `changelog` key, `kit release` refuses nothing for want of an
-  entry, and `bin/release publish` writes the mise pin alone. The entry, `projects/tutorials/src/changelog/0.1.0.mdx`,
-  is there.
+  entry, and `bin/release publish` writes the download lines of `docs/install.md`, then the mise pin (#414). The
+  entry, `projects/tutorials/src/changelog/0.1.0.mdx`, is there.
 - **Files:** `kit/modules/bash/releases.sh:38-91`, `kit/bin/kit-release:9-13`, `kit/modules/bash/settings.sh:44`,
   `kit/packages/kit/files/repo/.kit/kit.schema.json`, `docs/packages.md:268`, `kit.yml`, `bin/release:131-137`;
   tests `tests/releases.bats`, `tests/release.bats`.
