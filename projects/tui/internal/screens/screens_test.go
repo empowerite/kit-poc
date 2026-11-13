@@ -402,3 +402,20 @@ func TestTheSettingsDialogOpensOverTheMenuAndEscGoesBackToIt(t *testing.T) {
 	}
 	m.Close()
 }
+
+// kit help <verb> opens the palette on the verb's row, under the root: the page kit help <verb> prints is asked for
+// when the root tells the palette the settings, and the root runs that ask, so the row shows the page, not … for ever.
+func TestThePaletteOpenedOnAVerbLoadsItsPageUnderTheRoot(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	r := testkit.Runner(t, "kit")
+	p, err := app.OpenHelp(r, "submit")
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := New(r, shell.Help, p)
+	m, _ := testkit.Drive(root, nil, testkit.Start(root, tea.WindowSizeMsg{Width: 120, Height: 30})...)
+	if v := ansi.Strip(m.View().Content); !strings.Contains(v, "Usage") || !strings.Contains(v, "  kit submit") {
+		t.Errorf("kit help submit, under the root, does not show submit's page:\n%s", v)
+	}
+	m.Close()
+}

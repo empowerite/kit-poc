@@ -54,6 +54,7 @@ type Model struct {
 	epochs    map[shell.Screen]int // how many times each screen was made again: an answer to one closed is dropped
 	crumb     *crumb               // the screen shown's crumb, while a link led to it, as crumb.go keeps the chain
 	words     flow.Words           // kit flow's words kittui started with, which every app made after takes
+	first     tea.Cmd              // what the first screen started when New told it the settings, which Init runs
 }
 
 // workspaceMsg is kit's answer to an ask for the workspace: the ask's number, and the workspace, or why there is none.
@@ -68,12 +69,13 @@ type workspaceMsg struct {
 type openedMsg workspaceMsg
 
 // New gives the root showing the screen first, made already, as kittui opened on it, with the settings kittui's file
-// keeps.
+// keeps. What the screen starts when it is told the settings, as the palette opened on a verb asks for the verb's
+// page, is kept for Init to run.
 func New(r kit.Runner, first shell.Screen, m tea.Model) Model {
 	root := Model{runner: r, here: first, made: map[shell.Screen]tea.Model{first: m},
 		settings: shell.LoadSettings(shell.SettingsFile()), home: r.Dir, start: r.Group,
 		epochs: map[shell.Screen]int{}}
-	root.made[first], _ = m.Update(shell.SettingsMsg{Settings: root.settings})
+	root.made[first], root.first = m.Update(shell.SettingsMsg{Settings: root.settings})
 	return root
 }
 
@@ -107,9 +109,11 @@ func (m Model) Close() {
 	}
 }
 
-// Init starts the screen shown, and asks kit for the workspace: the group the runner spans, as kittui started with
-// --workspace, else the one kit starts on.
-func (m Model) Init() tea.Cmd { return tea.Batch(m.tag(m.here, m.made[m.here].Init()), m.ask(m.start)) }
+// Init starts the screen shown, runs what it started when New told it the settings, and asks kit for the workspace:
+// the group the runner spans, as kittui started with --workspace, else the one kit starts on.
+func (m Model) Init() tea.Cmd {
+	return tea.Batch(m.tag(m.here, m.first), m.tag(m.here, m.made[m.here].Init()), m.ask(m.start))
+}
 
 // ask gives the command that asks kit for the workspace given, "" for the one kit starts on, as the latest ask: a
 // group given is kept as the last used first, and a repository given by its folder first among the recent. A

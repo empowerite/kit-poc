@@ -87,6 +87,20 @@ terminal() {
   [[ "$output" != *"kittui"* ]]
 }
 
+@test "kit <verb> --help and -h print the verb's page at a terminal, where kit help <verb> opens the palette on it" {
+  local page
+  page=$("${kit_root}/bin/kit" help commit)
+  run terminal "'${kit_root}/bin/kit' commit --help"
+  [ "$status" -eq 0 ]
+  [ "$output" = "${page}" ]
+  run terminal "'${kit_root}/bin/kit' commit -h"
+  [ "$status" -eq 0 ]
+  [ "$output" = "${page}" ]
+  run terminal "'${kit_root}/bin/kit' help commit"
+  [ "$status" -eq 0 ]
+  [ "${lines[${#lines[@]} - 1]}" = "kittui native-native help commit" ]
+}
+
 @test "an app's verb at a terminal runs kittui on the verb, with the tab named, and with a form it prints instead" {
   run terminal "'${kit_root}/bin/kit' people"
   [ "$status" -eq 0 ]
