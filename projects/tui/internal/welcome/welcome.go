@@ -366,6 +366,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
+	case ranMsg:
+		return m, m.again()
 	case tea.KeyPressMsg:
 		m.copied, m.link = "", ""
 		return m.key(msg)
@@ -820,7 +822,9 @@ func (m *Model) click(x, y int, copied string) tea.Cmd {
 		m.copied = copied
 		lines := m.lines()
 		m.copied = ""
-		if k := pane.At(len(lines), h, m.offsets[m.step], r); k >= 0 && lines[k].row >= 0 {
+		if k := pane.At(len(lines), h, m.offsets[m.step], r); k >= 0 && lines[k].command != "" {
+			return m.commandClick(lines[k], x)
+		} else if k >= 0 && lines[k].row >= 0 {
 			m.cursor, m.inPane = lines[k].row, true
 			plain := ansi.Strip(lines[k].text)
 			// the buttons are on a row's first line; a word of its fix, its more, or its note is none
@@ -836,6 +840,24 @@ func (m *Model) click(x, y int, copied string) tea.Cmd {
 				return m.runFix()
 			}
 		}
+	}
+	return nil
+}
+
+// ranMsg says the step's command has run, and how it ended: whatever it printed was read at the terminal, and the
+// checks it gives are read again.
+type ranMsg struct{ err error }
+
+// commandClick takes a click on the cell x of the step's command line: ⧉ puts the command on the clipboard, and its
+// button then says copied until the next key or click; ▶️ hands the terminal to it, and reads the checks again when it
+// ends, whatever its exit, as a check that fails is what it says.
+func (m *Model) commandClick(l line, x int) tea.Cmd {
+	switch fix.On(ansi.Strip(l.text), x) {
+	case fix.Copy:
+		m.copied = commandKey
+		return fix.Copying(l.command)
+	case fix.Run:
+		return fix.Running(m.exec, l.command, "to run the step's command again", func(err error) tea.Msg { return ranMsg{err} })
 	}
 	return nil
 }

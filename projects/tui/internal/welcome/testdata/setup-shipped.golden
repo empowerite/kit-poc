@@ -4,6 +4,10 @@
   ────────────────────╰──────────────────────╯               ╰─────────────────╰
    Setup — this machine's logins and terminal
 
+   kit welcome --checks --machine   ⧉   ▶️ 
+   kit ran it once, as this screen opened; the checks below are what it found.
+   ⧉ copies it, to run in your own shell, and ▶️ runs it again here.
+
    ❌ gh is not logged in to github.com
       gh auth login --hostname github.com · it needs you at the keyboard
    ❌ kit check finds 2 differences from the release
@@ -16,9 +20,5 @@
 
    When a check fails, the line under it gives the command that fixes it, or
    says where to read more. Run the command yourself, or have kit run it and
-   check again. kit runs nothing until you ask. A terminal's fixes are yours to
-   make in its settings, so kit shows them and never runs them, and keep holds
-   a finding as it is.
-
-↓⁸
+↓¹⁰
  = menu / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ checks 1-5 jump : tab menu

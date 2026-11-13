@@ -4,6 +4,10 @@
   ────────────────────╰──────────────────────╯               ╰─────────────────╰─────────────╰──────────────────────────
    Setup — this machine's logins and terminal
 
+   kit welcome --checks --machine   ⧉   ▶️ 
+   kit ran it once, as this screen opened; the checks below are what it found. ⧉ copies it, to run in your own shell,
+   and ▶️ runs it again here.
+
    ❌ gh is not logged in to github.com
       gh auth login --hostname github.com · it needs you at the keyboard
    ❌ kit check finds 2 differences from the release
@@ -21,10 +25,6 @@
    repository or workspace. Inside a repository, kit welcome --text also checks each folder of its workspace: kit
    installed, its files placed, the git hooks, the tools and linters, and kit check. For how kit finds the folders,
    read docs/workspaces.md (https://github.com/empowerite/kit/blob/main/docs/workspaces.md).
-
-   kit welcome --checks --machine
-
-
 
 
 

@@ -48,6 +48,8 @@ type line struct {
 	block string
 	lead  int
 	links []markdown.Link
+	// command is the command a command line's buttons copy and run, "" on any other line
+	command string
 }
 
 // blocksOf gives the blocks the lines stand in, each the lines that follow one another with its name.
@@ -346,9 +348,65 @@ func split(md string) (title, rest string) {
 	return "", md
 }
 
-// stepFoot gives the lines a step with checks has under its checks: the rest of its page, after its title.
+// splitCommand gives a page's rest, after its title, in two: its command, the code span that is its first paragraph
+// alone, as the step's checks are what that command prints; and the rest of the page. A page that does not start so has
+// no command, and is all rest.
+func splitCommand(rest string) (command, others string) {
+	at := 0
+	for _, raw := range strings.SplitAfter(rest, "\n") {
+		text := strings.TrimSpace(raw)
+		at += len(raw)
+		if text == "" {
+			continue
+		}
+		found := commandLine.FindStringSubmatch(text)
+		next := strings.TrimSpace(strings.SplitN(rest[at:], "\n", 2)[0])
+		if found == nil || next != "" {
+			return "", rest
+		}
+		return found[1], rest[at:]
+	}
+	return "", rest
+}
+
+// stepCommand gives the command the selected step's page starts with, under its title: the command that gives the
+// step's checks. "" where the page has none.
+func (m Model) stepCommand() string {
+	_, rest := split(m.tabs[m.step].page)
+	command, _ := splitCommand(rest)
+	return command
+}
+
+// commandKey is what m.copied holds while the step's command says copied, a key no check has.
+const commandKey = "\x00command"
+
+// commandLines gives the step's command, drawn as a page draws a code span, with its buttons at its right: ⧉, and ▶️
+// where it runs here; and, dim under it, what the buttons are for, and that kit has already run it once, which is where
+// the checks under it come from. They say kit is running it while the first answer is out.
+func (m Model) commandLines(command string) []line {
+	w := m.width - 1
+	drawn := render("`"+command+"`", w-len(lead)-ansi.StringWidth(fix.Buttons(true, false)))
+	text := fix.After(lead+drawn[0], w, fix.Runs(command), m.copied == commandKey)
+	out := []line{{row: -1, text: text, command: command}}
+	said := "kit ran it once, as this screen opened; the checks below are what it found."
+	if m.checking.Running() && len(m.checks) == 0 {
+		said = "kit is running it now; the checks below are what it finds."
+	}
+	said += " " + fix.CopyName + " copies it, to run in your own shell"
+	if fix.Runs(command) {
+		said += ", and " + fix.RunName + " runs it again here"
+	}
+	for _, l := range wrapWords(strings.Fields(said+"."), w-len(lead), "", "") {
+		out = append(out, line{row: -1, text: lead + style.Off(l)})
+	}
+	return append(out, line{row: -1})
+}
+
+// stepFoot gives the lines a step with checks has under its checks: the rest of its page, after its title and its
+// command.
 func (m Model) stepFoot() []line {
 	_, rest := split(m.tabs[m.step].page)
+	_, rest = splitCommand(rest)
 	return m.drawn(m.step, rest, "")
 }
 
@@ -395,6 +453,9 @@ func (m Model) stepHead() []line {
 	if head := m.drawn(m.step, title, "title/"); len(head) > 0 {
 		out = append(out, head...)
 		add(-1, "")
+	}
+	if command := m.stepCommand(); command != "" {
+		out = append(out, m.commandLines(command)...)
 	}
 	if m.refusal != "" {
 		for _, l := range wrapWords(strings.Fields(Failed+" "+m.refusal), w-len(lead), "", "") {
