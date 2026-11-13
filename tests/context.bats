@@ -466,6 +466,21 @@ compressed() {
   [[ "$output" != *".kit/rules/"* ]]
 }
 
+@test "a rule whose frontmatter cannot be read fails kit context, and never reads as a rule that governs nothing" {
+  printf -- '---\nkind: [one\n---\n# x\n' > .kit/rules/broken.md
+  run --separate-stderr "${kit_checkout}/bin/kit" context README.md
+  [ "$status" -eq 1 ]
+  [[ "$stderr" == *".kit/rules/broken.md"* ]]
+  [ -z "$output" ]
+}
+
+@test "a glob with a bracket that never closes matches the bracket itself, and ends" {
+  # a watchdog ends the test if the glob never ends, as it did
+  kit_bash_modules=context run kit-bash '(sleep 10; kill $$) & context:glob-ere "docs/[draft*.md"; kill $!'
+  [ "$status" -eq 0 ]
+  [ "$output" = '^docs/\[draft.*\.md$' ]
+}
+
 @test "a repository that declares a kit version and has no kind says so, and names kit hydrate" {
   # a verb hydrates first and puts the kinds back, so the lookup runs alone, as a hook's would under kit serve
   rm -f .kit/kinds/*.yml

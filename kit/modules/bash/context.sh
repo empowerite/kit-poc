@@ -247,6 +247,7 @@ context:glob-matches() {
 context:load() {
   [[ "${context_loaded}" == true ]] && return 0
   local file kind field value version
+  local -a listed
   local -A defined=()
   while IFS=$'\x1f' read -r file kind field value
   do
@@ -284,7 +285,8 @@ context:load() {
   for file in .kit/rules/*.md .kit/styles/*.md
   do
     [[ -f "${file}" ]] || continue
-    context_file_kinds[${file}]=$(yaml:list "${file}" kind | paste -s -d ' ' -)
+    list:read listed yaml:list "${file}" kind || return 1
+    context_file_kinds[${file}]=${listed[*]}
   done
   context_loaded=true
 }
@@ -334,10 +336,11 @@ context:read-kinds() {
 
 # context:glob-ere <glob> prints the extended regular expression that matches what context:glob-matches matches,
 # anchored at both ends: **/ is any run of directories, * and ** any text, slashes included, and ? one character. A
-# bracket expression is kept as it is; every other metacharacter is escaped.
+# bracket expression is kept as it is, and a [ that never closes is the character itself; every other metacharacter
+# is escaped.
 context:glob-ere() {
   local glob=$1 out='' c
-  local -i i=0
+  local -i i=0 length
   while (( i < ${#glob} ))
   do
     c=${glob:i:1}
@@ -351,8 +354,13 @@ context:glob-ere() {
       ('*') out+='.*' ;;
       ('?') out+='.' ;;
       ('[')
-        out+=${glob:i:$(( $(expr "${glob:i}" : '\[[^]]*\]') ))}
-        i+=$(( $(expr "${glob:i}" : '\[[^]]*\]') - 1 ))
+        length=$(expr "${glob:i}" : '\[[^]]*\]' || true)
+        if (( length == 0 ))
+        then out+='\['
+        else
+          out+=${glob:i:length}
+          i+=$(( length - 1 ))
+        fi
         ;;
       ('.' | '+' | '(' | ')' | '{' | '}' | '|' | '^' | '$' | "\\") out+="\\${c}" ;;
       (*) out+=${c}
