@@ -1545,7 +1545,7 @@ func (m *Model) land(name string, done bool) {
 		m.stages[i].Cursor, done = k, true
 	}
 	if done || (!m.stages[i].src.Loading && !m.stages[i].src.Stale) {
-		if k < 0 && !m.stages[i].src.Loading {
+		if k < 0 && !m.stages[i].src.Loading && m.stages[i].refusal == "" {
 			m.note.Text, m.note.Done = fmt.Sprintf("%s is not among the rows %s shows: the search or a filter hides it, or kit "+
 				"no longer has it", key, label(name)), false
 		}

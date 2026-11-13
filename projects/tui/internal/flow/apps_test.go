@@ -692,4 +692,11 @@ func TestAJumpOpensTheHeadingsOverItsRowAndSaysWhenTheRowIsNotShown(t *testing.T
 	if m.stages[0].Cursor != at || !strings.Contains(m.note.Text, "#99 is not among the rows") {
 		t.Errorf("a jump to no row: the cursor on %d, the notice %q", m.stages[0].Cursor, m.note.Text)
 	}
+	// a tab that kit refused has no rows to lack the row: the refusal says why, and the jump adds no word
+	m = drive(m, answer("changes", `{}`))
+	m.note.Text = ""
+	m = drive(m, shell.JumpMsg{Screen: shell.Changes, To: "changes/#4"})
+	if m.note.Text != "" || m.landing != "" {
+		t.Errorf("a jump into a refused tab: the notice %q, waiting for %q", m.note.Text, m.landing)
+	}
 }
