@@ -14,6 +14,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/empowerite/kit/projects/tui/internal/kit"
+	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/testkit"
 )
 
@@ -281,5 +282,68 @@ func TestTheRowOfAMemberNotClonedOffersNoFix(t *testing.T) {
 	}
 	if got := calls(t, record); len(r.calls) != 0 || len(got) != before {
 		t.Errorf("a fix ran %q, kit was called %q", r.calls, got[before:])
+	}
+}
+
+// kittui opens the first screen before kit has said the workspace, on the zero one; the workspace kit then says is the
+// screen's own, so the setup step names the members not cloned as it does on a screen opened on it.
+func TestAWorkspaceKitSaysAfterTheScreenOpenedNamesTheUnclonedMembers(t *testing.T) {
+	ws := kit.Workspace{Kind: "group", Name: "w", Members: []kit.WorkspaceMember{{Repository: "github.com/o/a",
+		Checkout: "/code/a"}, {Repository: "github.com/o/c"}}}
+	m, _ := fake(t)
+	m = Open(m.runner, kit.Workspace{})
+	m = drive(m, append(testkit.Start(m, at120), shell.WorkspaceMsg{Workspace: ws}, tea.WindowSizeMsg{Width: 120, Height: 60},
+		stepKey(setupStep))...)
+	if v := view(m); !strings.Contains(v, "not cloned: o/c") {
+		t.Errorf("setup does not name the member not cloned:\n%s", v)
+	}
+}
+
+// A folder with no kit.yml, the first run of every consumer, shows its kit as none, whole, as the branch of a folder
+// on no branch does: the column is as wide as the word that stands where there is no version.
+func TestAFolderWithNoKitYmlShowsItsKitAsNone(t *testing.T) {
+	dir := t.TempDir()
+	check := "[\n" + `{"id": "repo-git", "step": "setup", "ok": true, "line": "this folder is a git repository", "fix": null, ` +
+		`"interactive": false, "more": null, "runs": true, "folder": "/code/a", "repository": "github.com/o/a", ` +
+		`"desk": true, "branch": "main", "kit": null}` + "\n]\n"
+	if err := os.WriteFile(filepath.Join(dir, "checks.json"), []byte(check), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runner := testkit.Runner(t, "welcome")
+	runner.Dir = dir
+	m := New(runner, "o/a")
+	m = drive(m, append(testkit.Start(m, at120), stepKey(setupStep))...)
+	v := view(m)
+	if !strings.Contains(v, " none ") || strings.Contains(v, "no…") {
+		t.Errorf("a folder with no kit.yml:\n%s", v)
+	}
+}
+
+// A check's own sentence is wrapped under its glyph, whole, at any width, and the buttons of the row under the cursor
+// end its last line.
+func TestACheckSentenceLongerThanThePaneIsWrappedUnderItsGlyph(t *testing.T) {
+	dir := t.TempDir()
+	check := "[\n" + `{"id": "tool-actionlint", "step": "toolchains", "ok": false, "line": "actionlint is not installed; ` +
+		`kit lint runs it for .kit/rules/workflows.md and every other file of the rule", "fix": "brew install actionlint", ` +
+		`"interactive": false, "more": null, "runs": true, "folder": null, "repository": null, "desk": null, ` +
+		`"branch": null, "kit": null},` + "\n" +
+		`{"id": "tool-empty", "step": "toolchains", "ok": true, "line": "", "fix": null, "interactive": false, ` +
+		`"more": null, "runs": true, "folder": null, "repository": null, "desk": null, "branch": null, "kit": null}` + "\n]\n"
+	if err := os.WriteFile(filepath.Join(dir, "checks.json"), []byte(check), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runner := testkit.Runner(t, "welcome")
+	runner.Dir = dir
+	m := New(runner, "o/a")
+	m = drive(m, append(testkit.Start(m, tea.WindowSizeMsg{Width: 60, Height: 30}), stepKey(chains))...)
+	v := view(m)
+	if !strings.Contains(v, "❌ actionlint is not installed; kit lint runs it for\n      .kit/rules/workflows.md and every "+
+		"other file of the\n      rule\n") {
+		t.Errorf("the sentence is cut:\n%s", v)
+	}
+	// the cursor's row has the buttons at the end of its last line
+	m = drive(m, down)
+	if v := view(m); !strings.Contains(v, "\n      rule   ⧉") {
+		t.Errorf("the buttons:\n%s", v)
 	}
 }

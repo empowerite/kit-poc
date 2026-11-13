@@ -1,5 +1,6 @@
 // The steps with checks drawn over the pages the kit package ships, where every other test draws the fixture's short
-// ones: at 80×24 each opens with its title and its checks on the screen, and the rest of its page under them.
+// ones: at 80×24, and at 120×40 as a person with a larger window has it, each opens with its title and its checks on
+// the screen, and the rest of its page under them.
 package welcome
 
 import (
@@ -12,8 +13,11 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/testkit"
 )
 
-// at80 is a terminal as it first opens.
-var at80 = tea.WindowSizeMsg{Width: 80, Height: 24}
+// at80 is a terminal as it first opens, and at120x40 a larger window.
+var (
+	at80     = tea.WindowSizeMsg{Width: 80, Height: 24}
+	at120x40 = tea.WindowSizeMsg{Width: 120, Height: 40}
+)
 
 // overShipped has the fake kit answer root with this repository's kit, so the pages are the ones the kit package
 // ships.
@@ -36,14 +40,17 @@ func TestAStepOverTheShippedPagesOpensWithItsChecksOnScreen(t *testing.T) {
 		{chains, "Toolchains —", "✅ bash 5.2 runs kit\n   ❌ jq is not installed\n", "toolchains-shipped.golden"},
 		{setup, "Setup —", "❌ gh is not logged in to github.com\n", "setup-shipped.golden"},
 	} {
-		m, _ := fake(t)
-		m = drive(m, append(testkit.Start(m, at80), stepKey(c.step))...)
-		v := view(m)
-		pane := strings.Split(v, "\n")[m.paneTop():]
-		if !strings.HasPrefix(pane[0], "   "+c.title) || !strings.Contains(v, c.checks) {
-			t.Errorf("%s does not open with its title and its checks:\n%s", m.tabs[m.step].name, v)
+		for size, golden := range map[tea.WindowSizeMsg]string{at80: c.golden,
+			at120x40: strings.Replace(c.golden, "-shipped", "-shipped-120", 1)} {
+			m, _ := fake(t)
+			m = drive(m, append(testkit.Start(m, size), stepKey(c.step))...)
+			v := view(m)
+			pane := strings.Split(v, "\n")[m.paneTop():]
+			if !strings.HasPrefix(pane[0], "   "+c.title) || !strings.Contains(v, c.checks) {
+				t.Errorf("%s does not open with its title and its checks:\n%s", m.tabs[m.step].name, v)
+			}
+			testkit.Golden(t, filepath.Join("testdata", golden), v)
 		}
-		testkit.Golden(t, filepath.Join("testdata", c.golden), v)
 	}
 	// the setup step's table, over a group
 	m, _, _ := group(t, stepKey(setupStep), at80)

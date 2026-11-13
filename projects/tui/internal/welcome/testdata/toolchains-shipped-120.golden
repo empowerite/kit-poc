@@ -1,0 +1,40 @@
+  = kit welcome · - empowerite/kit                                                                           🔎 /search
+  1╶──────────────────╴2╶───────────────────╮3╶──────────────╮4╶───────────────╮5╶───────────╮
+    👋 introduction    │ 🧰 toolchains  3 : │  🔧 setup  2   │  🎨 customize   │  📖 terms   │
+  ─────────────────────╯                    ╰────────────────╰─────────────────╰─────────────╰──────────────────────────
+   Toolchains — the tools kit runs on, and what installs them
+
+   ✅ bash 5.2 runs kit
+   ❌ jq is not installed
+      brew install jq
+   ❌ several tool managers are usable for the project: mise, brew; choose one
+      kit toolchains use mise
+      or: kit toolchains use brew
+   ❌ brew is installed but not on PATH
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+      add it to your shell profile to keep it
+
+   kit runs on four tools: bash, git, jq, and yq. This step checks each one. Then it checks the machine's package
+   manager, such as brew or apt, which installs them.
+
+   When a check fails, the line under it gives the command that fixes it, or says where to read more. Run the command
+   yourself, or have kit run it and check again. kit runs nothing until you ask, and it never runs a command that has
+   to run in your own shell.
+
+   The tools a repository's work needs are its toolchain. Setup, the next step, checks it in each folder. For how kit
+   finds and chooses what installs the tools, read docs/toolchains.md
+   (https://github.com/empowerite/kit/blob/main/docs/toolchains.md).
+
+   kit toolchains
+
+
+
+
+
+
+
+
+
+
+
+ = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ checks 1-5 jump : tab menu

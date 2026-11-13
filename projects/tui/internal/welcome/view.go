@@ -469,14 +469,29 @@ func (m Model) checkLines(i int, key, indent string) []line {
 	} else if c.Offer() {
 		glyph = Offered
 	}
-	row := start + glyph + " " + text
+	// the check's own sentence is wrapped under its glyph, so all of it is read; the lines of the row are the row's
+	first := start + glyph + " "
+	pad := strings.Repeat(" ", ansi.StringWidth(first))
+	body := text
 	if !m.foldered(m.step) {
-		row += folderOf(c)
+		body += folderOf(c)
+	}
+	parts := pane.Wrap(body, w-ansi.StringWidth(first))
+	if len(parts) == 0 {
+		parts = []string{""}
+	}
+	var out []line
+	for k, l := range parts {
+		prefix := pad
+		if k == 0 {
+			prefix = first
+		}
+		out = append(out, line{row: i, text: pane.Clip(prefix+l, w)})
 	}
 	if end := m.rowButtons(c, key); focused && end != "" {
-		row = pane.Clip(row, w-ansi.StringWidth(end)) + end
+		last := &out[len(out)-1]
+		last.text = pane.Clip(last.text, w-ansi.StringWidth(end)) + end
 	}
-	out := []line{{row: i, text: pane.Clip(row, w)}}
 	// the lines under the row, whole, are a block that scrolls across, the indent staying
 	add := func(text string) {
 		out = append(out, line{row: i, text: indent + under + text, block: "check/" + key, lead: len(indent + under)})

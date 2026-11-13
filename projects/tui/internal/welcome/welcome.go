@@ -369,7 +369,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case shell.FadedMsg:
 		m.eachSheet(func(s *table.Sheet) { s.Faded(msg) })
 	case shell.WorkspaceMsg:
-		m.books = m.books.Told(msg)
+		m.workspace, m.books = msg.Workspace, m.books.Told(msg)
 	case shell.JumpMsg:
 		m.jump(msg.To)
 	case linkedMsg:
