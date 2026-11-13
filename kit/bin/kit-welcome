@@ -10,7 +10,7 @@
 #
 # A guide for your first hour with kit, in five steps:
 #
-#   1. Introduction: what kit is, who it is for, what it solves, and what the checks found.
+#   1. Introduction: what kit is, who it is for, and what it solves.
 #   2. Toolchains: bash, git, jq, and yq, which kit runs on, and the machine's package manager, one check each.
 #   3. Setup: your forge logins, then each folder of the workspace, its desk and its worktrees. Each folder is checked for
 #      kit installed at the version its kit.yml declares, .kit/ in place, the hooks, its tool manager, its linters, and
@@ -21,9 +21,10 @@
 # kit's nine screens, from Flow, the trip from an issue to a release, to Packages, are a tutorial that ships with the kit:
 # kit tutorials applications.
 #
-# Steps 2 and 3 hold checks. On a terminal, kit welcome opens kittui's welcome screen, on the first step with a failed
-# check. Each failed check there shows its fix. c, or a click on its ⧉, copies it. r, or a click on its ▶️, has kit run it
-# and check again, where kit runs the fix. Without a terminal, or with --text, it prints each step's page with its checks
+# Steps 2 and 3 hold checks. On a terminal, kit welcome opens kittui's welcome screen, on the introduction while the
+# checks run, and it stays there when they answer; a step with failed checks counts them in red on the bar. Each
+# failed check there shows its fix. c, or a click on its ⧉, copies it. r, or a click on its ▶️, has kit run it and
+# check again, where kit runs the fix. Without a terminal, or with --text, it prints each step's page with its checks
 # under it, then a list of what is left. It runs nothing: only --fix runs a fix, and only the one named.
 #
 # On a terminal, setup also judges the terminal kit runs in. kit asks it what it does, reads its settings where it knows
