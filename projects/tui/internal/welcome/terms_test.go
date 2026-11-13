@@ -439,3 +439,32 @@ func TestTermsAreColoredByTopic(t *testing.T) {
 		t.Errorf("a flattened row's label: %+v", got)
 	}
 }
+
+// A line of a fenced code block is code, whatever it starts with: a ## or a ### there starts no section and makes
+// the page no page of topics, and a # there is no title.
+func TestAHeadingInACodeBlockStartsNothing(t *testing.T) {
+	md := "# Customize\n\n## Hooks\n\nRun it:\n\n```sh\n## install the tools\n### then the hooks\n```\n\n## Policy\n\nRules.\n"
+	if hasTopics(md) {
+		t.Error("a ### in a code block makes a page of topics")
+	}
+	_, sections := pageSections(md)
+	var got []string
+	for _, s := range sections {
+		got = append(got, s.heading+": "+s.text)
+	}
+	want := []string{"Hooks: Run it: ## install the tools ### then the hooks", "Policy: Rules."}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("sections %q, want %q", got, want)
+	}
+	// the same under topics: a ## in a block is no topic, a ### no section
+	topics := "# Terms\n\n## Words\n\n### Kit\n\n```\n## not a topic\n### not a term\n```\n\n~~~\n### nor this\n~~~\n"
+	_, sections = parseTopics(topics)
+	if len(sections) != 1 || sections[0].heading != "Kit" || sections[0].topic != "Words" {
+		t.Errorf("topics %+v", sections)
+	}
+	// a # in a block of the lead is no title
+	lead := "```sh\n# a comment\n```\n\n## Section\n\ntext\n"
+	if _, sections = pageSections(lead); len(sections) != 1 || sections[0].topic != "" {
+		t.Errorf("a title from a code block: %+v", sections)
+	}
+}

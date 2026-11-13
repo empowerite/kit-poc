@@ -56,6 +56,7 @@ type tab struct {
 	id, glyph, name, file string
 	checked               bool
 	page, missing         string
+	dir                   string // the folder the pages are placed in, which its links are written from
 	sheet                 *table.Sheet
 	lead                  string
 	records               []table.Record // the records the setup step's table was last given

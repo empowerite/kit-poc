@@ -48,12 +48,12 @@ func whereOf(text string) (table.Value, string) {
 }
 
 // rooted gives the records with each link that is no page, as ../../kit.yml, a path from the folder dir, which holds the
-// page that wrote it.
+// page that wrote it; a link with a scheme, as https: or mailto:, is left as it is.
 func rooted(records []table.Record, dir string) []table.Record {
 	for _, r := range records {
 		for id, v := range r.Values {
 			for k, l := range v.Links {
-				if !strings.Contains(l, "://") && !filepath.IsAbs(l) {
+				if !scheme.MatchString(l) && !filepath.IsAbs(l) {
 					v.Links[k] = filepath.Join(dir, l)
 				}
 			}
@@ -62,6 +62,9 @@ func rooted(records []table.Record, dir string) []table.Record {
 	}
 	return records
 }
+
+// scheme matches a link that starts with a scheme, as mailto: or https://.
+var scheme = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9+.-]*:`)
 
 // settingKey is a kit.yml key as a page names it: backticked, with its colon, as `packages:`.
 var settingKey = regexp.MustCompile("`([A-Za-z][A-Za-z0-9_-]*):`")

@@ -9,7 +9,6 @@ package welcome
 
 import (
 	"fmt"
-	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -54,7 +53,7 @@ var (
 // parseSections reads a page's sections, and the text before the first, its lead: a `## ` heading starts a section;
 // under it, each line that is one backticked command and nothing else is one of its commands, and every other line of
 // text its text, a list item's without its marker and a code block's without the fence. A comment is dropped, and a
-// ## inside one starts nothing.
+// ## inside one starts nothing, nor does one in a code block.
 func parseSections(md string) (lead string, sections []section) { return parseIn(md, false) }
 
 // parseTopics reads a page of topics as parseSections reads a page: a `## ` heading is a topic, and a `### ` heading
@@ -62,19 +61,38 @@ func parseSections(md string) (lead string, sections []section) { return parseIn
 // section, is dropped.
 func parseTopics(md string) (lead string, sections []section) { return parseIn(md, true) }
 
-// hasTopics says whether a page is one of topics: whether a `### ` heading, outside a comment, starts a line of it.
+// hasTopics says whether a page is one of topics: whether a `### ` heading, outside a comment and a code block, starts
+// a line of it.
 func hasTopics(md string) bool {
-	comment := false
+	comment, code := false, false
 	for _, raw := range strings.Split(md, "\n") {
 		line := strings.TrimSpace(raw)
 		switch {
 		case comment || strings.HasPrefix(line, "<!--"):
 			comment = !strings.Contains(line, "-->")
-		case entryHeading.MatchString(line):
+		case fence.MatchString(line):
+			code = !code
+		case !code && entryHeading.MatchString(line):
 			return true
 		}
 	}
 	return false
+}
+
+// titleOf gives a page's title, the text of the first `# ` heading of md that is in no code block, up to its dash; none
+// where it has no heading.
+func titleOf(md string) string {
+	code := false
+	for _, line := range strings.Split(md, "\n") {
+		line = strings.TrimSpace(line)
+		if fence.MatchString(line) {
+			code = !code
+		} else if m := pageTitle.FindStringSubmatch(line); !code && m != nil {
+			name, _, _ := strings.Cut(m[1], " — ")
+			return name
+		}
+	}
+	return ""
 }
 
 // pageSections reads a page's sections as its headings make them: under its topics, where it has some, as
@@ -85,8 +103,7 @@ func pageSections(md string) (lead string, sections []section) {
 		return parseTopics(md)
 	}
 	lead, sections = parseSections(md)
-	if m := pageTitle.FindStringSubmatch(lead); m != nil {
-		name, _, _ := strings.Cut(m[1], " — ")
+	if name := titleOf(lead); name != "" {
 		for k := range sections {
 			sections[k].topic = name
 		}
@@ -105,23 +122,28 @@ func parseIn(md string, topics bool) (lead string, sections []section) {
 	}
 	// started says a topic or a section has begun, so the lead is over; between says a topic has, and no section
 	// under it yet, so its own text is dropped
-	comment, started, between, topic := false, false, false, ""
+	comment, started, between, topic, code := false, false, false, "", false
 	for _, raw := range strings.Split(strings.ReplaceAll(md, "\r\n", "\n"), "\n") {
 		line := strings.TrimSpace(raw)
 		last := len(sections) - 1
+		// a fence opens or closes a code block, whose lines are text, never a heading or a command
+		inBlock := code
+		if !comment && !strings.HasPrefix(line, "<!--") && fence.MatchString(line) {
+			code, inBlock = !code, true
+		}
 		switch {
 		case comment || strings.HasPrefix(line, "<!--"):
 			comment = !strings.Contains(line, "-->")
-		case topics && sectionHeading.MatchString(line):
+		case !inBlock && topics && sectionHeading.MatchString(line):
 			started, between, topic = true, true, sectionHeading.FindStringSubmatch(line)[1]
-		case heading.MatchString(line):
+		case !inBlock && heading.MatchString(line):
 			started, between = true, false
 			sections = append(sections, section{heading: heading.FindStringSubmatch(line)[1], topic: topic})
 			text = append(text, nil)
 		case !started:
 			before = append(before, raw)
 		case last < 0 || between:
-		case commandLine.MatchString(line):
+		case !inBlock && commandLine.MatchString(line):
 			sections[last].commands = append(sections[last].commands, commandLine.FindStringSubmatch(line)[1])
 		case line != "" && !fence.MatchString(line):
 			if m := item.FindStringSubmatch(line); m != nil {
@@ -210,7 +232,7 @@ func (m *Model) takeSheets() {
 			continue
 		}
 		sheet := table.NewSheet(s.schema, s.name, sheetColor, m.presets)
-		sheet.SetRecords(rooted(s.records(sections), filepath.Join(m.runner.Dir, pagesDir)))
+		sheet.SetRecords(rooted(s.records(sections), t.dir))
 		sheet.Settings(m.settings)
 		m.tabs[k].sheet, m.tabs[k].lead = &sheet, lead
 	}

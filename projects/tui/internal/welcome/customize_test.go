@@ -4,6 +4,7 @@
 package welcome
 
 import (
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -222,5 +223,25 @@ func TestCustomizeGoldens(t *testing.T) {
 			m = c.then(m)
 		}
 		testkit.Golden(t, filepath.Join("testdata", file), view(m))
+	}
+}
+
+// The links of a page are written from the folder the page was read from, the repository's root, not from the folder
+// kit welcome was typed in; a link with a scheme and no // is a link already.
+func TestAPagesLinksAreWrittenFromItsFolderWhereverKitWelcomeWasTyped(t *testing.T) {
+	md := "# Customize\n\n## Packages\n\n`packages:` lists them.\n\n→ [kit.yml](../../kit.yml) · [me](mailto:me@x.org)\n\n" +
+		"`kit packages`\n"
+	m, _ := fake(t)
+	m.runner = repoWith(t, map[string]string{"4-customize.md": md})
+	root := m.runner.Dir
+	m.runner.Dir = filepath.Join(root, "src", "deep")
+	if err := os.MkdirAll(m.runner.Dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	m = drive(m, append(testkit.Start(m, at120), stepKey(custom))...)
+	links := m.sheet().Values("where")[0].Links
+	root, _ = filepath.EvalSymlinks(root)
+	if want := []string{filepath.Join(root, "kit.yml"), "mailto:me@x.org"}; !reflect.DeepEqual(links, want) {
+		t.Errorf("the links %q, want %q", links, want)
 	}
 }

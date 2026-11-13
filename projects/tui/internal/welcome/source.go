@@ -27,18 +27,19 @@ const packageDir = "packages/kit/files/repo"
 // 9-theirs.md; a name with no number comes last, and a tie goes by name. A page that cannot be read gives where it was
 // looked for. When neither has a page, the steps are the known ones, each saying where it was looked for.
 func readPages(r kit.Runner) []tab {
-	repo := ""
+	repo, placed := "", filepath.Join(r.Dir, pagesDir)
 	if out, err := exec.Command("git", "-C", r.Dir, "rev-parse", "--show-toplevel").Output(); err == nil {
 		repo = filepath.Join(strings.TrimSpace(string(out)), pagesDir)
+		placed = repo
 	}
-	if tabs := readDir(repo); len(tabs) > 0 {
+	if tabs := readDir(repo, placed); len(tabs) > 0 {
 		return tabs
 	}
 	packaged := ""
 	if root, err := r.Root(); err == nil && root != "" {
 		packaged = filepath.Join(root, packageDir, pagesDir)
 	}
-	if tabs := readDir(packaged); len(tabs) > 0 {
+	if tabs := readDir(packaged, placed); len(tabs) > 0 {
 		return tabs
 	}
 	where := pagesDir
@@ -53,8 +54,9 @@ func readPages(r kit.Runner) []tab {
 }
 
 // readDir gives the step of each page in a directory, in order: each file whose name ends in .md and does not start
-// with a dot, as the shell's *.md matches.
-func readDir(dir string) []tab {
+// with a dot, as the shell's *.md matches. A page's links are written from placed, the folder the active packages put
+// the pages in, under the repository's root, where the pages of the kit package stand in for them.
+func readDir(dir, placed string) []tab {
 	if dir == "" {
 		return nil
 	}
@@ -75,6 +77,7 @@ func readDir(dir string) []tab {
 	for i, f := range files {
 		tabs[i] = tabOf(f)
 		tabs[i].page, tabs[i].missing = readPage(filepath.Join(dir, f))
+		tabs[i].dir = placed
 	}
 	return tabs
 }
