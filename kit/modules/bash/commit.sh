@@ -76,10 +76,15 @@ commit:parse() {
   done
 }
 
-# commit:branch <word> prints the branch checked out here, or refuses: no branch, the root checkout, the default
-# branch, or a default branch that cannot be read. <word> is what the verb does, commit or push, for the refusal.
+# commit:branch <word> prints the branch checked out here, or refuses: no repository, no branch, the root checkout,
+# the default branch, or a default branch that cannot be read. <word> is what the verb does, commit or push, for the refusal.
 commit:branch() {
   local word=$1 branch default_branch
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1
+  then
+    error "$(pwd -P) is in no repository, so there is nothing to ${word}; run kit in one"
+    return 1
+  fi
   branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)  # detached is refused below
   if [[ -z "${branch}" ]]
   then

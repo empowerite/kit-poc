@@ -1113,3 +1113,13 @@ REGO
 }
 
 # ----------------------------------------------------------------------------------------------------------------------
+
+@test "kit commit and kit submit outside a repository say so, not that no branch is checked out" {
+  cd "${BATS_TEST_TMPDIR}"
+  run "${kit_checkout}/bin/kit" commit --message='#1 start: x'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"$(pwd -P) is in no repository, so there is nothing to commit"* ]]
+  run "${kit_checkout}/bin/kit" submit
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"$(pwd -P) is in no repository, so there is nothing to push"* ]]
+}

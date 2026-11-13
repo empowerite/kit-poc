@@ -53,6 +53,21 @@ on-origin() { git ls-remote origin "refs/tags/$1*" | awk -v want="refs/tags/$1^{
   [ -z "$(on-origin release/0.4.0)" ]
 }
 
+@test "kit release outside a repository, or in one with no remote, says so and prints no git fatal line" {
+  run "${kit_root}/bin/kit" release 0.1.0 --dry-run
+  [ "$status" -eq 0 ]
+  git remote remove origin
+  run "${kit_root}/bin/kit" release 0.1.0
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit release pushes to origin, and this repository has no remote of that name; run: "*"git remote add origin <url>"* ]]
+  [[ "$output" != *fatal* ]]
+  cd "${BATS_TEST_TMPDIR}"
+  run "${kit_root}/bin/kit" release 0.1.0
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit release runs in a repository, and $(pwd -P) is in none"* ]]
+  [[ "$output" != *fatal* ]]
+}
+
 @test "kit release refuses a word that is not a version, and a tag that exists" {
   run "${kit_root}/bin/kit" release 1.2
   [ "$status" -eq 2 ]

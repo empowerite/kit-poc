@@ -59,7 +59,18 @@ releases:release() {
     return 2
   fi
   tag=release/${version}
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1
+  then
+    error "kit release runs in a repository, and $(pwd -P) is in none"
+    return 1
+  fi
   primary=$(forge:primary) || return $?
+  if ! git remote get-url --end-of-options "${primary}" >/dev/null 2>&1
+  then
+    error "kit release pushes to ${primary}, and this repository has no remote of that name; run: git remote add" \
+      "${primary} <url>"
+    return 1
+  fi
   if git rev-parse --quiet --verify "refs/tags/${tag}" >/dev/null \
     || [[ -n "$(git ls-remote --tags --end-of-options "${primary}" "refs/tags/${tag}")" ]]
   then
