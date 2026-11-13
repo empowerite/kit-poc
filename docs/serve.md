@@ -83,13 +83,17 @@ help, the syntax, and the server cannot drift apart.
   - an operand's value that is a word the verb acts on, offered or not, such as `add` for `packages`; a listing-only
     tool's error says to run the verb in a terminal
   - a value off its property's `enum`, a glob among them
-  - a path outside the repository, given to `context`, `kinds`, or `lint`: absolute, through `..`, or through a
-    symbolic link, judged with every link followed, and a `..` after a link judged both as the kernel reads it and
-    as a shell's `cd` does, inside only when both are; a path whose last part is `..` is also judged as the verbs
-    read it, the parts before it as a shell does and the `..` as the kernel does; a path that does not exist is
-    judged by its nearest directory that does, and is outside when a `..` is left after it; a dangling link, whose
-    target does not exist, is outside; a path the system cannot judge because it is too long is outside too:
-    `PATH_MAX` or more without its `.` parts, counted from `/`, the repository root's own path included
+  - a path outside the repository, given to `context`, `kinds`, or `lint`. A path is outside when it is absolute,
+    or reaches out through `..` or a symbolic link. It is judged with every link followed. The edge cases:
+    - a `..` after a link is judged both as the kernel reads it and as a shell's `cd` does, and is inside only when
+      both say so
+    - a path whose last part is `..` is also judged as the verbs read it: the parts before it as a shell does, and the
+      `..` as the kernel does
+    - a path that does not exist is judged by its nearest directory that does, and is outside when a `..` is left
+      after it
+    - a dangling link, whose target does not exist, is outside
+    - a path the system cannot judge because it is too long is outside too: `PATH_MAX` or more without its `.` parts,
+      counted from `/`, the repository root's own path included
   - `workspace` for `flow`, a name it does not take, because it reads other clones
   - arguments that fit none of the usage lines, which the error lists
 - **A call runs the verb** in a new process with stdin at end of file, so the verb cannot read the protocol stream.

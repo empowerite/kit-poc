@@ -58,7 +58,7 @@ kit policy
 | `default_branch` | The repository's default branch. |
 | `worktree` | In a linked worktree, its path from the main checkout's root, as `worktrees/7-fix-the-thing`, or its absolute path where it lies outside that root. `null` in the main checkout, which a runner's checkout is, where `branch` is `null`, and at commit. |
 | `commits` | Each commit past the fork from the branch's base, merges excluded, as its `sha`, its `subject`, and its `trailers`, `[{key, value}]` in order, as git reads them from the message's last paragraph: the primary remote's default branch, or on a runner the commit the change's event names as its base. The delivered workflow fetches full history for this. When the fork is not found, as in a shallow clone, `commits` is `null`, the commits cannot be checked, and `kit policy` fails. |
-| `change` | The open change, read through the code forge (the service that hosts the repository): an object with its number, title, body, and author's login. `null` when the repository has no code forge, as when the primary is a path on this machine, or the code forge answered that the branch has no open change, and `null` at commit. A primary on a host that nothing names, neither the `forge` setting, the host, a CI runner's own server, nor a login of `gh` or `glab`, has a code forge kit cannot tell, and its `change` is an error that names the `forge` setting; `forge: none` says it has none, and its `change` is `null`. A `null` change leaves `change_title` unchecked. When the code forge cannot answer, for which change is open or for its title, body, or author, `change` is `{"error": "<line>"}`, the line kit says for the read that failed, such as `run: gh auth status (the open pull request on 7-fix-the-thing could not be read)`. `kit policy` refuses such facts before either engine runs, and so refuses a document given with `--facts` that holds one. |
+| `change` | The open change, read through the code forge, the service that hosts the repository: an object with its number, title, body, and author's login, or `null`, or `{"error": "<line>"}`. [The `change` fact](#the-change-fact) says when each. |
 | `tree` | The files git holds, keyed by path, read from git: the index at commit, and HEAD at ci. At either moment, a kind matched by its first line, such as a script's shebang, reads that line from the disk. |
 | `policy` | The patterns, with the defaults and the active packages' filled in, `commit_reference`, and under `remedy` each rule's remedy, `""` where it has none. |
 
@@ -72,6 +72,25 @@ Each entry in `tree` has these fields:
 | `blob` | The blob's object name, or the commit a submodule is at. |
 | `kinds` | The kinds of file the path is, such as `bash`, or `[]` for none. On a branch, the kinds are the base's; see below. |
 | `text` | The blob's content. Only a file matching a `facts.read` glob has it. |
+
+### The `change` fact
+
+`change` has one of three values.
+
+| Value | When |
+| --- | --- |
+| an object | The code forge answered that the branch has an open change. |
+| `null` | The code forge answered that the branch has no open change; or the repository has no code forge, as when the primary is a path on this machine; or `forge: none` says so; or the moment is `commit`. A `null` change leaves `change_title` unchecked. |
+| `{"error": "<line>"}` | The code forge could not answer, for which change is open or for its title, body, or author; or the primary is on a host kit cannot tell the code forge of. |
+
+For the error, `<line>` is what kit says for the read that failed, such as
+`run: gh auth status (the open pull request on 7-fix-the-thing could not be read)`. For a host kit cannot tell, it
+names the `forge` setting. kit cannot tell a host when nothing names it: neither the `forge` setting, the host, a CI
+runner's own server, nor a login of `gh` or `glab`. `forge: none` says the primary has no code forge, and its `change`
+is `null`.
+
+`kit policy` refuses facts that hold an error before either engine runs, and so refuses a document given with
+`--facts` that holds one.
 
 ### What kit commit judges
 
@@ -100,21 +119,23 @@ pattern it blanks, a login it adds under `linked_exempt`, an engine it names, a 
 `.kit/policy/`, and a command it carries under `node_modules/.bin` or `.venv/bin` change nothing. The end of this
 section says what that does not cover.
 
-- The base is `<primary>/<default>` at a desk: the default branch of the `primary` remote, `origin` unless `kit.yml`
-  names another. On a runner, it is the base the change's event names, which no command of the branch can move, as
-  the gate could move `<primary>/<default>`. On GitHub that is the pull request's base commit,
-  `pull_request.base.sha` in the event at `GITHUB_EVENT_PATH`, or a merge group's, `merge_group.base_sha`. On GitLab
-  it is the target branch's tip: `CI_MERGE_REQUEST_TARGET_BRANCH_SHA` in a merged-results pipeline, else
-  the tip of the branch `CI_MERGE_REQUEST_TARGET_BRANCH_NAME` names, fetched from the primary every time, forced and
-  with no tags, so a ref an earlier job left counts for nothing; never the merge base, `CI_MERGE_REQUEST_DIFF_BASE_SHA`,
-  which a branch chooses by where it forks. A runner that names a change and no base it can have fails both verbs,
-  naming what is missing. At a desk the base is `refs/remotes/<primary>/<default>`, read in full, so a tag or a
-  branch named `<primary>/<default>` does not stand for it.
-- A CI system that is no code forge's own, and Azure Pipelines, names the change's head branch and its target
-  branch in variables of its own. There the base is the target's tip, fetched from the primary every time, as on
-  GitLab. [integrations/ci.md](integrations/ci.md#ci-that-is-not-the-code-forges-own) lists each system's
-  variables. CircleCI names no target, so there the base is the primary's default branch, fetched the same way. A
-  change whose head branch or target the system does not name fails both verbs.
+The base depends on where the verb runs:
+
+| Where it runs | The base is |
+| --- | --- |
+| a desk | `refs/remotes/<primary>/<default>`, read in full, so a tag or a branch named `<primary>/<default>` does not stand for it. `<primary>/<default>` is the default branch of the `primary` remote, `origin` unless `kit.yml` names another. |
+| a GitHub pull request | the pull request's base commit, `pull_request.base.sha` in the event at `GITHUB_EVENT_PATH` |
+| a GitHub merge group | the merge group's base, `merge_group.base_sha` |
+| a GitLab merged-results pipeline | `CI_MERGE_REQUEST_TARGET_BRANCH_SHA` |
+| any other GitLab pipeline | the tip of the branch `CI_MERGE_REQUEST_TARGET_BRANCH_NAME` names, fetched from the primary every time, forced and with no tags, so a ref an earlier job left counts for nothing |
+| a CI system that is no code forge's own, and Azure Pipelines | the target branch's tip, fetched from the primary every time, as on GitLab; the system names the head branch and the target in variables of its own, which [integrations/ci.md](integrations/ci.md#ci-that-is-not-the-code-forges-own) lists |
+| CircleCI | the primary's default branch, fetched the same way, because CircleCI names no target |
+
+- On a runner, the base is the one the change's event names, which no command of the branch can move, as the gate could
+  move `<primary>/<default>`.
+- It is never the merge base, `CI_MERGE_REQUEST_DIFF_BASE_SHA` on GitLab, which a branch chooses by where it forks.
+- A runner that names a change and no base it can have fails both verbs, naming what is missing. So does a change whose
+  head branch or target the system does not name.
 - In a merge queue, the branch is the merge group's head, `gh-readonly-queue/<base>/pr-<n>-<sha>`, which the kit's
   default `branch` pattern refuses. A repository that runs `kit ci` on `merge_group` events sets `policy.branch` to
   allow it.
