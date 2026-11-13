@@ -119,11 +119,20 @@ provider() {
 @test "a timer stands in for marks: every stage of the forge is stale once its span is past" {
   STAND_INS='      marks: {every: 60}' provider 3 marks
   printf 'flow: [releases, builds]\n' >> kit.yml
+  # the clock is a fake date, first on PATH: the second the file now holds for +%s, and date itself for anything else,
+  # so the span is the one the test names, whenever the test runs
+  printf '#!/usr/bin/env bash\nif [[ "$*" == +%%s ]]; then cat "%s/now"; else exec "%s" "$@"; fi\n' \
+    "${BATS_TEST_TMPDIR}" "$(command -v date)" > "${FAKE_DIR}/bin/date"
+  chmod +x "${FAKE_DIR}/bin/date"
+  # the last second of a span, and the first of the next
+  echo 7259 > "${BATS_TEST_TMPDIR}/now"
   run --separate-stderr "${kit_root}/bin/kit" flow --marks
   [ "$status" -eq 0 ]
-  span=$(( $(date +%s) / 60 ))
-  [[ "$output" == "{\"releases\":\"${span}\",\"builds\":\"${span}\"}" || \
-     "$output" == "{\"releases\":\"$(( span + 1 ))\",\"builds\":\"$(( span + 1 ))\"}" ]]
+  [ "$output" = '{"releases":"120","builds":"120"}' ]
+  echo 7260 > "${BATS_TEST_TMPDIR}/now"
+  run --separate-stderr "${kit_root}/bin/kit" flow --marks
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"releases":"121","builds":"121"}' ]
   [ ! -e calls.log ]
 }
 
