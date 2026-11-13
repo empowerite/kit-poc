@@ -262,7 +262,20 @@ added+='"bot-accounts","merge-closing"'
   [ "$output" = ada ]
   run call pr-state 3
   [ "$output" = $'OPEN\t' ]
-  SYSTEM_PULLREQUEST_PULLREQUESTID=3 run call pr-here
+}
+
+@test "Azure Pipelines names the pull request only under its marker, TF_BUILD, and at a desk the branch is asked about" {
+  git commit --quiet --allow-empty --message one
+  git switch --quiet --create 7-fix-the-thing
+  # a shell that exports the variable, and not the marker Azure Pipelines sets on every run, is a desk
+  SYSTEM_PULLREQUEST_PULLREQUESTID=99 run --separate-stderr call pr-here
+  [ "$status" -eq 0 ]
+  [ "$output" = 3 ]
+  # in a run the variable names the pull request, whatever branch is checked out
+  TF_BUILD=True SYSTEM_PULLREQUEST_PULLREQUESTID=99 run --separate-stderr call pr-here
+  [ "$output" = 99 ]
+  # and a run for no pull request asks about the branch
+  TF_BUILD=True run --separate-stderr call pr-here
   [ "$output" = 3 ]
 }
 

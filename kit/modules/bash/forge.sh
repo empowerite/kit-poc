@@ -945,9 +945,11 @@ forge:ci-change() {
 # forge:pr-here prints the number of the change this checkout is working on, or nothing. A CI system that is no
 # forge's own mostly checks out a detached HEAD, which has no branch to ask about, and names the change it builds in
 # a variable of its own, so on its runner forge:ci-change is read first, before the branch is asked about. Otherwise
-# the provider answers: from its forge's own runner, else the open change on the branch checked out. A runner that
-# names no change, on a detached HEAD, has none, and the caller refuses. The number is the primary's forge's, so a
-# primary with no forge, or with a setting kit refuses, fails here as the provider's call would.
+# the provider answers: from its forge's own runner, else the open change on the branch checked out. A provider reads
+# its runner's variable only where that runner's own marker is set, GITHUB_ACTIONS, GITLAB_CI, or TF_BUILD, for the
+# reason a row of the table counts only under its marker. A runner that names no change, on a detached HEAD, has
+# none, and the caller refuses. The number is the primary's forge's, so a primary with no forge, or with a setting
+# kit refuses, fails here as the provider's call would.
 forge:pr-here() {
   local number
   number=$(forge:ci-change)

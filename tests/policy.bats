@@ -267,7 +267,8 @@ change() {
   git switch --quiet --detach
   printf '{"pull_request": {"number": 3, "base": {"sha": "%s"}}}\n' "$(git rev-parse origin/main)" \
     > "${BATS_TEST_TMPDIR}/event.json"
-  GITHUB_HEAD_REF=7-fix-the-thing GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json" run "${kit_root}/bin/kit" policy
+  GITHUB_ACTIONS=true GITHUB_HEAD_REF=7-fix-the-thing GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json" \
+    run "${kit_root}/bin/kit" policy
   [ "$status" -eq 1 ]
   [[ "$output" == *"'no reference' does not match policy.commit_subject"* ]]
   [[ "$output" != *"exempt"* ]]
@@ -448,7 +449,7 @@ REGO
   git switch --quiet --detach
   printf '{"pull_request": {"number": 3, "base": {"sha": "%s"}}}\n' "$(git rev-parse origin/main)" \
     > "${BATS_TEST_TMPDIR}/event.json"
-  export GITHUB_HEAD_REF=main GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json"
+  export GITHUB_ACTIONS=true GITHUB_HEAD_REF=main GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json"
   run "${kit_root}/bin/kit" policy
   [ "$status" -eq 1 ]
   [[ "$output" == *"'no reference' does not match policy.commit_subject"* ]]
@@ -638,7 +639,7 @@ REGO
   printf 'gate: git update-ref refs/remotes/origin/main HEAD\npolicy:\n  commit_subject: ""\n' > kit.yml
   git commit --quiet --all --message "no reference"
   printf '{"pull_request": {"number": 3, "base": {"sha": "%s"}}}\n' "${base}" > "${BATS_TEST_TMPDIR}/event.json"
-  export GITHUB_HEAD_REF=7-fix-the-thing GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json"
+  export GITHUB_ACTIONS=true GITHUB_HEAD_REF=7-fix-the-thing GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json"
   run "${kit_root}/bin/kit" gate
   [ "$status" -eq 0 ]
   [ "$(git rev-parse origin/main)" = "$(git rev-parse HEAD)" ]
@@ -647,8 +648,9 @@ REGO
   [[ "$output" == *"'no reference' does not match policy.commit_subject"* ]]
   [ "$("${kit_root}/bin/kit" policy --input | jq --raw-output '.commits | length')" -eq 1 ]
   # a merged-results pipeline on GitLab names the target's tip the same way, and the moved ref counts for nothing
-  run env -u GITHUB_HEAD_REF -u GITHUB_EVENT_PATH CI_MERGE_REQUEST_SOURCE_BRANCH_NAME=7-fix-the-thing \
-    CI_MERGE_REQUEST_TARGET_BRANCH_NAME=main CI_MERGE_REQUEST_TARGET_BRANCH_SHA="${base}" "${kit_root}/bin/kit" policy
+  run env -u GITHUB_ACTIONS -u GITHUB_HEAD_REF -u GITHUB_EVENT_PATH GITLAB_CI=true \
+    CI_MERGE_REQUEST_SOURCE_BRANCH_NAME=7-fix-the-thing CI_MERGE_REQUEST_TARGET_BRANCH_NAME=main \
+    CI_MERGE_REQUEST_TARGET_BRANCH_SHA="${base}" "${kit_root}/bin/kit" policy
   [ "$status" -eq 1 ]
   [[ "$output" == *"'no reference' does not match policy.commit_subject"* ]]
   # the head ref names a change; without its event the base cannot be read, and nothing is judged
@@ -903,7 +905,7 @@ REGO
   git commit --quiet --all --message "no reference"
   printf '{"merge_group": {"base_sha": "%s", "head_ref": "refs/heads/gh-readonly-queue/main/pr-3-abc"}}\n' \
     "${base}" > "${BATS_TEST_TMPDIR}/event.json"
-  export GITHUB_EVENT_NAME=merge_group GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json"
+  export GITHUB_ACTIONS=true GITHUB_EVENT_NAME=merge_group GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json"
   git update-ref refs/remotes/origin/main HEAD
   run "${kit_root}/bin/kit" policy
   [ "$status" -eq 1 ]

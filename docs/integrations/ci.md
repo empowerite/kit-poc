@@ -54,11 +54,18 @@ for one, and `kit ready` and `kit settle` write to the change `forge:pr-here` na
 none and the branch checked out is asked about. A Jenkins controller with no URL configured sets no `JENKINS_URL`:
 set it in the job, or name the change, `kit linked "${CHANGE_ID}"`.
 
-A value that holds no number names no change. With none of them, the provider reads the forge's own runner,
-GitHub's event payload, GitLab's `CI_MERGE_REQUEST_IID`, or Azure DevOps' `SYSTEM_PULLREQUEST_PULLREQUESTID`, else
-asks for the open change on the checked-out branch. A runner that names no change, on a detached HEAD, has none,
-and `kit linked` refuses. Bitbucket Pipelines sets `BITBUCKET_PR_ID`, which kit does not read: it has no provider
-for Bitbucket.
+A value that holds no number names no change. With none of them, the provider reads the forge's own runner, else
+asks for the open change on the checked-out branch. The same rule holds for a forge's own runner: the provider reads
+its variable only where the runner's marker is set, so a desk's shell that exports the variable names no change.
+
+| Forge's runner | Its marker | Variable | Its value |
+| --- | --- | --- | --- |
+| GitHub Actions | `GITHUB_ACTIONS` | `GITHUB_EVENT_PATH` | the event's payload, a file, whose `pull_request.number` is the number |
+| GitLab CI | `GITLAB_CI` | `CI_MERGE_REQUEST_IID` | the number |
+| Azure Pipelines, for a repository on Azure DevOps | `TF_BUILD` | `SYSTEM_PULLREQUEST_PULLREQUESTID` | the number |
+
+A runner that names no change, on a detached HEAD, has none, and `kit linked` refuses. Bitbucket Pipelines sets
+`BITBUCKET_PR_ID`, which kit does not read: it has no provider for Bitbucket.
 
 `kit policy` and `kit linked` judge the change by the policy on its base, so they need the change's head branch and
 its target branch too. GitHub's and GitLab's own runners name both. For the systems above, and for Azure Pipelines

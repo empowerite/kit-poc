@@ -447,10 +447,13 @@ forge/ado:pr-head-for-branch() {
     'import "forge" as forge; forge::ado_latest | .lastMergeSourceCommit.commitId // empty'
 }
 
-# In an Azure Pipelines run for a pull request, SYSTEM_PULLREQUEST_PULLREQUESTID gives it. Otherwise it is the open
-# pull request for the current branch; a detached HEAD has none.
+# In an Azure Pipelines run for a pull request, where TF_BUILD is set, SYSTEM_PULLREQUEST_PULLREQUESTID gives it.
+# Otherwise it is the open pull request for the current branch; a detached HEAD has none. A desk's shell may export
+# SYSTEM_PULLREQUEST_PULLREQUESTID, and kit ready and kit settle write to the pull request this names, so the variable
+# is read only under the runner's own marker.
 forge/ado:pr-here() {
-  local number=${SYSTEM_PULLREQUEST_PULLREQUESTID:-} branch
+  local number='' branch
+  [[ -z "${TF_BUILD:-}" ]] || number=${SYSTEM_PULLREQUEST_PULLREQUESTID:-}
   if [[ -z "${number}" ]]
   then
     branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)  # a detached HEAD has no pull request

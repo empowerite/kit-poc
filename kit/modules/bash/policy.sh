@@ -405,11 +405,11 @@ policy:change-named() {
 }
 
 # policy:ci-named succeeds where a CI system that is neither GitHub's nor GitLab's own runner names the change it
-# builds: Azure Pipelines for a repository on Azure DevOps, in SYSTEM_PULLREQUEST_PULLREQUESTID, which
-# modules/bash/forge/ado.sh reads, or a system of the forge seam's table, as forge:ci-change reads it, which counts
-# a system's variable only where its own marker is set.
+# builds: Azure Pipelines for a repository on Azure DevOps, in SYSTEM_PULLREQUEST_PULLREQUESTID under its marker,
+# TF_BUILD, as modules/bash/forge/ado.sh reads it, or a system of the forge seam's table, as forge:ci-change reads
+# it. Either counts a system's variable only where its own marker is set.
 policy:ci-named() {
-  [[ -n "${SYSTEM_PULLREQUEST_PULLREQUESTID:-}" || -n "$(forge:ci-change)" ]]
+  [[ ( -n "${TF_BUILD:-}" && -n "${SYSTEM_PULLREQUEST_PULLREQUESTID:-}" ) || -n "$(forge:ci-change)" ]]
 }
 
 # policy:ci-row prints the row of policy_ci_branches for the CI system that names a change here (policy:ci-named),

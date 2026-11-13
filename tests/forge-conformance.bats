@@ -468,7 +468,7 @@ here() {
   env -u GITHUB_EVENT_PATH -u CI_MERGE_REQUEST_IID -u SYSTEM_PULLREQUEST_PULLREQUESTID -u BUILDKITE_PULL_REQUEST \
     -u CIRCLE_PULL_REQUEST -u CHANGE_ID -u SYSTEM_PULLREQUEST_PULLREQUESTNUMBER -u CODEBUILD_WEBHOOK_TRIGGER \
     -u CI_COMMIT_PULL_REQUEST -u DRONE_PULL_REQUEST -u BUILDKITE -u CIRCLECI -u JENKINS_URL -u TF_BUILD \
-    -u CODEBUILD_BUILD_ID -u CI -u DRONE "$@" \
+    -u CODEBUILD_BUILD_ID -u CI -u DRONE -u GITHUB_ACTIONS -u GITLAB_CI "$@" \
     bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge && forge:pr-here'
 }
 
@@ -546,6 +546,38 @@ here() {
   # so a verb that writes takes its change from the branch, never from the variable
   route gh 'pr ready 3' '!0'
   CHANGE_ID=99 run "${kit_root}/bin/kit" ready
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"pull request #3 is ready for review"* ]]
+  grep --quiet --line-regexp 'pr ready 3' "${FAKE_DIR}/gh.calls"
+  ! grep --quiet ' 99' "${FAKE_DIR}/gh.calls"
+}
+
+@test "a forge's own runner names the change only under that runner's marker, and at a desk the branch is asked about" {
+  git commit --quiet --allow-empty --message one
+  git switch --quiet --create 7-fix-the-thing
+  printf '{"pull_request": {"number": 99}}\n' > "${BATS_TEST_TMPDIR}/event.json"
+  for forge in github gitlab
+  do
+    world "${forge}"
+    if [[ "${forge}" == github ]]
+    then marker=GITHUB_ACTIONS=true named=GITHUB_EVENT_PATH=${BATS_TEST_TMPDIR}/event.json
+    else marker=GITLAB_CI=true named=CI_MERGE_REQUEST_IID=99
+    fi
+    # a shell that exports the forge's own variable, and not the marker its runner sets on every job, is a desk
+    run --separate-stderr here "${named}"
+    [ "$status" -eq 0 ] || { echo "${forge}: ${stderr}"; false; }
+    [ "$output" = 3 ] || { echo "${forge} at a desk: ${output}"; false; }
+    # on the forge's runner the variable names the change, whatever branch is checked out
+    run --separate-stderr here "${marker}" "${named}"
+    [ "$output" = 99 ] || { echo "${forge} on its runner: ${output}"; false; }
+    # and a run there for no change asks about the branch
+    run --separate-stderr here "${marker}"
+    [ "$output" = 3 ] || { echo "${forge} on its runner, for no change: ${output}"; false; }
+  done
+  # so a verb that writes takes its change from the branch, never from the variable
+  world github
+  route gh 'pr ready 3' '!0'
+  GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json" run "${kit_root}/bin/kit" ready
   [ "$status" -eq 0 ]
   [[ "$output" == *"pull request #3 is ready for review"* ]]
   grep --quiet --line-regexp 'pr ready 3' "${FAKE_DIR}/gh.calls"

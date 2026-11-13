@@ -301,13 +301,13 @@ lease() {
   cd "${work}/runner"
   git switch --quiet 7-fix-the-thing
   printf '{"pull_request": {"base": {"sha": "%s"}}}\n' "$(git rev-parse origin/main)" > "${work}/event.json"
-  export GITHUB_HEAD_REF=7-fix-the-thing GITHUB_EVENT_PATH=${work}/event.json
+  export GITHUB_ACTIONS=true GITHUB_HEAD_REF=7-fix-the-thing GITHUB_EVENT_PATH=${work}/event.json
   run kit leases --check
   [ "$status" -eq 1 ]
   [[ "$output" == *"kit/b.sh is outside #7's lease, docs"* ]]
   [ -z "$(git for-each-ref refs/kit)" ]
   # at a desk, a clone with no lease of its own is held to none, whatever the primary holds
-  unset GITHUB_HEAD_REF GITHUB_EVENT_PATH
+  unset GITHUB_ACTIONS GITHUB_HEAD_REF GITHUB_EVENT_PATH
   run kit leases --check
   [ "$status" -eq 0 ]
   [[ "$output" == *"#7 holds no lease"* ]]

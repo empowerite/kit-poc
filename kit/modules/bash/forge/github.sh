@@ -785,11 +785,13 @@ forge/github:pr-head-for-branch() {
   forge/github:on-branch "the pull requests on $1" "$1" all headRefOid
 }
 
-# On a GitHub Actions runner, the event payload gives the pull request. Otherwise it is the open pull request for the
-# current branch; a detached HEAD has none.
+# On a GitHub Actions runner, where GITHUB_ACTIONS is set, the event payload at GITHUB_EVENT_PATH gives the pull
+# request. Otherwise it is the open pull request for the current branch; a detached HEAD has none. A desk's shell may
+# export GITHUB_EVENT_PATH, and kit ready and kit settle write to the pull request this names, so the payload is read
+# only under the runner's own marker.
 forge/github:pr-here() {
   local number='' branch
-  if [[ -n "${GITHUB_EVENT_PATH:-}" ]]
+  if [[ -n "${GITHUB_ACTIONS:-}" && -n "${GITHUB_EVENT_PATH:-}" ]]
   then
     # A payload with no pull request, or none that can be read, gives none, and the branch is asked about.
     number=$(jq --raw-output '.pull_request.number // empty' "${GITHUB_EVENT_PATH}" 2>/dev/null || true)

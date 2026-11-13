@@ -491,10 +491,13 @@ forge/gitlab:pr-head-for-branch() {
   forge/gitlab:on-branch "the merge requests on $1" "$(forge/gitlab:latest-on "$1")" '.[0].sha // empty'
 }
 
-# On a GitLab CI runner, CI_MERGE_REQUEST_IID gives the merge request. Otherwise it is the open merge request for
-# the current branch; a detached HEAD has none.
+# On a GitLab CI runner, where GITLAB_CI is set, CI_MERGE_REQUEST_IID gives the merge request. Otherwise it is the
+# open merge request for the current branch; a detached HEAD has none. A desk's shell may export CI_MERGE_REQUEST_IID,
+# and kit ready and kit settle write to the merge request this names, so the variable is read only under the runner's
+# own marker.
 forge/gitlab:pr-here() {
-  local number=${CI_MERGE_REQUEST_IID:-} branch
+  local number='' branch
+  [[ -z "${GITLAB_CI:-}" ]] || number=${CI_MERGE_REQUEST_IID:-}
   if [[ -z "${number}" ]]
   then
     branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)  # a detached HEAD has no merge request
