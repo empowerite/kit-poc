@@ -223,18 +223,28 @@ JSON
   [[ "$output" == *"--all cannot be combined with --mine; run: cd "*" && kit help flow"* ]]
 }
 
-@test "kit flow backlog and kit flow underway are no stages: off a terminal, or with a form, they name kit flow issues" {
+@test "kit flow backlog and kit flow underway are the issues of that status: with a form, or off a terminal, they print what kit issues backlog and underway print" {
   for word in backlog underway
   do
     for form in '' --json --jq --text
     do
-      run kit flow "${word}" ${form:+"${form}"}
-      [ "$status" -eq 2 ]
-      [[ "$output" == *"${word} is no stage of kit flow: issues lists every open issue, its status backlog or underway; run: cd "*" && kit flow issues"* ]]
+      run --separate-stderr "${kit_checkout}/bin/kit" issues "${word}" ${form:+"${form}"}
+      [ "$status" -eq 0 ]
+      expected=${output}
+      run --separate-stderr "${kit_checkout}/bin/kit" flow "${word}" ${form:+"${form}"}
+      [ "$status" -eq 0 ]
+      [ -z "$stderr" ]
+      [ "$output" = "${expected}" ]
     done
   done
-  run kit flow backlog --mine
+  run --separate-stderr "${kit_checkout}/bin/kit" flow backlog --json
+  [ "$(jq -c 'map([.number, .status])' <<<"$output")" = '[[11,"backlog"]]' ]
+  run --separate-stderr "${kit_checkout}/bin/kit" flow underway --text
+  [[ "${#lines[@]}" -eq 2 && "${lines[0]}" == "#7"*"Fix the thing" && "${lines[1]}" == "#9"*"Other thing" ]]
+  # a filter is kittui's on these two words; off a terminal, kit flow issues takes it
+  run kit flow backlog --mine --text
   [ "$status" -eq 2 ]
+  [[ "$output" == *"flow backlog takes --mine in kittui alone; run: cd "*" && kit flow issues --mine"* ]]
 }
 
 @test "a flow setting that names backlog or underway is refused, naming issues" {

@@ -603,16 +603,16 @@ the desk its first row; run: cd "*" && kit workspace worktrees" ]]
   [[ "$output" != *"kittui"* ]]
 }
 
-@test "on a terminal, kit flow backlog and underway hand off to kittui as they are, which opens issues on that preset" {
+@test "on a terminal, kit flow backlog and underway hand off to kittui as they are, which opens issues on that preset; with a form, or without kittui, they are kit issues'" {
   fake-tui
   run pty "'${kit_root}/bin/kit' flow backlog --mine"
   [[ "$output" == *"kittui native-native flow backlog --mine"* ]]
   run pty "'${kit_root}/bin/kit' flow underway"
   [[ "$output" == *"kittui native-native flow underway"* ]]
   run pty "'${kit_root}/bin/kit' flow backlog --text"
-  [[ "$output" == *"backlog is no stage of kit flow"*"run: cd "*" && kit flow issues"* && "$output" != *"kittui"* ]]
+  [[ "$output" == *"origin is a local path"* && "$output" != *"kittui"* && "$output" != *"is no stage"* ]]
   run pty "env PATH='$(without-kittui)' '${kit_root}/bin/kit' flow underway"
-  [[ "$output" == *"underway is no stage of kit flow"* && "$output" != *"kittui"* ]]
+  [[ "$output" == *"origin is a local path"* && "$output" != *"kittui"* && "$output" != *"is no stage"* ]]
 }
 
 @test "kittui runs the kit that handed off, named in KIT" {

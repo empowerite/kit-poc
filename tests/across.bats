@@ -682,7 +682,8 @@ later-contract() {
   run pty "'${kit_root}/bin/kit' --workspace=w flow backlog"
   [[ "$output" == *"kittui native-native flow --workspace=w backlog"* ]]
   run pty "'${kit_root}/bin/kit' --workspace=w flow underway --json"
-  [[ "$output" == *"underway is no stage of kit flow"* && "$output" != *"kittui"* ]]
+  # the issues underway, as kit issues underway --json prints them over the members, one document
+  [[ "$output" == *'"rows":'* && "$output" != *"is no stage"* && "$output" != *"kittui"* ]]
   run pty "'${kit_root}/bin/kit' --workspace=w flow --stages"
   [[ "$output" == *"issues"* && "$output" != *"kittui"* ]]
   run pty "'${kit_root}/bin/kit' --workspace=w flow --marks"

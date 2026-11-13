@@ -55,7 +55,8 @@
 # desk and worktrees are no stages: on a terminal, either opens kit workspace worktrees, the desk its first row; with
 # --text, --json, or --jq, or without a terminal, it exits 2 and names kit workspace worktrees. Nor are backlog and
 # underway: on a terminal, either opens the picture in kittui with issues maximized, on its Backlog or Underway preset;
-# with --text, --json, or --jq, or without a terminal, it exits 2 and names kit flow issues.
+# with --text, --json, or --jq, or without a terminal, it prints what kit issues backlog or kit issues underway prints,
+# the issues of that status. Their filters are kittui's: off it, kit flow issues takes them, for both statuses.
 #
 # One stage prints without its heading. With --json, a stage prints what the picture holds under its name: an array
 # for issues, changes, builds, and releases; an object for incoming, which states contract, the number of the stage
@@ -333,9 +334,9 @@ if [[ -z "${syntax_options[--me]+x}${syntax_options[--capabilities]+x}" ]]
 then
   workspace=$(workspaces:across "${workspace}") || exit $?
 fi
-# backlog and underway are no stages of kit flow: issues lists both. On a terminal, kit flow backlog or underway opens
-# the picture in kittui, which reads the word as issues on that preset; asked for text or JSON, off a terminal, or
-# with no kittui, it names kit flow issues.
+# backlog and underway are no stages of kit flow: they are the issues stage's statuses, which kit issues backlog and kit
+# issues underway print. On a terminal, kit flow backlog or underway opens the picture in kittui, which reads the word
+# as issues on that preset; asked for text or JSON, off a terminal, or with no kittui, it prints what those verbs print.
 if [[ "${syntax_literals[0]:-}" == backlog || "${syntax_literals[0]:-}" == underway ]]
 then
   if [[ -z "${syntax_options[--text]+x}${syntax_options[--json]+x}${syntax_options[--jq]+x}" \
@@ -347,9 +348,24 @@ then
     export KIT="${kit_root}/bin/kit"
     exec "${binary}" flow ${workspace:+--workspace="${workspace}"} "$@"
   fi
-  error "${syntax_literals[0]} is no stage of kit flow: issues lists every open issue, its status backlog or" \
-    "underway; run: kit flow issues"
-  exit 2
+  # the filters are kittui's here: kit issues backlog takes none, and kit flow issues takes them for both statuses
+  for option in --fresh --all --mine --others --owner
+  do
+    if [[ -n "${syntax_options[${option}]+x}" ]]
+    then
+      error "kit flow ${syntax_literals[0]} takes ${option} in kittui alone; run: kit flow issues ${option}"
+      exit 2
+    fi
+  done
+  word=${syntax_literals[0]}
+  stage_words=()
+  for argument in "$@"
+  do
+    [[ "${argument}" != "${word}" ]] || { word=''; continue; }
+    stage_words+=("${argument}")
+  done
+  exec "${kit_root}/bin/kit" ${KIT_WORKSPACE:+"--workspace=${KIT_WORKSPACE}"} issues "${syntax_literals[0]}" \
+    ${stage_words[@]+"${stage_words[@]}"}
 fi
 # On a terminal, the picture over a workspace is kittui's, as it is inside a repository; a stage, a form, what prints
 # a list or a line (--stages, --marks, --quota, --me), or no kittui stays in text.
