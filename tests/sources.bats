@@ -48,6 +48,40 @@ source-tarball() {
   [ "$status" -eq 0 ]
 }
 
+@test "a source tarball with packages/ at its top is read as it is laid out, and one with no packages is refused, uncached" {
+  local dir="${BATS_TEST_TMPDIR}/flat" digest
+  mkdir -p "${dir}/tree/packages/guides/files/repo/.kit/notes"
+  printf 'description: "the guides package, laid out flat"\ndepends:\n  - kit\n' > "${dir}/tree/packages/guides/package.yml"
+  printf '%s\n' "# kit:generated -- a note, from the guides package" "# see: kit packages remove guides" '' first \
+    > "${dir}/tree/packages/guides/files/repo/.kit/notes/first.md"
+  tar --create --gzip --file "${dir}/source.tar.gz" --directory "${dir}/tree" packages
+  digest=$(shasum -a 256 "${dir}/source.tar.gz" | cut -d ' ' -f 1)
+  printf 'sources:\n  - name: flat\n    url: file://%s\n    digest: sha256:%s\n' "${dir}/source.tar.gz" "${digest}" >> kit.yml
+  run kit packages add guides
+  [ "$status" -eq 0 ]
+  [ -f .kit/notes/first.md ]
+  # a tarball with neither packages/ nor kit/packages/ is refused and leaves nothing in the cache
+  mkdir -p "${dir}/empty/top/docs"
+  : > "${dir}/empty/top/docs/readme"
+  tar --create --gzip --file "${dir}/empty.tar.gz" --directory "${dir}/empty" top
+  digest=$(shasum -a 256 "${dir}/empty.tar.gz" | cut -d ' ' -f 1)
+  sed -i.bak '/^sources:/,$d' kit.yml && rm kit.yml.bak
+  printf 'sources:\n  - name: none\n    url: file://%s\n    digest: sha256:%s\n' "${dir}/empty.tar.gz" "${digest}" >> kit.yml
+  run kit packages
+  [[ "$output" == *"the source none holds neither packages/ nor kit/packages/"* ]]
+  [ ! -e "${XDG_CACHE_HOME}/kit/sources/${digest}" ]
+}
+
+@test "a source url that starts with a dash is a url, never an option of curl" {
+  local dir="${BATS_TEST_TMPDIR}/dash" digest
+  IFS=$'\t' read -r file digest < <(source-tarball team guides first)
+  printf 'url = "file://%s"\n' "${file}" > "${dir}.rc"
+  printf 'sources:\n  - name: dash\n    url: "-K%s.rc"\n    digest: %s\n' "${dir}" "${digest}" >> kit.yml
+  run kit packages add guides
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the source dash could not be fetched"* ]]
+}
+
 @test "a source whose bytes have another digest is refused before anything of it is read" {
   IFS=$'\t' read -r file _ < <(source-tarball team guides first)
   printf 'sources:\n  - name: team\n    url: file://%s\n    digest: sha256:%064d\n' "${file}" 0 >> kit.yml

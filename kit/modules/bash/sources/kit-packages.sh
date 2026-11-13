@@ -8,7 +8,7 @@
 
 sources/kit-packages:fetch() {
   local status=0
-  curl --fail --silent --location --output "$3" "$(sources/kit-packages:tarball "$1")" || status=$?
+  curl --fail --silent --location --output "$3" -- "$(sources/kit-packages:tarball "$1")" || status=$?
   case "${status}" in
     (0) return 0 ;;
     (22) return 4 ;;

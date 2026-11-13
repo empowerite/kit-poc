@@ -21,7 +21,8 @@
 # tarball pinned by the sha256 digest of its bytes: a url is git:<owner>/<repo>@<tag>, the forge's tarball of that
 # tag, or any URL curl fetches. It is fetched once into the kit's cache, under its digest, and refused when its bytes
 # have any other digest; nothing from a source runs before that check. Its packages are under packages/ in the
-# tarball, or under kit/packages/ for a repository laid out as the kit's own is. A package name is looked up in the
+# tarball, or under kit/packages/ for a repository laid out as the kit's own is, after the one directory a forge's
+# tarball has around everything, if it has one. A tarball with neither is refused and not cached. A package name is looked up in the
 # package sources, the last first, then in the release, then in the repository's own .kit/packages/, so a later
 # source replaces a package of the same name. A bash_path entry <name>:<dir> names a directory in a source.
 #
@@ -148,10 +149,26 @@ sources:fetch() {
     return 1
   fi
   mkdir -p "${fresh}/tree"
-  if ! tar --extract --gzip --file "${fresh}/source.tar.gz" --directory "${fresh}/tree" --strip-components 1
+  if ! tar --extract --gzip --file "${fresh}/source.tar.gz" --directory "${fresh}/tree"
   then
     rm -rf "${fresh}"
     error "the source ${name} is not a gzipped tarball: ${url}"
+    return 1
+  fi
+  # A forge's tarball has one directory around everything, which is taken off; a tarball with packages/ or
+  # kit/packages/ at its top is left as it is.
+  if [[ ! -d "${fresh}/tree/packages" && ! -d "${fresh}/tree/kit/packages" ]]
+  then
+    local -a top=("${fresh}/tree"/*)
+    if (( ${#top[@]} == 1 )) && [[ -d "${top[0]}" ]]
+    then
+      mv "${top[0]}" "${fresh}/inner" && rm -rf "${fresh}/tree" && mv "${fresh}/inner" "${fresh}/tree"
+    fi
+  fi
+  if [[ ! -d "${fresh}/tree/packages" && ! -d "${fresh}/tree/kit/packages" ]]
+  then
+    rm -rf "${fresh}"
+    error "the source ${name} holds neither packages/ nor kit/packages/: ${url}"
     return 1
   fi
   mkdir -p "$(dirname "${cache}")"
