@@ -57,11 +57,12 @@ manifest:write() {
   then
     [[ -f "${manifest}" ]] || return 0
     list:read paths manifest:paths "${base}" || return 1
-    # A path that is gone, or that grep does not find, keeps no line.
+    # A path that is gone, or that has no record, keeps no line. A record is a digest, two spaces, and the whole path,
+    # so a path that begins another's does not keep the other's line too.
     kept=$(for path in "${paths[@]}"
       do
         [[ -n "${path}" ]] && release:dest "${base}" "${path}" dest && [[ -e "${dest}" ]] \
-          && grep -F "  ${path}" "${manifest}"
+          && awk -v path="${path}" '{ i = index($0, "  ") } i && substr($0, i + 2) == path' "${manifest}"
       done; true)
     if [[ -z "${kept}" ]]
     then

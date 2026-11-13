@@ -1175,6 +1175,18 @@ tree-digest() {
   grep --quiet '^version 0.0.1$' "${KIT_HOME}/.kit/manifest"
 }
 
+@test "home's manifest keeps each surviving line once, a path that begins another's included" {
+  mkdir -p "${KIT_HOME}/.kit" "${KIT_HOME}/.config/tool"
+  printf 'a\n' > "${KIT_HOME}/.config/tool/rc"
+  printf 'b\n' > "${KIT_HOME}/.config/tool/rc.d"
+  printf '# manifest\nversion 0.0.1\npackages other\n%s  .config/tool/rc\n%s  .config/tool/rc.d\n' \
+    "$(shasum -a 256 "${KIT_HOME}/.config/tool/rc" | cut -d ' ' -f 1)" \
+    "$(shasum -a 256 "${KIT_HOME}/.config/tool/rc.d" | cut -d ' ' -f 1)" > "${KIT_HOME}/.kit/manifest"
+  "${kit_checkout}/bin/kit" install
+  [ "$(grep -c '  .config/tool/rc$' "${KIT_HOME}/.kit/manifest")" -eq 1 ]
+  [ "$(grep -c '  .config/tool/rc.d$' "${KIT_HOME}/.kit/manifest")" -eq 1 ]
+}
+
 @test "a region is a template: @key@ takes the repository's answer, the package's default, or a settings key, and refuses a key with none" {
   mkdir -p .kit/packages/extra/regions/repo
   printf 'description: "x"\ndepends:\n  - kit\nanswers:\n  ci_runner: ours\n' > .kit/packages/extra/package.yml
