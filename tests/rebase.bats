@@ -96,6 +96,19 @@ commit-in() {
   [ "$(git -C ../wt rev-parse HEAD)" = "${before}" ]
 }
 
+@test "rebase refuses the desk on a git too old to print an absolute path, and rebases nothing" {
+  git switch --quiet --create desk-topic
+  real_git=$(command -v git)
+  mkdir ../shim
+  printf '#!/bin/sh\ncase "$*" in *--path-format=absolute*) echo "--path-format=absolute"; exit 0 ;; esac\nexec "%s" "$@"\n' \
+    "${real_git}" > ../shim/git
+  chmod +x ../shim/git
+  run env PATH="${work}/shim:${PATH}" "${kit_checkout}/bin/kit" rebase
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"git is older than 2.31"* ]]
+  [[ "$output" != *"is rebased"* ]]
+}
+
 # other-commits <file> <content> commits the file on 1-x in a second clone, ../other, and pushes it, as another
 # session does.
 other-commits() {

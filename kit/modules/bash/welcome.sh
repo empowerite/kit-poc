@@ -409,6 +409,21 @@ welcome:bash() {
   welcome:record tool-bash true "bash ${BASH_VERSION%%(*} runs kit; it needs 4.4 or later"
 }
 
+# welcome:git prints the check of git: 2.31 or later, which added the absolute paths kit reads from rev-parse.
+welcome:git() {
+  local version
+  if ! version=$(welcome:version git)
+  then
+    welcome:missing tool-git git "git is not installed; kit works through it"
+  elif [[ "${version}" =~ ^git\ version\ ([0-9]+)\.([0-9]+) ]] \
+    && (( BASH_REMATCH[1] > 2 || (BASH_REMATCH[1] == 2 && BASH_REMATCH[2] >= 31) ))
+  then
+    welcome:record tool-git true "git ${version#git version } is on PATH; kit works through it, and needs 2.31 or later"
+  else
+    welcome:missing tool-git git "git ${version#git version } is too old; kit needs git 2.31 or later"
+  fi
+}
+
 # welcome:jq prints the check of jq: 1.7 or later, which reads every verb's arguments.
 welcome:jq() {
   local version
@@ -1051,7 +1066,7 @@ welcome:judge() {
   list:among "${id}" "${welcome_ids[@]}" "${welcome_folder_ids[@]}" || return 2
   case "${id}" in
     (tool-bash) welcome:bash ;;
-    (tool-git) welcome:tool tool-git git "kit works through it" ;;
+    (tool-git) welcome:git ;;
     (tool-jq) welcome:jq ;;
     (tool-yq) welcome:yq ;;
     (brew-path) welcome:brew-path ;;

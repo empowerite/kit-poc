@@ -203,6 +203,17 @@ ambient-system() {
   [[ "$output" == *'- brew-path: eval "$('*"kit does not run it"* ]]
 }
 
+@test "welcome refuses a git older than 2.31, which kit's absolute paths need, and accepts 2.31" {
+  local real_git
+  real_git=$(command -v git)
+  fake-script git "[[ \"\$*\" != --version ]] || { echo git version 2.30.2; exit 0; }; exec '${real_git}' \"\$@\""
+  run --separate-stderr check tool-git
+  [ "$(jq --raw-output '[.ok, .line] | @tsv' <<<"$output")" = $'false\tgit 2.30.2 is too old; kit needs git 2.31 or later' ]
+  fake-script git "[[ \"\$*\" != --version ]] || { echo git version 2.31.0; exit 0; }; exec '${real_git}' \"\$@\""
+  run --separate-stderr check tool-git
+  [ "$(jq --raw-output .ok <<<"$output")" = true ]
+}
+
 @test "welcome checks bash, git, jq, and yq with the toolchains, each fixed by the machine's package manager" {
   local real_jq
   real_jq=$(command -v jq)

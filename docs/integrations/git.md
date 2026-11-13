@@ -15,10 +15,10 @@ fast-forward by `non-fast-forward`, `fetch first`, or `stale info`, and it tells
 `failed to sign` or `failed to write commit object`. A remote name reaches git after `--end-of-options` and a path as
 a `:(literal)` pathspec, so neither reads as an option or a pattern.
 
-kit states no minimum git version: `kit welcome` checks only that `git --version` answers. It calls
-`git rev-parse --path-format=absolute`, which git 2.31 added, and an older git prints the option back as a path. A
-package source written `git:${owner}/${repo}@${tag}` is the forge's tarball of the tag, fetched with `curl`, not by
-git.
+kit needs git 2.31 or later. `kit welcome` checks it, since it calls `git rev-parse --path-format=absolute`, which git
+2.31 added, and an older git prints the option back as a path. `git:main-root`, which tells the desk from a worktree,
+refuses then, naming the minimum. A package source written `git:${owner}/${repo}@${tag}` is the forge's tarball of
+the tag, fetched with `curl`, not by git.
 see: [forges.md](forges.md), [../workspaces.md](../workspaces.md), `kit/modules/bash/git.sh`,
 `kit/modules/bash/commit.sh`, `kit/modules/bash/workspace.sh`, `kit/modules/jq/workspace.jq`,
 `kit/modules/bash/flow.sh`

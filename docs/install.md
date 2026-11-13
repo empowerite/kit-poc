@@ -83,7 +83,7 @@ toolchains; see [toolchains.md](toolchains.md):
 ## Requirements
 
 - bash 4.4 or later. macOS ships bash 3.2; run `brew install bash`.
-- git.
+- git 2.31 or later.
 - `jq` 1.7 or later. Every verb reads its arguments through it.
 - `yq` 4, mikefarah's. It reads `kit.yml` and every other YAML file. GitHub's hosted runners have `jq` and `yq`
   already.

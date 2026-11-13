@@ -117,6 +117,22 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
   [ "$(git log --oneline | wc -l | tr -d ' ')" = 1 ]
 }
 
+@test "kit commit and kit submit refuse on a git too old to print an absolute path, never taking the desk for a worktree" {
+  mkdir "${work}/shim"
+  printf '#!/bin/sh\ncase "$*" in *--path-format=absolute*) echo "--path-format=absolute"; exit 0 ;; esac\nexec "%s" "$@"\n' \
+    "$(command -v git)" > "${work}/shim/git"
+  chmod +x "${work}/shim/git"
+  cd "${work}/desk"
+  printf 'x\n' > x && git add x
+  run env PATH="${work}/shim:${PATH}" "${kit_checkout}/bin/kit" commit --message='#1 x: a file'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"git is older than 2.31"* ]]
+  run env PATH="${work}/shim:${PATH}" "${kit_checkout}/bin/kit" submit
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"git is older than 2.31"* ]]
+  [ "$(git log --oneline | wc -l | tr -d ' ')" = 1 ]
+}
+
 @test "kit commit supplies the issue's reference from the branch, judges the subject by the policy, and commits" {
   printf 'x\n' > x && git add x
   run kit commit --message='x: a file' --message='The body.'

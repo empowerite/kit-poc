@@ -42,9 +42,17 @@ git:default-branch() {
 }
 
 # git:main-root [<path>] prints the root of the main checkout, which contains worktrees/. It works from the main
-# checkout or from any linked worktree.
+# checkout or from any linked worktree. A git older than 2.31 prints --path-format=absolute back instead of a path:
+# then it refuses, naming the minimum, so no caller takes the desk for a worktree.
 git:main-root() {
-  dirname "$(git -C "${1:-.}" rev-parse --path-format=absolute --git-common-dir)"
+  local common
+  common=$(git -C "${1:-.}" rev-parse --path-format=absolute --git-common-dir) || return 1
+  if [[ "${common}" != /* ]]
+  then
+    error "git is older than 2.31, which added the absolute paths kit reads; run: git --version, and install a newer git"
+    return 1
+  fi
+  dirname "${common}"
 }
 
 # git:linked-worktrees [<path>] prints "<path>\t<detached>\t<branch>" for every linked worktree of the repository at
@@ -567,14 +575,15 @@ git:push() {
 # a conflict it aborts the rebase and leaves the worktree as it was.
 git:rebase() {
   local worktree=${1:-.} branch default_branch primary remote before theirs target targets=() sign=() unmerged=()
-  local unmerged_names
+  local unmerged_names root
   branch=$(git -C "${worktree}" symbolic-ref --quiet --short HEAD 2>/dev/null || true)  # detached is refused below
   if [[ -z "${branch}" ]]
   then
     error "${worktree} has no branch checked out, so there is nothing to rebase"
     return 1
   fi
-  if [[ "$(git -C "${worktree}" rev-parse --show-toplevel)" == "$(git:main-root "${worktree}")" ]]
+  root=$(git:main-root "${worktree}") || return 1
+  if [[ "$(git -C "${worktree}" rev-parse --show-toplevel)" == "${root}" ]]
   then
     error "refusing to rebase ${branch}: it is the root checkout, the human's desk; rebase in the branch's worktree"
     return 1

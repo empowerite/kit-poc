@@ -79,7 +79,7 @@ commit:parse() {
 # commit:branch <word> prints the branch checked out here, or refuses: no repository, no branch, the root checkout,
 # the default branch, or a default branch that cannot be read. <word> is what the verb does, commit or push, for the refusal.
 commit:branch() {
-  local word=$1 branch default_branch
+  local word=$1 branch default_branch root
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1
   then
     error "$(pwd -P) is in no repository, so there is nothing to ${word}; run kit in one"
@@ -91,7 +91,8 @@ commit:branch() {
     error "no branch is checked out here, so there is nothing to ${word}; run: kit work <reference>"
     return 1
   fi
-  if [[ "$(git rev-parse --show-toplevel)" == "$(git:main-root)" ]]
+  root=$(git:main-root) || return 1
+  if [[ "$(git rev-parse --show-toplevel)" == "${root}" ]]
   then
     error "refusing to ${word} ${branch}: this is the root checkout, the human's desk; work in a worktree:" \
       "kit work <reference>"
