@@ -139,8 +139,9 @@ Work starts from an issue:
    always has, the work stays on the desk, and the desk is left as it is. Without a terminal and without either
    flag, it refuses a desk that has uncommitted work, before it creates or assigns an issue, and names both flags.
    It refuses an issue whose branch the desk has checked out, before it assigns, stashes, or commits anything.
-   When it stops before the worktree has the swept work, it gives the work back to the desk, staged work staged;
-   when the work conflicts in the worktree, it stays in the stash, and `kit work` names the command that applies it.
+   When it stops before the worktree has the swept work, it gives the work back to the desk, and work that was staged
+   is staged again. When the work conflicts in the worktree, it stays in the stash, and `kit work` names the command
+   that applies it.
 2. In the worktree:
    - `kit context` before changing a file,
    - `kit lint` to run the pre-commit linters by hand,
@@ -220,8 +221,9 @@ forge is named in the `forge` or `forges` setting, or found from a CI runner's o
 `glab` has logged in to.
 
 - Every provider returns the same shape, so `kit flow` shows the same picture on either code forge.
-- Every call answers, answers none, fails with one line that says what could not be read, or is unsupported, and a
-  list is whole or the call fails; the header of `kit/modules/bash/forge.sh` holds the contract.
+- Every call does one of four things: it answers, it answers that there is none, it fails with one line that says what
+  could not be read, or it is unsupported. A list is whole, or the call fails; the header of
+  `kit/modules/bash/forge.sh` holds the contract.
 - A provider declares the contract's version it implements, 8 today, and the features its forge lacks. The features
   are listed in `forge_features` in `kit/modules/bash/forge.sh`. A call of a feature the forge lacks, or one added
   after the provider's version, is unsupported: it exits 3 and runs nothing, and the verb answers as for none, such as
