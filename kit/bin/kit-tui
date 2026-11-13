@@ -12,6 +12,9 @@
 # it as kit tui -- <verb> <argument>…, when stdin, stdout, and stderr are terminals. The words follow a --, so kit
 # reads none of them as its own.
 #
+# Without the --, a --help or -h after the verb is the verb's: kit tui flow --help answers as kit flow --help does,
+# with the page of kit flow. Before the verb, or with no verb, it prints this page.
+#
 # In a clone kit does not trust yet, kittui asks you to trust it before it reads anything there: it names the clone and
 # what trusting it lets kit run, and offers Trust, which runs kit trust --yes on it, and Not now, which leaves it
 # untrusted and opens the palette, which reads kit help and kit syntax, as an untrusted clone allows. bin/kit, the
@@ -36,6 +39,17 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
 
 use tui terminal
 
+# A --help or -h after the verb, before any --, is the verb's, as every word after the verb is: kit tui flow --help
+# is kit flow --help, which that verb's own guard answers. One before the verb, or with no verb, is kit tui's, which
+# guard:arguments answers below.
+if (( $# > 1 )) && [[ "$1" != -* ]]
+then
+  for argument in "${@:2}"
+  do
+    [[ "${argument}" != -- ]] || break
+    [[ "${argument}" != --help && "${argument}" != -h ]] || exec "${kit_root}/bin/kit" "$@"
+  done
+fi
 guard:arguments tui "$@" || exit $?
 # kittui refuses without a terminal; kit tui refuses first, in the same words, so it does not build anything it
 # cannot run.

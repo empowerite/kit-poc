@@ -57,6 +57,39 @@ terminal() {
   [[ "$output" == *"kit flow needs an interactive terminal for its picture; run: cd "*" && kit flow --text"* ]]
 }
 
+@test "a --help after kit tui's verb is the verb's: kit tui flow --help prints what kit flow --help prints" {
+  run "${kit_root}/bin/kit" flow --help </dev/null
+  [ "$status" -eq 0 ]
+  page=$output
+  [[ "${page}" == "kit flow - "* ]]
+  for help in --help -h
+  do
+    run "${kit_root}/bin/kit" tui flow "${help}" </dev/null
+    [ "$status" -eq 0 ]
+    [ "$output" = "${page}" ] || { echo "${help}: ${output}"; false; }
+  done
+  run "${kit_root}/bin/kit" tui flow issues --help </dev/null
+  [ "$output" = "${page}" ]
+  # before the verb, or with none, the --help is kit tui's own
+  for words in '--help' '--help flow' '-h'
+  do
+    # shellcheck disable=SC2086  # the words are arguments
+    run "${kit_root}/bin/kit" tui ${words} </dev/null
+    [ "$status" -eq 0 ]
+    [[ "$output" == "kit tui - "* ]] || { echo "${words}: ${output}"; false; }
+  done
+  # after --, every word is kittui's, which needs a terminal
+  run "${kit_root}/bin/kit" tui -- flow --help </dev/null
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"kit flow needs an interactive terminal for its picture"* ]]
+  run "${kit_root}/bin/kit" tui flow -- --help </dev/null
+  [ "$status" -eq 2 ]
+  # a verb kit does not have is refused as kit refuses it
+  run "${kit_root}/bin/kit" tui nonesuch --help </dev/null
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"unknown verb 'nonesuch'"* ]]
+}
+
 @test "a checkout with neither kittui nor go refuses with the line that installs go, which builds it" {
   run terminal "env PATH='$(without-kittui)' '${kit_root}/bin/kit' tui"
   [ "$status" -eq 1 ]
