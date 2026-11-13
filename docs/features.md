@@ -305,7 +305,8 @@ see: `kit help bots`, [integrations/gh.md](integrations/gh.md#a-github-apps-bot)
   pins. It does the same for the packages that npm or uv pins on top.
 - kit works with its own tool pins, under `tools:` in `kit.yml`, and with mise, Nix, Homebrew,
   a Docker image, or a dev container. apt, dnf, and pacman can supply what kit itself runs on.
-- The gate runs with the same pinned tools on the desk, in a worktree, and on a CI runner.
+- The gate runs with the same pinned tools on the desk and in a worktree. On a CI runner it does so when the job names a
+  toolchain; the delivered job's default, `ambient`, installs nothing and uses the tools the runner has.
 
 see: [toolchains.md](toolchains.md)
 
@@ -390,6 +391,12 @@ see: [modules.md](modules.md), [architecture.md](architecture.md#code-forges-sea
 `kit ci` does not run `kit lint`. A rule's linter, a check such as `pinned`, and a style's templates hold
 in CI only where the repository's gate runs `kit lint`. Elsewhere they hold for a commit made with `kit
 commit` or through the lefthook hook. A commit made any other way reaches the default branch without them.
+
+Three more claims have no check. Nothing verifies that an agent was asked for the rules of a file: `kit context`
+logs each request, and nothing reads the log. Nothing verifies that the forbidden git commands were not used: a deny
+list prevents them where the harness has one, and elsewhere the report in the pull request body is all there is.
+Nothing verifies that the desk was not changed: `kit rebase` refuses the root checkout, and `kit work` never switches
+its branch.
 
 No check verifies that an agent followed a rule after reading it. The linters and the templates
 cover the mechanical part, for the kinds of file they handle, where `kit lint` runs. The rest

@@ -286,7 +286,7 @@ the staged paths. In CI it runs only where the repository's gate runs it, as a `
 | A change has an issue | `kit linked`, in `kit ci` beside the gate; `kit work` creates the link when it starts the work |
 | The repository's own gate ran | `kit gate`, which fails when there is no gate to run |
 | Branch names, commit subjects, and pull request titles follow the policy | `kit policy`, with patterns or Open Policy Agent |
-| The gate ran with the pinned tools | `kit tools install`, then the gate run through the chosen toolchain, locally and in CI, where `kit ci` installs the tools after the two judgements |
+| The gate ran with the pinned tools | `kit tools install`, then the gate run through the chosen toolchain, locally and in CI where the job names a toolchain: `ci_toolchain` defaults to `ambient`, which installs nothing and runs the gate with the tools already on the runner |
 | All four held, wherever CI runs | `kit ci`, which runs `kit linked`, `kit policy`, `kit gate`, and `kit check`, and reports each one; it does not run `kit lint` |
 | An agent was shown a file's rules | the Claude Code hook; a file per kit rule, attached by its kind's paths, in Cursor and Copilot; `kit context` elsewhere |
 | An agent asked for a file's rules | no check; `.git/kit/context.log` records each request, one line per path, and nothing reads it |
