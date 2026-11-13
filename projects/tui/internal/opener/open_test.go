@@ -389,6 +389,29 @@ func TestFindClonesWalksTheFolderForWorkingTrees(t *testing.T) {
 	}
 }
 
+// A folder that is a link is walked where it leads, as the list of folders reads it, and its clones' desks are written
+// from the link as typed; a link below it is not walked.
+func TestFindClonesWalksAFolderThatIsALink(t *testing.T) {
+	real := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(real, "repo", ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(t.TempDir(), "code")
+	if err := os.Symlink(real, link); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(real, filepath.Join(real, "alias")); err != nil {
+		t.Fatal(err)
+	}
+	got, desks, _ := findClones(link, cloneDepth, cloneMost)
+	if strings.Join(got, "|") != "repo" || len(desks) != 1 || desks[0] != filepath.Join(link, "repo") {
+		t.Errorf("under a link: %q %q", got, desks)
+	}
+	if got, _, _ := findClones(filepath.Join(link, "nowhere"), cloneDepth, cloneMost); len(got) != 0 {
+		t.Errorf("a folder that is not there: %q", got)
+	}
+}
+
 // Home itself is written ~, and with no home known nothing is: a path is written as it is.
 func TestOpenWritesHomeItselfAsTilde(t *testing.T) {
 	home := t.TempDir()

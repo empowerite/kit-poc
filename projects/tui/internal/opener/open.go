@@ -333,13 +333,19 @@ func (d Dialog) Found(msg ClonesMsg) Dialog {
 // the folder, . for itself, in the order the walk finds them: folders by name, each before what it holds; and the desk
 // of each, absolute, as desk says. It goes into a clone, for the worktrees it holds, but never into .git, a hidden
 // folder, or node_modules, nor more than depth folders down; it stops at the most clones it finds, and says whether it
-// stopped there.
+// stopped there. The folder itself may be a link, and is walked where it leads, as the list of folders reads it, its
+// desks written from it as given; a link below it is listed as a folder and not walked into.
 func findClones(root string, depth, most int) (clones, desks []string, capped bool) {
-	_ = filepath.WalkDir(root, func(path string, e fs.DirEntry, err error) error {
+	real, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		real = root
+	}
+	_ = filepath.WalkDir(real, func(at string, e fs.DirEntry, err error) error {
 		if err != nil || !e.IsDir() {
 			return nil
 		}
-		rel, _ := filepath.Rel(root, path)
+		rel, _ := filepath.Rel(real, at)
+		path := filepath.Join(root, rel)
 		if rel != "." && (strings.HasPrefix(e.Name(), ".") || e.Name() == "node_modules") {
 			return fs.SkipDir
 		}
