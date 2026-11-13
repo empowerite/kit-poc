@@ -186,7 +186,7 @@ see: [publishing.md](publishing.md)
 2. Toolchains: checks for bash, git, jq, and yq, which kit runs on, and for the machine's package manager.
 3. Setup: checks for your login on each code forge, and then for each folder of the workspace. In a folder,
    it checks kit and the files kit places, the git hooks, the tool manager, the linters, and `kit check`.
-4. Customize: the settings that teams change first, packages, a house package, and the docs.
+4. Customize: how kit is designed to be changed without forking it: packages, a house package, and updates.
 5. Terms: the words kit uses, by topic.
 
 At a terminal, `kit welcome` opens in kittui. Each failed check shows its fix, and you can copy the fix or
