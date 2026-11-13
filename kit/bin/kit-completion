@@ -33,7 +33,12 @@ guard:arguments completion "$@" || exit $?
 # shellcheck disable=SC2154  # syntax_literals and syntax_operands are set by guard:arguments
 case "${syntax_literals[0]:-}" in
   (zsh) completion:zsh ;;
-  (candidates) completion:candidates "${syntax_operands[@]}"
+  (candidates)
+    # The words are the shell's, and a -- among them is the word being completed, so they are not the guard's operands.
+    while [[ "$1" != candidates ]]; do shift; done
+    shift
+    completion:candidates "$@"
+    ;;
 esac
 
 # ----------------------------------------------------------------------------------------------------------------------
