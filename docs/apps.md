@@ -1,358 +1,1063 @@
 # App verbs
 
-An app verb prints the tabs of one of kittui's apps, each a stage, in the shape `kit workspace` prints its own. Each
-app's verb is named for it, and `modules/bash/apps.sh` runs every one of them: its stages, its marks, its forms, and
-its hand-off to kittui. A verb's own stages live in `modules/bash/apps/<verb>.sh`.
+kittui is kit's terminal UI. It has nine apps, and each app has a verb. Each tab of an app shows one stage: one list
+that kit reads and prints. At a terminal, the verb opens the app. Off a terminal, or with an output option, the verb
+prints its stages as text or as JSON.
+
+This page is the reference for what the app verbs print: the options they share, the JSON of a stage, and the fields
+of every stage. `kit tutorials` teaches the screens, and `kit help <verb>` lists a verb's options.
+
+## The nine apps
+
+| App | Verb | Tabs, in order |
+| --- | --- | --- |
+| Flow | `kit flow` | issues, changes, builds, incoming, releases |
+| [Issues](#issues-kit-issues) | `kit issues` | issues (from `kit flow`), milestones, iterations |
+| [Changes](#changes-kit-changes) | `kit changes` | changes (from `kit flow`), reviews, checks, merged |
+| [Repositories](#repositories-kit-workspace) | `kit workspace` | repos, worktrees, branches, commits, tags, remotes, incoming (from `kit flow`) |
+| [Delivery](#delivery-kit-delivery) | `kit delivery` | releases and builds (from `kit flow`), artifacts, environments, deployments |
+| [People](#people-kit-people) | `kit people` | people, teams, agents |
+| [Trust](#trust-kit-audit) | `kit audit` | evidence, findings, controls, waivers, policy, enforcement |
+| [Platform](#platform-kit-platform) | `kit platform` | services, toolchains, tools, settings |
+| [Packages](#packages-kit-packages) | `kit packages` | packages |
+
+- A tab marked "from `kit flow`" shows a stage of `kit flow`. Its app's verb prints it too; see
+  [Tabs that show a stage of kit flow](#tabs-that-show-a-stage-of-kit-flow).
+- The Flow app shows the stages that the `flow` setting in `kit.yml` names, in that order. `kit help flow` describes
+  what `kit flow` prints. The rest of this page is about the other eight verbs.
+- Two apps are not named for their verbs. The verb of Trust is `kit audit`, because `kit trust` is the verb that
+  trusts a clone. The verb of Repositories is `kit workspace`.
 
 ## The shape every app verb shares
 
-- `kit <verb> --stages` prints the stages, one per line, in the app's tab order.
-- `kit <verb> --marks` prints a mark per stage as one JSON object. A mark is a text that changes when what its stage
-  draws does, and `null` for a stage with none, which kittui reads again only on Refresh, as it offers no
-  Watch for a tab kit never marks.
-- `kit <verb> <stage> --json` prints the stage's document, `{contract, rows, errors}`, and `limited: N` where a capped
-  read stopped at N, the newest. `--jq` prints it formatted, and `--text`, or no form off a terminal, as a table.
-- `kit <verb> --json`, with no stage, prints `{contract, stages, <stage>: document…}`, a stage that could not be
-  read `null`.
-- On a terminal, with no form, `kit <verb>` opens the app in kittui, and `kit <verb> <stage>` opens it on that tab.
-- `kit --workspace=<group> <verb>` runs each stage in every cloned member's checkout at once. Each row, and each
-  error, gains `member`, its host and path, and a member that could not be read is `{member, error}` under `errors`.
+In this section, `<verb>` is any of the eight verbs after `kit flow`, and `<stage>` is one of its stages.
+
+| Command | At a terminal | Off a terminal |
+| --- | --- | --- |
+| `kit <verb>` | opens the app in kittui | prints every stage as text |
+| `kit <verb> <stage>` | opens the app on that tab, maximized | prints that stage as text |
+
+A verb opens kittui only when its input, its output, and its error stream are all a terminal, and kittui is
+installed.
+
+| Option | What the verb prints |
+| --- | --- |
+| `--text` | text, at a terminal too |
+| `--json` | with a stage, the stage's document; with no stage, one object that holds every stage's document |
+| `--jq` | the same JSON, formatted by `jq` for a person |
+| `--stages` | the names of the verb's own stages, one per line |
+| `--marks` | one JSON object that holds a mark for each stage |
+
+- With `--json` and no stage, the object is `{contract, stages, <stage>: document, …}`. A stage that kit could not
+  read is `null`.
+- `--stages` leaves out a tab that shows a stage of `kit flow`.
+- `kit packages` with no stage is different: it lists the packages. See [Packages](#packages-kit-packages).
+
+### Marks
+
+A mark is a short string that changes when the content of its stage changes. kittui compares marks to decide when to
+load a tab again. A stage that never has a mark prints `null`. kittui loads the tab of such a stage again only when
+you choose Refresh, and its tab menu has no Watch.
+
+### Exit status
+
+| Status | When |
+| --- | --- |
+| 0 | kit printed every stage you asked for |
+| 1 | kit could not read a stage, and printed the stages it could read |
+| 2 | a usage error, or the command ran outside a repository with no workspace |
+
+A bare repository and a `.git` directory have no working tree, so both count as outside a repository.
+
+### Over a workspace
+
+A workspace is one repository, or a named group of repositories; see [workspaces.md](workspaces.md). A member is one
+repository of a group, named by its host and path, such as `github.com/empowerite/edge`.
+
+`kit --workspace=<group> <verb>` runs the verb in the checkout of every cloned member at once, and prints one
+document for each stage.
+
+- Each row and each error gains `member`, the member's host and path.
+- A member that kit could not read is `{member, error}` under `errors`. The other members still print, and the verb
+  exits 1.
+- Each member answers with the release of kit that its own `kit.yml` pins.
+
+## The JSON of a stage
+
+`kit <verb> <stage> --json` prints one object, the stage's document.
+
+| Key | Meaning |
+| --- | --- |
+| `contract` | the number of the contract of the stage documents, 1 in this release |
+| `rows` | the stage's rows, in the stage's order |
+| `errors` | what kit could not read; empty when kit read everything |
+| `limited` | present only when kit stopped at a cap: how many rows kit read, when the forge holds more |
+
+### Rows
+
+Every row holds its stage's own fields and these keys:
+
+| Key | Meaning |
+| --- | --- |
+| `key` | identifies the row within its stage |
+| `links` | where a value leads: an object from a field's name to a link |
+| `organization` | the owner of the repository kit read the row in |
+| `repository` | the name of that repository |
+| `source` | what kit read the row from |
+| `member` | over a workspace only: the member's host and path |
+
+- A link is the URL of a page on the forge, or `row:<stage>/<key>`, which is a row of another stage. kittui follows
+  the links that kit prints, and builds none of its own.
+- The primary remote is the remote that kit reads issues and pull requests from. It is `origin`, unless `primary` in
+  `kit.yml` names another. `organization` and `repository` come from the path of the primary remote's URL, after the
+  host. On GitLab, `organization` is the group with its subgroups.
+- When the primary remote is a path on this machine, `organization` is `null`, and `repository` is the name of the
+  folder.
+- `source` is the forge: `github`, `gitlab`, or `ado` for Azure DevOps. It is `kit` for a row that kit reads on this
+  machine, such as a row of `kit platform`, and `git` for a row of `kit workspace`.
+- A row that already has these three fields keeps its own values. For example, a row of `kit audit policy` names the
+  place where the rule applies.
+
+### Errors
+
+A stage that reads the forge goes through the forge seam, `modules/bash/forge.sh`. The seam has one provider for
+each forge, and a provider can lack a feature.
+
+| Case | `rows` | `errors` | Exit |
+| --- | --- | --- | --- |
+| the primary remote is on no forge | empty | empty | 0 |
+| the provider lacks the stage's feature | empty | empty | 0 |
+| the forge has the feature off for this repository | empty | `{feature, off: true}` | 0 |
+
+None of the three is a failure. When a read of the forge fails, kit prints no document for the stage. It says why
+in one line, and the verb exits 1. Some stages add entries of their own to `errors`, and their sections say which.
 
 ## The contract of the stage documents
 
-`contract` is one number, 1 in this release. kit prints it first in every stage's document that is an object, and in
-every picture:
+`contract` is one number. It is 1 in this release. kit prints it first in every stage document that is an object,
+and in every picture. A picture is the object a verb prints with `--json` and no stage.
 
-- `{contract, rows, errors}`, which the app verbs and `kit workspace` print for a stage, and `kit flow` prints for a
-  stage over a workspace
-- the object `kit flow incoming --json` prints in one repository
-- the picture `kit flow --json`, `kit workspace --json`, and `kit <verb> --json` print, beside `stages`
+| Document | Printed by |
+| --- | --- |
+| `{contract, rows, errors}` | an app verb or `kit workspace`, for a stage; `kit flow`, for a stage over a workspace |
+| the object for incoming | `kit flow incoming --json`, in one repository |
+| `{contract, stages, …}` | `kit flow --json`, `kit workspace --json`, and `kit <verb> --json` |
 
-The number changes when a document changes so that a reader of the old one would misread it: a key renamed, removed,
-or given another meaning. A key added does not change it.
+The number changes when a document changes so that a reader of the old document would misread the new one: a key is
+renamed, removed, or given another meaning. Adding a key does not change the number.
 
-Two readers check it. Over a workspace each member answers with the release its own `kit.yml` pins. kit merges
-nothing of a member whose document states another contract: the member is `{member, error}` under `errors`, the line
-says both numbers and which side to update, and the verb exits 1. kittui's catalog,
-`projects/tui/internal/flow/fields.json`, states the number it reads, and kittui refuses a stage whose document states
-another. A document that states no contract is read.
+Two readers check the number:
 
-`kit flow issues`, `changes`, `builds`, and `releases` print an array in one repository, and an array holds no place
-for the number. Over a workspace, kit reads such a member's array without the check.
+- kit, over a workspace. Each member answers with the release its own `kit.yml` pins. When a member's document states
+  another contract, kit merges none of that member's rows. The member is `{member, error}` under `errors`. The error
+  gives both numbers and says which side to update. The verb exits 1.
+- kittui. Its catalog, `projects/tui/internal/flow/fields.json`, states the number that kittui reads. kittui refuses
+  a stage whose document states another number.
 
-A row is `{key, …, links}`: `key` is the row's own within its stage, and `links` gives where a value leads, by its
-field. Every row also says where it is from, in one repository and across a workspace alike:
+Both readers accept a document that states no contract.
 
-- `organization`: the owner, or the group with its subgroups, of the repository kit read it in, as its primary
-  remote's URL names it past the host; `null` for a primary on this machine
-- `repository`: that repository's name, or the name of its folder for a primary on this machine
-- `source`: the forge the row was read from, `github`, `gitlab`, or `ado`, or `kit` for one kit reads here, as
-  `platform`'s rows
+`kit flow issues`, `kit flow changes`, `kit flow builds`, and `kit flow releases` print an array in one repository.
+An array has no place for the number. So over a workspace, kit reads the array of such a member without the check.
 
-A row that names its own keeps them, as an issue says the tracker and the repository that hold it, and a rule of
-`audit policy` the place it is in force. A stage that reads
-the forge goes through the forge seam, `modules/bash/forge.sh`. A primary with no forge, or
-a forge that lacks the stage's feature, gives no rows and no errors. A forge that says the feature is off for this
-repository gives no rows and the error `{feature, off: true}`. Neither is a failure. A read that fails prints its one
-line and the verb exits 1.
+## Tabs that show a stage of kit flow
 
-A tab of the app that another command prints opens on a terminal as the verb's own do; with `--json`, the verb
-refuses with 2 and names that command.
+Issues, Changes, and Delivery each have a tab that shows a stage of `kit flow`. The app's verb takes the tab's name
+too. At a terminal, it opens the app on that tab. Off a terminal, or with an output option, it prints what `kit flow`
+prints for the stage. The incoming tab of Repositories is different: `kit workspace` does not take its name, and
+`kit flow incoming` prints it.
 
-Each verb exits 0 when its stages are drawn, 1 when one could not be read, after what was, and 2 on a usage error,
-or outside a repository's working tree with no workspace.
+| Command | Prints what this prints |
+| --- | --- |
+| `kit issues issues` | `kit flow issues` |
+| `kit issues backlog` | `kit flow issues`, only the issues in the backlog |
+| `kit issues underway` | `kit flow issues`, only the issues underway |
+| `kit changes changes` | `kit flow changes` |
+| `kit delivery releases` | `kit flow releases` |
+| `kit delivery builds` | `kit flow builds` |
 
-## Platform: kit platform
-
-`kit platform` prints what kit runs with here. It asks the forge only whether its tool is signed in.
-
-| Stage | A row per | Fields | Mark |
-| --- | --- | --- | --- |
-| `services` | capability kit fills | `capability, service, provider, chosen, ready` | a hash of `kit.yml`, the git configuration, `.kit/policy`, and what `toolchains` hashes |
-| `toolchains` | toolchain and role, as `kit toolchains --json` lists them, in each worktree | `provider, role, usable, active, chosen, fills, worktree, branch` | a hash of the pin files and kit's choice |
-| `tools` | tool pinned, as `kit tools --json` lists them, in each worktree | `name, pinned, installed, from, worktree, branch` | as `toolchains` |
-| `settings` | key the settings schema names | `setting, value, from` | a hash of `kit.yml` |
-
-- `services` holds `hosting`, `review`, `ci`, and `releases`, the primary's forge; `tracking <prefix>`, each tracker
-  prefix; `toolchain`, the project's tool manager; `dependencies <provider>`, each dependency provider whose manifest
-  and lock are here, or `dependencies` alone for none; and `policy`, the policy engine. `service` is what answers it, as
-  `github`, `mise`, or `patterns`, `null` for none: the forge's with no remote, or a `ci` the forge lacks. `provider`
-  is kit's module that reaches it, as `forge/github`. `chosen` is `set` where `kit.yml` or a recorded choice names
-  it, else `inferred`. `ready` is whether its tool is there and signed in: a forge whose tool is not signed in is not
-  ready, and the stage still draws.
-- `toolchains` keys each row by its worktree, provider, and role, `mise project`, and `tools` by its worktree, where
-  the tool is pinned, and its name: each checkout of the clone is read, and says its folder and its branch, `null`
-  where detached. Where `kit tools` refuses here, as with several tool managers usable and none chosen, `tools` is
-  its line and the verb exits 1; `toolchains` still draws. A linked worktree that refuses is `{worktree, error}` under
-  `errors`, and the rest draw.
-- `settings` lists every key of `.kit/kit.schema.json`, in its order: the value `kit.yml` sets, `from: set`, else the
-  schema's default, `null` where it names none, `from: default`.
-- The toolchains' mark hashes every file a toolchain or a dependency provider pins from, and the files that keep
-  kit's choice of toolchain: this checkout's, the clone's, and yours under `~/.kit/settings.yml`.
+- With `--json`, each prints an array in one repository. Over a workspace, each prints `{contract, rows, errors}`,
+  and every row has its `member`.
+- At a terminal, `kit issues backlog` and `kit issues underway` open the issues tab on its Backlog or Underway
+  preset.
+- The app's verb with no tab named prints only its own stages. `kit issues` prints the milestones and the
+  iterations, not the issues.
 
 ## Issues: kit issues
 
-`kit issues` prints the open issues and the planning the forge keeps. Its first tab in kittui, issues, every open
-issue in the backlog or underway, is `kit flow`'s stage: `kit issues issues` opens it on a terminal, and `kit issues
-backlog` and `kit issues underway` open it on its Backlog or Underway preset. Off a terminal, or with a form, `kit
-issues issues` prints what `kit flow issues` prints, as text or as JSON, and `kit issues backlog` and `kit issues
-underway` print the issues of that status. `kit issues` with no tab named prints the stages in the table below, not
-the issues, and `--stages` and `--marks` name those alone.
-The tab's presets are All Issues, which it opens on, Backlog, Underway, By Milestone, By Iteration, and By Swimlane.
+`kit issues` prints the planning that the forge keeps. The first tab of the Issues app, issues, shows every open
+issue, and it is a stage of `kit flow`. That tab has seven presets: All Issues, which it opens on, Backlog, Underway,
+By Milestone, By Iteration, By Swimlane, and Compact.
 
-| Stage | A row per | Fields | Mark |
-| --- | --- | --- | --- |
-| `milestones` | milestone, open and closed, by number | `number, title, state, due, open, closed` | the forge's mark of its milestones |
-| `iterations` | iteration, by start | `id, title, start, end, current` | `null` |
+| Stage | A row for each | Order | Key | Mark |
+| --- | --- | --- | --- | --- |
+| `milestones` | milestone, open or closed | by number | `number` | the forge's mark of its milestones |
+| `iterations` | iteration | by start | `id` | none |
 
-- `milestones` keys each row by its number. `state` is `open` or `closed`, `due` seconds since the epoch, `null` for
-  none, and `open` and `closed` count the milestone's issues. The title links to the milestone's page. Azure DevOps
-  has no milestones, so its stage has no rows and no errors. Its mark is GitHub's ETag of the milestones list's
-  first 100, GitLab's newest milestone and newest issue by `updated_at`, and none on Azure DevOps.
-- `iterations` keys each row by its id. `start` and `end` are seconds since the epoch, `end` the last second of the
-  last day, both `null` for an iteration with no dates. `current` is true for the one that holds now. The title links
-  to the page of the project, the iteration, or the team's sprints. GitHub's come from the projects linked to the
-  repository, none when none is linked, and need `gh`'s `read:project` scope; GitLab's include its groups', and a tier
-  without iterations is the error `{feature: iterations, off: true}`; Azure DevOps' are its team's, the team
-  `forge_settings.ado.team` in `kit.yml` names, else the project's default team. It has no mark, so kittui reads it
-  again only on Refresh.
+### milestones
+
+| Field | Meaning |
+| --- | --- |
+| `number` | the milestone's number |
+| `title` | its title, which links to the milestone's page |
+| `state` | `open` or `closed` |
+| `due` | when it is due, in seconds since the epoch, or `null` |
+| `open`, `closed` | how many of the milestone's issues are open, and how many are closed |
+
+| Forge | Rows | Mark |
+| --- | --- | --- |
+| GitHub | the repository's milestones | the ETag of the first 100 milestones |
+| GitLab | the project's milestones | the newest `updated_at` of a milestone and of an issue |
+| Azure DevOps | none, and no error | none |
+
+Azure DevOps has no milestones.
+
+### iterations
+
+| Field | Meaning |
+| --- | --- |
+| `id` | the iteration's id |
+| `title` | its title, which links to a page on the forge |
+| `start`, `end` | seconds since the epoch, or `null` for an iteration with no dates |
+| `current` | `true` for the iteration that contains now |
+
+`end` is the last second of the iteration's last day.
+
+| Forge | Iterations kit reads | The title links to |
+| --- | --- | --- |
+| GitHub | those of the projects linked to the repository | the project |
+| GitLab | the project's, and those of its groups | the iteration |
+| Azure DevOps | those of one team | the team's sprints |
+
+- On GitHub, a repository with no linked project has no rows. Reading a project needs the `read:project` scope for
+  `gh`.
+- On GitLab, a tier without iterations gives the error `{feature: iterations, off: true}`.
+- On Azure DevOps, the team is the one that `forge_settings.ado.team` in `kit.yml` names. Without that setting, it is
+  the project's default team.
 
 ## Changes: kit changes
 
-`kit changes` prints what the forge says of the repository's changes. Its other tab in kittui, the open changes, is
-`kit flow`'s stage: `kit changes changes` opens it on a terminal, and off one, or with a form, prints what
-`kit flow changes` prints, as text or as JSON. `kit changes` with no tab named prints the stages in the table below,
-not the open changes.
+`kit changes` prints what the forge reports about the repository's changes. A change is a pull request, which GitLab
+calls a merge request. The first tab of the Changes app, changes, shows every open change, and it is a stage of
+`kit flow`.
 
-| Stage | A row per | Fields | Mark |
+| Stage | A row for each | Key | Mark |
 | --- | --- | --- | --- |
-| `reviews` | open change and reviewer | `change, title, login, state, at, unresolved` | the forge's issues and runs |
-| `checks` | open change and check, its latest run | `change, title, name, workflow, event, verdict, at, took` | as `reviews` |
-| `merged` | change merged last, 50 at most | `number, title, author, branch, merged, by` | as `reviews` |
+| `reviews` | open change and reviewer | the change's number and the login: `3 bob` | the forge's issues and runs |
+| `checks` | open change and check | the change's number and the check's name: `3 a` | the same |
+| `merged` | merged change, the 50 merged last | the change's number | the same |
 
-- `reviews` and `checks` read the open changes as `kit flow changes` does, from the forge's snapshot of them, so they
-  cost no request more: one GraphQL request a minute on GitHub. Azure DevOps names the reviewers in its list of pull
-  requests. GitLab reads each open merge request's approvals beside its discussions, a request each, in every read of
-  the open changes: `kit flow changes` and `issues` pay it as well. On GitHub, a token without
-  `read:org` is refused a team asked to review; the read asks again without teams, and draws no team among them.
-  With `--fresh`, each reads the open changes afresh, as `kit flow changes --fresh` does, so kittui's Refresh on
-  either tab shows a review given within the minute.
-- `reviews` keys each row by the change's number and the reviewer's login, `3 bob`. `state` is `requested` while the
-  reviewer is asked and has not answered, else the reviewer's latest review: `approved`, `changes`, or `commented`.
-  `at` is when they answered, in seconds since the epoch, `null` while asked. `unresolved` is the change's unresolved
-  threads, on each of its rows. The author's own comments are no review. GitHub names a team asked by its slug; a
-  reviewer's latest approval or request for changes stands though they commented after it, and a dismissed review
-  stands as a comment. GitLab's reviewer is `approved` with an approval, else `requested`. Azure
-  DevOps' votes 10 and 5 are `approved`, -5 and -10 `changes`, 0 `requested`, and it keeps no time of a vote.
-- `checks` keys each row by the change's number and the check's name, `3 a`. Of the runs of one name on the head
-  commit, the latest by its start counts, so a rerun that passed supersedes a run that failed. GitHub names a check
-  by its job alone, so a row there says the `workflow` the job is in and the `event` that started it, and its key
-  holds them, `3 CI/pull_request a`: a job named `test` in two workflows, or run for a push and for a pull request,
-  is two checks, and a `test` that passed later never hides one that failed. Both are `null` for a check of no
-  workflow, and on a forge that names none. `verdict` is `passed`,
-  `failed`, or `pending`; `at` is when the run started and `took` how long it ran, in seconds. A forge whose provider
-  lacks `check-runs`, as one written to a contract before 4, prints no runs on its changes: the stage has no rows,
-  and `{feature: check-runs, off: true, lacked: true}` under `errors` says why, though `kit flow changes` counts
-  their checks.
-- `merged` keys each row by its number, and its title links to its page. `merged` is when, in seconds since the
-  epoch, and `by` who merged it. GitHub reads the 50 pull requests updated last, as a merge updates one, and orders
-  them by merge; GitLab orders by `merged_at`, from GitLab 17.2, and an older GitLab is read by update, as GitHub is;
-  Azure DevOps lists its completed pull requests in an order no parameter sets, newest first in its reference's
-  examples. Where the forge holds more than it read, the document is `limited`. A list read by update could miss a
-  change merged before the oldest update in it, so it keeps only those merged since, and `limited` counts them.
-- Each stage's mark is the forge's marks of its issues, which move with its changes, and of its runs, joined, as
-  `kit flow changes`' are; Azure DevOps has no marks, so its are `null`.
+The mark joins two of the forge's marks: the mark of its issues, which changes when a change does, and the mark of
+its runs. Azure DevOps has no marks, so each mark is `null` there.
+
+### How reviews and checks read the open changes
+
+`reviews` and `checks` read the snapshot of the open changes that `kit flow changes` reads. kit reads that snapshot
+from the forge at most once a minute, so both stages cost no extra request. With `--fresh`, each stage reads the
+open changes again, as `kit flow changes --fresh` does. kittui's Refresh does the same, so it shows a review that was
+given within the last minute.
+
+| Forge | What one read of the open changes costs |
+| --- | --- |
+| GitHub | one GraphQL request |
+| GitLab | the list, then two requests for each open merge request: its approvals and its discussions |
+| Azure DevOps | the list of pull requests, which names the reviewers |
+
+- On GitLab, every read of the open changes pays for the approvals, so `kit flow changes` and `kit flow issues` pay
+  for them too.
+- On GitHub, a token without the `read:org` scope cannot read a team that is asked to review. kit then reads again
+  without teams, and the rows include no team.
+
+### reviews
+
+| Field | Meaning |
+| --- | --- |
+| `change` | the change's number |
+| `title` | the change's title |
+| `login` | the reviewer's login |
+| `state` | `requested`, `approved`, `changes`, or `commented` |
+| `at` | when the reviewer answered, in seconds since the epoch; `null` while `state` is `requested` |
+| `unresolved` | how many threads on the change are unresolved; the same on each row of the change |
+
+`state` is `requested` while the reviewer is asked and has not answered. Otherwise it is the reviewer's latest
+review. The author's own comments are not a review.
+
+| Forge | How kit decides `state` |
+| --- | --- |
+| GitHub | the latest approval or request for changes counts, even when a comment follows it |
+| GitLab | `approved` when the reviewer approved, otherwise `requested` |
+| Azure DevOps | a vote of 10 or 5 is `approved`, -5 or -10 is `changes`, and 0 is `requested` |
+
+- On GitHub, a dismissed review counts as `commented`. A team that is asked to review is named by its slug.
+- On Azure DevOps, `at` is always `null`, because Azure DevOps keeps no time for a vote.
+
+### checks
+
+| Field | Meaning |
+| --- | --- |
+| `change` | the change's number |
+| `title` | the change's title |
+| `name` | the check's name |
+| `workflow` | the workflow that holds the check, or `null` |
+| `event` | the event that started the run, or `null` |
+| `verdict` | `passed`, `failed`, or `pending` |
+| `at` | when the run started, in seconds since the epoch, or `null` |
+| `took` | how long the run took, in seconds; `null` while it runs |
+
+A check can run more than once on the head commit. Only its latest run counts, by start time. So a rerun that passed
+replaces a run that failed.
+
+GitHub names a check by its job only. So on GitHub, a row also gives the `workflow` that holds the job and the
+`event` that started it, and the key holds both: `3 CI/pull_request a`. A job named `test` in two workflows is two
+checks. A job that runs for a push and for a pull request is two checks as well. A `test` that passed later never
+hides another `test` that failed. `workflow` and `event` are `null` for a check that belongs to no workflow, and on a
+forge that names neither.
+
+A provider written for a version of the forge contract before 4 does not have the `check-runs` call. On such a forge
+the stage has no rows, and `errors` holds `{feature: check-runs, off: true, lacked: true}`. `kit flow changes` still
+shows how many checks each change has.
+
+### merged
+
+| Field | Meaning |
+| --- | --- |
+| `number` | the change's number |
+| `title` | its title, which links to the change's page |
+| `author` | who opened it |
+| `branch` | the branch it was on |
+| `merged` | when it was merged, in seconds since the epoch |
+| `by` | who merged it |
+| `named` | the references that a closing keyword names in its body, such as `AB#12` in `Fixes AB#12` |
+
+| Forge | How kit reads the 50 merged last |
+| --- | --- |
+| GitHub | the 50 pull requests updated last, sorted by merge time |
+| GitLab | the 50 merged last, sorted by `merged_at` |
+| Azure DevOps | the completed pull requests, in the order Azure DevOps returns them |
+
+- A merge updates a pull request, which is why a list read by update finds the newest merges. Such a list can still
+  miss a change that was merged before the oldest update in the list. So kit keeps only the changes merged since
+  that update.
+- GitLab sorts by `merged_at` from version 17.2. kit reads an older GitLab by update, in the way it reads GitHub.
+- Where the forge holds more than kit read, the document is `limited`. Its value is the number of rows kit kept.
+- No parameter sets the order of Azure DevOps' list. The examples in its reference show the newest first.
+
+## Repositories: kit workspace
+
+`kit workspace` prints what git holds: the members of the workspace, then one stage for each kind of thing git
+keeps. It reads only git, from the main checkout of each repository, and asks no remote. So what a row says about a
+remote is what the last fetch left. [workspaces.md](workspaces.md#look-at-git-across-a-group) shows how to use it
+across a group.
+
+The desk is a repository's root checkout, where you cloned it. A linked worktree prints what its desk prints.
+
+| Stage | A row for each | Order | Cap |
+| --- | --- | --- | --- |
+| `repos` | member of the workspace, cloned or not | the workspace's order | none |
+| `remotes` | remote | the primary remote first | none |
+| `branches` | branch on a remote, and local branch with no branch on a remote | those on a remote first | none |
+| `worktrees` | worktree | the desk first | none |
+| `commits` | commit that a local branch holds and the default branch does not | the newest first | 200 |
+| `tags` | tag | the newest first | 100 |
+
+- Every stage has a mark: a hash of what git holds for that stage.
+- The key of a row is the remote's name, the worktree's path, the commit's full hash, or the tag's name. For a branch
+  on a remote, and for a local branch whose upstream is gone, it is `<remote>/<branch>`. For a local branch with no
+  upstream, it is the branch's name. A row of `repos` has no key.
+- An age is in seconds.
+- `kit workspace --stages` prints the stages in the order of this table. The tabs of the Repositories app are in
+  another order, and its last tab, incoming, is a stage of `kit flow`.
+- HEAD is not a stage. A remote's HEAD is its default branch: `default` names it on the remote's row, and marks it
+  on the branch's row. A worktree's HEAD is its branch, or its commit when it is detached.
+- A member answers with the release its own `kit.yml` pins. When its document states another contract, kit does not
+  merge it; see [The contract of the stage documents](#the-contract-of-the-stage-documents). For `repos`, the line
+  is the `error` of the member's row.
+
+### repos
+
+A row of `repos` is different from every other row. It has no `key`, no `links`, and no `member`, and its
+`repository` is the member's host and path. With no `--workspace=`, the stage has one row, for the repository you are
+in.
+
+| Field | Meaning |
+| --- | --- |
+| `repository` | the member: its host and path |
+| `host`, `path` | the two parts of `repository` |
+| `forge` | the member's forge |
+| `remotes` | its remotes: `[{name, url, forge}]` |
+| `checkout` | the folder of its clone, which is its desk |
+| `checkouts` | the folder of every clone of the member |
+| `by` | `fixed` for a member of a group, `given` for a repository you named, `here` for the one you are in |
+| `branch` | the branch of its desk |
+| `ahead`, `behind` | how far the desk is ahead of and behind the primary remote's default branch |
+| `worktrees` | its linked worktrees: `[{branch, path}]` |
+| `branches` | its local branches that no checkout has |
+| `error` | kit's line when it could not read the member's desk |
+
+`checkout`, `branch`, `ahead`, `behind`, `worktrees`, and `branches` are `null` for a member that is not cloned.
+
+### remotes
+
+| Field | Meaning |
+| --- | --- |
+| `remote` | the remote's name |
+| `forge` | its forge |
+| `organization`, `repository` | the path its URL names after the host: all but the last segment, and the last segment |
+| `host` | the host its URL names |
+| `url` | its URL |
+| `push` | its push URL, or `null` when that is the same URL |
+| `default` | its default branch, which links to that row of `branches` |
+| `branches` | how many branches it has |
+| `primary` | `primary` for the primary remote, otherwise `null` |
+
+### branches
+
+| Field | Meaning |
+| --- | --- |
+| `kind` | `remote`, `gone`, or `local` |
+| `branch` | the branch's name, which links to its page on the forge |
+| `remote` | the remote that has it |
+| `local` | the local branches that pull from it |
+| `upstream` | `[ahead, behind]` of the first of those local branches, or `null` |
+| `default` | `default` for the remote's default branch, otherwise `null` |
+| `commit` | its newest commit, which links to the commit's page |
+| `age` | the age of that commit |
+| `subject` | the subject of that commit |
+| `worktree` | the paths of the worktrees that have it checked out; it links to the first one's row of `worktrees` |
+
+A `gone` row is a local branch whose upstream is gone. A `local` row is a local branch that has no upstream on a
+remote.
+
+### worktrees
+
+| Field | Meaning |
+| --- | --- |
+| `kind` | `desk` or `linked` |
+| `path` | the worktree's folder |
+| `branch` | its branch |
+| `detached` | set when its HEAD is detached |
+| `head` | the commit it is on |
+| `upstream` | the upstream of its branch |
+| `track` | `[ahead, behind]` of the upstream, or `null` |
+| `base` | `[ahead, behind]` of the primary remote's default branch, or `null` |
+| `changes` | how many paths are changed |
+| `untracked` | how many paths are untracked |
+| `locked`, `prunable` | set when git says the worktree is locked, or can be pruned |
+
+### commits
+
+| Field | Meaning |
+| --- | --- |
+| `commit` | the commit's short hash |
+| `subject` | its subject |
+| `author` | its author |
+| `age` | its age |
+| `issue` | the `#<number>` its subject starts with, or `null` |
+| `branches` | the local branches that hold it |
+| `pushed` | `pushed` when a remote has it, otherwise `local` |
+| `worktrees` | the paths of the worktrees whose HEAD it is |
+
+### tags
+
+| Field | Meaning |
+| --- | --- |
+| `tag` | the tag's name |
+| `kind` | `annotated` or `lightweight` |
+| `commit` | the commit it names |
+| `tagger` | who made it; `null` for a lightweight tag |
+| `age` | its age |
+| `subject` | its subject |
 
 ## Delivery: kit delivery
 
-`kit delivery` prints what the forge holds of the repository's delivery. Its other tabs in kittui, the releases and
-the builds, are `kit flow`'s stages: `kit delivery releases` and `kit delivery builds` open them on a terminal, and
-off one, or with a form, print what `kit flow releases` and `kit flow builds` print, as text or as JSON.
-`kit delivery` with no tab named prints the stages in the table below.
+`kit delivery` prints what the forge holds of the repository's delivery. Two tabs of the Delivery app, releases and
+builds, are stages of `kit flow`.
 
-| Stage | A row per | Fields | Mark |
+| Stage | A row for each | Cap | Key | Mark |
+| --- | --- | --- | --- | --- |
+| `artifacts` | artifact that a run kept | the newest 100 | `id` | the forge's runs |
+| `environments` | deployment environment | see below | `name` | the forge's environments and runs |
+| `deployments` | deployment | the newest 50 | `id` | the forge's deployments and runs |
+
+### artifacts
+
+| Field | Meaning |
+| --- | --- |
+| `id` | the artifact's id; `<run>/<id>` on Azure DevOps |
+| `name` | its name, which links to the artifact's page |
+| `digest` | the forge's digest, `sha256:…`, or `null` |
+| `size` | its size in bytes |
+| `run` | the run that kept it |
+| `age` | seconds since it was made |
+| `expires` | when it expires, in seconds since the epoch, or `null` |
+
+| Forge | Artifacts kit reads | Requests | Notes |
 | --- | --- | --- | --- |
-| `artifacts` | artifact a run kept, the newest 100 at most | `id, name, digest, size, run, age, expires` | the forge's runs |
-| `environments` | deployment environment | `name, protection, approvers, branches` | the forge's environments and runs |
-| `deployments` | deployment, the newest 50 | `id, environment, ref, sha, state, actor, age` | the forge's deployments and runs |
+| GitHub | the 100 newest, less the expired | one | an expired artifact no longer downloads |
+| GitLab | the archives of the 100 newest successful jobs | one | `digest` is `null` |
+| Azure DevOps | those of the 20 newest runs, 100 at most | one for each run | `digest` and `expires` are `null` |
 
-- `artifacts` keys each row by its id, `<run>/<id>` on Azure DevOps, which numbers an artifact within its run, and its
-  name links to its page. `digest` is the forge's, `sha256:…`, and `null` on GitLab and Azure DevOps, which show none;
-  `size` is in bytes, `run` the run that kept it, `age` seconds since it was made, and `expires` seconds since the
-  epoch, `null` for none. GitHub reads its 100 newest in one request and leaves out those expired, which no longer
-  download; GitLab the archives of its 100 newest successful jobs, in one, each named for its job and its file, as
-  `package: artifacts.zip`; Azure DevOps the artifacts of its 20 newest runs, a request each, 100 at most, and keeps
-  no expiry. Where the forge holds more, the document is `limited`, at the rows drawn.
-- `environments` keys each row by its name, and its name links to its page. `protection` is the kinds of rule that
-  guard it, sorted: `reviewers`, `wait`, `branches`, `deployers`, or the forge's own name for another. `approvers` are
-  who may approve, by login, or the name the forge gives a team or a role. `branches` are the refs that may deploy
-  there, a tag's as `refs/tags/…`, `protected branches` for GitHub's rule of that name, and `null` for any. GitHub
-  reads the environments, then the branch policies of each one with its own, a request each, for 20 environments at
-  most: the list stops before a 21st, `limited`. GitLab reads its protected environments beside, on Premium and
-  Ultimate; a tier or a caller that cannot read them leaves `protection` and `approvers` `null`, and GitLab restricts
-  no branch, so `branches` is `null`. Azure DevOps reads its environments, 100 at most, and their checks in one
-  request: an Approval's approvers, and a branch control's branches.
-- `deployments` keys each row by its id. `environment` links to its row of `environments`, `row:environments/<name>`,
-  `sha` to the commit's page, and `state` to its log or page. `state` is `success`, `failure`, `running`, `waiting`,
-  `cancelled`, or `inactive`; `actor` who made it; `age` seconds since. GitHub reads the 50 newest, each with its latest
-  status, in one GraphQL request; GitLab its 51 newest, in one. Azure DevOps keeps them as each environment's deployment
-  records, so it reads those of the 20 environments changed last, 51 each, and names each one's ref, commit, and actor
-  from its run among the project's 100 newest, `null` for a run past them. Past 50, or past 20 environments, the
-  document is `limited`.
-- Each stage's mark holds the forge's mark of its runs, as a run makes each. `environments`' also holds the forge's mark
-  of its environments, GitHub's ETag of the first 100, GitLab's ids, states, and updates of them, as a person may edit
-  one; `deployments`' the forge's mark of its deployments, GitHub's ETag of the newest 50 and GitLab's deployment
-  updated last, as another tool may deploy and a status may change. GitLab's protected environments move no mark.
-  Azure DevOps has no marks, so its are `null`.
+- GitLab names an artifact for its job and its file, such as `package: artifacts.zip`.
+- Azure DevOps numbers an artifact within its run, which is why the id there is `<run>/<id>`.
+- Where the forge holds more, the document is `limited`, at the number of rows printed.
+
+### environments
+
+| Field | Meaning |
+| --- | --- |
+| `name` | the environment's name, which links to its page |
+| `protection` | the kinds of rule that guard it, sorted |
+| `approvers` | who may approve a deployment: logins, or the forge's name for a team or a role |
+| `branches` | the refs that may deploy there, or `null` when any ref may |
+
+- A kind in `protection` is `reviewers`, `wait`, `branches`, `deployers`, or the forge's own name for another kind.
+- In `branches`, a tag is written `refs/tags/…`, and `protected branches` means GitHub's rule of that name.
+
+| Forge | What kit reads | Cap |
+| --- | --- | --- |
+| GitHub | the environments, then the branch policies of each one that has its own, one request each | 20 environments |
+| GitLab | the environments, with the protected environments on Premium and Ultimate | none |
+| Azure DevOps | the environments, and their checks in one request | 100 environments |
+
+- On GitHub, the list stops before a 21st environment, and the document is `limited`.
+- On GitLab, a tier or a caller that cannot read protected environments leaves `protection` and `approvers` `null`.
+  GitLab restricts no branch, so `branches` is always `null`.
+- On Azure DevOps, `approvers` are those of an Approval check, and `branches` are those of a branch control check.
+
+### deployments
+
+| Field | Meaning |
+| --- | --- |
+| `id` | the deployment's id |
+| `environment` | its environment, which links to that row of `environments`: `row:environments/<name>` |
+| `ref` | the ref that was deployed |
+| `sha` | the commit, which links to the commit's page |
+| `state` | `success`, `failure`, `running`, `waiting`, `cancelled`, or `inactive`; it links to the log or the page |
+| `actor` | who made the deployment |
+| `age` | seconds since it was made |
+
+| Forge | Deployments kit reads | Requests |
+| --- | --- | --- |
+| GitHub | the 50 newest, each with its latest status | one GraphQL request |
+| GitLab | the 51 newest | one |
+| Azure DevOps | the newest 51 records of each of the 20 environments changed last | one for each environment |
+
+- Azure DevOps keeps deployments as the deployment records of each environment. kit takes each record's ref, commit,
+  and actor from its run, among the project's 100 newest runs. They are `null` for a run older than those.
+- Past 50 deployments, or past 20 environments on Azure DevOps, the document is `limited`.
+
+### The marks of Delivery
+
+Every stage's mark holds the forge's mark of its runs, because a run makes artifacts and deployments.
+
+| Stage | Its mark also holds | Why |
+| --- | --- | --- |
+| `environments` | the forge's mark of its environments | a person can edit an environment |
+| `deployments` | the forge's mark of its deployments | another tool can deploy, and a status can change |
+
+| Forge | Mark of the environments | Mark of the deployments |
+| --- | --- | --- |
+| GitHub | the ETag of the first 100 | the ETag of the newest 50 |
+| GitLab | their ids, states, and update times | the deployment updated last |
+| Azure DevOps | none | none |
+
+Azure DevOps has no marks, so every mark is `null` there. On GitLab, a change to a protected environment changes no
+mark.
 
 ## People: kit people
 
-`kit people` prints who works on the repository, as the forge says. Every tab of People is its own.
+`kit people` prints who has access to the repository, and which bots acted in it. Every tab of the People app is a
+stage of this verb.
 
-| Stage | A row per | Fields | Mark |
-| --- | --- | --- | --- |
-| `people` | person or bot with access | `login, name, role, kind` | none |
-| `teams` | team with access, 20 at most | `team, name, role, members` | none |
-| `agents` | bot that acted | `login, acted, last` | none |
+| Stage | A row for each | Cap | Key | Mark |
+| --- | --- | --- | --- | --- |
+| `people` | person or bot with access | none | `login` | none |
+| `teams` | team with access | 20 teams, 100 members each | `team` | none |
+| `agents` | bot that acted | see below | `login` | none |
 
-- `people` keys each row by its login. `name` is `null` where the forge shows none, as GitHub's list mostly does.
-  `role` is the forge's own: GitHub's `admin`, `maintain`, `write`, `triage`, `read`, or a custom role, the highest
-  any source gives; GitLab's `owner`, `maintainer`, `developer`, `reporter`, `planner`, or `guest`, the highest of a
-  member's memberships, its own, its groups', and those of the groups the project is shared with or invited to; and
-  on Azure DevOps `admin` for an administrator of one of the project's teams, else `member`. `kind` is `user`, `bot`,
-  or, on Azure DevOps, `group`, for a group a team holds. GitHub reads every page of its collaborators, and shows them
-  only to a caller who may push; any other is told to ask an admin for write access. GitLab reads its members through
-  GraphQL, which says which is a bot, 100 a page. Azure DevOps lists its users only for the whole organization, so
-  its people are the members of the project's teams, as `teams` reads them, and the document is `limited` where that
-  is.
-- `teams` keys each row by the team, GitHub's slug, GitLab's group path, Azure DevOps' name, and the team links to its
-  page. `role` is the access the team has, GitHub's as its collaborators' are named, GitLab's the share's, and `null`
-  on Azure DevOps, whose teams hold none. `members` are their logins, the first 100, and `null` for a team the caller
-  cannot see. GitHub reads the teams with access, one request, then the members of all of them in one GraphQL
-  request, which needs the `read:org` scope: without it, the line names `gh auth refresh --scopes read:org`. A
-  repository a user owns has none. GitLab's teams are the groups the project is shared with, read the same way;
-  Azure DevOps reads the project's teams, then each one's members, a request each. Past 20 teams, or past 100 members
-  of one, the document is `limited`, at the teams drawn.
-- `agents` keys each row by its login, which links to its page where the forge gives one; GitHub gives none for a
-  bot seen only in commits, whose authors carry no page. `acted` is what it did, `commit`, `change`, or
-  `review`, and `last` when it last did, in seconds since the epoch; the last to act comes first. GitHub reads, in one
-  GraphQL request, the authors of the 100 newest commits on the default branch, and of the 100 open changes and the 50
-  merged changes updated last, with each one's latest reviews: a bot is a `Bot` account or a login that ends `[bot]`,
-  as `dependabot[bot]`, and a commit is also a bot's when its author names itself one, as an agent's commit under a
-  person's account does. A bot that acted only before those is not among them, and past 100 open changes, or 20
-  reviewers of one, the document is `limited`, at the bots drawn. GitLab's are its bot users among the
-  members, as a project's or a group's access token makes, `acted` `null`, as GitLab does not say, and `last` the day
-  each last acted. Azure DevOps names no bots, and draws none.
-- No stage has a mark: the forge's marks are read for every app at once, and a mark of who has access would cost each
-  a request more, one a caller who may not push is refused. Each is read again on Refresh only.
+No stage has a mark. kit reads the forge's marks for every app at once, and a mark of who has access would cost each
+app one more request. The forge would also refuse that request to a caller who may not push. So kittui loads these
+tabs again only on Refresh.
+
+### people
+
+| Field | Meaning |
+| --- | --- |
+| `login` | the login |
+| `name` | the name, or `null` where the forge shows none |
+| `role` | the forge's own name for the role |
+| `kind` | `user`, `bot`, or, on Azure DevOps, `group` for a group that a team holds |
+
+| Forge | Values of `role` | Which role, when several apply |
+| --- | --- | --- |
+| GitHub | `admin`, `maintain`, `write`, `triage`, `read`, or a custom role | the highest that any source gives |
+| GitLab | `owner`, `maintainer`, `developer`, `reporter`, `planner`, or `guest` | the highest of the member's memberships |
+| Azure DevOps | `admin` or `member` | `admin` for an administrator of one of the project's teams |
+
+- On GitHub, kit reads every page of the collaborators. The list mostly shows no name. GitHub shows the
+  collaborators only to a caller who may push, and kit tells any other caller to ask an admin for write access.
+- On GitLab, kit reads the members through GraphQL, 100 to a page, because GraphQL says which member is a bot. A
+  member's memberships are its own, those of its groups, and those of the groups that the project is shared with or
+  invited to.
+- Azure DevOps lists users only for the whole organization. So the rows are the members of the project's teams, as
+  `teams` reads them, and the document is `limited` where that read is.
+
+### teams
+
+| Field | Meaning |
+| --- | --- |
+| `team` | the team, which links to its page |
+| `name` | the team's name |
+| `role` | the access the team has, or `null` |
+| `members` | the logins of its first 100 members, or `null` for a team the caller cannot see |
+
+| Forge | A team is | `team` holds | `role` | Requests |
+| --- | --- | --- | --- | --- |
+| GitHub | a team with access | its slug | a role, named as in `people` | one, then one GraphQL request for all members |
+| GitLab | a group the project is shared with | the group's path | the role of the share | the same |
+| Azure DevOps | a team of the project | its name | `null` | one, then one for each team's members |
+
+- On GitHub, reading the members needs the `read:org` scope. Without it, kit's line names
+  `gh auth refresh --scopes read:org`. A repository that a user owns has no teams.
+- Azure DevOps' teams hold no access of their own, which is why `role` is `null` there.
+- Past 20 teams, or past 100 members of one team, the document is `limited`, at the number of teams printed.
+
+### agents
+
+| Field | Meaning |
+| --- | --- |
+| `login` | the bot's login, which links to its page where the forge gives one |
+| `acted` | what it did: a list of `commit`, `change`, and `review`, or `null` |
+| `last` | when it last acted, in seconds since the epoch |
+
+The bot that acted last comes first.
+
+| Forge | Bots kit reads |
+| --- | --- |
+| GitHub | the bots among the authors of the newest commits, changes, and reviews, in one GraphQL request |
+| GitLab | the bot users among the project's members |
+| Azure DevOps | none |
+
+On GitHub:
+
+- kit reads the authors of the 100 newest commits on the default branch, of the 100 open changes, and of the 50
+  merged changes updated last, with the latest reviews of each change.
+- A bot is a `Bot` account, or a login that ends in `[bot]`, such as `dependabot[bot]`. A commit also counts as a
+  bot's when its author names itself a bot. An agent's commit under a person's account is one example.
+- A bot that acted only before those commits and changes is not listed.
+- Past 100 open changes, or past 20 reviewers of one change, the document is `limited`, at the number of bots
+  printed.
+- A bot seen only in commits has no link, because a commit's author carries no page.
+
+On GitLab, the rows are the bot users among the project's members. GitLab creates one bot user for each access
+token of a project or a group. `acted` is `null`, because GitLab does not report what a bot did. `last` is the day of
+the bot's last activity.
+
+Azure DevOps names no bots, so the stage has no rows there.
 
 ## Trust: kit audit
 
-`kit audit` prints what the repository can be trusted for: what the forge attests and finds, what guards the default
-branch and who may get past it, the rules kit's policy judges by, and what holds an agent to them. Every tab of Trust
-is its own. Its verb is not `kit trust`, which trusts a clone.
+`kit audit` prints what the repository can be trusted for:
 
-| Stage | A row per | Fields | Mark |
+- what the forge attests and finds
+- what guards the default branch, and who may get past it
+- the rules that kit's policy judges by
+- what holds an agent to those rules
+
+Every tab of the Trust app is a stage of this verb. The verb is not `kit trust`, which trusts a clone.
+
+| Stage | A row for each | Key | Mark |
 | --- | --- | --- | --- |
-| `evidence` | attestation of the newest releases' assets and artifacts | `subject, digest, kind, signer, age` | the forge's runs and releases |
-| `findings` | code scanning, Dependabot, or secret scanning alert, open or dismissed | `tool, number, rule, severity, state, path, age` | the forge's runs and alerts |
-| `controls` | ruleset or protection that guards the default branch | `id, control, target, enforcement, rules, kind` | none |
-| `waivers` | bypass of a control, and alert dismissed | `waives, actor, kind, reason, by, until, hidden` | none |
-| `policy` | rule `kit policy` judges by, where it is in force | `source, organization, repository, branch, scope, rule, pattern, from, engine` | a hash of each checkout's `kit.yml` and `.kit/policy/` |
-| `enforcement` | mechanism that holds an agent to the rules, per harness and for the repository | `harness, tier, mechanism, status, evidence, detail, passes` | a hash of the files its own rows read |
+| `evidence` | attestation of a release's asset or of an artifact | the digest and the kind | the forge's runs and releases |
+| `findings` | alert, open or dismissed | the tool and the number | the forge's runs and alerts |
+| `controls` | ruleset or protection that guards the default branch | `id` | none |
+| `waivers` | bypass of a control, and dismissed alert | what it waives and the actor | none |
+| `policy` | rule that `kit policy` judges by, in each place it applies | the rule and the place | a hash of files |
+| `enforcement` | mechanism that holds an agent to the rules | the harness and the mechanism | a hash of files |
 
-- `evidence` keys each row by its digest and its kind, and the subject links to the repository's attestations.
-  GitHub reads the 5 newest releases' assets and the 20 newest artifacts, each digest once, 50 at most, and asks for
-  each digest's attestations, a request each; past those, the document is `limited`. `kind` is the in-toto
-  statement's predicate type, as `https://slsa.dev/provenance/v1`, and `signer` the workflow its provenance names,
-  `<owner>/<repo>/<path>@<ref>`, or `github` for one GitHub made itself, as an immutable release's. GitHub may keep a
-  bundle apart, compressed, which kit does not read: its kind is `null`. GitLab and Azure DevOps keep none kit reads.
-- `findings` merges three reads, one per scanner, and keys each row by its `tool`, `code-scanning`, `dependabot`, or
-  `secret-scanning`, and its number; the rule links to the alert's page. `rule` is what found it: a rule's id, an
-  advisory's GHSA id, or a secret's type. `state` is `open` or `dismissed`, a secret resolved as a false positive,
-  as won't fix, or as used in tests being dismissed. A scanner the forge has off for the repository, as secret
-  scanning disabled, is `{feature, off: true}` under `errors`, and the tab says it is off here; one that refuses the
-  caller is `{feature, error}`, its line, and the others still draw, the stage exiting 1. GitHub's line names
-  `gh auth refresh --scopes security_events` for a login without the scope, else an admin of the repository. GitLab
-  reads its vulnerability report, SAST for code scanning, dependency scanning for Dependabot's kind, and secret
-  detection; a tier without it has each off. GitLab leaves out a vulnerability the caller may not see, refusing
-  nothing, so the tab reads empty for such a caller. Azure DevOps keeps none kit reads.
-- `controls` keys each row by its id. `target` is the refs it names, `enforcement` `active`, `evaluate`, or
-  `disabled`, and `rules` its kinds of rule, sorted, or `null` where only an admin may see them, as GitHub's branch
-  protection. `source` is `ruleset` or `protection`. GitHub reads its rulesets of branches, its own and its
-  organization's, in one GraphQL request, those whose patterns name the default branch, then the branch's own
-  protection where it has one; GitLab its protected branches that name it, and its push rules; Azure DevOps the
-  default branch's policies, an optional one `evaluate`.
-- `waivers` keys each row by what it waives and the actor. `waives` is a control's id, which links to its row of
-  `controls`, or an alert, `<tool> <number>`, which links to its row of `findings`; the reason links to the waiver's
-  page. A `bypass` names who may bypass and its mode, `always`, `pull_request`, or `exempt`; those GitHub hides from
-  who may not edit the ruleset, and teams kit cannot name, as for a login without `read:org`, are one row of the
-  control, keyed `<id> hidden`, its actor `null` and `hidden` how many. A `dismissal` names who dismissed it, and
-  the reason with its comment. The bypasses are the forge's own: GitHub's rulesets' bypass actors and its
-  protection's pull request allowances. The dismissals are the dismissed alerts `findings` reads, each scanner read
-  once a process for both stages; a scanner off here, or one that refuses the caller, is under `errors` as in
-  `findings`, and the rest still draw, the stage exiting 1 for a refusal. GitLab's are its dismissed
-  vulnerabilities; Azure DevOps keeps none kit reads.
-- `policy` is `kit policy --rules --json` in each checkout of the clone with a branch: the one here, its branch the
-  one `kit policy` judges, and each worktree on a branch. The policy in force depends on the branch: on the default
-  branch it is the checkout's own, and on a branch past the default it is the base's. A row says where it is in
-  force: `source`, the primary's forge, `github`, `gitlab`, or `ado`; `organization`, the path before the repository,
-  a group and its subgroups on GitLab; `repository`; and `branch`. A clone with no remote on a forge is its main
-  checkout's directory. A place the clone has none of, the organization of a clone with no remote or the source of a
-  remote on no forge, is `""`; `null` is only the place a merged row spans. Another checkout is read as it
-  is, nothing placed in it, and one that fails is `{branch, error}` under `errors` while the rest draw.
-- `policy` merges the rows of a rule that agree, its pattern, from, and engine the same. From the widest place down,
-  a place whose rows all agree is one row, at the narrowest place that holds them all: `scope` names it, `branch`,
-  `repository`, `organization`, `source`, or `workspace` where even the sources differ, and the fields finer than it are
-  `null`. So a rule every branch of a repository agrees on is one row at `repository`, and over a workspace a rule
-  every member agrees on is one row, wider than any of them. Each row is keyed by the rule and the place. The mark
-  holds each checkout's `kit.yml` and `.kit/policy/`, and on a branch past the default the base's too, which a fetch
-  moves.
-- `enforcement` keys each row by its harness and its mechanism. A harness is each active agent package's, `generic`
-  for any agent that reads `AGENTS.md`, then `claude`, `copilot`, `cursor`, and `gemini`, and `repository` for what
-  holds every one. `tier` is `advisory`, `best-effort`, `local floor`, or `authoritative`, as
-  [architecture.md](architecture.md#enforcement-tiers) says. `status` is `active`, `missing`, or `unknown`, never a
-  guess: a deny list or a hook merged into a harness's settings is `unknown` at best, as kit cannot probe that the
-  harness runs it, and one that lacks an entry the package merges is `missing`. `evidence` is `probed` where kit read
-  what decides it, a file, git's hooks, or the forge's answer; `documented` where it rests on what the harness or the
-  forge documents; else `unverified`. `passes` names what gets past it, `null` where kit cannot tell. The pre-commit
-  hook is `active` where git runs lefthook in this clone and lefthook is on `PATH`, `unknown` where it is not. The
-  required check, `CI`, which kit's CI job reports, and the required review are `active` where an active control on
-  the default branch requires each, the row linking to that control's row of `controls`, and their `passes` who may
-  bypass every such control, a protection's admins where it does not bind them; a control that only evaluates binds
-  nothing. A control whose checks or reviews the forge does not show leaves them `unknown`: GitHub's rule whose
-  parameters it hides, a protection only an admin may read, and GitLab's protected branches, whose merge checks are the
-  project's settings, which kit does not read. A forge read that fails leaves them `unknown` too, `{feature, error}`
-  under `errors`, the stage exiting 1; a repository on no forge has them `missing`.
-- `evidence` and `findings` move with the forge's runs, as a run makes an attestation and a scan. `evidence` moves
-  with its releases too, and `findings` with its alerts: GitHub's mark of each scanner's alert updated last, which a
-  dismissal and a new advisory move without a run, `off` or `refused` for a scanner that is either, so the others'
-  still move it; and GitLab's count of open and dismissed vulnerabilities.
-  `controls` and `waivers` have none, and are read again on Refresh only. `enforcement` moves with `kit.yml`, each
-  harness's files, git's pre-commit hook, `lefthook.yml`, and kit's CI job; its forge's rows, read as `controls`, move
-  with none of them.
+### evidence
+
+An attestation is a signed statement about how a file was built.
+
+| Field | Meaning |
+| --- | --- |
+| `subject` | the name of the asset or the artifact; it links to the repository's attestations |
+| `digest` | the file's digest, `sha256:…` |
+| `kind` | the predicate type of the in-toto statement, such as `https://slsa.dev/provenance/v1`, or `null` |
+| `signer` | the workflow that signed it, `<owner>/<repo>/<path>@<ref>`; `github`; or `null` |
+| `age` | seconds since it was made |
+
+| Forge | What kit reads | Cap |
+| --- | --- | --- |
+| GitHub | the attestations of each digest, one request each | 5 releases, 20 artifacts, 50 digests |
+| GitLab | nothing | |
+| Azure DevOps | nothing | |
+
+- On GitHub, kit takes the digests of the assets of the 5 newest releases and of the 20 newest artifacts. It asks
+  for the attestations of each digest once. Past any of the three caps, the document is `limited`.
+- `signer` is `github` for an attestation that GitHub made itself, such as the one for an immutable release.
+- GitHub can keep an attestation's bundle apart, compressed. kit does not read such a bundle, so its `kind` is
+  `null`.
+- GitLab and Azure DevOps keep no attestations that kit reads.
+
+### findings
+
+| Field | Meaning |
+| --- | --- |
+| `tool` | the scanner: `code-scanning`, `dependabot`, or `secret-scanning` |
+| `number` | the alert's number |
+| `rule` | what found it: a rule's id, an advisory's GHSA id, or a secret's type; it links to the alert's page |
+| `severity` | the severity in lower case; `null` for a secret |
+| `state` | `open` or `dismissed` |
+| `path` | where it was found |
+| `age` | seconds since it was made |
+
+GHSA is GitHub Security Advisory. A secret that was resolved as a false positive, as "won't fix", or as used in
+tests is `dismissed`.
+
+kit reads each of the three scanners on its own, and merges the rows.
+
+| A scanner that | Is under `errors` as | Exit |
+| --- | --- | --- |
+| the forge has off for this repository | `{feature, off: true}` | 0 |
+| refuses the caller | `{feature, error}` | 1 |
+
+In both cases the other scanners still print. For a scanner that is off, the tab says that it is off here.
+
+| Forge | What kit reads |
+| --- | --- |
+| GitHub | every page of each scanner's alerts |
+| GitLab | the vulnerability report |
+| Azure DevOps | nothing |
+
+- On GitHub, a refusal names `gh auth refresh --scopes security_events` when the login lacks the scope. Otherwise
+  it says that an admin of the repository can grant the access.
+- On GitLab, kit reads static application security testing (SAST) as code scanning, dependency scanning as
+  Dependabot, and secret detection as secret scanning. On a tier without the report, each scanner is off.
+- GitLab leaves out a vulnerability that the caller may not see, and refuses nothing. So the tab is empty for such a
+  caller.
+
+### controls
+
+A control is a ruleset or a branch protection that guards the default branch.
+
+| Field | Meaning |
+| --- | --- |
+| `id` | the control's id |
+| `control` | its name, which links to its page |
+| `target` | the refs it names |
+| `enforcement` | `active`, `evaluate`, or `disabled` |
+| `rules` | its kinds of rule, sorted, or `null` where only an admin may see them |
+| `kind` | `ruleset` or `protection` |
+
+| Forge | Controls kit reads |
+| --- | --- |
+| GitHub | the rulesets whose patterns name the default branch, then the branch's own protection |
+| GitLab | the protected branches that name the default branch, and the push rules |
+| Azure DevOps | the policies of the default branch |
+
+- GitHub's rulesets are the repository's and its organization's. kit reads them in one GraphQL request.
+- `rules` is `null` for GitHub's branch protection when the caller is not an admin.
+- On Azure DevOps, an optional policy has the enforcement `evaluate`.
+
+### waivers
+
+A waiver is a way past a control or an alert: a bypass of a control, or the dismissal of an alert.
+
+| Field | Meaning |
+| --- | --- |
+| `waives` | a control's id, or an alert as `<tool> <number>` |
+| `actor` | who may bypass; `null` for a dismissal |
+| `kind` | `bypass` or `dismissal` |
+| `reason` | for a bypass, its mode; for a dismissal, its reason and its comment |
+| `by` | who dismissed the alert, or who granted the bypass; `null` where the forge does not say |
+| `until` | when the waiver ends, or `null` for never |
+| `hidden` | on a row for hidden actors, how many they are; otherwise `null` |
+
+- `waives` links to the row it names: a row of `controls` for a bypass, a row of `findings` for a dismissal.
+  `reason` links to the waiver's page.
+- A bypass's mode is `always`, `pull_request`, or `exempt`.
+- GitHub hides bypass actors from a caller who may not edit the ruleset. kit also cannot name a team for a login
+  without the `read:org` scope. All such actors of one control are one row. Its key is `<id> hidden`, its `actor` is
+  `null`, and `hidden` is their number.
+
+| Forge | Bypasses | Dismissals |
+| --- | --- | --- |
+| GitHub | the bypass actors of its rulesets, and the pull request allowances of its protection | the dismissed alerts |
+| GitLab | none | the dismissed vulnerabilities |
+| Azure DevOps | none | none |
+
+The dismissals are the dismissed alerts that `findings` reads. kit reads each scanner once in a process, for both
+stages. A scanner that is off, or that refuses the caller, is under `errors` in the same way as in `findings`, and
+the rest still print.
+
+### policy
+
+The stage runs `kit policy --rules --json` in each checkout of the clone that is on a branch: the checkout you are
+in, and each worktree. For the checkout you are in, the branch is the one `kit policy` judges.
+
+The policy that applies depends on the branch. On the default branch, it is the checkout's own policy. On any other
+branch, it is the policy of the branch's base.
+
+| Field | Meaning |
+| --- | --- |
+| `source` | the forge of the primary remote: `github`, `gitlab`, or `ado` |
+| `organization` | the path before the repository; on GitLab, the group and its subgroups |
+| `repository` | the repository's name |
+| `branch` | the branch |
+| `scope` | the level at which the row applies; see below |
+| `rule` | the rule's name |
+| `pattern` | the pattern that a name must match |
+| `from` | where the pattern is set, such as `default` or `kit.yml` |
+| `engine` | the policy engine that judges the rule, such as `opa` |
+
+The first four fields say where the rule applies. They have two special values:
+
+- `""` means the clone has no such place. `organization` is `""` for a clone with no remote, and `source` is `""`
+  for a remote on no forge. For a clone with no remote on a forge, `repository` is the name of the main checkout's
+  folder.
+- `null` means that a merged row covers every value of the field.
+
+kit merges the rows of one rule that have the same `pattern`, `from`, and `engine`. It merges at the widest level
+where every row agrees. `scope` names that level: `branch`, `repository`, `organization`, `source`, or `workspace`
+where even the sources differ. The fields narrower than the scope are `null`.
+
+- A rule that is the same on every branch of a repository is one row, with the scope `repository` and the branch
+  `null`.
+- Over a workspace, a rule that is the same in every member is one row, wider than any member.
+
+kit reads another checkout as it is, and places no files in it. A checkout that fails is `{branch, error}` under
+`errors`, and the rest still print.
+
+The mark is a hash of each checkout's `kit.yml` and `.kit/policy/`. On a branch other than the default, it also
+covers the base's files, which a fetch can change.
+
+### enforcement
+
+A harness is the program that runs an agent, such as Claude Code. The stage has a row for each mechanism that holds
+an agent to the rules.
+
+| Field | Meaning |
+| --- | --- |
+| `harness` | `generic`, `claude`, `copilot`, `cursor`, `gemini`, or `repository` |
+| `tier` | `advisory`, `best-effort`, `local floor`, or `authoritative` |
+| `mechanism` | what does the holding, such as the pre-commit hook |
+| `status` | `active`, `missing`, or `unknown` |
+| `evidence` | `probed`, `documented`, or `unverified` |
+| `detail` | one sentence that says why the status is what it is |
+| `passes` | what gets past the mechanism, or `null` where kit cannot tell |
+
+There is a harness for each active agent package. `generic` is any agent that reads `AGENTS.md`. `repository` is for
+what holds every agent.
+
+| `tier` | What is in it |
+| --- | --- |
+| `advisory` | the instructions that an agent reads |
+| `best-effort` | a harness's deny list or hook, which fails open |
+| `local floor` | the pre-commit hook in this clone |
+| `authoritative` | kit's CI job, and a control on the default branch that requires its check and a review |
+
+[architecture.md](architecture.md#enforcement-tiers) describes the tiers.
+
+| `evidence` | Meaning |
+| --- | --- |
+| `probed` | kit read what decides the status: a file, git's hooks, or the forge's answer |
+| `documented` | the status rests on what the harness or the forge documents |
+| `unverified` | neither |
+
+`status` is never a guess. This is how kit decides it for three kinds of mechanism:
+
+| Mechanism | `active` | `missing` | `unknown` |
+| --- | --- | --- | --- |
+| a deny list or a hook in a harness's settings | never | an entry the package merges is absent | otherwise |
+| the pre-commit hook | git runs lefthook in this clone, and lefthook is on `PATH` | | otherwise |
+| the required check and the required review | an active control requires it | no active control requires it | kit cannot see |
+
+- A deny list or a hook is `unknown` at best, because kit cannot probe that the harness runs it.
+- The required check is `CI`, which kit's CI job reports. The row links to the control's row in `controls`.
+- For a required row, `passes` lists who may bypass every control that requires it. That includes the admins of a
+  protection that does not bind its admins.
+- A control that only evaluates binds nothing, so it does not make a row `active`.
+- A required row is `unknown` when the forge does not show a control's checks or reviews. That is so for a GitHub
+  rule whose parameters GitHub hides, and for a protection that only an admin may read. It is also so on GitLab,
+  whose merge checks are settings of the project, which kit does not read.
+- A forge read that fails also leaves the required rows `unknown`. `errors` then holds `{feature, error}`, and the
+  stage exits 1.
+- A repository on no forge has both required rows `missing`.
+
+### The marks of Trust
+
+| Stage | Its mark changes with |
+| --- | --- |
+| `evidence` | the forge's runs and releases |
+| `findings` | the forge's runs and alerts |
+| `controls`, `waivers` | nothing: neither has a mark, so kittui loads them again only on Refresh |
+| `policy` | each checkout's `kit.yml` and `.kit/policy/` |
+| `enforcement` | `kit.yml`, each harness's files, git's pre-commit hook, `lefthook.yml`, and kit's CI job |
+
+- A run makes an attestation and a scan, which is why both forge marks hold the runs.
+- GitHub's mark of the alerts is the alert updated last for each scanner. A dismissal or a new advisory changes it
+  without a run. A scanner that is off or that refuses is `off` or `refused` in the mark, so the other scanners
+  still change it.
+- GitLab's mark of the alerts is its count of open and dismissed vulnerabilities.
+- The required rows of `enforcement` come from the forge, as `controls` does. No file changes them, so the mark
+  does not change with them.
+
+## Platform: kit platform
+
+`kit platform` prints what kit runs with in this repository. It asks the forge only whether the forge's tool is
+signed in.
+
+| Stage | A row for each | Key | Mark |
+| --- | --- | --- | --- |
+| `services` | capability that kit fills | the capability | a hash of files; see below |
+| `toolchains` | toolchain and role, in each checkout | the checkout, the provider, and the role | a hash of the pin files |
+| `tools` | pinned tool, in each checkout | the checkout, where the tool is pinned, and its name | the same |
+| `settings` | key of the settings schema | the key | a hash of `kit.yml` |
+
+`toolchains` and `tools` read every checkout of the clone: the one you are in, and each linked worktree.
+
+### services
+
+| Field | Meaning |
+| --- | --- |
+| `capability` | what kit needs done; see the next table |
+| `service` | what answers it, such as `github`, `mise`, or `patterns`; `null` for nothing |
+| `provider` | kit's module that reaches the service, such as `forge/github` |
+| `chosen` | `set` where `kit.yml` or a recorded choice names the service, otherwise `inferred` |
+| `ready` | whether the service's tool is installed and signed in |
+
+| `capability` | Answered by |
+| --- | --- |
+| `hosting`, `review`, `ci`, `releases` | the forge of the primary remote |
+| `tracking <prefix>` | the tracker of each prefix, such as `tracking #` |
+| `toolchain` | the project's tool manager |
+| `dependencies <provider>` | each dependency provider whose manifest and lock file are here |
+| `dependencies` | one row with no service, when no provider's files are here |
+| `policy` | the policy engine |
+
+- `service` is `null` for the forge's capabilities when there is no remote, and for `ci` on a forge that has none.
+- A forge whose tool is not signed in is not `ready`. The stage still prints.
+- A forge or a policy engine that `kit.yml` names wrongly is `{error}` under `errors`. The rest still prints, and
+  the stage exits 1.
+
+### toolchains
+
+The rows are those `kit toolchains --json` prints, read in each checkout.
+
+| Field | Meaning |
+| --- | --- |
+| `provider` | the manager, such as `mise` or `brew` |
+| `role` | `project` or `system` |
+| `usable` | its tool is installed, and for the project role its file is here |
+| `active` | the run is already inside it |
+| `chosen` | kit uses it for the role |
+| `fills` | it is brew, and it installs the Brewfile's tools that the chosen manager does not pin |
+| `worktree` | the name of the checkout's folder |
+| `branch` | the checkout's branch, or `null` when it is detached |
+
+A linked worktree in which `kit toolchains` fails is `{worktree, error}` under `errors`. The rest still print, and
+the stage exits 1.
+
+### tools
+
+The rows are those `kit tools --json` prints, read in each checkout.
+
+| Field | Meaning |
+| --- | --- |
+| `name` | the tool's name |
+| `pinned` | the version that is pinned |
+| `installed` | the version that is installed |
+| `from` | where the tool is pinned |
+| `path` | only with no tool manager chosen: where the tool is on `PATH` |
+| `worktree`, `branch` | as in `toolchains` |
+
+- With no tool manager chosen, which kit calls ambient, a row is `{name, path, from}`.
+- `kit tools` can refuse in the checkout you are in. It does when several tool managers are usable and none is
+  chosen. The stage then prints kit's line and exits 1. `toolchains` still prints.
+- A linked worktree in which `kit tools` fails is `{worktree, error}` under `errors`, as in `toolchains`.
+
+### settings
+
+The stage lists every key of the settings schema, `.kit/kit.schema.json`, in the schema's order.
+
+| Field | Meaning |
+| --- | --- |
+| `setting` | the key |
+| `value` | the value `kit.yml` sets; otherwise the schema's default, or `null` where the schema names none |
+| `from` | `set` or `default` |
+
+### The marks of Platform
+
+| Stage | Its mark is a hash of |
+| --- | --- |
+| `settings` | `kit.yml` |
+| `toolchains`, `tools` | the pin files, and the files that keep kit's choice of toolchain |
+| `services` | all of those, the clone's git configuration, and `.kit/policy` |
+
+- A pin file is a file that a toolchain or a dependency provider pins versions from.
+- kit's choice of toolchain is kept in three files: this checkout's, the clone's, and yours, `~/.kit/settings.yml`.
+- The git configuration holds the remotes, so adding a remote changes the mark of `services`.
 
 ## Packages: kit packages
 
-`kit packages` keeps its own forms beside the app's, as [packages.md](packages.md) says: alone, with a filter, or
-with `--text`, it lists the packages as text, and `--json` with no stage prints one object a package, of the
-repository here; `select`, `add`, and `remove` change the active set. Off a terminal, `kit packages` alone still
-lists them. On a terminal, `kit packages` alone opens Packages in kittui, and the app's forms hold as for every app
-verb: `--stages`, `--marks`, and its one stage, `kit packages packages`.
+`kit packages` has commands of its own beside the ones every app verb shares; see [packages.md](packages.md).
 
-| Stage | A row per | Fields | Mark |
+| Command | What it does |
+| --- | --- |
+| `kit packages` | at a terminal, opens Packages in kittui; off a terminal, lists the packages as text |
+| `kit packages <filter>`, `kit packages --text` | lists the packages as text, at a terminal too |
+| `kit packages --json` | prints one object for each package of the repository you are in |
+| `kit packages select`, `add`, `remove` | change which packages are active |
+| `kit packages packages` | the stage, as for every app verb |
+| `kit packages --stages`, `--marks` | as for every app verb |
+
+| Stage | A row for each | Key | Mark |
 | --- | --- | --- | --- |
-| `packages` | package in reach, as `kit packages` lists them | `name, state, origin, depends, includes, dependents, bundles, description` | a hash of `kit.yml` and `.kit/packages/` |
+| `packages` | package in reach | `name` | a hash of `kit.yml` and `.kit/packages/` |
 
-- `state` is `active`, `inactive`, or `excluded`, and `origin` is `release`, `repository`, or a source's name.
-  `depends` and `includes` are the package's own; `dependents` are the active packages that depend on it, which
-  `kit packages remove` refuses it for, and `bundles` the active bundles that include it. Where kit was never
-  installed, the stage refuses with kit packages' own line.
-- Packages' tab menu acts on the packages selected, each action a kit verb kittui runs, and each asks first: Add
-  lists the selected packages that are not active, and asks before it runs `kit packages add`; Remove… lists the
-  active ones and asks before it runs `kit packages remove`, which takes their files out; Make Only These Active…
-  lists what it keeps, adds, and takes out, and asks before it runs `kit packages select`. Over a workspace, each runs
-  in its member's checkout.
+| Field | Meaning |
+| --- | --- |
+| `name` | the package's name |
+| `state` | `active`, `inactive`, or `excluded` |
+| `origin` | `release`, `repository`, or the name of a source |
+| `depends` | the packages it depends on |
+| `includes` | the packages it includes |
+| `dependents` | the active packages that depend on it |
+| `bundles` | the active bundles that include it |
+| `description` | its description |
+
+`kit packages remove` refuses a package that has `dependents`. Where kit was never installed, the stage fails with
+the line that `kit packages` prints.
+
+### The actions of the Packages app
+
+The tab menu of Packages has three actions. Each acts on the selected packages, or on the package under the cursor
+when none is selected. Each asks first, in a dialog that lists what it will change.
+
+| Action | The dialog lists | Then kittui runs |
+| --- | --- | --- |
+| Add | the packages that are not active | `kit packages add` |
+| Remove… | the packages that are active | `kit packages remove`, which takes their files out |
+| Make Only These Active… | what it keeps, adds, and takes out | `kit packages select` |
+
+Over a workspace, each action runs in the checkout of the package's member.
+
+## In kittui
+
+Every app is the same screen over its own tabs. Each tab loads one stage with `--json`. kittui's catalog,
+`projects/tui/internal/flow/fields.json`, names the command, the fields, and the presets of each tab. The tutorials
+teach the rows, the menus, and the keys: run `kit tutorials rows`.
+
+## Where the code is
+
+| What | Where |
+| --- | --- |
+| the runner of the seven verbs that are not `kit flow` or `kit workspace` | `modules/bash/apps.sh` |
+| a verb's stages and marks | `modules/bash/apps/<verb>.sh` |
+| the rows of each stage, made from what a forge call prints | `modules/jq/apps.jq` |
+| the stages of `kit workspace` | `modules/bash/workspace.sh` |
+| the seam to the forge | `modules/bash/forge.sh` |
+| kittui's catalog of stages | `projects/tui/internal/flow/fields.json` |
 
 see: [toolchains.md](toolchains.md), [workspaces.md](workspaces.md), [integrations/gh.md](integrations/gh.md),
 [integrations/glab.md](integrations/glab.md), [integrations/az.md](integrations/az.md)
