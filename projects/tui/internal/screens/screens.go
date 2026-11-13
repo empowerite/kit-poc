@@ -114,7 +114,8 @@ func (m Model) Close() {
 // Init starts the screen shown, runs what it started when New told it the settings, and asks kit for the workspace:
 // the group the runner spans, as kittui started with --workspace, else the one kit starts on.
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(m.tag(m.here, m.first), m.tag(m.here, m.made[m.here].Init()), m.ask(m.start))
+	return tea.Batch(m.tag(m.here, m.first), m.tag(m.here, m.made[m.here].Init()), m.ask(m.start),
+		tea.RequestBackgroundColor)
 }
 
 // ask gives the command that asks kit for the workspace given, "" for the one kit starts on, as the latest ask: a
@@ -393,6 +394,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.keyboard = &msg
 	case tea.ColorProfileMsg:
 		style.Profile(msg.Profile)
+	case tea.BackgroundColorMsg:
+		style.Background(msg.IsDark())
 	case tea.KeyPressMsg:
 		m.refusal = ""
 		if s, ok := m.crumbHere(); ok && !m.opener.Open && !m.dialog.Open && s.Backs(msg) {

@@ -188,6 +188,8 @@ A table has three kinds of preset:
 - With `NO_COLOR`, what the keyboard is on is drawn in reverse video: the line in a menu or dialog, the stop in a
   control line, and the row under the cursor. `internal/screens` tells `internal/style` which colors the terminal
   draws.
+- Otherwise the band under the cursor follows the terminal's background, which kittui asks for as it starts: dark grey
+  on a dark one, light grey on a light one, and reverse video until the terminal answers, or where it never does.
 - `esc` goes back one step and never quits. `⌃Q` quits with 0, and `⌃C` quits with 130.
 - A menu line that cannot act now stays in the menu, dim.
 - A screen never writes its own key hints. It gives the path from the screen to the control that has the keyboard,

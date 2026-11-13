@@ -47,6 +47,7 @@ var (
 	text    = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	literal = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
 	band    = lipgloss.NewStyle().Background(lipgloss.Color("236"))
+	lit     = lipgloss.NewStyle().Background(lipgloss.Color("254"))
 	// on the menu's own bright cyan, black: 16 is the 256-color cube's black, which no theme remaps as it may 0. It
 	// is reverse video with the two colors swapped, which a terminal of colors draws the same, black on cyan, and a
 	// terminal of none still draws reversed
@@ -54,7 +55,28 @@ var (
 )
 
 // colorless is whether the terminal draws no color, as Profile was told; until it is told, the terminal draws colors.
-var colorless bool
+// ground is the terminal's background, as Background was told: dark, light, or, until it is told, unknown.
+var (
+	colorless bool
+	ground    = unknown
+)
+
+const (
+	unknown = iota
+	dark
+	light
+)
+
+// Reset gives the styles as they start, for a test: the terminal draws colors, and its background is not known.
+func Reset() { colorless, ground = false, unknown }
+
+// Background tells the styles whether the terminal's background is dark, as the program reports it once it asks.
+func Background(isDark bool) {
+	ground = light
+	if isDark {
+		ground = dark
+	}
+}
 
 // Profile tells the styles the colors the terminal draws, as the program reports them at its start. With none, as
 // under NO_COLOR, Band draws reverse video, since the background it draws otherwise is never sent.
@@ -145,16 +167,19 @@ func Cursor(s string) string { return cursor.Render(s) }
 // Refusal draws the line a verb would print about an answer.
 func Refusal(s string) string { return refusal.Render(s) }
 
-// bandOpen and bandEnd are what open and end the band, rendered once, as Band draws every line of an open row, and
-// reverseOpen is what opens it on a terminal of no color.
+// bandOpen and litOpen are what open the band on a dark and a light background, bandEnd what ends either, rendered
+// once, as Band draws every line of an open row, and reverseOpen is what opens it where no color shows or the
+// background is not known: reverse video reads on any background.
 var (
 	bandOpen, bandEnd, _ = strings.Cut(band.Render("x"), "x")
+	litOpen, _, _        = strings.Cut(lit.Render("x"), "x")
 	reverseOpen, _, _    = strings.Cut(cursor.Render("x"), "x")
 )
 
 // Band draws a line on a faint background, as the row under the cursor is drawn, to the width: the line's own styles
-// stay, and the band is opened again after each of them ends, so it runs the whole line. On a terminal of no color,
-// as Profile was told, the band is reverse video.
+// stay, and the band is opened again after each of them ends, so it runs the whole line. The band is dark grey on a
+// dark background and light grey on a light one, as Background was told; on a terminal of no color, as Profile was
+// told, and where the background is not known, it is reverse video.
 func Band(line string, width int) string {
 	open := Look()
 	line += strings.Repeat(" ", max(0, width-ansi.StringWidth(line)))
@@ -164,8 +189,11 @@ func Band(line string, width int) string {
 // Look names what the styles draw for the terminal Profile was told of, by the escape that opens the band. A screen
 // that keeps the lines it drew keeps them for one look, and draws them again once the look is another.
 func Look() string {
-	if colorless {
+	switch {
+	case colorless || ground == unknown:
 		return reverseOpen
+	case ground == light:
+		return litOpen
 	}
 	return bandOpen
 }

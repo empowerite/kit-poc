@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/charmbracelet/colorprofile"
 
 	"github.com/empowerite/kit/projects/tui/internal/kit"
 	"github.com/empowerite/kit/projects/tui/internal/source"
@@ -115,10 +114,10 @@ func tallBuild(m Model, n int) source.Answer[[]byte] {
 }
 
 // A stage's lines are drawn once for what it shows: paging through an open row, and drawing the screen, reuse them.
-// Moving the cursor, opening or closing a row, selecting one, or a terminal said to draw no color, which the band
+// Moving the cursor, opening or closing a row, selecting one, or a terminal said to have a dark background, which the band
 // under the cursor is drawn for, draws them anew.
 func TestAStagesLinesAreDrawnOnceForWhatItShows(t *testing.T) {
-	t.Cleanup(func() { style.Profile(colorprofile.TrueColor) })
+	t.Cleanup(style.Reset)
 	m := loaded(t, options(), tea.WindowSizeMsg{Width: 120, Height: 40})
 	m = drive(m, tallBuild(m, 100))
 	for m.stages[m.stage].name != "builds" {
@@ -143,9 +142,9 @@ func TestAStagesLinesAreDrawnOnceForWhatItShows(t *testing.T) {
 		}
 	}
 	before := m.allLines(m.stage)
-	style.Profile(colorprofile.ASCII)
+	style.Background(true)
 	if again := m.allLines(m.stage); &again[0] == &before[0] {
-		t.Error("a terminal said to draw no color kept the lines drawn before")
+		t.Error("a terminal said to have a dark background kept the lines drawn before")
 	}
 }
 

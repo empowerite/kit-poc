@@ -4,6 +4,7 @@ package screens
 
 import (
 	"bytes"
+	"image/color"
 	"regexp"
 	"slices"
 	"strings"
@@ -27,7 +28,7 @@ var sgr = regexp.MustCompile(`\x1b\[([0-9;:]*)m`)
 func issues(t *testing.T, terminal ...tea.Msg) Model {
 	t.Helper()
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
-	t.Cleanup(func() { style.Profile(colorprofile.TrueColor) })
+	t.Cleanup(style.Reset)
 	r := testkit.Runner(t, "flow")
 	f, err := flow.OpenApp(r, shell.Issues, flow.Words{})
 	if err != nil {
@@ -88,10 +89,44 @@ func TestWithNoColorTheRowUnderTheCursorIsInReverseVideo(t *testing.T) {
 			t.Errorf("the row's line is not reversed whole, %d cells: %q", ansi.StringWidth(l), l)
 		}
 	}
-	// a terminal of colors is sent the band, and no reverse video
-	m, _ = testkit.Drive(m, nil, tea.ColorProfileMsg{Profile: colorprofile.ANSI256})
-	if got := reversed(sent(t, colorprofile.ANSI256, m)); len(got) != 0 {
-		t.Errorf("with 256 colors, reverse video: %q", got)
+}
+
+// The band under the cursor is told by the terminal's background: dark grey on a dark one, light grey on a light one,
+// and reverse video, which reads on both, where the terminal did not say, as under NO_COLOR, where no color is sent.
+func TestTheBandUnderTheCursorIsToldByTheTerminalsBackground(t *testing.T) {
+	grey := func(l string) string {
+		m := regexp.MustCompile(`48;5;(\d+)`).FindStringSubmatch(l)
+		if m == nil {
+			return ""
+		}
+		return m[1]
+	}
+	for _, c := range []struct {
+		name     string
+		terminal []tea.Msg
+		grey     string
+		reversed bool
+	}{
+		{"dark", []tea.Msg{tea.BackgroundColorMsg{Color: color.Black}}, "236", false},
+		{"light", []tea.Msg{tea.BackgroundColorMsg{Color: color.White}}, "254", false},
+		{"unknown", nil, "", true},
+		{"no color, dark", []tea.Msg{tea.BackgroundColorMsg{Color: color.Black},
+			tea.ColorProfileMsg{Profile: colorprofile.Ascii}}, "", true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			m := issues(t, c.terminal...)
+			m, _ = testkit.Drive(m, nil, testkit.Press("down"), testkit.Press("down"), testkit.Press("down"),
+				testkit.Press("down"))
+			var rows []string
+			for _, l := range strings.Split(m.View().Content, "\n") {
+				if strings.Contains(ansi.Strip(l), "#7 ") {
+					rows = append(rows, l)
+				}
+			}
+			if len(rows) != 1 || grey(rows[0]) != c.grey || strings.Contains(rows[0], "\x1b[7m") != c.reversed {
+				t.Errorf("the row under the cursor, band %q, reversed %v: %q", c.grey, c.reversed, rows)
+			}
+		})
 	}
 }
 

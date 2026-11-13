@@ -71,8 +71,9 @@ func TestTheLineSelectedIsReverseVideoWithNoColor(t *testing.T) {
 // Told the terminal has no color, as under NO_COLOR or with TERM=dumb, the band is reverse video, opened again after
 // each style in the line ends, and the look is another; told it has colors again, the band is the faint background.
 func TestTheBandIsReverseVideoOnATerminalOfNoColor(t *testing.T) {
-	t.Cleanup(func() { Profile(colorprofile.TrueColor) })
+	t.Cleanup(Reset)
 	line := "#45 " + Off("2h") + " title"
+	Background(true)
 	faint, look := Band(line, 20), Look()
 	for _, p := range []colorprofile.Profile{colorprofile.ASCII, colorprofile.NoTTY} {
 		Profile(p)
@@ -84,6 +85,15 @@ func TestTheBandIsReverseVideoOnATerminalOfNoColor(t *testing.T) {
 			t.Errorf("the look at %s is the look with colors: %q", p, look)
 		}
 	}
+	// the background not known is reverse video too, a light one a light grey, a dark one the dark grey
+	Reset()
+	if Band(line, 20) != uncolored(t, Band(line, 20)) || Look() != reverseOpen {
+		t.Errorf("the band on a background not known: %q", Band(line, 20))
+	}
+	if Background(false); Look() != litOpen || Look() == look {
+		t.Errorf("the band on a light background: %q", Look())
+	}
+	Background(true)
 	for _, p := range []colorprofile.Profile{colorprofile.ANSI, colorprofile.ANSI256, colorprofile.TrueColor} {
 		if Profile(p); Band(line, 20) != faint || Look() != look {
 			t.Errorf("the band at %s: %q", p, Band(line, 20))
@@ -106,6 +116,8 @@ func TestAMenuInAGroupsColorDrawsInIt(t *testing.T) {
 
 // A band keeps the line's text and styles, pads it to the width, and opens the band again after each style ends.
 func TestABandRunsTheWholeLine(t *testing.T) {
+	t.Cleanup(Reset)
+	Background(true)
 	line := "#45 " + Off("2h") + " title"
 	got := Band(line, 20)
 	if ansi.Strip(got) != "#45 2h title        " {
