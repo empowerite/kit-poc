@@ -565,6 +565,34 @@ choose() {
   [ "$status" -eq 2 ]
 }
 
+@test "kit toolchains use brew is allowed where brew is the project's only toolchain, and names every other where it is not" {
+  touch Brewfile
+  run "${kit_root}/bin/kit" toolchains use brew
+  [ "$status" -eq 0 ]
+  [ "$(cat .git/kit/toolchain)" = brew ]
+  run "${kit_root}/bin/kit" toolchains use ambient
+  [ "$status" -eq 0 ]
+  run "${kit_root}/bin/kit" toolchains use brew
+  [ "$status" -eq 0 ]
+  touch mise.toml toolchain.Dockerfile
+  run "${kit_root}/bin/kit" toolchains use brew
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"brew fills in for the tools mise or docker does not pin; choose mise or docker"* ]]
+}
+
+@test "kit toolchains use says that an active toolchain wins until its shell is left" {
+  touch mise.toml toolchain.Dockerfile
+  export MISE_SHELL=zsh
+  run "${kit_root}/bin/kit" toolchains use docker
+  [ "$status" -eq 0 ]
+  [ "$(cat .git/kit/toolchain)" = docker ]
+  [[ "$output" == *"kit records docker for the project; mise is active here and wins until its shell is left"* ]]
+  [[ "$output" != *"kit uses docker for the project"* ]]
+  run "${kit_root}/bin/kit" toolchains use mise
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"kit uses mise for the project"* ]]
+}
+
 # a devcontainer configuration, and the devcontainer CLI (the fake) on PATH
 devcontainer-file() {
   mkdir -p .devcontainer

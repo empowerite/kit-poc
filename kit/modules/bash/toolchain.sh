@@ -324,21 +324,27 @@ toolchain:refuse() {
 }
 
 # toolchain:choose <role> <provider> records the provider as the role's choice, or ambient for none. It fails,
-# naming the usable ones, when the provider is not usable for the role here.
+# naming the usable ones, when the provider is not usable for the role here. An active toolchain goes on winning over
+# the choice (toolchain:chosen), which kit toolchains use says.
 #
 #   - system: toolchain: <provider> in ${KIT_HOME:-$HOME}/.kit/settings.yml, written with yq
 #   - project, at the desk: <git common dir>/kit/toolchain, which every worktree of the clone reads
 #   - project, in a linked worktree: <its git dir>/kit/toolchain, which only that worktree reads
 toolchain:choose() {
-  local role=$1 provider=$2 settings found kept
+  local role=$1 provider=$2 settings found kept names filler
   local -a usable=()
   toolchain:role "${role}" || return 1
   found=$(toolchain:detect) || return 1
   list:read usable toolchain:ranked "${role}" usable <<<"${found}" || return 1
   if [[ "${role}" == project && "${provider}" == brew && ${#usable[@]} -gt 0 ]] \
-    && grep --quiet --line-regexp $'brew\tproject\tyes\t.*' <<<"${found}"
+    && ! toolchain:among brew "${usable[@]}" && grep --quiet --line-regexp $'brew\tproject\tyes\t.*' <<<"${found}"
   then
-    error "brew fills in for the tools ${usable[*]// / or } does not pin; choose ${usable[*]// / or }"
+    names=${usable[0]}
+    for filler in "${usable[@]:1}"
+    do
+      names+=" or ${filler}"
+    done
+    error "brew fills in for the tools ${names} does not pin; choose ${names}"
     return 1
   fi
   if [[ "${provider}" != ambient ]] && ! toolchain:among "${provider}" "${usable[@]}"

@@ -16,7 +16,8 @@
 #   - ➕ marks brew filling in for the project: it acts on the Brewfile's tools the chosen one does not pin.
 #
 # With use, it records the choice. The project choice is kept for this repository, and the system choice for the
-# person. A toolchain that is not usable here is refused, and the usable ones are named.
+# person. A toolchain that is not usable here is refused, and the usable ones are named. A manager whose shell the run
+# is inside goes on winning over the choice until that shell is left, which the line it prints says.
 #
 # Arguments:
 #   --json              one JSON object per row: provider, role, usable, active, chosen, and fills
@@ -44,7 +45,13 @@ then
   role=project
   [[ -z "${syntax_options[--system]:-}" ]] || role=system
   toolchain:choose "${role}" "${syntax_operands[0]}" || exit 1
-  ok "kit uses ${syntax_operands[0]} for the ${role}"
+  winner=$(toolchain:chosen "${role}" list) || exit 1
+  if [[ -n "${winner}" && "${winner}" != "${syntax_operands[0]}" && "${syntax_operands[0]}" != ambient ]]
+  then
+    ok "kit records ${syntax_operands[0]} for the ${role}; ${winner} is active here and wins until its shell is left"
+  else
+    ok "kit uses ${syntax_operands[0]} for the ${role}"
+  fi
   exit 0
 fi
 

@@ -87,7 +87,8 @@ command that picks it, such as `kit toolchains use mise`. With none usable, kit 
 is on `PATH`.
 
 `kit toolchains use <name>` records the project choice, and `--system` records the system one. `ambient` is a
-name too: it chooses not to use a manager.
+name too: it chooses not to use a manager. A manager whose shell you are inside is active, and wins over the choice
+until you leave that shell; `kit toolchains use` says so when it records one it does not yet use.
 
 ## Where things are kept
 
