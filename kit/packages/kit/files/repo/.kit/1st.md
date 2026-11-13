@@ -139,10 +139,10 @@ The repository commits what it declares, and every worktree holds the files kit 
 - `.kit/manifest`, the digest of each delivered file, and `.kit/.gitignore` itself: written by kit, and ignored
   and without the write bit like the rest.
 
-The installed release contains the code. You run it through the kit CLI, `kit` on `PATH`. The workflow commands
-are `kit work`, `kit commit`, `kit submit`, `kit rebase`, `kit tidy`, `kit flow`,
-`kit context`, `kit new file`, `kit lint`, `kit gate`, and `kit hydrate`. Run them exactly as written here, and in
-no other way.
+The installed release contains the code. You run it through the kit CLI, `kit` on `PATH`. The workflow commands are
+`kit work`, `kit commit`, `kit submit`, `kit rebase`, `kit ready`, `kit tidy`, `kit flow`, `kit context`,
+`kit new file`, `kit lint`, `kit gate`, and `kit hydrate`. Use them, not the git commands they replace, with the
+options `kit help <verb>` lists.
 
 A repository activates the packages it wants with `kit packages add <package>`. `kit packages` lists every package and
 what it delivers, and `.kit/README.md` says how kit places each file.

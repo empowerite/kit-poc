@@ -128,6 +128,13 @@ ambient-system() {
   done
 }
 
+@test "the workflow lists kit ready among its commands, says how to file an issue and what no gate means" {
+  grep --quiet 'kit ready' "${kit_root}/packages/kit/files/repo/.kit/1st.md"
+  run ! grep --quiet 'exactly as written' "${kit_root}/packages/kit/files/repo/.kit/1st.md"
+  grep --quiet 'kit work --title=<text>' "${kit_root}/packages/workflow/files/repo/.kit/workflow.md"
+  grep --quiet 'report "no gate"' "${kit_root}/packages/workflow/files/repo/.kit/workflow.md"
+}
+
 @test "no line of a page kit ships starts with ✅, 💡, or ❌, which in the text guide starts a check" {
   # The text guide prints a page's lines and its step's checks one after the other, so its readers, outline and under
   # here among them, take a line that starts with a check's glyph for a check. The pages are every package's.

@@ -8,7 +8,8 @@ repository's own rules in `AGENTS.md` apply as well. Where the two differ, `AGEN
 
 ## From an issue to a merged pull request
 
-1. Start from an issue. A change without an issue has not started.
+1. Start from an issue. A change without an issue has not started. To file one, run `kit work --title=<text>`: it
+   makes the issue and starts the work on it.
 2. `kit work --no-sweep <N>` never switches the checkout you run it from. `--no-sweep` leaves the desk's uncommitted
    work on the desk: it is the human's, and `--sweep` moves it into the new worktree only when the human asks for
    that. `kit work` creates the following:
@@ -45,7 +46,8 @@ written, the issue is the deliverable, and the workflow above starts from it.
 
 ## The worker contract
 
-A worker is whoever implements one issue, in the worktree named for that issue.
+The contract is for a worker handed a worktree someone else started. The worker is whoever implements one issue, in
+the worktree named for that issue. The steps above are for whoever starts the work.
 
 1. `cd` into the worktree named in the task. Confirm that `git rev-parse --abbrev-ref HEAD` prints a branch name
    that begins with the issue's key and a dash: `7-` for `#7`, `ab4521-` for `AB#4521`.
@@ -56,9 +58,10 @@ A worker is whoever implements one issue, in the worktree named for that issue.
 4. Implement what the issue asks and nothing else.
 5. Push as you go.
 6. Before you call anything done, run `kit gate`: the repository's gate (its own CI command, such as `just ci`)
-   with the tools the chosen toolchain pins.
+   with the tools the chosen toolchain pins. A repository with no gate says so: report "no gate", and go on.
 7. Finish with `kit ready --report-file=<path>`: it writes the report into the pull request body and marks the pull
    request ready for review.
-8. If the gate fails or the work is partial, leave the pull request as a draft and say why.
+8. If the gate fails or the work is partial, leave the pull request as a draft and say why. No gate is not a
+   failure: the pull request may be marked ready.
 9. Never merge.
-10. Report what ran and what it printed. Nothing more.
+10. Report what ran and what it printed, and what you left out and why.
