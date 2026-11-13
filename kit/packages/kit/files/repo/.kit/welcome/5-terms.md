@@ -17,7 +17,7 @@ The project's files and their history, kept by git.
 ### code forge
 
 The service that hosts the repository, its issues, its pull requests, and its builds, such as GitHub or GitLab. kit
-reaches it through its command-line tool, gh or glab.
+reaches it through its command-line tool, gh, glab, or az.
 
 `kit platform services`
 

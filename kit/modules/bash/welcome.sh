@@ -155,6 +155,7 @@ welcome:site() {
     (markdownlint-cli2) printf 'https://github.com/DavidAnson/markdownlint-cli2#install\n' ;;
     (gh) printf 'https://cli.github.com\n' ;;
     (glab) printf 'https://gitlab.com/gitlab-org/cli#installation\n' ;;
+    (az) printf 'https://learn.microsoft.com/cli/azure/install-azure-cli\n' ;;
     (*) ;;
   esac
 }
@@ -489,8 +490,9 @@ welcome:linters() {
   done < <(welcome:delivered)
 }
 
-# welcome:forges prints "<forge>\t<host>" for each distinct host among the remotes whose forge is github or gitlab,
-# the primary first. A host on github.com or gitlab.com under another name is that host, where its tool logs in.
+# welcome:forges prints "<forge>\t<host>" for each distinct host among the remotes whose forge is github, gitlab, or
+# ado, the primary first. A host on github.com or gitlab.com under another name is that host, where its tool logs in,
+# and so is a host of Azure DevOps Services, whichever of its three forms the remote is.
 welcome:forges() {
   local remote forge host
   local -a remotes
@@ -504,7 +506,8 @@ welcome:forges() {
     case "${forge}:${host}" in
       (github:*.github.com) host=github.com ;;
       (gitlab:*.gitlab.com) host=gitlab.com ;;
-      (github:* | gitlab:*) ;;
+      (ado:ssh.dev.azure.com | ado:*.visualstudio.com) host=dev.azure.com ;;
+      (github:* | gitlab:* | ado:*) ;;
       (*) continue
     esac
     # A host reaches a command line, so it is a host name and nothing more.
@@ -803,22 +806,57 @@ welcome:brew-path() {
     false "run it in your shell, and add it to your shell's profile so it holds in every shell" false
 }
 
-# welcome:forge-cli <host> prints the check that the host's forge tool, gh or glab, runs.
+# welcome:forge-tool <host> prints the tool the host's forge is reached through: gh, glab, or az.
+welcome:forge-tool() {
+  case "${welcome_host_forge[$1]}" in
+    (github) printf 'gh\n' ;;
+    (ado) printf 'az\n' ;;
+    (*) printf 'glab\n'
+  esac
+}
+
+# welcome:forge-cli <host> prints the check that the host's forge tool, gh, glab, or az, runs. az reaches Azure DevOps
+# through its azure-devops extension, which the check holds to as well; the package that installs az is named by no
+# package manager here, so a missing az has the site and no fix.
 welcome:forge-cli() {
-  local host=$1 tool=gh
-  [[ "${welcome_host_forge[${host}]}" == github ]] || tool=glab
+  local host=$1 tool
+  tool=$(welcome:forge-tool "${host}")
+  if [[ "${tool}" == az ]]
+  then
+    if ! welcome:answers az
+    then
+      welcome:record "forge-cli-${host}" false "az is not installed; kit reaches ${host} through it" '' false \
+        "$(welcome:site az)"
+    elif ! az extension show --name azure-devops --output none >/dev/null 2>&1
+    then
+      welcome:record "forge-cli-${host}" false \
+        "az is installed, but not its azure-devops extension; kit reaches ${host} through it" \
+        'az extension add --name azure-devops'
+    else
+      welcome:record "forge-cli-${host}" true \
+        "az is on PATH, with its azure-devops extension; kit reaches ${host} through it"
+    fi
+    return 0
+  fi
   welcome:tool "forge-cli-${host}" "${tool}" "kit reaches ${host} through it"
 }
 
 # welcome:forge-login <host> prints the check that the host's forge tool is logged in to it. Logging in needs the
 # person, so its fix is interactive.
 welcome:forge-login() {
-  local host=$1 tool=gh
-  [[ "${welcome_host_forge[${host}]}" == github ]] || tool=glab
+  local host=$1 tool
+  tool=$(welcome:forge-tool "${host}")
   if ! welcome:version "${tool}" >/dev/null
   then
     welcome:record "forge-login-${host}" false "${tool} must be installed before it can log in to ${host}" '' false \
       "$(welcome:site "${tool}")"
+  elif [[ "${tool}" == az ]]
+  then
+    # az is signed in to every Azure DevOps organization at once: it has no host to ask
+    if az account show --output none >/dev/null 2>&1
+    then welcome:record "forge-login-${host}" true "az is logged in to ${host}"
+    else welcome:record "forge-login-${host}" false "az is not logged in to ${host}" 'az login' true
+    fi
   elif CLICOLOR_FORCE=0 GH_FORCE_TTY='' "${tool}" auth status --hostname "${host}" >/dev/null 2>&1
   then
     welcome:record "forge-login-${host}" true "${tool} is logged in to ${host}"

@@ -454,6 +454,36 @@ ambient-system() {
     "gh is logged in to github.com" ]
 }
 
+@test "a repository on Azure DevOps gets a tool check and a login check, whichever of its three forms the remote is" {
+  git remote add origin https://dev.azure.com/acme/shop/_git/web
+  git remote add ssh git@ssh.dev.azure.com:v3/acme/shop/web
+  git remote add old https://acme.visualstudio.com/shop/_git/web
+  # az missing: no fix kit could say right for every package manager, so the site
+  fake-script az 'exit 1'
+  run --separate-stderr checks
+  [ "$(jq --raw-output '[.[] | .id | select(startswith("forge-"))] | join(" ")' <<<"$output")" = \
+    "forge-cli-dev.azure.com forge-login-dev.azure.com" ]
+  [ "$(jq --raw-output '.[] | select(.id == "forge-cli-dev.azure.com") | [.ok, .line, .fix, .more] | @tsv' <<<"$output")" = \
+    $'false\taz is not installed; kit reaches dev.azure.com through it\t\thttps://learn.microsoft.com/cli/azure/install-azure-cli' ]
+  # az without its azure-devops extension, then with it; logged in only after az login
+  # shellcheck disable=SC2016  # a fake's body expands when it runs
+  fake-script az '
+case "$*" in
+  ("--version") echo "azure-cli 2.60.0" ;;
+  ("extension show --name azure-devops --output none") [[ -f "${BATS_TEST_TMPDIR}/extension" ]] ;;
+  ("account show --output none") [[ -f "${BATS_TEST_TMPDIR}/logged-in" ]] ;;
+  (*) exit 1
+esac'
+  run --separate-stderr checks
+  [ "$(jq --raw-output '.[] | select(.id == "forge-cli-dev.azure.com") | [.ok, .fix] | @tsv' <<<"$output")" = \
+    $'false\taz extension add --name azure-devops' ]
+  [ "$(jq --raw-output '.[] | select(.id == "forge-login-dev.azure.com") | [.ok, .fix, .interactive] | @tsv' \
+    <<<"$output")" = $'false\taz login\ttrue' ]
+  touch "${BATS_TEST_TMPDIR}/extension" "${BATS_TEST_TMPDIR}/logged-in"
+  run --separate-stderr checks
+  [ "$(jq --raw-output '[.[] | select(.id | startswith("forge-")) | .ok] | all' <<<"$output")" = true ]
+}
+
 @test "--fix runs the check's fix, checks again, and exits 0 when it now holds and 1 when it does not" {
   git remote add origin https://github.com/acme/widget.git
   fake-gh
