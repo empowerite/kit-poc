@@ -1,7 +1,8 @@
 # Install
 
-The README gives the Homebrew install. This page has the other ways to install kit, the toolchains that install a
-repository's tools, what kit needs on the machine, how kit picks which release to run, and how trust works.
+The README gives the install by download. This page has it again with the other ways to install kit, the
+toolchains that install a repository's tools, what kit needs on the machine, how kit picks which release to run, and
+how trust works.
 
 ## What a release is
 
@@ -14,13 +15,32 @@ kit serves every repository, whatever release each one pins.
 
 ## Ways to install
 
-### Homebrew
+### By download
 
-On macOS, Linux, or Windows Subsystem for Linux (WSL):
+On macOS, Linux, or Windows Subsystem for Linux (WSL). Set `version` to the release you want; the
+[releases](https://github.com/empowerite/kit/releases) page lists them:
 
 ```sh
-brew install empowerite/tap/kit
+version=0.1.0
+release="https://github.com/empowerite/kit/releases/download/release/${version}"
+curl --fail --location --output "kit-${version}.tar.gz" "${release}/kit-${version}.tar.gz"
+curl --fail --location --output "kit-${version}.tar.gz.sha256" "${release}/kit-${version}.tar.gz.sha256"
+shasum --algorithm 256 --check "kit-${version}.tar.gz.sha256" &&
+  mkdir -p "${HOME}/.local/share" "${HOME}/.local/bin" &&
+  tar --extract --gzip --file "kit-${version}.tar.gz" --directory "${HOME}/.local/share" &&
+  ln -s -f "${HOME}/.local/share/kit-${version}/bin/kit" "${HOME}/.local/bin/kit"
 ```
+
+- The two `curl` lines download the release's tarball and the `.sha256` published beside it. With `gh`,
+  `gh release download "release/${version}" --repo empowerite/kit` downloads the same two files in their place.
+- `shasum` checks the tarball against that digest, and the lines after it run only when the two match, so a tarball
+  with other bytes is never unpacked. On a Linux machine with no `shasum`, `sha256sum --check` reads the same file.
+- The tarball holds one directory, `kit-<version>/`, which lands in `~/.local/share/`, and `~/.local/bin/kit` is a
+  link to its loader. Put `~/.local/bin` on your `PATH` if it is not there.
+- The download brings kit alone. [Requirements](#requirements) lists what kit needs beside it.
+
+To move to a later release, run the lines again with its version. The earlier release stays in `~/.local/share/`
+until you remove it.
 
 ### mise
 
@@ -31,16 +51,7 @@ Add kit as a tool in your own `~/.config/mise/config.toml`:
 "github:empowerite/kit" = { version = "0.1.0", version_prefix = "release/" }
 ```
 
-### By hand, with gh
-
-This downloads the latest release, never a pre-release. For one version, run
-`gh release download "release/${version}" ...` instead. Unpack it and put its `bin/` on `PATH`:
-
-```sh
-gh release download --repo empowerite/kit --pattern 'kit-*.tar.gz' --output kit.tar.gz
-mkdir kit && tar --extract --gzip --file kit.tar.gz --directory kit --strip-components 1
-export PATH="${PWD}/kit/bin:${PATH}"
-```
+mise downloads the release's tarball itself, and puts its `bin/` on `PATH`.
 
 ### Windows
 

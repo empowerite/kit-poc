@@ -224,7 +224,7 @@ use <module>
 
   A verb that runs another command may pass that command's status through, and says so. Every verb's header ends
   its description with one `Exits …` line stating its codes in those terms.
-- The verb finds the loader beside its own real path, so it runs through a symlink, as Homebrew installs it.
+- The verb finds the loader beside its own real path, so it runs through a symlink.
 - A verb has no `--help` of its own: `kit help <verb>` prints its header, and so does `kit <verb> --help` or `-h`.
   Every verb calls `guard:arguments <verb> "$@"` first. It judges the arguments against the usage line and refuses
   in one line that points to that page: an unknown flag or argument, a missing value, two alternatives together, or

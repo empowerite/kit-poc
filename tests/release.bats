@@ -122,6 +122,57 @@ setup() {
   [[ "$output" == *"is not a release tag"* ]]
 }
 
+# install-lines <page> <heading> prints the first sh block under the page's heading: the lines a reader pastes.
+install-lines() {
+  awk -v heading="$2" '
+    $0 == heading { under = 1; next }
+    under && /^```sh$/ { inside = 1; next }
+    inside && /^```$/ { exit }
+    inside { print }
+  ' "${BATS_TEST_DIRNAME}/../$1"
+}
+
+@test "the install lines the pages give install the release pack wrote, and unpack nothing its digest does not hold" {
+  pasted=$(install-lines README.md '## Install')
+  [[ "${pasted}" == *curl* && "${pasted}" != *brew* ]]
+  [ "$(install-lines docs/install.md '### By download')" = "${pasted}" ]
+  version=$(sed -n 's/^version=//p' <<<"${pasted}")
+  export FAKE_RELEASES="${work}/releases"
+  mkdir -p "${FAKE_RELEASES}"
+  "${repo_bin}/release" pack "release/${version}" "${FAKE_RELEASES}"
+  ln -s "${BATS_TEST_DIRNAME}/fakes/fake-curl" "${fakes}/curl"
+  cp "${FAKE_RELEASES}/kit-${version}.tar.gz" "${work}/packed.tar.gz"
+  cp "${FAKE_RELEASES}/kit-${version}.tar.gz.sha256" "${work}/packed.sha256"
+  # The page names shasum, and sha256sum for a Linux machine without it; GNU's is the one such a machine has.
+  checks=('shasum --algorithm 256 --check')
+  ! sha256sum --version 2>/dev/null | grep --quiet GNU || checks+=('sha256sum --check')
+  [[ "${pasted}" == *'shasum --algorithm 256 --check'* ]]
+  for check in "${checks[@]}"
+  do
+    # Pasted lines run one by one, whatever the line before did, so the file is run without errexit.
+    printf '%s\n' "${pasted//shasum --algorithm 256 --check/${check}}" > "${work}/install.sh"
+    rm -rf "${HOME}/.local" "${work}/downloads" && mkdir "${work}/downloads" && cd "${work}/downloads"
+    cp "${work}/packed.tar.gz" "${FAKE_RELEASES}/kit-${version}.tar.gz"
+    cp "${work}/packed.sha256" "${FAKE_RELEASES}/kit-${version}.tar.gz.sha256"
+    run bash "${work}/install.sh"
+    [ "$status" -eq 0 ]
+    grep -q "/releases/download/release/${version}/kit-${version}\.tar\.gz\.sha256\$" "${FAKE_RELEASES}/curl.calls"
+    [ "$(readlink "${HOME}/.local/bin/kit")" = "${HOME}/.local/share/kit-${version}/bin/kit" ]
+    [ "$("${HOME}/.local/bin/kit" version)" = "${version}" ]
+    # bytes that are not the digest's, then a .sha256 with no digest in it: nothing is unpacked, and nothing linked
+    rm -rf "${HOME}/.local" "${work}/downloads" && mkdir "${work}/downloads" && cd "${work}/downloads"
+    printf 'x' >> "${FAKE_RELEASES}/kit-${version}.tar.gz"
+    run bash "${work}/install.sh"
+    [ "$status" -ne 0 ]
+    [ ! -e "${HOME}/.local" ]
+    rm -rf "${work}/downloads" && mkdir "${work}/downloads" && cd "${work}/downloads"
+    : > "${FAKE_RELEASES}/kit-${version}.tar.gz.sha256"
+    run bash "${work}/install.sh"
+    [ "$status" -ne 0 ]
+    [ ! -e "${HOME}/.local" ]
+  done
+}
+
 @test "publish uploads the tarball, kittui inside it, and its digest, and nothing beside them" {
   printf '%s\n' '#!/usr/bin/env bash' 'printf "%s\n" "$*" >> "${FAKES}/gh.calls"' \
     'tar -tzf "$4" > "${FAKES}/listing"' > "${fakes}/gh"

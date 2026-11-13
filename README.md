@@ -72,20 +72,32 @@ the file with a package of your own. `.kit/1st.md` explains how, under "Changing
 
 ## Install
 
-macOS and Linux, with [Homebrew](https://brew.sh):
+macOS and Linux, by download. Set `version` to the release you want; the
+[releases](https://github.com/empowerite/kit/releases) page lists them:
 
 ```sh
-brew install empowerite/tap/kit
+version=0.1.0
+release="https://github.com/empowerite/kit/releases/download/release/${version}"
+curl --fail --location --output "kit-${version}.tar.gz" "${release}/kit-${version}.tar.gz"
+curl --fail --location --output "kit-${version}.tar.gz.sha256" "${release}/kit-${version}.tar.gz.sha256"
+shasum --algorithm 256 --check "kit-${version}.tar.gz.sha256" &&
+  mkdir -p "${HOME}/.local/share" "${HOME}/.local/bin" &&
+  tar --extract --gzip --file "kit-${version}.tar.gz" --directory "${HOME}/.local/share" &&
+  ln -s -f "${HOME}/.local/share/kit-${version}/bin/kit" "${HOME}/.local/bin/kit"
 ```
 
-Windows: kit runs in Windows Subsystem for Linux (WSL). Run `wsl --install` in PowerShell, install Homebrew inside
-WSL, then run the line above.
+`shasum` checks the tarball against the digest published beside it, and the lines after it run only when the two
+match. The release unpacks as `~/.local/share/kit-<version>/`, and `~/.local/bin/kit` is a link to its loader. Put
+`~/.local/bin` on your `PATH` if it is not there.
+
+Windows: kit runs in Windows Subsystem for Linux (WSL). Run `wsl --install` in PowerShell, then run the lines above
+inside WSL.
 
 Check it with `kit version` and `kit help`.
 
 Other ways to install, such as mise or a download with `gh`, are in [docs/install.md](docs/install.md). That page
-also lists what kit needs on the machine (bash 4.4 or later, git, `jq`, `yq`, and the linters), how kit picks which
-release to run, and how `kit trust` works.
+also lists what kit needs on the machine, which the download does not bring (bash 4.4 or later, git, `jq`, `yq`,
+and the linters), how kit picks which release to run, and how `kit trust` works.
 
 New to a repository that uses kit? Run `kit trust`, then `kit welcome`. `kit welcome` checks your tools, your code
 forge logins, and the repository, and shows how to fix each problem. Then it explains how work flows, the terms, and
