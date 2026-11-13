@@ -2,7 +2,8 @@
 
 `projects/tutorials` is the site of kit's tutorials: one web page for each feature, tagged by who it is for. It is a
 TypeScript, React, and Vite site, and every page is an MDX file. `kit tutorials` shows the top-level tutorials as
-buttons, and a button opens its page in the browser. Nothing on the site runs a command for the reader.
+cards, and a card for one of these pages opens it in the browser; the tutorials that ship with kit open in kittui.
+Nothing on the site runs a command for the reader.
 
 Each build is for one line of kit, at one base path:
 
@@ -19,7 +20,7 @@ npm ci
 npm run dev
 ```
 
-In a repository with kit, point kit's buttons at that server instead of the published site:
+In a repository with kit, point kit's cards at that server instead of the published site:
 
 ```bash
 KIT_TUTORIALS_BASE=http://localhost:5173/ kit tutorials
@@ -120,8 +121,8 @@ holds it to these keys, and the gate checks every page against it:
 | --- | --- | --- | --- |
 | `title` | string | always | The page's heading and title |
 | `top` | boolean | no, `false` | `true` for a top-level tutorial, one kit lists |
-| `summary` | string | when `top` | The sentence on the tutorial's button |
-| `glyph` | string | when `top` | The emoji on the tutorial's button |
+| `summary` | string | when `top` | The sentence on the tutorial's card |
+| `glyph` | string | when `top` | The emoji on the tutorial's card |
 | `audience` | list of strings | when `top` | Who it is for, at least one id from `audiences.yml` |
 | `order` | integer | no, `1000` | Where it stands among the tutorials, lowest first |
 
