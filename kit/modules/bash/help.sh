@@ -6,7 +6,7 @@
 #
 #   # kit-<verb> - <purpose> (kit verb: <group>)   the banner, on line 2
 #   # Usage:                                     then, indented, a usage line for each way to call it
-#   # <description>                              the paragraphs that say what it does
+#   # <description>                              the paragraphs that say what it does, a legend last
 #   # Arguments:                                 then, indented, each argument and what it means
 #   # Exits <statuses>                           what each exit status means
 #   # see: <paths>                               where in the kit's source to read more, left out of the help
@@ -161,20 +161,35 @@ help:arguments() {
   awk '{ print ($0 == "" ? "" : "  " $0) }' <<<"${help_value[$1:arguments]%$'\n'}"
 }
 
-# help:description <verb> prints what the verb's help page says below its usage: the description, without the lines
-# that open and close a region kit generate fills, as the legend kit-flow's header has; then the argument block; then
-# Exits. Paragraphs are one blank line apart.
+# help:description <verb> prints the verb's description up to its legend, without the lines that open and close a
+# region kit generate fills. A description may end in a legend, which kit-flow's header has: a line that reads Legend,
+# and every line after it. help:legend prints that part. Paragraphs are one blank line apart.
 help:description() {
-  local arguments
+  help:prose "$1" description
+}
+
+# help:legend <verb> prints the legend the verb's description ends in, without its Legend line, and nothing for a
+# description that has none.
+help:legend() {
+  help:prose "$1" legend
+}
+
+# help:prose <verb> <part> prints one part of the verb's description, description or legend, as help:description says.
+help:prose() {
   help:values "$1" || return 1
-  arguments=$(help:arguments "$1") || return 1
-  {
-    # a description of region lines alone leaves nothing, which is no failure
-    grep --invert-match --extended-regexp '^kit:(generate|end) ' <<<"${help_value[$1:description]}" || true
-    printf '\n%s\n\nExits %s\n' "${arguments}" "${help_value[$1:exits]//$'\n# '/$'\n'}"
-  } | awk '
-    $0 == "" { blank = printed; next }
-    { if (blank) print ""; blank = 0; print; printed = 1 }'
+  # a description of region lines alone leaves nothing, which is no failure
+  { grep --invert-match --extended-regexp '^kit:(generate|end) ' <<<"${help_value[$1:description]}" || true; } |
+    awk -v part="$2" '
+      $0 == "Legend" && !legend { legend = 1; blank = 0; printed = 0; next }
+      (part == "legend") != (legend == 1) { next }
+      $0 == "" { blank = printed; next }
+      { if (blank) print ""; blank = 0; print; printed = 1 }'
+}
+
+# help:exits <verb> prints the verb's Exits paragraph, as its header writes it.
+help:exits() {
+  help:values "$1" || return 1
+  printf 'Exits %s\n' "${help_value[$1:exits]//$'\n# '/$'\n'}"
 }
 
 # help:summary <verb>… prints each verb's usage and purpose, one block per verb, as kit help lists them. A single
@@ -350,12 +365,14 @@ help:overview() {
   printf '    workflow package is active, is the workflow\n'
 }
 
-# help:page <verb> prints the verb's help page: its name and purpose, its usage, its description rewrapped to 80
-# columns, and the other verbs of its group, wrapped at 80 columns between verbs. Headings are bold as help:styled
-# says.
+# help:page <verb> prints the verb's help page, each part under its heading: its name and purpose; Usage; Description,
+# what the verb does; Arguments, the argument block, left out for a verb that takes none; Exit status, the Exits
+# paragraph; Legend, for a description that ends in one, after the arguments, so a long legend never comes before
+# them; and Group, the other verbs of its group, wrapped between verbs. Every part but the usage is rewrapped to 80
+# columns. Headings are bold as help:styled says.
 help:page() {
   help:all || return 1
-  local bold='' plain='' line verb group named own='' purpose='' other
+  local bold='' plain='' line verb group named own='' purpose='' other arguments legend
   local -a banners others=()
   if help:styled
   then
@@ -369,11 +386,27 @@ help:page() {
     own=${group} purpose=${named}
     break
   done
+  arguments=$(help:arguments "$1") || return 1
+  legend=$(help:legend "$1") || return 1
   printf '%skit %s%s - %s\n\n' "${bold}" "$1" "${plain}" "${purpose}"
   printf '%sUsage%s\n' "${bold}" "${plain}"
   help:usage "$1" | sed 's/^/  /'
   printf '\n%sDescription%s\n' "${bold}" "${plain}"
   help:description "$1" | help:reflow
+  if [[ -n "${arguments}" ]]
+  then
+    printf '\n%sArguments%s\n' "${bold}" "${plain}"
+    # the block's lines are indented, which is how help:reflow knows an argument; the page shows them under their
+    # heading, where the usage lines are under theirs
+    help:reflow <<<"${arguments}" | sed 's/^  //'
+  fi
+  printf '\n%sExit status%s\n' "${bold}" "${plain}"
+  help:exits "$1" | help:reflow
+  if [[ -n "${legend}" ]]
+  then
+    printf '\n%sLegend%s\n' "${bold}" "${plain}"
+    help:reflow <<<"${legend}"
+  fi
   [[ -n "${own}" ]] || return 0
   for line in "${banners[@]}"
   do

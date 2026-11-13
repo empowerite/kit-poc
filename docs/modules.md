@@ -203,15 +203,18 @@ use <module>
   They are grouped by `[ ]`, `( )`, and `|`, with `…` after what repeats. `kit syntax --check` refuses any other
   word, one with a dot or a capital, or `<a|b>`, naming the verb, the line, and the word.
 - The description is every paragraph between the `Usage:` block and the `Arguments:` label, which `kit help <verb>`
-  prints, reflowed to 80 columns. An indented list or a legend region stays in it. Its first line is not indented,
-  since an indented line there would read as one more usage line.
+  prints under Description, reflowed to 80 columns. An indented list stays in it. Its first line is not indented,
+  since an indented line there would read as one more usage line. A description may end in a legend: a line that
+  reads `Legend`, and every line after it, a generated region among them. `kit help <verb>` prints the legend under
+  its own heading, after the arguments and the exit status, so a long legend never comes before the arguments.
 - Every argument a usage line names has a line in the `Arguments:` block, indented three spaces after the `#`: the
   argument as the usage writes it, two or more spaces, and a fragment that says what it does, continued on lines
   indented further. A verb that takes none has the label over an empty block. `kit syntax <verb>` prints the usage
   and the block as JSON. `kit syntax --check`, which the gate and the pre-commit hook run, reports an argument that
   has no line.
 - `Exits` says what each exit status means, and `see:` points into the source; both are left out of the usage, and
-  `see:` out of the help page too.
+  `see:` out of the help page too. `kit help <verb>` prints the argument block under Arguments, and the `Exits`
+  paragraph under Exit status.
 - A verb exits:
   - 0 when it did what was asked
   - 1 when it could not, or when what it checks does not hold

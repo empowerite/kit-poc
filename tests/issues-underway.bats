@@ -286,8 +286,8 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
   [ "$status" -eq 0 ]
   [[ "$output" == *$'\n  issues:\n\n    🎫  issue: its number and title\n    💤  backlog: an open issue no open pull request closes, nor a branch names\n    🛫  underway: an issue an open pull request closes, or a branch names\n'* ]]
   [[ "$output" == *$'\n    🏊  swimlane: '* ]]
-  [[ "$output" == *"    issues              every open issue, oldest first: in the backlog,"* ]]
-  [[ "$output" == *"    backlog             no stage of kit flow: issues lists them;"* ]]
+  [[ "$output" == *$'\n  issues              every open issue, oldest first: in the backlog,'* ]]
+  [[ "$output" == *$'\n  backlog             no stage of kit flow: issues lists them;'* ]]
 }
 
 # ----------------------------------------------------------------------------------------------------------------------

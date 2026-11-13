@@ -93,7 +93,7 @@ group-has() {
 @test "kit help flow holds the legend of the glyphs every stage draws, made from the kit's table, without its region's lines" {
   run "${kit_root}/bin/kit" help flow
   [ "$status" -eq 0 ]
-  [[ "$output" == *$'\n  Legend\n'* ]]
+  [[ "$output" == *$'\nLegend\n'* ]]
   [[ "$output" == *$'\n    🔀  pull request'* ]]
   [[ "$output" == *$'\n    🏁  ready'* ]]
   [[ "$output" == *"NO_COLOR removes the colors"* ]]
@@ -250,9 +250,9 @@ group-has() {
   # the bullet's text hangs after its mark, and the second paragraph follows it
   [[ "$output" == *$'\n\n    - a bullet whose text is longer than the room, so it wraps under its own\n      first word, with the mark kept on the first line\n\n  A second paragraph, short.\n'* ]]
   # a bullet at column 0 starts its own paragraph, never joined to the line before it, hanging after its mark; the
-  # line after it that is no bullet continues it, and the next bullet starts the next; then the argument block, its
-  # description hanging at its own column, and Exits
-  [[ "$output" == *$'\n\n  The verb does three things:\n  - the first thing, whose text is longer than the room, so it wraps under its\n    own first word, however long and goes on in the line after it\n  - the second thing\n\n    --wide=<value>   an argument whose description is longer than the room, so\n                     it wraps under its own first word, however wide\n\n  Exits 0.\n\nGroup\n'* ]]
+  # line after it that is no bullet continues it, and the next bullet starts the next; then the argument block under
+  # its heading, its description hanging at its own column, and Exits under its own
+  [[ "$output" == *$'\n\n  The verb does three things:\n  - the first thing, whose text is longer than the room, so it wraps under its\n    own first word, however long and goes on in the line after it\n  - the second thing\n\nArguments\n  --wide=<value>   an argument whose description is longer than the room, so\n                   it wraps under its own first word, however wide\n\nExit status\n  Exits 0.\n\nGroup\n'* ]]
   # a verb's own page, with the widest block, fits too, but for a usage line
   run "${kit_root}/bin/kit" help new
   while IFS= read -r line
@@ -296,13 +296,36 @@ group-has() {
   [[ "$output" == *"kit-zz: its header leaves the verb template at line 3"* ]]
 }
 
-@test "kit help <verb> shows the description, then the argument block, then Exits, as the header holds them" {
+@test "kit help <verb> shows the description, then the arguments, then the exit status, each under its own heading" {
   run "${kit_root}/bin/kit" help toolchains
   [ "$status" -eq 0 ]
-  local description=${output%%$'\nDescription\n'*} arguments=${output%%$'\n    --json'*} exits=${output%%$'\n  Exits 0'*}
-  (( ${#description} < ${#arguments} && ${#arguments} < ${#exits} ))
-  [[ "$output" == *$'\n  Exits 0 when it did it'* ]]
-  [[ "$output" == *$'\n    --json '* ]]
+  local description=${output%%$'\nDescription\n'*} arguments=${output%%$'\n\nArguments\n  --json '*}
+  local exits=${output%%$'\n\nExit status\n  Exits 0 when it did it'*} group=${output%%$'\n\nGroup\n'*}
+  (( ${#description} < ${#arguments} && ${#arguments} < ${#exits} && ${#exits} < ${#group} ))
+  # a verb that takes no arguments has no Arguments heading
+  run "${kit_root}/bin/kit" help check
+  [ "$status" -eq 0 ]
+  [[ "$output" != *$'\nArguments\n'* ]]
+  [[ "$output" == *$'\n\nExit status\n  Exits 0 '* ]]
+}
+
+@test "a legend in a description prints under its own heading after the exit status, so the arguments come first" {
+  local root="${BATS_TEST_TMPDIR}/kit"
+  mkdir -p "${root}"
+  cp -R "${kit_root}/bin" "${kit_root}/libexec" "${kit_root}/modules" "${kit_root}/packages" "${root}/"
+  printf '%s\n' '#!/usr/bin/env bash' '# kit-drawn - a verb that draws glyphs (kit verb: help)' '# Usage:' \
+    '#   kit drawn [--text]' '#' '# Draws it.' '#' '# Legend' '#' '# Each glyph, one per line.' '#' \
+    '#   ✅  passed: every check' '#' '# Arguments:' '#   --text   prints it as text' '#' '# Exits 0.' '#' \
+    '# see: bin/kit' '' 'set -o errexit -o nounset -o pipefail' > "${root}/bin/kit-drawn"
+  chmod +x "${root}/bin/kit-drawn"
+  run "${root}/bin/kit" help drawn
+  [ "$status" -eq 0 ]
+  [[ "$output" == *$'\nDescription\n  Draws it.\n\nArguments\n  --text   prints it as text\n\nExit status\n  Exits 0.\n\nLegend\n  Each glyph, one per line.\n\n    ✅  passed: every check\n\nGroup\n'* ]]
+  # kit flow's own page: every argument is described before its legend
+  run "${kit_root}/bin/kit" help flow
+  [ "$status" -eq 0 ]
+  local arguments=${output%%$'\nArguments\n'*} legend=${output%%$'\nLegend\n'*}
+  (( ${#arguments} < ${#legend} && ${#legend} < ${#output} ))
 }
 
 @test "a verb whose Usage: block holds no usage line is refused, as kit could not call it" {
