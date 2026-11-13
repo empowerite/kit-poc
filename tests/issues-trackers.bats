@@ -117,6 +117,45 @@ YAML
   [ "$(jq --compact-output 'map(.ref)' <<<"$output")" = '["#7"]' ]
 }
 
+@test "an Azure Boards tracker past 1000 open work items is read whole, a page of 1000 at a time by id" {
+  # az boards query answers the first 1000 work items a query finds, and says nothing of the rest
+  jq --null-input --compact-output '[range(1; 1001) | {id: ., fields: {"System.Title": "Item \(.)",
+    "System.CreatedDate": "2026-09-01T09:00:00Z"}}]' | fixture items-1.json
+  fixture items-2.json <<'JSON'
+[{"id": 1001, "fields": {"System.Title": "The oldest", "System.CreatedDate": "2026-08-01T09:00:00Z"}},
+ {"id": 1002, "fields": {"System.Title": "The newest", "System.CreatedDate": "2026-09-02T09:00:00Z"}}]
+JSON
+  : > "${FAKE_DIR}/az.routes"
+  route az 'boards query --project Claims *Id? > 0[!0-9]*ORDER BY ?System.Id? ASC' items-1.json
+  route az 'boards query --project Claims *Id? > 1000[!0-9]*ORDER BY ?System.Id? ASC' items-2.json
+  at() { bash -c 'source "${kit_root}/modules/bash/1st.sh" && use tracker && tracker:at "AB#" open-issues' _; }
+  run --separate-stderr at
+  [ "$status" -eq 0 ]
+  [ "$(jq --slurp --compact-output '[length, .[0].ref, .[1].ref, .[-1].ref]' <<<"$output")" \
+    = '[1002,"AB#1001","AB#1","AB#1002"]' ]
+  [ "$(grep --count 'boards query' "${FAKE_DIR}/az.calls")" -eq 2 ]
+  # a second page that holds work items the first one gave is not the answer to what was asked
+  jq --compact-output '.[:2]' "${FAKE_DIR}/items-1.json" | fixture items-2.json
+  run --separate-stderr at
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+  [[ "$stderr" == *"az login (the work items of Claims could not be read from https://dev.azure.com/example)"* ]]
+  # a list that reaches the most kit reads fails, as a forge's does
+  jq --compact-output 'map(.id += 1000)' "${FAKE_DIR}/items-1.json" | fixture items-2.json
+  run --separate-stderr bash -c 'source "${kit_root}/modules/bash/1st.sh" && use tracker && forge_list_limit=2000 \
+    && tracker:at "AB#" open-issues' _
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+  [[ "$stderr" == *"kit reads at most 2000 items of a list (the work items of Claims could not be read)"* ]]
+  # az prints nothing for a query that finds no work item, which is none open
+  : > "${FAKE_DIR}/empty"
+  : > "${FAKE_DIR}/az.routes"
+  route az 'boards query *' empty
+  run --separate-stderr at
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+}
+
 @test "the tracker seam's open-issues answers for the forge's own, as forge:open-issues does" {
   run bash -c 'source "${kit_root}/modules/bash/1st.sh" && use tracker && tracker:at "#" open-issues' _
   [ "$status" -eq 0 ]

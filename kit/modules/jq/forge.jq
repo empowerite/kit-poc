@@ -500,6 +500,13 @@ def ado_issues($now; $path):
      createdAt: .fields["System.CreatedDate"], iteration: ado_iteration}
   | issue($now; "ado"; $path);
 
+# ado_page($after) reads one page of an Azure Boards query that asked for the work items whose id is above $after, and
+# gives how many it holds and the highest id among them, tab-separated, $after for an empty page. A page that is no
+# list, or holds an id that is not above $after, is an error.
+def ado_page($after):
+  if type == "array" and all(.[]; (.id | type) == "number" and .id > $after)
+  then "\(length)\t\(map(.id) | max // $after)" else error end;
+
 # ado_verdict reads a policy evaluation's status and gives the check's verdict: approved is passed, rejected and broken
 # are failed, and queued and running are pending.
 def ado_verdict:

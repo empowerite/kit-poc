@@ -314,6 +314,42 @@ added='"milestones","bots","attestations","code-scanning","dependabot","secret-s
     = 'ado empowerite/example' ]
 }
 
+@test "a project past 1000 open work items is read whole, a page of 1000 at a time by id, and 10000 of them fail" {
+  # az boards query answers the first 1000 work items a query finds, and says nothing of the rest
+  jq --null-input --compact-output '[range(1; 1001) | {id: ., fields: {"System.Title": "Item \(.)",
+    "System.CreatedDate": "2026-09-01T09:00:00Z"}}]' | fixture items-1.json
+  fixture items-2.json <<'JSON'
+[{"id": 1001, "fields": {"System.Title": "The oldest", "System.CreatedDate": "2026-08-01T09:00:00Z"}},
+ {"id": 1002, "fields": {"System.Title": "The newest", "System.CreatedDate": "2026-09-02T09:00:00Z"}}]
+JSON
+  local query='boards query --project empowerite --wiql'
+  grep --invert-match 'boards query' "${FAKE_DIR}/az.routes" > "${FAKE_DIR}/kept"
+  mv "${FAKE_DIR}/kept" "${FAKE_DIR}/az.routes"
+  az-route "${query} *Id? > 0[!0-9]*ORDER BY ?System.Id? ASC --output json" items-1.json
+  az-route "${query} *Id? > 1000[!0-9]*ORDER BY ?System.Id? ASC --output json" items-2.json
+  : > "${FAKE_DIR}/az.calls"
+  run --separate-stderr call open-issues
+  [ "$status" -eq 0 ]
+  [ "$(jq --slurp --compact-output '[length, .[0].number, .[1].number, .[-1].number]' <<<"$output")" \
+    = '[1002,1001,1,1002]' ]
+  [ "$(grep --count 'boards query' "${FAKE_DIR}/az.calls")" -eq 2 ]
+  # a second page that holds work items the first one gave is not the answer to what was asked
+  jq --compact-output '.[:2]' "${FAKE_DIR}/items-1.json" | fixture items-2.json
+  forge-forget
+  run --separate-stderr call open-issues
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+  [[ "$stderr" == *"az login (the work items could not be read)"* ]]
+  # a list that reaches the most kit reads fails, as the seam says
+  jq --compact-output 'map(.id += 1000)' "${FAKE_DIR}/items-1.json" | fixture items-2.json
+  forge-forget
+  run --separate-stderr bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge && forge_list_limit=2000 \
+    && forge:open-issues'
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+  [[ "$stderr" == *"kit reads at most 2000 items of a list (the work items could not be read)"* ]]
+}
+
 @test "the provider lists the pipeline runs not owned by any pull request, in the shape the others do" {
   git commit --quiet --allow-empty --message one && git tag release/0.1.0
   fixture runs.json <<'JSON'

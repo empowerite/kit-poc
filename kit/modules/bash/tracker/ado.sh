@@ -89,9 +89,13 @@ tracker/ado:new-url() {
 
 # tracker/ado:open-issues prints one document per open work item of the record's project, oldest first, as the seam's
 # header says: those an Azure Boards query finds in no closing state, each its reference under the record's prefix, its
-# page, and the project as its organization, as an Azure DevOps forge's work items have it.
+# page, and the project as its organization, as an Azure DevOps forge's work items have it. az boards query answers
+# the first 1000 work items a query finds and says nothing of the rest, and prints nothing when it finds none. So the
+# query is read a page at a time, by id, as modules/bash/forge/ado.sh reads it: a read that answers 1000 is followed
+# by the next, and a list that reaches forge_list_limit fails.
 tracker/ado:open-issues() {
-  local org project items
+  local org project page pages='' seen
+  local -i after=0 count=0 total=0
   org=$(tracker/ado:organization) || return 1
   project=$(tracker:field "${TRACKER_PREFIX}" project)
   if [[ -z "${project}" ]]
@@ -100,21 +104,31 @@ tracker/ado:open-issues() {
     return 1
   fi
   guard:require tool:az || return 1
-  if ! items=$(az boards query --project "${project}" --org "${org}" --output json --wiql \
-    "SELECT [System.Id], [System.Title], [System.AssignedTo], [System.Tags], [System.CreatedDate],
-            [System.IterationPath] FROM WorkItems
-     WHERE [System.TeamProject] = @project AND [System.State] NOT IN ('Closed', 'Done', 'Removed')
-     ORDER BY [System.CreatedDate] ASC" 2>/dev/null) || ! jq --exit-status 'type == "array"' <<<"${items}" >/dev/null 2>&1
-  then
-    error "run: az login (the work items of ${project} could not be read from ${org})"
-    return 1
-  fi
-  # shellcheck disable=SC2154  # kit_jq is exported by modules/bash/1st.sh
-  jq --compact-output -L "${kit_jq}" --argjson now "$(date +%s)" --arg prefix "${TRACKER_PREFIX}" \
+  while :
+  do
+    # shellcheck disable=SC2154  # kit_jq is exported by modules/bash/1st.sh
+    if ! page=$(az boards query --project "${project}" --org "${org}" --output json --wiql \
+      "SELECT [System.Id], [System.Title], [System.AssignedTo], [System.Tags], [System.CreatedDate],
+              [System.IterationPath] FROM WorkItems
+       WHERE [System.TeamProject] = @project AND [System.State] NOT IN ('Closed', 'Done', 'Removed')
+         AND [System.Id] > ${after}
+       ORDER BY [System.Id] ASC" 2>/dev/null) || ! seen=$(jq --raw-output -L "${kit_jq}" --argjson after "${after}" \
+      'import "forge" as forge; forge::ado_page($after)' <<<"${page:-[]}" 2>/dev/null)
+    then
+      error "run: az login (the work items of ${project} could not be read from ${org})"
+      return 1
+    fi
+    IFS=$'\t' read -r count after <<<"${seen}"
+    total+=count
+    forge:whole "the work items of ${project}" "${total}" || return 1
+    pages+=${page:-[]}$'\n'
+    (( count >= 1000 )) || break
+  done
+  jq --slurp --compact-output -L "${kit_jq}" --argjson now "$(date +%s)" --arg prefix "${TRACKER_PREFIX}" \
     --arg path "${project}/" --arg page "${org}/${project// /%20}/_workitems/edit/" '
     import "forge" as forge;
-    forge::ado_issues($now; $path) | .ref = "\($prefix)\(.number)" | .repository = null | .url = "\($page)\(.number)"' \
-    <<<"${items}"
+    add | forge::ado_issues($now; $path) | .ref = "\($prefix)\(.number)" | .repository = null
+    | .url = "\($page)\(.number)"' <<<"${pages}"
 }
 
 tracker/ado:state() {

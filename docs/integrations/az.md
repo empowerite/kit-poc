@@ -85,7 +85,8 @@ The `az devops invoke` area and resource names here were not tried against a liv
 signs in with Microsoft Entra ID; `az devops login` or `AZURE_DEVOPS_EXT_PAT` takes a personal access token instead.
 `--output json` prints JSON and `--query` filters it with JMESPath. `az devops invoke --area --resource
 --route-parameters` reaches any REST route by its area, and `az rest` reaches any URL. `az boards query` runs a flat
-Work Item Query Language (WIQL) query and answers every item it matches. kit's `tracker/ado.sh` uses these commands.
+Work Item Query Language (WIQL) query and answers the first 1000 work items it matches, with nothing said of the
+rest. kit's `tracker/ado.sh` uses these commands.
 
 ### Read from Azure Boards
 
@@ -97,7 +98,7 @@ Work Item Query Language (WIQL) query and answers every item it matches. kit's `
 | Caller | `az account show --query user.name --output tsv` |
 | Issue page | none; kit builds `${org}/${project}/_workitems/edit/${n}` |
 | New-issue page | none; kit builds `${org}/${project}/_workitems/create/${type}?[System.Title]=${title}` |
-| Open issues | `az boards query --org "${org}" --project "${project}" --wiql "${wiql}"`, selecting `System.Title`, `System.AssignedTo`, `System.Tags`, and `System.CreatedDate` where `System.State` is not closed |
+| Open issues | `az boards query --org "${org}" --project "${project}" --wiql "${wiql}"`, selecting `System.Title`, `System.AssignedTo`, `System.Tags`, `System.CreatedDate`, and `System.IterationPath` where `System.State` is not closed and `System.Id` is above the last id read, ordered by `System.Id`; an answer of 1000 work items is a full page, so kit asks again from its highest id, until a page holds fewer, and 10000 work items fail the read; kit puts them oldest first |
 | Parent, children, and linked pull requests | `az boards work-item show --id "${n}" --expand relations --org "${org}"`, or `az boards work-item relation show --id "${n}"` |
 | Iterations | `az boards iteration team list --team "${team}" --project "${project}" --org "${org}" --output json`, as `kit issues iterations` reads them, the team `forge_settings.ado.team` names, else the project's default team, with no `--team` |
 | An iteration's work items | `az boards iteration team list-work-items --id "${iteration_id}" --team "${team}" --project "${project}"` |
@@ -230,7 +231,7 @@ with an example the gate validates against it.
 | Schema | The command as kit runs it |
 | --- | --- |
 | [boards-iteration-team-list.schema.json](az/boards-iteration-team-list.schema.json) | `az boards iteration team list [--team ${team}] --project ${project} --output json` |
-| [boards-query.schema.json](az/boards-query.schema.json) | `az boards query --project ${project} --wiql "SELECT [System.Id], [System.Title], [System.AssignedTo], [System.Tags], [System.CreatedDate] FROM WorkItems WHERE [System.TeamProject] = @project AND [System.State] NOT IN ('Closed', 'Done', 'Removed') ORDER BY [System.CreatedDate] ASC" --output json` |
+| [boards-query.schema.json](az/boards-query.schema.json) | `az boards query --project ${project} --wiql "SELECT [System.Id], [System.Title], [System.AssignedTo], [System.Tags], [System.CreatedDate], [System.IterationPath] FROM WorkItems WHERE [System.TeamProject] = @project AND [System.State] NOT IN ('Closed', 'Done', 'Removed') AND [System.Id] > ${after} ORDER BY [System.Id] ASC" --output json` |
 | [boards-work-item-create.schema.json](az/boards-work-item-create.schema.json) | `az boards work-item create --title ${title} --type ${type} --description ${body} --project ${project} --output json` |
 | [boards-work-item-show.schema.json](az/boards-work-item-show.schema.json) | `az boards work-item show --id ${id} --output json` |
 | [devops-invoke-check-configurations.schema.json](az/devops-invoke-check-configurations.schema.json) | `az devops invoke --area PipelinesChecks --resource queryconfigurations --route-parameters project=${project} --query-parameters $expand=settings --http-method POST --in-file ${resources} --api-version 7.1-preview.1 --output json` |

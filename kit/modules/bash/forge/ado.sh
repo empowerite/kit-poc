@@ -307,19 +307,33 @@ forge/ado:milestones() { return 3; }
 forge/ado:noun() { printf '!\tpull request\n'; }
 
 # forge/ado:open-issues prints one document per open work item of the project, oldest first, as the seam's header
-# says: the work items an Azure Boards query finds in no closing state.
+# says: the work items an Azure Boards query finds in no closing state. az boards query answers the first 1000 work
+# items a query finds and says nothing of the rest, so the query is read a page at a time, by id: each read asks for
+# the work items whose id is above the last one read, in the order of their ids, and a read that answers 1000 is
+# followed by the next. A page that holds an id it was not asked for fails the read. forge.jq's ado_issues puts the
+# work items oldest first.
 forge/ado:open-issues() {
-  local items project repo
+  local page pages='' seen project repo
+  local -i after=0 count=0 total=0
   IFS=$'\t' read -r _ project repo < <(forge/ado:place) || return 1
-  forge/ado:ask items 'the work items' boards query --project "${project}" --wiql \
-    "SELECT [System.Id], [System.Title], [System.AssignedTo], [System.Tags], [System.CreatedDate],
-            [System.IterationPath] FROM WorkItems
-     WHERE [System.TeamProject] = @project AND [System.State] NOT IN ('Closed', 'Done', 'Removed')
-     ORDER BY [System.CreatedDate] ASC" || return 1
-  forge/ado:fold 'the work items' "${items}" --exit-status 'type == "array"' >/dev/null || return 1
-  forge:whole 'the work items' "$(jq length <<<"${items}")" || return 1
-  forge/ado:fold 'the work items' "${items}" --compact-output --argjson now "$(date +%s)" \
-    --arg path "${project}/${repo}" 'import "forge" as forge; forge::ado_issues($now; $path)'
+  while :
+  do
+    forge/ado:ask page 'the work items' boards query --project "${project}" --wiql \
+      "SELECT [System.Id], [System.Title], [System.AssignedTo], [System.Tags], [System.CreatedDate],
+              [System.IterationPath] FROM WorkItems
+       WHERE [System.TeamProject] = @project AND [System.State] NOT IN ('Closed', 'Done', 'Removed')
+         AND [System.Id] > ${after}
+       ORDER BY [System.Id] ASC" || return 1
+    seen=$(forge/ado:fold 'the work items' "${page}" --raw-output --argjson after "${after}" \
+      'import "forge" as forge; forge::ado_page($after)') || return 1
+    IFS=$'\t' read -r count after <<<"${seen}"
+    total+=count
+    forge:whole 'the work items' "${total}" || return 1
+    pages+=${page}$'\n'
+    (( count >= 1000 )) || break
+  done
+  forge/ado:fold 'the work items' "${pages}" --slurp --compact-output --argjson now "$(date +%s)" \
+    --arg path "${project}/${repo}" 'import "forge" as forge; add | forge::ado_issues($now; $path)'
 }
 
 # forge/ado:open-prs prints one JSON object per open pull request: the document kit flow renders, which
