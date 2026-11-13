@@ -161,7 +161,7 @@ stage. The `flow` setting in `kit.yml` names the stages that `kit flow` draws, a
 reads only the local repository, so what it shows of a remote is what the last fetch left. The
 desk and its worktrees are not a stage of `kit flow`: `kit workspace worktrees` lists them.
 
-see: `kit help flow`, [apps.md](apps.md), [workspaces.md](workspaces.md#kit-workspace)
+see: `kit help flow`, [apps.md](apps.md), [workspaces.md](workspaces.md#look-at-git-across-a-group)
 
 ### Publishing, and pull behind push
 
@@ -196,7 +196,7 @@ Each step is a page under `.kit/welcome/`, from the `kit` package. A house packa
 
 `kit tutorials` lists short lessons and opens one. One of them, `kit tutorials applications`, tours kittui's apps.
 
-see: `kit help welcome`, [workspaces.md](workspaces.md#kit-welcome), [tutorials.md](tutorials.md)
+see: `kit help welcome`, [workspaces.md](workspaces.md#check-the-setup-of-a-group), [tutorials.md](tutorials.md)
 
 ## The terminal UI
 
