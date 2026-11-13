@@ -318,3 +318,39 @@ func TestRowsAreSelectedAloneByGroupOrAll(t *testing.T) {
 func paneWindow(h *host) (start, end int, above, below bool) {
 	return pane.Window(len(ScrollLines(h)), RowsHeight(h), h.tbl.Offset)
 }
+
+func TestTheArrowAboveStandsOnTheRuleWhereItsBlankCellsHoldIt(t *testing.T) {
+	h := viewing()
+	h.lead = 6
+	n := len(ScrollLines(h))
+	height := RowsHeight(h)
+	h.tbl.Offset = 3
+	texts, places := Laid(h)
+	arrow := pane.Above(3)
+	if rule := texts[HeaderTop(h)-RowsTop(h)+1]; !strings.HasPrefix(rule, arrow+"    ") || ansi.StringWidth(rule) != ansi.StringWidth(strings.Repeat(" ", 6)+"────") {
+		t.Fatalf("the rule is %q", rule)
+	}
+	// the window shows the line the arrow stands over, one more than a line of its own would leave
+	if got := places[2]; got != 3+FrozenLines(h) {
+		t.Errorf("the rows start at line %d: %v", got, places)
+	}
+	if want := 2 + height + 1; len(texts) < want-1 || len(texts) > want {
+		t.Errorf("%d lines of %d rows' room, of %d: %q", len(texts), height, n, strip(texts))
+	}
+	// a lead the count does not fit in leaves it on a line of the window's own
+	h.lead = 2
+	texts, _ = Laid(h)
+	if !strings.HasPrefix(texts[2], pane.Above(3)) {
+		t.Errorf("the arrow is not on the first line of the window: %q", strip(texts))
+	}
+	// a window that hides nothing above, or one the line gives all the rows, draws no arrow on the rule
+	h.lead, h.tbl.Offset = 6, 0
+	if texts, _ = Laid(h); strings.Contains(texts[1], pane.Up) {
+		t.Errorf("an arrow on the rule at the top: %q", strip(texts))
+	}
+	h.tbl.Offset = 1
+	h.paneH += n - 1 - RowsHeight(h) // the rows are one more than the window holds, so the rule's line would show them all
+	if texts, _ = Laid(h); strings.Contains(texts[1], pane.Up) {
+		t.Errorf("an arrow on the rule where the window shows every row: %q", strip(texts))
+	}
+}

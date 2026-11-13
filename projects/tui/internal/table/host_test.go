@@ -3,6 +3,7 @@ package table
 
 import (
 	"slices"
+	"strings"
 
 	"github.com/empowerite/kit/projects/tui/internal/grid"
 )
@@ -26,6 +27,7 @@ type host struct {
 	paneH  int  // the pane's height
 	ctl    bool // whether a control line stands over the rows
 	left   int  // how many times the rows gave up the keyboard
+	lead   int  // how many blank cells lead the rule under the header
 }
 
 // Lines draws the rows as the grid does, the one under the cursor chosen while the rows have the keyboard.
@@ -48,7 +50,7 @@ func (h *host) Header() ([]string, bool) {
 		return nil, false
 	}
 	lines, hides := grid.Header(rows, h.Names(), h.GridWidth(), h.tbl.Shift, h.tbl.Open[HeaderKey])
-	return append(lines, "────"), hides
+	return append(lines, strings.Repeat(" ", h.lead)+"────"), hides
 }
 
 func (h *host) PaneHeight() int { return h.paneH }

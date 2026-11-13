@@ -281,10 +281,11 @@ func TestTheHeadingsOfOneValueAreFrozenOverTheHeader(t *testing.T) {
 		lines(m)[m.rowsTop()+1] != "" || !strings.Contains(lines(m)[m.headerTop()+2], "ada") {
 		t.Fatalf("frozen %d, the header at %d:\n%s", table.Frozen(&m), m.headerTop(), view(m))
 	}
-	// down to the last row: the rows scroll under the header, which stays, under github's heading
+	// down to the last row: the rows scroll under the header, which stays, under github's heading, the arrow that says
+	// how many rows hide above on the rule, in its blank cells
 	m = drive(m, down, down, down, down, down, down, down, down, down)
 	if s := m.stages[0]; s.Offset == 0 || lines(m)[m.rowsTop()] != github || m.headerTop() != m.rowsTop()+2 ||
-		!strings.Contains(lines(m)[m.headerTop()+2], pane.Up) {
+		!strings.Contains(lines(m)[m.headerTop()+1], pane.Up) {
 		t.Fatalf("scrolled to the last row, offset %d:\n%s", s.Offset, view(m))
 	}
 	// a click on github's ▾, frozen, folds it, and the header goes, as no row shows

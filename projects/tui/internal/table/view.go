@@ -4,6 +4,9 @@ package table
 
 import (
 	"slices"
+	"strings"
+
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/empowerite/kit/projects/tui/internal/grid"
 	"github.com/empowerite/kit/projects/tui/internal/pane"
@@ -120,6 +123,23 @@ func Laid(h Host) (texts []string, places []Place) {
 		window[i] = l.Text
 	}
 	head := Head(h, lines, height)
+	if over, start, end, below, ok := arrowOnRule(h, texts, head, len(lines), height); ok {
+		texts[len(texts)-1] = over
+		window = window[start:end]
+		if below {
+			window = append(window, pane.More(len(lines)-end))
+		}
+		for r := range window {
+			k := start + r
+			if k >= end {
+				k = -1
+			} else {
+				k += skip
+			}
+			places = append(places, k)
+		}
+		return append(texts, window...), places
+	}
 	window = pane.Lines(window, t.Offset, height, head)
 	for r := range window {
 		k := pane.At(len(lines), height, t.Offset, r)
@@ -132,6 +152,33 @@ func Laid(h Host) (texts []string, places []Place) {
 		places = append(places, k)
 	}
 	return append(texts, window...), places
+}
+
+// arrowOnRule says where the rows' window starts and ends when the arrow that says how many rows hide above it stands
+// on the rule under the header, in the blank cells that lead the rule, and not on a line of its own: the arrow and its
+// count, a cell of space after them, fit in those cells, and nothing pins a head in the arrow's place. The window then
+// has the arrow's line for one more row, and below says whether it hides rows below, as pane.Window says. over is the
+// rule with the arrow drawn on it. A header with no rule, a window that hides nothing above, or a lead too short for
+// the count, as it is wider the more rows hide, draws the arrow as pane.Lines does, on a line of the window's.
+func arrowOnRule(h Host, laid []string, head string, n, height int) (over string, start, end int, below, ok bool) {
+	header, _ := h.Header()
+	if head != "" || len(header) == 0 || len(laid) < len(header) {
+		return "", 0, 0, false, false
+	}
+	if _, _, above, _ := pane.Window(n, height, h.Table().Offset); !above {
+		return "", 0, 0, false, false
+	}
+	start, end, above, below := pane.Window(n, height+1, h.Table().Offset)
+	if !above {
+		return "", 0, 0, false, false
+	}
+	rule := laid[len(laid)-1]
+	arrow := pane.Above(start)
+	w := ansi.StringWidth(arrow)
+	if len(rule)-len(strings.TrimLeft(rule, " ")) < w+1 {
+		return "", 0, 0, false, false
+	}
+	return arrow + rule[w:], start, end, below, true
 }
 
 // Head gives the line the pane pins on top, in place of its … above: the first line of the row under the cursor, once
