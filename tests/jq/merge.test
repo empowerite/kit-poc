@@ -13,6 +13,12 @@ import "merge" as merge; merge::apply(.[0]; .[1]; .[2])
 [{"deny": ["mine", "kit-old", "kit-both"]}, {"deny": ["kit-old", "kit-both"]}, {"deny": ["kit-both", "kit-new"]}]
 {"deny":["mine","kit-both","kit-new"]}
 
+# A key the previous release wrote and the new one dropped goes while it is as the release wrote it, and stays once the
+# repository has changed it.
+import "merge" as merge; merge::apply(.[0]; .[1]; .[2])
+[{"a": 1, "deny": ["x", "mine"], "old": {"k": 1}, "edited": 2, "mine": true}, {"a": 1, "deny": ["x"], "old": {"k": 1}, "edited": 1}, {"deny": ["y"]}]
+{"deny":["mine","y"],"edited":2,"mine":true}
+
 # With no current file, the new release's content is written whole.
 import "merge" as merge; merge::apply(.[0]; .[1]; .[2])
 [null, null, {"permissions": {"deny": ["a"]}}]

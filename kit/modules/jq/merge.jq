@@ -5,11 +5,14 @@
 #
 # see: modules/bash/place.sh, docs/packages.md
 
-# apply($cur; $base; $new) applies the release's $new over the current $cur, key by key. For an array, it keeps the
-# current entries that were not in the previous release's $base, then adds $new's.
+# apply($cur; $base; $new) applies the release's $new over the current $cur, key by key. A key the previous release's
+# $base wrote and $new does not is taken out while it is still as $base wrote it, and stays once it was changed. For an
+# array, it keeps the current entries that were not in $base, then adds $new's.
 def apply($cur; $base; $new):
   if ($new | type) == "object" then
-    reduce ($new | keys[]) as $k ($cur // {}; .[$k] = apply(($cur // {})[$k]; ($base // {})[$k]; $new[$k]))
+    reduce (($base // {}) | if type == "object" then keys[] else empty end | select(. as $k | $new | has($k) | not)) as $k
+      ($cur // {}; if .[$k] == $base[$k] then del(.[$k]) else . end)
+    | reduce ($new | keys[]) as $k (.; .[$k] = apply(.[$k]; ($base // {})[$k]; $new[$k]))
   elif ($new | type) == "array" then
     ((($cur // []) - ($base // [])) as $kept | $kept + ($new - $kept))
   else $new end;
