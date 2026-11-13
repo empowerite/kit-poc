@@ -213,6 +213,16 @@
 #   forge/<name>:contract         the version it implements; a provider without one implements version 1
 #   forge/<name>:lacks            the features its forge does not have, one per line; without one, it lacks none
 #
+# A provider also says where the pages of a repository on its forge are. kit workspace links a remote, a branch, a
+# commit, and an issue to its page, for every remote, and asks no forge, so forge:page-urls <remote> answers from the
+# provider of that remote's forge, whichever the primary's is:
+#
+#   forge/<name>:page-urls <remote>   one JSON object, read from the remote's URL with no call to the forge: {repository,
+#                                 branch, commit, issue}; repository is the repository's page, and each of the others
+#                                 the address that a branch's name, a commit's hash, or an issue's number follows to
+#                                 make its page. It returns 1 for a URL that names no repository of the forge; a
+#                                 provider without one gives no pages, and kit workspace links to none there
+#
 # A call marked "since" above is unsupported for a provider that implements an older version, as the seam answers it.
 # A feature is a set of calls, or of fields of a document, that a forge has whole or not at all. Each feature names
 # the contract version that added it, and a provider that implements an older version lacks it:
@@ -555,6 +565,24 @@ forge:of() {
     esac
   fi
   [[ -z "${forge}" ]] || printf '%s\n' "${forge}"
+}
+
+# forge:page-urls <remote> prints where the pages of the remote's repository are, as its forge's provider reads them from
+# the remote's URL, one JSON object as the file header says, or null: for a remote with no forge, one whose URL names
+# no repository of its forge, and a forge whose provider says nothing of its pages. No forge is asked.
+forge:page-urls() {
+  local remote=$1 provider pages
+  provider=$(forge:of "${remote}" 2>/dev/null) || provider=''
+  if [[ -n "${provider}" && -n "$(use:modules "forge/${provider}")" ]]
+  then
+    use "forge/${provider}"
+    if declare -F "forge/${provider}:page-urls" >/dev/null && pages=$("forge/${provider}:page-urls" "${remote}" 2>/dev/null)
+    then
+      printf '%s\n' "${pages}"
+      return 0
+    fi
+  fi
+  printf 'null\n'
 }
 
 # forge:provider prints the provider's name: the primary's forge, chosen as the file header describes. It fails with

@@ -438,6 +438,17 @@ forge/gitlab:open-prs() {
   printf '%s' "${docs}"
 }
 
+# forge/gitlab:page-urls <remote> prints where the pages of the remote's project are, as the seam's header says, read from
+# the remote's URL as forge/gitlab:repo-url reads it, with no call to GitLab. A remote whose URL names no host has
+# none.
+forge/gitlab:page-urls() {
+  local web
+  [[ -n "$(forge:host "$1")" ]] || return 1
+  web=$(forge/gitlab:repo-url "$1") || return 1
+  jq --null-input --compact-output --arg web "${web}" \
+    '{repository: $web, branch: "\($web)/-/tree/", commit: "\($web)/-/commit/", issue: "\($web)/-/issues/"}'
+}
+
 forge/gitlab:pr-author() {
   local mr
   forge/gitlab:ask mr "the author of merge request !$1" "merge_requests/$1" || return 1
@@ -576,11 +587,12 @@ forge/gitlab:releases() {
 
 forge/gitlab:repo() { forge/gitlab:project; }
 
+# forge/gitlab:repo-url [<remote>] prints the page of a remote's project, the primary's where none is named.
 forge/gitlab:repo-url() {
-  local host primary project
-  primary=$(forge:primary) || return $?
+  local host primary=${1:-} project
+  [[ -n "${primary}" ]] || primary=$(forge:primary) || return $?
   host=$(forge:host "${primary}")
-  project=$(forge/gitlab:project) || return 1
+  project=$(forge/gitlab:project "${primary}") || return 1
   printf 'https://%s/%s\n' "${host}" "${project}"
 }
 
@@ -684,10 +696,11 @@ forge/gitlab:lacks() {
 
 # The seam's calls end here; what follows is this provider's own.
 
-# forge/gitlab:project prints the project's full path, read from the primary remote: group/subgroup/name.
+# forge/gitlab:project [<remote>] prints the project's full path, read from the remote's URL, the primary's where none
+# is named: group/subgroup/name.
 forge/gitlab:project() {
-  local url primary
-  primary=$(forge:primary) || return $?
+  local url primary=${1:-}
+  [[ -n "${primary}" ]] || primary=$(forge:primary) || return $?
   if ! url=$(git remote get-url --end-of-options "${primary}" 2>/dev/null)
   then
     error "run: git remote add ${primary} <url>, as this checkout has no ${primary} (the project could not be read)"

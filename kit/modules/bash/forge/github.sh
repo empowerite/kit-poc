@@ -711,6 +711,16 @@ forge/github:open-prs() {
 
 # The REST API names a bot by the login the pull request page shows, dependabot[bot]. gh's own JSON names the same
 # author app/dependabot, which is not a login anyone would write in a setting.
+# forge/github:page-urls <remote> prints where the pages of the remote's repository are, as the seam's header says, read
+# from the remote's URL as forge/github:place reads it, with no call to GitHub.
+forge/github:page-urls() {
+  local place
+  place=$(forge/github:place "$1") || return 1
+  [[ -n "${place}" ]] || return 1
+  jq --null-input --compact-output --arg web "https://${place}" \
+    '{repository: $web, branch: "\($web)/tree/", commit: "\($web)/commit/", issue: "\($web)/issues/"}'
+}
+
 forge/github:pr-author() {
   local repo author
   repo=$(forge/github:repo) || return 1
@@ -1353,15 +1363,16 @@ forge/github:rest-of-pr() {
   printf '%s\n' "${all}"
 }
 
-# forge/github:place prints the primary remote's repository as gh takes one, <host>/<owner>/<name>, read from the
-# remote's URL as git resolves it. It prints nothing for a primary whose URL names no host, a path on this machine or
-# no remote at all, which only forge in kit.yml makes GitHub's. The host of an ssh URL may be a Host of the ssh
-# configuration, as github.com-work is, so ssh is asked the host it stands for, as gh asks it; github.com needs no
-# asking. ssh.github.com, GitHub's ssh on port 443, is github.com, and a host is written in lower case. A URL whose
-# host no host name may be, or whose path is not <owner>/<name>, names no repository: it fails with its line.
+# forge/github:place [<remote>] prints the repository of a remote, the primary where none is named, as gh takes one,
+# <host>/<owner>/<name>, read from the remote's URL as git resolves it. It prints nothing for a remote whose URL names
+# no host, a path on this machine or no remote at all, which only forge in kit.yml makes GitHub's. The host of an ssh
+# URL may be a Host of the ssh configuration, as github.com-work is, so ssh is asked the host it stands for, as gh
+# asks it; github.com needs no asking. ssh.github.com, GitHub's ssh on port 443, is github.com, and a host is written
+# in lower case. A URL whose host no host name may be, or whose path is not <owner>/<name>, names no repository: it
+# fails with its line.
 forge/github:place() {
-  local primary url host path named
-  primary=$(forge:primary) || return 1
+  local primary=${1:-} url host path named
+  [[ -n "${primary}" ]] || primary=$(forge:primary) || return 1
   url=$(git remote get-url --end-of-options "${primary}" 2>/dev/null) || return 0
   host=$(forge:url-host "${url}")
   [[ -n "${host}" ]] || return 0

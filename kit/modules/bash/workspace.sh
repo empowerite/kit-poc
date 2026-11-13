@@ -46,10 +46,11 @@ workspace:paths() {
 }
 
 # workspace:remote-facts prints each remote of the repository here, the primary first, as a JSON array of
-# {name, url, push, forge, member, web, default, branches}: its fetch and push URLs, its forge, the member its URL
-# names, host and path, its page, its default branch, as its HEAD names it, and how many branches it has.
+# {name, url, push, forge, member, pages, default, branches}: its fetch and push URLs, its forge, the member its URL
+# names, host and path, where its pages are, as forge:page-urls says, its default branch, as its HEAD names it, and how
+# many branches it has.
 workspace:remote-facts() {
-  local remote url push forge member default branches
+  local remote url push forge member pages default branches
   local -a remotes
   {
     list:read remotes forge:remotes || exit 1
@@ -60,18 +61,18 @@ workspace:remote-facts() {
       push=$(git remote get-url --push --end-of-options "${remote}" 2>/dev/null) || push=${url}
       forge=$(forge:of "${remote}" 2>/dev/null) || forge=''
       member=$(workspaces:url-member "${url}")
+      pages=$(forge:page-urls "${remote}") || pages=null
       # A remote whose HEAD git has not recorded names no default branch.
       default=$(git symbolic-ref --quiet --short "refs/remotes/${remote}/HEAD" 2>/dev/null || true)
       default=${default#"${remote}"/}
       # grep --count prints 0, and exits 1, for a remote with no branch.
       branches=$(git for-each-ref --format='%(symref)' "refs/remotes/${remote}/" | grep --count '^$' || true)
       jq --null-input --compact-output -L "${kit_jq}" --arg name "${remote}" --arg url "${url}" --arg push "${push}" \
-        --arg forge "${forge}" --arg member "${member}" --arg default "${default}" --argjson branches "${branches}" '
-        import "workspace" as workspace;
+        --arg forge "${forge}" --arg member "${member}" --argjson pages "${pages}" --arg default "${default}" \
+        --argjson branches "${branches}" '
         def some: if . == "" then null else . end;
         {name: $name, url: ($url | some), push: ($push | some), forge: ($forge | some), member: ($member | some),
-         default: ($default | some), branches: $branches}
-        | . + {web: workspace::web(.forge; .member)}'
+         pages: $pages, default: ($default | some), branches: $branches}'
     done
   } | jq --slurp --compact-output .
 }
@@ -89,7 +90,8 @@ workspace:branches() {
   local facts
   facts=$(workspace:remote-facts) || return $?
   git for-each-ref refs/heads refs/remotes --format="$(workspace:format refname symref upstream:remotename \
-    upstream:remoteref upstream:track worktreepath objectname:short committerdate:unix contents:subject)" \
+    upstream:remoteref upstream:track worktreepath objectname:short committerdate:unix contents:subject \
+    objectname)" \
     | jq --compact-output --raw-input --slurp -L "${kit_jq}" --argjson now "$(date +%s)" \
       --argjson remotes "${facts}" 'import "workspace" as workspace; workspace::branches($remotes; $now)'
 }
@@ -157,7 +159,7 @@ workspace:commits() {
     | jq --compact-output --raw-input --slurp -L "${kit_jq}" --argjson now "$(date +%s)" \
       --argjson branches "${held}" --argjson unpushed "${unpushed}" --argjson heads "${heads}" \
       --argjson primary "$(jq --compact-output --arg name "${primary}" \
-        'map(select(.name == $name))[0] // {} | {forge, web}' <<<"${facts}")" \
+        'map(select(.name == $name))[0].pages // null' <<<"${facts}")" \
       'import "workspace" as workspace; workspace::commits($now; $branches; $unpushed; $heads; $primary)'
 }
 

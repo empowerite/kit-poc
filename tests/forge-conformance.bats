@@ -584,6 +584,30 @@ here() {
   ! grep --quiet ' 99' "${FAKE_DIR}/gh.calls"
 }
 
+@test "every provider says where the pages of a remote's repository are, from its URL and for any remote, and a remote with none has none" {
+  world github
+  run call page-urls origin
+  [ "$output" = '{"repository":"https://github.com/empowerite/example","branch":"https://github.com/empowerite/example/tree/","commit":"https://github.com/empowerite/example/commit/","issue":"https://github.com/empowerite/example/issues/"}' ]
+  world gitlab
+  run call page-urls origin
+  [ "$output" = '{"repository":"https://gitlab.com/empowerite/example","branch":"https://gitlab.com/empowerite/example/-/tree/","commit":"https://gitlab.com/empowerite/example/-/commit/","issue":"https://gitlab.com/empowerite/example/-/issues/"}' ]
+  # the remote asked for is the one answered, not the primary: a GitLab subgroup, on GitHub's primary
+  world github
+  git remote add other https://gitlab.com/group/sub/project.git
+  run call page-urls other
+  [ "$output" = '{"repository":"https://gitlab.com/group/sub/project","branch":"https://gitlab.com/group/sub/project/-/tree/","commit":"https://gitlab.com/group/sub/project/-/commit/","issue":"https://gitlab.com/group/sub/project/-/issues/"}' ]
+  # a remote on this machine, or one that is no remote, has no forge and no pages
+  git remote add local /srv/example.git
+  run call page-urls local
+  [ "$status" -eq 0 ]
+  [ "$output" = null ]
+  run call page-urls nowhere
+  [ "$output" = null ]
+  # no call went to a forge for any of it
+  [ ! -s "${FAKE_DIR}/gh.calls" ] || ! grep --quiet . "${FAKE_DIR}/gh.calls"
+  [ ! -s "${FAKE_DIR}/glab.calls" ]
+}
+
 @test "with push naming a fork, every provider opens the change from the fork's branch, and a fork with no owner is refused" {
   for forge in github gitlab
   do

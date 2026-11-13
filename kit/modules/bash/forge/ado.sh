@@ -388,6 +388,18 @@ forge/ado:open-prs() {
   printf '%s' "${docs}"
 }
 
+# forge/ado:page-urls <remote> prints where the pages of the remote's repository are, as the seam's header says, read from
+# the remote's URL as forge/ado:place reads it, with no call to Azure DevOps. A branch's page is the repository's with
+# the branch as its version, GB and the name; a commit's is under the repository's; a work item's is under the
+# project's.
+forge/ado:page-urls() {
+  local web item
+  web=$(forge/ado:repo-url "$1") || return 1
+  item=$(forge/ado:issue-url '' "$1") || return 1
+  jq --null-input --compact-output --arg web "${web}" --arg item "${item}" \
+    '{repository: $web, branch: "\($web)?version=GB", commit: "\($web)/commit/", issue: $item}'
+}
+
 forge/ado:pr-author() {
   local pr
   forge/ado:ask pr "the author of pull request !$1" repos pr show --id "$1" || return 1
@@ -530,9 +542,10 @@ forge/ado:repo() {
   printf '%s/%s\n' "${project}" "${repo}"
 }
 
+# forge/ado:repo-url [<remote>] prints the page of a remote's repository, the primary's where none is named.
 forge/ado:repo-url() {
   local org project repo
-  IFS=$'\t' read -r org project repo < <(forge/ado:place) || return 1
+  IFS=$'\t' read -r org project repo < <(forge/ado:place "${1:-}") || return 1
   printf '%s/%s/_git/%s\n' "${org}" "$(forge/ado:encode "${project}")" "$(forge/ado:encode "${repo}")"
 }
 
@@ -588,10 +601,11 @@ forge/ado:runs() {
      | forge::ado_builds($now; $default; $tags; $results)'
 }
 
-# forge/ado:issue-url <id> prints the work item's browser URL, for the forge's own tracker.
+# forge/ado:issue-url <id> [<remote>] prints the work item's browser URL, for the forge's own tracker: under the
+# project of the remote's repository, the primary's where none is named.
 forge/ado:issue-url() {
   local org project
-  IFS=$'\t' read -r org project _ < <(forge/ado:place) || return 1
+  IFS=$'\t' read -r org project _ < <(forge/ado:place "${2:-}") || return 1
   printf '%s/%s/_workitems/edit/%s\n' "${org}" "$(forge/ado:encode "${project}")" "$1"
 }
 
@@ -620,11 +634,12 @@ forge/ado:teams() {
 
 # The seam's calls end here; what follows is this provider's own.
 
-# forge/ado:place prints the organization's URL, the project, and the repository, tab-separated, read from the
-# primary remote's URL as the file header lists its forms; the project and the repository decoded from the URL.
+# forge/ado:place [<remote>] prints the organization's URL, the project, and the repository, tab-separated, read from
+# the remote's URL, the primary's where none is named, as the file header lists its forms; the project and the
+# repository decoded from the URL.
 forge/ado:place() {
-  local url primary org project repo
-  primary=$(forge:primary) || return $?
+  local url primary=${1:-} org project repo
+  [[ -n "${primary}" ]] || primary=$(forge:primary) || return $?
   if ! url=$(git remote get-url --end-of-options "${primary}" 2>/dev/null)
   then
     error "run: git remote add ${primary} <url>, as this checkout has no ${primary} (the repository could not be read)"

@@ -264,6 +264,16 @@ added+='"bot-accounts","merge-closing"'
   [ "$output" = $'OPEN\t' ]
 }
 
+@test "the provider says where the pages of a remote's repository are, as the others do, from its URL and for any remote" {
+  run call page-urls origin
+  [ "$output" = '{"repository":"https://dev.azure.com/acme/empowerite/_git/example","branch":"https://dev.azure.com/acme/empowerite/_git/example?version=GB","commit":"https://dev.azure.com/acme/empowerite/_git/example/commit/","issue":"https://dev.azure.com/acme/empowerite/_workitems/edit/"}' ]
+  # another remote is answered by its own URL, spaces encoded
+  git remote add other 'https://dev.azure.com/org2/My%20Project/_git/the%20repo'
+  run call page-urls other
+  [ "$output" = '{"repository":"https://dev.azure.com/org2/My%20Project/_git/the%20repo","branch":"https://dev.azure.com/org2/My%20Project/_git/the%20repo?version=GB","commit":"https://dev.azure.com/org2/My%20Project/_git/the%20repo/commit/","issue":"https://dev.azure.com/org2/My%20Project/_workitems/edit/"}' ]
+  [ ! -s "${FAKE_DIR}/az.calls" ]
+}
+
 @test "Azure Pipelines names the pull request only under its marker, TF_BUILD, and at a desk the branch is asked about" {
   git commit --quiet --allow-empty --message one
   git switch --quiet --create 7-fix-the-thing

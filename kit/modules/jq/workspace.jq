@@ -17,16 +17,15 @@ def lines: split("\n")[] | select(length > 0);
 # some reads a string and gives it, or null for an empty one.
 def some: if . == "" then null else . end;
 
-# web($forge; $member) gives a repository's page, https and its member, host and path; null with no forge or member.
-def web($forge; $member): if $forge == null or $member == null then null else "https://\($member)" end;
-
-# page($remote; $kind; $name) gives the page of a remote's branch, as tree, or of a commit, as commit, on its forge:
-# a remote is {forge, web}; null for one with no forge or no page, and for a forge kit knows no pages of.
-def page($remote; $kind; $name):
-  if $remote.web == null or $name == null then null
-  elif $remote.forge == "github" then "\($remote.web)/\($kind)/\($name)"
-  elif $remote.forge == "gitlab" then "\($remote.web)/-/\($kind)/\($name)"
-  else null end;
+# page($pages; $kind; $name) gives the page of a branch, a commit, or an issue, as $kind names it, of a remote's
+# repository. $pages is where the remote's forge's provider says they are, as modules/bash/forge.sh's forge:pages
+# prints it: {repository, branch, commit, issue}, each of the last three the address the name follows. The name
+# follows it as an address holds one: each of its parts between slashes encoded, and the slashes kept, so a branch
+# named a#b is read whole. It gives null for a remote with no pages, for a kind its forge has no page of, and for no
+# name. No address is built here: a forge's own are its provider's to know.
+def page($pages; $kind; $name):
+  if $name == null or ($pages | type) != "object" or $pages[$kind] == null then null
+  else "\($pages[$kind])\($name | tostring | split("/") | map(@uri) | join("/"))" end;
 
 # row($stage; $key) gives a link to the row of another stage, by its key.
 def row($stage; $key): if $key == null then null else "row:\($stage)/\($key)" end;
@@ -38,13 +37,13 @@ def track:
   else [((capture("(ahead |\\+)(?<n>[0-9]+)") // {n: "0"}) | .n | tonumber),
         ((capture("(behind |-)(?<n>[0-9]+)") // {n: "0"}) | .n | tonumber)] end;
 
-# remotes($primary) reads each remote of a repository, {name, url, push, forge, member, default, branches}, and gives
-# its rows: the remote, its forge, the organization and the repository it is, the member's path past the host up to
-# its last segment and that segment, the host, its URL, its push URL where it differs, its default branch, how many
-# branches it has, and whether it is the primary; the repository leads to its page, and the default branch to its
-# row. A remote on this machine has no organization, repository, or host.
+# remotes($primary) reads each remote of a repository, {name, url, push, forge, member, pages, default, branches}, and
+# gives its rows: the remote, its forge, the organization and the repository it is, the member's path past the host
+# up to its last segment and that segment, the host, its URL, its push URL where it differs, its default branch, how
+# many branches it has, and whether it is the primary; the repository leads to its page, as pages says where it is,
+# and the default branch to its row. A remote on this machine has no organization, repository, or host.
 def remotes($primary):
-  map(web(.forge; .member) as $web
+  map((if (.pages | type) == "object" then .pages.repository else null end) as $web
     | (.member | if . then sub("^[^/]+/"; "") | split("/") else null end) as $path
     | {key: .name, remote: .name, forge, organization: ($path | if . then .[:-1] | join("/") else null end),
        repository: ($path | if . then .[-1] else null end),
@@ -54,15 +53,16 @@ def remotes($primary):
        links: {repository: $web, default: (if .default then row("branches"; "\(.name)/\(.default)") else null end)}});
 
 # branches($remotes; $now) reads git for-each-ref's lines for refs/heads and refs/remotes, each refname, symref,
-# upstream:remotename, upstream:remoteref, upstream:track, worktreepath, objectname:short, committerdate:unix, and
-# subject, and gives a row per branch: each a remote has, with the local branches that pull from it, remote; each local
-# branch whose upstream is gone, gone; and each with no upstream on a remote, local. $remotes is each remote's {name,
-# forge, web, default}; a remote's name may hold a slash, so the longest that starts a ref names it. A row's ahead and
-# behind are its first local branch's, [0, 0] where git says nothing, as it does of one even with it; a remote's branch
-# leads to its page, and its commit to its own.
+# upstream:remotename, upstream:remoteref, upstream:track, worktreepath, objectname:short, committerdate:unix,
+# subject, and objectname, and gives a row per branch: each a remote has, with the local branches that pull from it,
+# remote; each local branch whose upstream is gone, gone; and each with no upstream on a remote, local. $remotes is each
+# remote's {name, forge, pages, default}; a remote's name may hold a slash, so the longest that starts a ref names it.
+# A row's ahead and behind are its first local branch's, [0, 0] where git says nothing, as it does of one even with
+# it; a remote's branch leads to its page, and its commit to its own, by its whole hash, which every forge reads,
+# where git printed it.
 def branches($remotes; $now):
   [lines | fields | {ref: .[0], symref: .[1], remote: .[2], merge: .[3], track: .[4], worktree: .[5], commit: .[6],
-                     date: (.[7] | tonumber? // null), subject: .[8]}] as $refs
+                     date: (.[7] | tonumber? // null), subject: .[8], hash: (.[9] // null)}] as $refs
   | ($remotes | sort_by(-(.name | length))) as $longest
   | [$refs[] | select(.ref | startswith("refs/heads/")) | . + {branch: (.ref | ltrimstr("refs/heads/"))}] as $locals
   | [$refs[] | select((.ref | startswith("refs/remotes/")) and .symref == "")
@@ -77,7 +77,7 @@ def branches($remotes; $now):
       local: ($ls | map(.branch)), upstream: (if $ls == [] then null else $ls[0].track | track // [0, 0] end),
       default: (if $t.at.default == $t.branch then "default" else null end),
       commit: $t.commit, age: age($t.date), subject: $t.subject, worktree: worktrees($ls),
-      links: {branch: page($t.at; "tree"; $t.branch), commit: page($t.at; "commit"; $t.commit),
+      links: {branch: page($t.at.pages; "branch"; $t.branch), commit: page($t.at.pages; "commit"; $t.hash // $t.commit),
               worktree: row("worktrees"; worktrees($ls)[0])}}]
   + [$locals[] | select(. as $l | $tracked | any(.remote == $l.remote and "refs/heads/" + .branch == $l.merge) | not)
      | (.remote != "" and .remote != "." and .merge != "") as $upstream
@@ -119,20 +119,21 @@ def worktrees($statuses; $bases):
        prunable: (if has("prunable") then "prunable" else null end),
        links: {branch: row("branches"; $s.upstream // $branch)}});
 
-# commits($now; $branches; $unpushed; $heads; $primary) reads git log's lines, each full hash, short hash,
+# commits($now; $branches; $unpushed; $heads; $pages) reads git log's lines, each full hash, short hash,
 # committer date, author, and subject, and gives a row per commit: its short hash, its subject, its author, its age,
 # the issue its subject starts with, as #7, the local branches that hold it, as $branches gives them by hash, pushed or
 # local, as $unpushed, an object of the hashes no remote has, says, and the worktrees whose HEAD it is, as $heads gives
-# them by hash. A pushed commit leads to its page on the primary, $primary, {forge, web}, and an issue to its page.
-def commits($now; $branches; $unpushed; $heads; $primary):
+# them by hash. A pushed commit leads to its page on the primary, and an issue to its page there, as $pages, the
+# primary's, says where they are.
+def commits($now; $branches; $unpushed; $heads; $pages):
   [lines | fields
    | ((.[4] | capture("^#(?<n>[0-9]+)\\b") | .n) // null) as $issue
    | ($unpushed[.[0]] // false | not) as $pushed
    | {key: .[0], commit: .[1], subject: .[4], author: .[3], age: ($now - (.[2] | tonumber)),
       issue: (if $issue then "#\($issue)" else null end), branches: ($branches[.[0]] // []),
       pushed: (if $pushed then "pushed" else "local" end), worktrees: ($heads[.[0]] // []),
-      links: {commit: (if $pushed then page($primary; "commit"; .[0]) else null end),
-              issue: (if $issue then page($primary; "issues"; $issue) else null end),
+      links: {commit: (if $pushed then page($pages; "commit"; .[0]) else null end),
+              issue: page($pages; "issue"; $issue),
               worktrees: row("worktrees"; ($heads[.[0]] // [])[0])}}];
 
 # hashes reads hashes, one a line, as git rev-list prints them, and gives an object of them, each true.

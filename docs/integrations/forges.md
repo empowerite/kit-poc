@@ -41,6 +41,7 @@ see: [architecture.md](../architecture.md#code-forges-seams-and-providers), `kit
 | The change's checks rollup on its head commit | read | `forge:open-prs`: the changes stage; planned: kittui's checks tab |
 | Every open change, whole, with the above | read | `forge:open-prs`: the changes and issues stages |
 | The page of each open issue, each open change, and each issue a change closes | read | `forge:open-issues`, `forge:open-prs`, as `url`: what kittui's issues and changes tabs open and copy; no caller builds one |
+| Where a remote's branch, commit, and issue pages are | read | `forge:page-urls <remote>`, from the remote's URL with no call to the forge: what `kit workspace` links its rows to; no caller builds one |
 | Merged changes | read | planned: kittui's merged tab |
 
 ## Providers
