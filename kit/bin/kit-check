@@ -8,7 +8,8 @@
 # when:
 #
 #   - kit.yml declares a kit version other than the pinned release
-#   - a delivered file is missing, or differs from the release's copy
+#   - a delivered file is missing, or differs from the release's copy: kit update replaces one still as kit placed
+#     it; any other it does not replace, and the finding says to move it aside or remove it first
 #   - a merged JSON file lacks an entry the kit writes, or jq is not on PATH to read it
 #   - a path under .kit/ is not the link or the readonly copy kit keeps there
 #   - .kit/.gitignore is not what kit writes
@@ -31,12 +32,13 @@ set -o errexit -o nounset -o pipefail
 # shellcheck source=modules/bash/1st.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
 kit:enter
-use release generate template settings resolve render region place materialize manifest
+use release generate template settings resolve render region place materialize manifest file
 
 guard:arguments check "$@" || exit $?
 
 settings:require
 declare -a packages unmet_lines
+declare -A recorded
 list:read packages settings:packages || exit 1
 version=$(settings:version)
 render:all "${kit_root}" "${packages[@]}"
@@ -56,6 +58,7 @@ do
     continue
   fi
   dest='' kind=''
+  manifest:records recorded "${base}" || exit 1
   while IFS=$'\t' read -r path src
   do
     release:dest "${base}" "${path}" dest
@@ -100,10 +103,18 @@ do
       fi
     elif ! place:holds "${src}" "${dest}"
     then
-      case "${kind}" in
-        (merge) error "${dest} is missing an entry the kit writes; run: kit update" ;;
-        (*) error "${dest} differs from the pinned release; run: kit update" ;;
-      esac
+      # kit update replaces a file still as kit placed it, which the manifest's digest says. Any other it merges a
+      # new release into, or leaves, so the remedy is the one kit update names.
+      if [[ "${kind}" == merge ]]
+      then
+        error "${dest} is missing an entry the kit writes; run: kit update"
+      elif [[ "${recorded[${path}]:-}" == "$(file:digest "${dest}")"* ]]
+      then
+        error "${dest} differs from the pinned release; run: kit update"
+      else
+        error "${dest} differs from the pinned release, and is not as kit placed it, so kit update does not replace" \
+          "it; to take the release's file, move it aside or remove it, then run: kit update"
+      fi
       findings=$(( findings + 1 ))
     fi
   done <<<"${delivered}"

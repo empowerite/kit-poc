@@ -21,6 +21,12 @@
 #   - any other file unchanged since the previous release is replaced
 #   - any other file edited since the previous release gets a three-way merge, which leaves conflict markers on a
 #     conflict
+#   - where the previous release's file is the same as this release's, as at the same version, there is nothing to
+#     merge: a file that is not as kit placed it is named, and stays as it is
+#
+# A file that stays may hold an edit, an answer since changed in kit.yml, or a file kit never placed, as in a fresh
+# clone, which has no manifest; kit cannot tell them apart. To take the release's file, with the answers kit.yml
+# holds now, move the file aside or remove it, then run kit update again. kit check names the same remedy.
 #
 # A merge by key, or a three-way merge, needs the previous release as its base. The base is the first of:
 #
@@ -312,6 +318,14 @@ do
     then
       step "${dest}: unchanged since ${previous}, replaced"
       place:content "${src}" "${dest}"
+    elif cmp --silent "${previous_src}" "${src}"
+    then
+      # The base release's file is this release's, as at the same version: a merge would bring nothing. What is there
+      # may be an edit, a render from an answer since changed, or a file kit never placed, and nothing tells them
+      # apart, so it stays, and the person is told what brings the release's file. kit check names the same remedy.
+      warn "${dest}: not as kit placed it, and ${current} has nothing to merge into it, so it stays as it is; to" \
+        "take the release's file, as after an answer changed in kit.yml, move it aside or remove it, then run:" \
+        "kit update"
     else
       step "${dest}: edited since ${previous}, three-way merged"
       if ! git merge-file --marker-size 7 "${dest}" "${previous_src}" "${src}"

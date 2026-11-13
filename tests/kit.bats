@@ -187,6 +187,58 @@ tree-digest() {
   [ "$status" -eq 0 ]
 }
 
+@test "an update with nothing to merge names a file that is not as kit placed it, and check names the same remedy, which works" {
+  "${kit_checkout}/bin/kit" install github/ci
+  # a fresh clone, where the manifest is not there, and an answer changed before any kit verb ran
+  chmod u+w .kit/manifest && rm .kit/manifest
+  printf 'answers:\n  ci_runner: macos-latest\n' >> kit.yml
+  run "${kit_checkout}/bin/kit" update
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"three-way merged"* ]]
+  [[ "$output" == *".github/workflows/kit-ci.yml: not as kit placed it"*"it stays as it is"* ]]
+  [[ "$output" == *"move it aside or remove it, then run: "*"kit update"* ]]
+  grep --quiet '^    runs-on: "ubuntu-latest"$' .github/workflows/kit-ci.yml
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 1 ]
+  [[ "$output" == *".github/workflows/kit-ci.yml differs from the pinned release, and is not as kit placed it"* ]]
+  [[ "$output" == *"move it aside or remove it, then run: "*"kit update"* ]]
+  # the remedy, followed: the release's file, with the answer
+  rm .github/workflows/kit-ci.yml
+  run "${kit_checkout}/bin/kit" update
+  [ "$status" -eq 0 ]
+  grep --quiet '^    runs-on: "macos-latest"$' .github/workflows/kit-ci.yml
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 0 ]
+  # a file still as kit placed it is the update's to replace, and check says only that
+  sed -i.bak 's/macos-latest/ubuntu-24.04/' kit.yml && rm kit.yml.bak
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 1 ]
+  [[ "$output" == *".github/workflows/kit-ci.yml differs from the pinned release; run: "*"kit update"* ]]
+  [[ "$output" != *"not as kit placed it"* ]]
+  # an edited file, and an answer changed again: the old answer and the edit cannot be told apart
+  printf '# ours\n' >> .github/workflows/kit-ci.yml
+  run "${kit_checkout}/bin/kit" update
+  [ "$status" -eq 0 ]
+  [[ "$output" == *".github/workflows/kit-ci.yml: not as kit placed it"* ]]
+  grep --quiet '^# ours$' .github/workflows/kit-ci.yml
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 1 ]
+  [[ "$output" == *".github/workflows/kit-ci.yml differs from the pinned release, and is not as kit placed it"* ]]
+  # a package added to kit.yml by hand, over the repository's own file at a path it delivers
+  run "${kit_checkout}/bin/kit" packages remove github/ci
+  [ "$status" -eq 0 ]
+  printf 'name: ours\n' > .github/workflows/kit-ci.yml
+  awk '{ print } $0 == "  - kit" { print "  - github/ci" }' kit.yml > kit.yml.new && mv kit.yml.new kit.yml
+  [ "$(declared packages)" = "kit github/ci" ]
+  run "${kit_checkout}/bin/kit" update
+  [ "$status" -eq 0 ]
+  [[ "$output" == *".github/workflows/kit-ci.yml: not as kit placed it"* ]]
+  [ "$(cat .github/workflows/kit-ci.yml)" = "name: ours" ]
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 1 ]
+  [[ "$output" == *".github/workflows/kit-ci.yml differs from the pinned release, and is not as kit placed it"* ]]
+}
+
 @test "a package whose metadata has a key the schema does not know is refused, naming the key" {
   later-release "${repo}.later"
   printf 'description: "x"\ndependz:\n  - kit\n' > "${repo}.later/packages/hooks/lefthook/package.yml"

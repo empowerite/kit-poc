@@ -54,7 +54,8 @@ Content reaches a repository only through these verbs:
 - `kit install` resolves the active packages (`kit`, the ones named, their dependencies, and a bundle's members),
   renders them, places the files, and writes the manifests.
 - `kit update` moves to a newly pinned release. It replaces each file the repository never edited and merges each
-  edited file three ways, with the previous release as the base.
+  edited file three ways, with the previous release as the base. Where the release changes nothing in a file, as at
+  the same version, it names a file that is not as kit placed it and leaves it.
 - `kit check` fails when a delivered file differs from the release.
 - `kit packages select`, `add`, and `remove` change the set of active packages.
 - `kit hydrate` brings every path under `.kit/` to its state from the declaration, choosing nothing. Every verb that

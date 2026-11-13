@@ -205,6 +205,9 @@ For each file:
 - A delivered file you never edited is replaced.
 - A delivered file you edited is merged three ways, with the previous release as the base. `kit update` downloads
   the previous release from GitHub when it is not on the machine. Where it cannot, set `KIT_BASE` to a copy of it.
+- Where the release brings no change to a file, as in a `kit update` at the same version, there is nothing to merge.
+  A file that is not as kit placed it stays, and `kit update` names it. To take the release's file, as after you
+  change an answer in `kit.yml`, move the file aside or remove it, then run `kit update` again.
 - Your own deny list entries and settings keys are kept.
 
 `kit uninstall` removes everything kit placed. Add `--dry-run` to see what it would remove first. Your own files,

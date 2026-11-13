@@ -258,6 +258,12 @@ The values come from the whole of `kit.yml`:
 A key with no value in `kit.yml` takes the package's default from its own `answers`. A key with neither
 fails the install, and the error names the key and the package.
 
+A changed answer reaches a rendered file through `kit update`, which replaces a file that is still as kit placed
+it. kit keeps a digest of what it placed, in a manifest that git never sees, and not the answers it rendered with. So
+it cannot tell an old answer from an edit in a file the repository edited, or in a clone that has no manifest yet.
+It names such a file and leaves it, and so does `kit check`: move the file aside or remove it, then run `kit update`,
+which writes it with the answers `kit.yml` holds.
+
 ## Settings
 
 `kit.yml` belongs to the repository. The kit writes three keys in it, `version`, `packages`, and `excludes`,
