@@ -24,12 +24,16 @@ load helper
 }
 
 @test "needs skips a test for a tool that is not on PATH, and fails it where kit.yml pins the tool" {
+  # the nested file finds its checkout by its own directory, so it sits in a tests/ beside a kit/ that is this one
+  mkdir -p "${BATS_TEST_TMPDIR}/nest/tests"
+  ln -s "${kit_root}" "${BATS_TEST_TMPDIR}/nest/kit"
   printf '%s\n' 'load "'"${BATS_TEST_DIRNAME}"'/helper"' '@test "t" { needs sh nonesuch-tool; false; }' \
-    > "${BATS_TEST_TMPDIR}/needs.bats"
-  run env -u BATS_TEST_TMPDIR bats --tap "${BATS_TEST_TMPDIR}/needs.bats"
+    > "${BATS_TEST_TMPDIR}/nest/tests/needs.bats"
+  run timeout 60 env -u BATS_TEST_TMPDIR bats --tap "${BATS_TEST_TMPDIR}/nest/tests/needs.bats"
   [ "$status" -eq 0 ]
   [[ "$output" == *"ok 1 t # skip nonesuch-tool is not on PATH"* ]]
-  run env -u BATS_TEST_TMPDIR KIT_TESTS_REQUIRE='sh nonesuch-tool' bats --tap "${BATS_TEST_TMPDIR}/needs.bats"
+  run timeout 60 env -u BATS_TEST_TMPDIR KIT_TESTS_REQUIRE='sh nonesuch-tool' bats --tap \
+    "${BATS_TEST_TMPDIR}/nest/tests/needs.bats"
   [ "$status" -eq 1 ]
   [[ "$output" == *"nonesuch-tool is pinned by kit.yml and is not on PATH, so the toolchain is broken"* ]]
 }

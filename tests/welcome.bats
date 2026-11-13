@@ -949,6 +949,7 @@ bot-key() {
 }
 
 @test "the bot check is planned only where the primary remote is GitHub, after the tool manager" {
+  fake-tools gh glab  # the check probes the forge tool for its version; no call reaches a real one
   run --separate-stderr checks
   [ "$(jq --raw-output 'map(.id) | index("bot")' <<<"$output")" = null ]
   git remote add origin https://gitlab.com/acme/widget.git
