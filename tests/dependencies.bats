@@ -4,6 +4,8 @@
 # tests/fakes/fake-tool stands in for npm, uv, and mise. npm's pins are read from its files, so they are fixtures;
 # uv's installed versions come from uv pip list, so that is a route.
 
+bats_require_minimum_version 1.5.0
+
 load helper
 
 setup() {
