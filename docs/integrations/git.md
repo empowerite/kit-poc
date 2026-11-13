@@ -167,12 +167,13 @@ see: [forges.md](forges.md), [../workspaces.md](../workspaces.md), `kit/modules/
 | The tracked paths | `git ls-files -z`; `git ls-files -z --cached --others --exclude-standard`; `git -C "${kit_invoked_in}" ls-files`; `git ls-files -- ${paths} .kit/manifest .kit/.gitignore` |
 | The tracked paths under a named path | `git ls-files -z -- ":(literal)${path}"`; `git ls-files -z --with-tree=HEAD -- ":(literal)${path}"`; `GIT_INDEX_FILE=${index} git ls-files -z -- ":(literal)${path}"` |
 | The index's entries | `git ls-files -z --stage`; `git ls-files --stage -- "${path}"`; `git ls-files --stage -- ":(literal)${path}"` |
-| A tree's entries | `git ls-tree -z -r --full-tree "${rev}"`; `git ls-tree -z -r --full-tree "${base}" -- "${path}/"`; `git ls-tree --full-tree "${rev}" -- "${path}"` |
+| A tree's entries | `git ls-tree -z -r --full-tree "${rev}"`; `git ls-tree -z -r --full-tree "${base}" -- "${path}/"`; `git ls-tree --full-tree "${rev}" -- "${path}"`; `git ls-tree -z -r --name-only --full-tree "${tree}" -- .kit/` |
 | The blobs' sizes and contents | `git cat-file --batch-check='%(objectsize)'`, one object name a line on its input; `git cat-file -s "${blob}"`; `git cat-file blob "${blob}"` |
 | Paths as HEAD or the index has them | `git diff --quiet HEAD -- ":(literal)${path}"…`; `git diff --quiet -- ":(literal)${path}"` |
 | The paths a commit changed, and the shared index's paths that differ from its parent | `git diff-tree -r -z --no-renames "${base}" "${commit}"`; `GIT_INDEX_FILE=${shared} git diff-index --cached -z --no-renames "${base}"` |
 | A path is generated | `git check-attr linguist-generated -- "${path}"` |
 | `worktrees/` is ignored | `git -C "${main_root}" check-ignore --quiet worktrees` |
+| A path staged as absent is ignored | `git check-ignore --quiet -- "${path}"` |
 | The stash on top, and a stash's slot | `git -C "${root}" rev-parse --quiet --verify refs/stash`; `git -C "${root}" stash list --format='%gd %H'` |
 | A hash of what git printed | `git hash-object --stdin`, which writes no object |
 

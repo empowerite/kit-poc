@@ -8,7 +8,8 @@
 #
 # Before a commit exists, kit commit:
 #
-#   - refuses a staged path the kit placed under .kit/, read from .kit/.gitignore, which names every one
+#   - refuses a staged path the kit placed under .kit/, read from .kit/.gitignore, which names every one, unless the
+#     commit takes the path out of the tree: git rm --cached and a commit is how a placed path git tracks leaves it
 #   - runs kit lint and kit generate --check over the staged paths, so the pre-commit checks hold with no hook manager,
 #     and refuses a path staged as added or changed that is not on the disk, which no check could read
 #   - supplies the issue's reference from the branch when the message carries none: in front of the subject, as
@@ -106,13 +107,25 @@ commit:placed() {
   sed -n -e '/^\//!d' -e 's@^/@.kit/@' -e 's@/*$@@' -e p .kit/.gitignore
 }
 
-# commit:guard <path>… refuses a path kit placed, or one under a directory it placed. The paths are root-relative.
+# commit:guard <tree> <path>… refuses a path kit placed, or one under a directory it placed, that <tree>, the tree
+# the commit will make, holds. A placed path the tree does not hold is on its way out of git, which is the remedy
+# kit names for one git tracks, here and in materialize:all, so it passes. The paths are root-relative. It returns 1
+# when the tree cannot be read.
 commit:guard() {
-  local path placed refused=0
-  local -a placed_paths=()
+  local tree=$1 path placed refused=0
+  local -a placed_paths=() held=()
+  local -A holds=()
+  shift
   readarray -t placed_paths < <(commit:placed)
+  # Every placed path is under .kit/, so the tree's entries there are all it can hold of them.
+  list:read0 held git ls-tree -z -r --name-only --full-tree "${tree}" -- .kit/ || return 1
+  for path in "${held[@]}"
+  do
+    holds[${path}]=1
+  done
   for path in "$@"
   do
+    [[ -n "${holds[${path}]+x}" ]] || continue
     for placed in "${placed_paths[@]}"
     do
       if [[ "${path}" == "${placed}" || "${path}" == "${placed}"/* ]]
@@ -351,8 +364,11 @@ commit:checks() {
 # commit:behind <path>… refuses a staged path that would undo a commit the index never saw. Such a path is staged as it
 # was before a commit on HEAD that changed it, absent when that commit added it, while the disk holds something else:
 # an index the commits of another session passed by, one of them or many. A change put back on purpose matches the
-# disk, and passes. The history of the paths is read once for them all, each commit against its first parent. It
-# names every such path, with the nearest such commit and how many changed the path since, and returns 1.
+# disk, and passes. So does a path staged as absent that git ignores, as .kit/.gitignore has every path kit placed
+# and a .gitignore has a file named there since it was committed: on the disk and out of the index is how git keeps
+# an ignored file, and git rm --cached is how one leaves the tree. The history of the paths is read once for them
+# all, each commit against its first parent. It names every such path, with the nearest such commit and how many
+# changed the path since, and returns 1.
 commit:behind() {
   local path record lead='' commit='' blob since behind=false
   local -a records=()
@@ -410,6 +426,8 @@ commit:behind() {
       git diff --quiet -- ":(literal)${path}" && continue
     else
       [[ -e "${path}" || -L "${path}" ]] || continue
+      # Out of the index, on the disk, and ignored: taken out of git on purpose, by git rm --cached.
+      ! git check-ignore --quiet -- "${path}" || continue
     fi
     since=''
     [[ -z "${later[${path}]:-}" ]] || since=" and the ${later[${path}]} that changed it since"
@@ -727,7 +745,7 @@ commit:commit() {
     fi
   } > "${message}"
   commit:with-trailer "${branch}" "${message}" || return 1
-  commit:guard "${staged[@]}" || return 1
+  commit:guard "${tree}" "${staged[@]}" || return 1
   leases:commit-held "${branch}" "${message}" "${staged[@]}" || return 1
   commit:checks "${staged[@]}" || return 1
   # Named paths are committed alone, so the policy judges the tree they make; otherwise, the index is the tree.

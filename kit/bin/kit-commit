@@ -6,7 +6,8 @@
 #
 # Commits in a worktree, never on the desk or the default branch. Before the commit exists, kit commit:
 #
-#   - refuses when nothing is staged, and refuses a staged path the kit placed under .kit/
+#   - refuses when nothing is staged, and refuses a staged path the kit placed under .kit/, unless the commit takes
+#     it out of the tree, as after git rm --cached
 #   - runs kit lint and kit generate --check over the staged paths; no hook manager is needed
 #   - refuses a path staged as added or changed that is not on the disk: run git restore, or git rm --cached
 #   - puts the branch's issue in front of a subject that names none: 7-fix-the-thing gives #7; with
@@ -23,7 +24,9 @@
 #
 # Without paths, kit commit never undoes a commit the index did not see. It refuses a staged path that is as it was
 # before a commit on the branch that changed it, absent when that commit added it, while the disk holds something
-# else. It names the nearest such commit, and how many commits changed the path since.
+# else. It names the nearest such commit, and how many commits changed the path since. A file git ignores passes
+# when it is staged as absent: git rm --cached takes a file out of git and leaves it on the disk, which is how a
+# path kit placed, or a file a .gitignore names since it was committed, leaves the tree.
 #
 # With or without paths, it refuses when a commit landed on HEAD while the checks ran; run kit commit again.
 #

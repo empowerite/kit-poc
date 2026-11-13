@@ -72,6 +72,41 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
   [[ "$output" == *"git rm --cached"* ]]
 }
 
+@test "the remedy kit names for a placed path git tracks, git rm --cached and a commit, is one kit commit takes" {
+  kit hydrate >/dev/null 2>&1
+  git add --force .kit/rules/bash.md .kit/manifest
+  git commit --quiet --message '#7 kit: tracked by mistake'
+  run kit hydrate
+  [[ "$output" == *".kit/rules/bash.md is tracked by git; run: "*"git rm --cached '.kit/rules/bash.md', and commit"* ]]
+  [[ "$output" == *".kit/manifest is tracked by git; run: "*"git rm --cached '.kit/manifest', and commit"* ]]
+  git rm --quiet --cached .kit/rules/bash.md .kit/manifest
+  run kit commit --message='#7 kit: the placed paths leave the tree'
+  [ "$status" -eq 0 ]
+  [ -f .kit/rules/bash.md ]
+  [ -f .kit/manifest ]
+  [ -z "$(git ls-files .kit/rules/bash.md .kit/manifest)" ]
+  [ -z "$(git status --porcelain)" ]
+  run kit hydrate
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"is tracked by git"* ]]
+  # a file a .gitignore names since it was committed leaves the tree the same way, and stays on the disk
+  printf 'scratch\n' > scratch.txt && git add scratch.txt
+  kit commit --message='#7 scratch: a file'
+  printf 'scratch.txt\n' >> .gitignore && git add .gitignore && git rm --quiet --cached scratch.txt
+  run kit commit --message='#7 scratch: ignored from here on'
+  [ "$status" -eq 0 ]
+  [ -f scratch.txt ]
+  [ -z "$(git ls-files scratch.txt)" ]
+  # a file no rule ignores, out of the index and on the disk, is still an index a commit passed by
+  printf 'keep\n' > keep.txt && git add keep.txt
+  kit commit --message='#7 keep: a file'
+  git rm --quiet --cached keep.txt
+  run kit commit --message='#7 keep: gone'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"keep.txt is staged as it was before"* ]]
+  [ -n "$(git ls-files --with-tree=HEAD keep.txt)" ]
+}
+
 @test "kit commit runs the linters over the staged paths and refuses a file that fails one, so no commit is made" {
   printf '#!/usr/bin/env bash\nset -o errexit -o nounset -o pipefail\necho $1\n' > bad.sh
   git add bad.sh
