@@ -907,6 +907,11 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.selectRow(false)
 	case "ctrl+a":
 		m.selectAll()
+	case "f":
+		// the columns dialog, as the preset line's f opens it
+		if m.inRows && m.presets(m.stage) {
+			m.cols = table.Columns{Open: true}
+		}
 	case "shift+up", "shift+down":
 		if m.inRows {
 			m.selectRow(true)

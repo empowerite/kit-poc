@@ -539,3 +539,16 @@ func legendLines(m Model) []string {
 func arrowOf(c legend.Corner) int {
 	return slices.Index([]legend.Corner{legend.TopLeft, legend.TopRight, legend.BottomLeft, legend.BottomRight}, c)
 }
+
+// f in the rows opens the columns dialog, as it does on the preset line; the Fields button on the control line names
+// it, so the keys bar, which has no room to spare, does not.
+func TestFInTheRowsOpensTheColumnsDialog(t *testing.T) {
+	m := intoRows(loaded(t, viewing("")))
+	if m = drive(m, typed("f")...); !m.cols.Open {
+		t.Error("f in the rows did not open the columns dialog")
+	}
+	m = loaded(t, viewing(""))
+	if m = drive(m, typed("f")...); m.cols.Open {
+		t.Error("f on the bar opened the columns dialog")
+	}
+}
