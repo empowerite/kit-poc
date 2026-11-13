@@ -119,6 +119,15 @@ ambient-system() {
   [[ "$output" == *$'\n'"repo, the desk on main, no kit: $(pwd -P)"$'\n✅ this folder is a git repository\n'* ]]
 }
 
+@test "the pages an agent or a newcomer reads first say agent, not harness, adapter, or a draft's stand-in" {
+  local page
+  for page in "${kit_root}/packages/kit/files/repo/.kit/1st.md" "${kit_root}/packages/kit/files/repo/.kit/welcome/"*.md \
+    "${kit_root}/packages/workflow/files/repo/.kit/workflow.md"
+  do
+    run ! grep --ignore-case --quiet --extended-regexp "harness|adapter|stand-in" "${page}"
+  done
+}
+
 @test "no line of a page kit ships starts with ✅, 💡, or ❌, which in the text guide starts a check" {
   # The text guide prints a page's lines and its step's checks one after the other, so its readers, outline and under
   # here among them, take a line that starts with a check's glyph for a check. The pages are every package's.

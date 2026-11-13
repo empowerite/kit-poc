@@ -30,9 +30,9 @@ repository's own rules in `AGENTS.md` apply as well. Where the two differ, `AGEN
 4. Mark the pull request ready for review when the work is done, and give it the report:
    `kit ready --report-file=<path>`, or `kit ready --report=<text>`, on any forge. It writes the report into the
    pull request body, keeps the body's `Closes` lines under it, and then marks the pull request, which also takes
-   off the draft's stand-in where `kit.yml` chooses one. Never write the body with the forge's own tool: that
-   replaces the `Closes` lines, and the issues then stay open after the merge. The pull request body is the report.
-   It states:
+   off the label or title prefix that marks a draft, where `kit.yml` chooses one. Never write the body with the forge's
+   own tool: that replaces the `Closes` lines, and the issues then stay open after the merge. The pull request body
+   is the report. It states:
    - what changed
    - what was checked, and how
    - what was left out, and why

@@ -40,7 +40,7 @@ How work moves from an issue to a merged pull request is the repository's to say
 ## Kit commands instead of git commands
 
 Some git commands have a kit replacement that adds the check its rule requires. An agent uses only the kit
-command. Claude Code and Gemini CLI, with the kit's adapter, refuse the raw git command by its literal pattern.
+command. Claude Code and Gemini CLI, with the kit's agents package, refuse the raw git command by its literal pattern.
 Elsewhere, this rule is the only thing that stops it.
 
 - `kit rebase`, never `git rebase`. `kit rebase` refuses to run in the root checkout or on the default branch.
@@ -90,8 +90,8 @@ Before you change a file:
    local log.
 2. Read every file it prints.
 
-No harness keeps a copy of the rules. `kit context` is how every harness, and every person, finds them. Where the
-harness has the kit's MCP server, `kit serve`, the rules are resources, starting at `kit://1st.md`, and the verbs are
+No agent keeps a copy of the rules. `kit context` is how every agent, and every person, finds them. Where the
+agent has the kit's MCP server, `kit serve`, the rules are resources, starting at `kit://1st.md`, and the verbs are
 tools in three groups: `context`, `flow`, `help`, `kinds`, `packages`, `syntax`, and `version` read only; `check`,
 `lint`, `toolchains`, and `tools` run what the repository's files name; and `assign`, `close`, `gather`, `leases`,
 `settle`, `unassign`, and `work` act on issues, their leases, and pull requests.
@@ -111,8 +111,8 @@ Two flags choose the template:
 
 `kit lint` fails any file, including one written by hand, whose shape matches none of its templates.
 
-`kit new` also makes a kind, a rule, a style, a template, a package, a bash module, or a seam's provider, in a
-package or module directory of the repository's own. `kit help new` lists them.
+`kit new` also makes a kind, a rule, a style, a template, a package, a bash module, or a provider (the code for one
+forge, tracker, or toolchain), in a package or module directory of the repository's own. `kit help new` lists them.
 
 | Kind | Rule |
 | --- | --- |
@@ -127,7 +127,7 @@ package or module directory of the repository's own. `kit help new` lists them.
 
 ## What the kit delivers
 
-The repository commits the declaration, and every worktree holds the text:
+The repository commits what it declares, and every worktree holds the files kit places:
 
 - `kit.yml`, committed: its `version:` and `packages:` declare the release and the active packages.
 - `.kit/packages/`, committed: the repository's own packages.
