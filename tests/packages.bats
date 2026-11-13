@@ -136,6 +136,16 @@ setup() {
   [[ "$output" == *"toml "*".kit/kinds/toml.yml"*"**/*.toml · embeds bash"* ]]
 }
 
+@test "kit new kind writes a pattern as it was given: a backslash, a double quote, and a single quote are literal" {
+  "${kit_checkout}/bin/kit" install >/dev/null 2>&1
+  run "${kit_checkout}/bin/kit" new kind rx --content='^\s*fn "(\w+)" it'"'"'s' --path="*.it's"
+  [ "$status" -eq 0 ]
+  "${kit_checkout}/bin/kit" packages add local >/dev/null 2>&1
+  run "${kit_checkout}/bin/kit" kinds --json rx
+  [ "$status" -eq 0 ]
+  [ "$(jq -c '{paths, content}' <<<"$output")" = '{"paths":["*.it'"'"'s"],"content":["^\\s*fn \"(\\w+)\" it'"'"'s"]}' ]
+}
+
 @test "a default package removed stays out, so kit update does not bring it back, and adding it lifts that" {
   "${kit_checkout}/bin/kit" install
   run "${kit_checkout}/bin/kit" packages remove kit

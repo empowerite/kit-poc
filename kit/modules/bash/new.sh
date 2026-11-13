@@ -176,7 +176,7 @@ new:extend() {
 # new:kind <name> [--path=<glob>…] [--content=<regex>…] [--kinds=<kind>…] [--embeds=<kind>…] [--package=<name>]
 # writes a kind into a package of the repository's own, makes the package when there is none, and places the kind
 # when the package is active, or names the command that activates it. It refuses a name already defined, a kind
-# with nothing to match a path by, and a value that holds a double quote, which the kinds file could not hold.
+# with nothing to match a path by, and a kind's name that holds a double quote. A glob or a regex is written single-quoted, so it is read as it was given.
 new:kind() {
   local name='' package='' arg key value file dir
   local -a packages
@@ -190,9 +190,9 @@ new:kind() {
         key=${key#--}
         [[ "${key}" == path ]] && key=paths
         value=${arg#*=}
-        if [[ "${value}" == *'"'* ]]
+        if [[ "${key}" == kinds || "${key}" == embeds ]] && [[ "${value}" == *'"'* ]]
         then
-          error "--${key%s}=${value}: a kind's value cannot hold a double quote"
+          error "--${key%s}=${value}: a kind's name cannot hold a double quote"
           return 2
         fi
         # kinds are names, which may come joined by :, --kinds=a:b; a glob or a regex keeps its colons
@@ -237,7 +237,7 @@ new:kind() {
         [[ -n "${value}" ]] || continue
         if [[ "${key}" == paths || "${key}" == content ]]
         then
-          printf '  - "%s"\n' "${value}"
+          printf "  - '%s'\n" "${value//\'/\'\'}"
         else
           printf '  - %s\n' "${value}"
         fi
