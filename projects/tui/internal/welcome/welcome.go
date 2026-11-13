@@ -226,7 +226,7 @@ func New(r kit.Runner, repo string) Model {
 		notes: map[string]note{}, width: 80, height: 24, tabs: slices.Clone(known),
 		places: make([]string, len(known)), offsets: make([]int, len(known)), appMenu: shell.Menu{Here: shell.Welcome},
 		books: shell.BooksMenu{Fallback: repo}, searches: map[string]shell.Search{}, hits: map[string]int{},
-		settings: shell.Settings{KeysBar: true, FoldShared: true, HideBlank: true}}
+		settings: shell.Settings{KeysBar: true, FoldShared: true, HideBlank: true, Rounded: true}}
 	m.ctx, m.cancel = context.WithCancel(context.Background())
 	m.checking = source.NewLoad("checks", m.telling(checksOver(r, kit.Workspace{})), nil)
 	return m

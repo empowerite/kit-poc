@@ -18,7 +18,7 @@ import (
 // shares, said once in the group's heading; whether it hides, as a view loads, each column no row holds a value in;
 // whether it draws an emoji every row shown shares, which it drops otherwise; and whether a label ends in half circles,
 // which a Nerd Font draws, or in a cell of its color. With no file, or one that does not read, each is as kittui
-// starts: the keys bar shown, shared values folded, empty columns hidden, shared emoji dropped, and labels plain.
+// starts: the keys bar shown, shared values folded, empty columns hidden, shared emoji dropped, and labels rounded.
 type Settings struct {
 	Path        string `json:"-"`
 	KeysBar     bool   `json:"keysBar"`
@@ -44,7 +44,7 @@ func SettingsFile() string {
 
 // LoadSettings gives the settings the file keeps, each it does not keep as kittui starts.
 func LoadSettings(path string) Settings {
-	s := Settings{KeysBar: true, FoldShared: true, HideBlank: true}
+	s := Settings{KeysBar: true, FoldShared: true, HideBlank: true, Rounded: true}
 	if data, err := os.ReadFile(path); path != "" && err == nil {
 		_ = json.Unmarshal(data, &s)
 	}
@@ -87,7 +87,7 @@ var settings = []setting{
 	{"Repeated emoji", "shows an emoji in a column even where every row has the same one",
 		func(s Settings) bool { return s.SharedEmoji },
 		func(s Settings) Settings { s.SharedEmoji = !s.SharedEmoji; return s }},
-	{"Rounded labels", "ends a label with half circles, which need a Nerd Font; none is a block of its color",
+	{"Rounded labels", "ends a label with half circles, which need a Nerd Font; off is a block of its color",
 		func(s Settings) bool { return s.Rounded },
 		func(s Settings) Settings { s.Rounded = !s.Rounded; return s }},
 }
