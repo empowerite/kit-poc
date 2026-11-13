@@ -929,6 +929,41 @@ tree-digest() {
   [ "$status" -eq 0 ]
 }
 
+@test "a verb that hydrates under a newer release keeps the record of a path that release retired, so update removes the file; packages remove keeps none" {
+  "${kit_checkout}/bin/kit" install agents/claude github/ci
+  later-release "${repo}.later"
+  rm "${repo}.later/packages/github/ci/templates/repo/.github/workflows/kit-ci.yml"
+  recorded=$(grep '  .github/workflows/kit-ci.yml$' .kit/manifest)
+  # kit hydrate, and a verb that hydrates, as an agent's hook does, under the release that retired the workflow
+  run "${repo}.later/bin/kit" hydrate
+  [ "$status" -eq 0 ]
+  [ "$(grep '  .github/workflows/kit-ci.yml$' .kit/manifest)" = "${recorded}" ]
+  printf 'x\n' > x.md
+  run "${repo}.later/bin/kit" context x.md
+  [ "$status" -eq 0 ]
+  [ "$(grep '  .github/workflows/kit-ci.yml$' .kit/manifest)" = "${recorded}" ]
+  run env KIT_BASE="${kit_checkout}" "${repo}.later/bin/kit" update
+  [ "$status" -eq 0 ]
+  [[ "$output" == *".github/workflows/kit-ci.yml: retired in 9.9.9, removed"* ]]
+  [ ! -e .github/workflows/kit-ci.yml ]
+  run ! grep --quiet 'kit-ci.yml' .kit/manifest
+  # a path kit packages remove takes out of what is delivered keeps no record, taken out or left as edited, so no
+  # later update retires it
+  run "${repo}.later/bin/kit" packages add agents/cursor
+  [ "$status" -eq 0 ]
+  grep --quiet '  .cursor/rules/kit-bash.mdc$' .kit/manifest
+  printf '# edited\n' >> .cursor/rules/kit-bash.mdc
+  run "${repo}.later/bin/kit" packages remove agents/cursor
+  [ "$status" -eq 0 ]
+  [[ "$output" == *".cursor/rules/kit-bash.mdc: edited since the kit placed it; it is left as it is"* ]]
+  [ -f .cursor/rules/kit-bash.mdc ]
+  run ! grep --quiet '\.cursor/' .kit/manifest
+  run "${repo}.later/bin/kit" update
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"retired"* ]]
+  [ -f .cursor/rules/kit-bash.mdc ]
+}
+
 @test "update retires nothing when the paths the release delivers cannot be read" {
   "${kit_checkout}/bin/kit" install
   local before kit_bash_modules=place

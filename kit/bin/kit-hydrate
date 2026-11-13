@@ -10,9 +10,10 @@
 #   - otherwise a copy without the write bit
 #
 # It also writes .kit/.gitignore, which names those paths and itself, and .kit/manifest, with a record for each path
-# it placed. A path outside .kit/, which it never places, keeps the record it had. It chooses nothing; kit install
-# chooses. It prints one line per path it placed or replaced. It warns about a delivered path git still tracks, and
-# about a file under a delivered directory that no active package delivers.
+# it placed. A path outside .kit/, which it never places, keeps the record it had, and so does one there that this
+# release no longer delivers, which kit update retires. It chooses nothing; kit install chooses. It prints one line
+# per path it placed or replaced. It warns about a delivered path git still tracks, and about a file under a delivered
+# directory that no active package delivers.
 #
 # A delivered path that holds a different file, which kit never recorded, is the repository's own. It is named, left
 # as it is, and gets no record, so no later command replaces it. kit hydrate fails until it is moved aside or removed.

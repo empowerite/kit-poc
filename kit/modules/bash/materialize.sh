@@ -551,8 +551,9 @@ materialize:hydrated() {
 # release is not the declared one, since what it places is this release's. It rewrites .kit/manifest, so what the
 # declaration added is recorded, and a later release's change to it is kit's to replace. It places nothing outside
 # .kit/, so a path there keeps the digest the manifest records, and kit update still sees what is there as what kit
-# placed. Where the declaration still sits on the manifest's lines, from a release before it, it moves into kit.yml
-# first.
+# placed. A recorded path there that this release no longer delivers keeps its record too, so the update to this
+# release still retires it. Where the declaration still sits on the manifest's lines, from a release before it, it
+# moves into kit.yml first.
 #
 # Under kit serve, kit_serve_hydrated is set for every tool's verb, and it does not place anything: the server placed
 # .kit/ already, and places it again when kit.yml changes, so a tool reads and never writes.
@@ -587,7 +588,8 @@ materialize:hydrate() {
 }
 
 # materialize:hydrate-write <package>… places what the packages deliver under .kit/, and rewrites .kit/manifest: a
-# record for each path it placed, none for one it left alone, and every other path's record as it was.
+# record for each path it placed, none for one it left alone, and every other path's record as it was, a path the
+# packages no longer deliver included, while its file is there.
 materialize:hydrate-write() {
   materialize:all "$@" || return 1
   manifest:write --keep repo '' "$@"

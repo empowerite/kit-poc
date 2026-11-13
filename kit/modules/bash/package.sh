@@ -144,7 +144,8 @@ package:add() {
 # member of a bundle that stays active, and a package that is on by default, is recorded as excluded, so that kit
 # update does not bring it back. First it judges every region it would take out (place:refusals): with any it
 # cannot, it takes nothing out and returns 1. A path that still cannot be taken out is named, the manifests and the
-# declaration stay as they are, and it returns 1.
+# declaration stay as they are, and it returns 1. No path it took out of what the packages deliver keeps a record,
+# one it left as edited included: it names each to manifest:drop.
 package:remove() {
   local package base path src dest newly='' names count refused=0
   local -a named active excluded remaining dependents includers defaults paths
@@ -203,6 +204,7 @@ package:remove() {
       for path in "${paths[@]}"
       do
         [[ -n "${path}" ]] || continue
+        manifest:drop "${base}" "${path}"
         place:source src "${kit_root}" "${base}" "${path}" "${active[@]}" || return 1
         release:dest "${base}" "${path}" dest || return 1
         if place:edited "${base}" "${path}" "${src}"

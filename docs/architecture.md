@@ -82,8 +82,10 @@ Each base has a manifest:
 
 The repository's manifest records, for every delivered path, the digest of the release's content kit placed there.
 A verb that did not place a path keeps its record: `kit hydrate` places nothing outside `.kit/`, so a file there
-keeps its digest until `kit update` replaces it. A path under `.kit/` that holds the repository's own file has no
-record, and kit leaves it alone. The version and the active packages are declared in `kit.yml`, the three keys the
+keeps its digest until `kit update` replaces it. A recorded path the release that runs no longer delivers keeps its
+record while its file is there, so the update to that release retires it; `kit packages remove` keeps no record
+of what it took out. A path under `.kit/` that holds the repository's own file has no record, and kit leaves it
+alone. The version and the active packages are declared in `kit.yml`, the three keys the
 kit writes there. Home's manifest, with no settings file beside it, records its version and packages itself.
 `kit update` compares a file against its digest to tell whether the repository edited it.
 

@@ -6,12 +6,23 @@
 # Each base has a manifest, written beside what kit placed and ignored like it: one line per delivered path, the
 # digest of the release's content kit placed there and the path. kit update compares a file against its digest to tell
 # whether the repository edited it. A record says kit placed the path, so a path kit did not place keeps the record it
-# had, and a path under .kit/ that holds the repository's own file has none. Home's manifest, with no settings file
-# beside it, carries the version and the packages as well, and is shared by every repository on the machine.
+# had, and a path under .kit/ that holds the repository's own file has none. A path the packages no longer deliver,
+# as under a release that retired it, keeps its record too while its file is there, until kit update retires it.
+# Home's manifest, with no settings file beside it, carries the version and the packages as well, and is shared by
+# every repository on the machine.
 #
 # see: docs/packages.md
 
 use release place materialize settings file trust
+
+# manifest_dropped names each path a verb took out of what the packages deliver, as "<base>" a tab "<path>", so
+# manifest:text keeps no record of it. manifest:drop fills it, for kit packages remove; no other verb takes a path
+# out and writes with --keep.
+declare -gA manifest_dropped=()
+
+# manifest:drop <base> <path> says the caller took <path> out of what the packages deliver under <base>, so the next
+# manifest:write --keep keeps no record of it.
+manifest:drop() { manifest_dropped[$1$'\t'$2]=1; }
 
 # manifest:path <base> prints the base's manifest: .kit/manifest in the repository, ~/.kit/manifest for home.
 manifest:path() { release:dest "$1" .kit/manifest; }
@@ -20,9 +31,10 @@ manifest:path() { release:dest "$1" .kit/manifest; }
 # under the base, as manifest:text prints them, and under home, which has no settings file, the version and the active
 # packages as well. A caller that placed every path, as kit install and kit update do, records the release's digest
 # for each. A caller that did not, as a verb that hydrates and kit packages do, passes --keep, and a path it did not
-# place keeps the digest the manifest records. The repository's manifest is always written. Home's manifest is shared
-# by every repository on the machine. It is written when these packages deliver to home. When they do not, it drops
-# the lines whose paths no longer exist, and removes the file once no line is left.
+# place keeps the digest the manifest records, and so does a recorded path the packages no longer deliver, as
+# manifest:text says. The repository's manifest is always written. Home's manifest is shared by every repository on
+# the machine. It is written when these packages deliver to home. When they do not, it drops the lines whose paths no
+# longer exist, and removes the file once no line is left.
 manifest:write() {
   local keep=false base excluded manifest path src delivered kept dest
   local -a paths
@@ -75,12 +87,17 @@ manifest:kept-text() {
 # records already, for a path that has one and that kit does not materialize: the caller did not place that path, and
 # what is there is still what the record says. A materialized path that holds the repository's own file, as
 # materialize:foreign finds it, has no record, in either case, so materialize:all goes on leaving it alone. The
-# sources are digested together, by one process. It returns 1, having printed the header alone, when the manifest or
-# a source cannot be read.
+# sources are digested together, by one process.
+#
+# With <keep> true, a recorded path that is not in <delivered> keeps its record, after the others, while something is
+# at the path: the release that runs may have retired it, and the record is what kit update retires it by
+# (place:retire). A path in manifest_dropped keeps none: the caller took it out of what the packages deliver.
+#
+# It returns 1, having printed the header alone, when the manifest or a source cannot be read.
 manifest:text() {
-  local keep=$1 base=$2 excluded=$3 delivered=$4 path src row i kind
-  local -a rows paths=() digests=() fresh=() srcs=() found owned=()
-  local -A recorded=() source=() materialized=() foreign=()
+  local keep=$1 base=$2 excluded=$3 delivered=$4 path src row i kind root
+  local -a rows paths=() digests=() fresh=() srcs=() found owned=() before=()
+  local -A recorded=() source=() materialized=() foreign=() kept=()
   shift 4
   printf '# .kit/manifest - written by kit, not by hand\n'
   if [[ "${base}" != repo ]]
@@ -131,6 +148,17 @@ manifest:text() {
   for i in "${!paths[@]}"
   do
     printf '%s  %s\n' "${digests[i]}" "${paths[i]}"
+  done
+  [[ "${keep}" == true ]] || return 0
+  list:read before manifest:paths "${base}" || return 1
+  release:dest "${base}" '' root || return 1
+  for path in "${before[@]}"
+  do
+    [[ -n "${path}" && -z "${source[${path}]+x}" && -z "${kept[${path}]+x}" ]] || continue
+    [[ -z "${manifest_dropped[${base}$'\t'${path}]+x}" ]] || continue
+    [[ -e "${root}${path}" || -L "${root}${path}" ]] || continue
+    kept[${path}]=1
+    printf '%s  %s\n' "${recorded[${path}]%%$'\n'*}" "${path}"
   done
 }
 
