@@ -1,4 +1,5 @@
 {
+  "contract": 1,
   "rows": [
     {
       "repository": "github.com/empowerite/kit", "host": "github.com", "path": "empowerite/kit", "forge": "github",

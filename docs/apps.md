@@ -10,12 +10,35 @@ its hand-off to kittui. A verb's own stages live in `modules/bash/apps/<verb>.sh
 - `kit <verb> --marks` prints a mark per stage as one JSON object. A mark is a text that changes when what its stage
   draws does, and `null` for a stage with none, which kittui reads again only on Refresh, as it offers no
   Watch for a tab kit never marks.
-- `kit <verb> <stage> --json` prints the stage's document, `{rows, errors}`, and `limited: N` where a capped read
-  stopped at N, the newest. `--jq` prints it formatted, and `--text`, or no form off a terminal, as a table.
-- `kit <verb> --json`, with no stage, prints `{stages, <stage>: document…}`, a stage that could not be read `null`.
+- `kit <verb> <stage> --json` prints the stage's document, `{contract, rows, errors}`, and `limited: N` where a capped
+  read stopped at N, the newest. `--jq` prints it formatted, and `--text`, or no form off a terminal, as a table.
+- `kit <verb> --json`, with no stage, prints `{contract, stages, <stage>: document…}`, a stage that could not be
+  read `null`.
 - On a terminal, with no form, `kit <verb>` opens the app in kittui, and `kit <verb> <stage>` opens it on that tab.
 - `kit --workspace=<group> <verb>` runs each stage in every cloned member's checkout at once. Each row, and each
   error, gains `member`, its host and path, and a member that could not be read is `{member, error}` under `errors`.
+
+## The contract of the stage documents
+
+`contract` is one number, 1 in this release. kit prints it first in every stage's document that is an object, and in
+every picture:
+
+- `{contract, rows, errors}`, which the app verbs and `kit workspace` print for a stage, and `kit flow` prints for a
+  stage over a workspace
+- the object `kit flow incoming --json` prints in one repository
+- the picture `kit flow --json`, `kit workspace --json`, and `kit <verb> --json` print, beside `stages`
+
+The number changes when a document changes so that a reader of the old one would misread it: a key renamed, removed,
+or given another meaning. A key added does not change it.
+
+Two readers check it. Over a workspace each member answers with the release its own `kit.yml` pins. kit merges
+nothing of a member whose document states another contract: the member is `{member, error}` under `errors`, the line
+says both numbers and which side to update, and the verb exits 1. kittui's catalog,
+`projects/tui/internal/flow/fields.json`, states the number it reads, and kittui refuses a stage whose document states
+another. A document that states no contract is read.
+
+`kit flow issues`, `changes`, `builds`, and `releases` print an array in one repository, and an array holds no place
+for the number. Over a workspace, kit reads such a member's array without the check.
 
 A row is `{key, …, links}`: `key` is the row's own within its stage, and `links` gives where a value leads, by its
 field. Every row also says where it is from, in one repository and across a workspace alike:

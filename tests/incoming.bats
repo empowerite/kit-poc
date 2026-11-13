@@ -60,7 +60,7 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
   push-to upstream u1 main main:feature HEAD:refs/tags/v2
   run kit flow incoming --json
   [ "$status" -eq 0 ]
-  [ "$(jq -c 'keys_unsorted' <<<"$output")" = '["fetched","primary","remotes","rows"]' ]
+  [ "$(jq -c 'keys_unsorted' <<<"$output")" = '["contract","fetched","primary","remotes","rows"]' ]
   [ "$(jq -c '[.fetched, .primary, [.remotes[].name]]' <<<"$output")" = '[true,"origin",["origin","upstream"]]' ]
   [ "$(jq -c '.remotes[0] | keys_unsorted' <<<"$output")" \
     = '["name","forge","host","default","commits","branches","tags"]' ]
@@ -167,7 +167,7 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
   GH_CONFIG_DIR="${BATS_TEST_TMPDIR}/gh" run kit flow incoming --no-fetch --json
   [ "$status" -eq 0 ]
   [ "$(git rev-parse origin/main)" = "${before}" ]
-  [ "$(jq -c 'del(.rows)' <<<"$output")" = '{"fetched":false,"primary":"origin","remotes":[{"name":"origin","forge":"github","host":null},'"\
+  [ "$(jq -c 'del(.rows)' <<<"$output")" = '{"contract":1,"fetched":false,"primary":"origin","remotes":[{"name":"origin","forge":"github","host":null},'"\
 "'{"name":"mirror","forge":"github","host":"git.example.test"},{"name":"plain","forge":null,"host":"elsewhere.test"},'"\
 "'{"name":"upstream","forge":"gitlab","host":null}]}' ]
   GH_CONFIG_DIR="${BATS_TEST_TMPDIR}/gh" run kit flow incoming --no-fetch

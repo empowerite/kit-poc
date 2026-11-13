@@ -32,6 +32,21 @@ func TestACatalogReadsEveryTableByItsName(t *testing.T) {
 	}
 }
 
+func TestACatalogStatesTheContractOfTheDocumentsItReads(t *testing.T) {
+	stated := []byte(`{"contract": 3, "stages": [{"stage": "a", "record": ".[]", "fields": [{"id": "x", "label": "x",
+		"type": "text", "renderings": ["text"]}], "presets": [{"name": "Default"}]}]}`)
+	if c, err := ReadCatalog(stated); err != nil || c["a"] == nil || Contract(stated) != 3 {
+		t.Errorf("a catalog that states contract 3: %v %+v, contract %d", err, c, Contract(stated))
+	}
+	// one that states none, as a screen's own, and one that does not read, state 0
+	if got := Contract([]byte(`{"stages": []}`)); got != 0 {
+		t.Errorf("a catalog that states no contract states %d", got)
+	}
+	if got := Contract([]byte(`[`)); got != 0 {
+		t.Errorf("a catalog that does not read states %d", got)
+	}
+}
+
 func TestValuesHoldWhatARowSortsGroupsAndFiltersBy(t *testing.T) {
 	secs := int64(-5)
 	if !slices.Equal(One("x").Raw, []string{"x"}) || Some("").Raw != nil || Some("y").Raw[0] != "y" ||

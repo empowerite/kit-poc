@@ -57,13 +57,29 @@
 #   blocked:approval   blue
 #   ready              green
 #
-# --json prints the picture as one object: stages, the names in order, and under each name what kit flow <stage>
-# --json prints. A stage that could not be read is null. Above desks it is an array of {path, status}, one per desk.
+# --json prints the picture as one object: contract, as flow_contract says; stages, the names in order; and under each
+# name what kit flow <stage> --json prints. A stage that could not be read is null. Above desks it is an array of
+# {path, status}, one per desk.
 #
 # see: kit/bin/kit-flow, modules/bash/issues.sh, modules/bash/changes.sh, modules/bash/builds.sh,
 # modules/bash/releases.sh
 
 use file git settings workspaces issues changes builds releases
+
+# flow_contract is the contract of the stage documents: the number kit prints, as contract, first in every JSON
+# document of a stage that is an object, and in every picture. Those are a stage's {contract, rows, errors}, as kit
+# workspace, the app verbs, and any stage over a workspace print it, and the object incoming prints here; issues,
+# changes, builds, and releases print an array in one repository, which holds no number. The number changes when a
+# document changes so that a reader of the old one would misread it: a key renamed, removed, or given another meaning.
+# A key added does not change it. Over a workspace each member answers with the release it pins, and
+# modules/bash/across.sh names a member whose document states another number under errors, and merges nothing of it.
+# kittui's catalog states the number it reads, and refuses a document of another. A document that states none is read.
+declare -gr flow_contract=1
+
+# flow:contracted reads a JSON object and prints it with contract, flow_contract, as its first key.
+flow:contracted() {
+  jq --compact-output --argjson contract "${flow_contract}" '{contract: $contract} + .'
+}
 
 # flow_walk_depth is how many directories below the one it runs in kit flow looks for desks, above desks.
 flow_walk_depth=4
@@ -618,14 +634,14 @@ flow:incoming-text() {
   [[ "${first}" == false ]] || flow:none 'no remote'
 }
 
-# flow:incoming [--no-fetch] [--json] is the incoming stage. It fetches every remote, the primary first, each with
-# git fetch --prune, and never rebases, merges, or pulls. It prints the fetch's blocks, as flow:incoming-text draws
-# them. With --json it prints one object instead: fetched, true; primary, its name; remotes, one flow:fetch-json
-# object each; and rows, every remote's flow:incoming-rows, the primary's first, each saying where it is from, git, as
-# workspaces:placed says. A remote whose fetch failed carries error, git's first line, and nothing came from it. With
-# --no-fetch it fetches nothing: fetched is false, each remote is flow:remote-json's object, and the rows are each
-# remote's own and its tracking rows, as the last fetch left them. It returns 1 when a fetch failed, after every
-# remote is tried.
+# flow:incoming [--no-fetch] [--json] is the incoming stage. It fetches every remote, the primary first, each with git
+# fetch --prune, and never rebases, merges, or pulls. It prints the fetch's blocks, as flow:incoming-text draws them.
+# With --json it prints one object instead: contract, flow_contract; fetched, true; primary, its name; remotes, one
+# flow:fetch-json object each; and rows, every remote's flow:incoming-rows, the primary's first, each saying where it
+# is from, git, as workspaces:placed says. A remote whose fetch failed carries error, git's first line, and nothing
+# came from it. With --no-fetch it fetches nothing: fetched is false, each remote is flow:remote-json's object, and
+# the rows are each remote's own and its tracking rows, as the last fetch left them. It returns 1 when a fetch failed,
+# after every remote is tried.
 flow:incoming() {
   local json=false no_fetch=false failed=false arg primary primary_default='' remote before after said doc text
   local default
@@ -671,9 +687,9 @@ flow:incoming() {
     fi
   done
   doc=$(printf '%s\n' "${docs[@]}" | jq --slurp --compact-output --argjson fetched "$([[ "${no_fetch}" == true ]] \
-    && printf false || printf true)" --arg primary "${primary}" \
+    && printf false || printf true)" --arg primary "${primary}" --argjson contract "${flow_contract}" \
     --argjson rows "$(printf '%s\n' "${rows[@]}" | jq --slurp --compact-output '.')" \
-    '{fetched: $fetched, primary: $primary, remotes: ., rows: $rows}')
+    '{contract: $contract, fetched: $fetched, primary: $primary, remotes: ., rows: $rows}')
   if [[ "${json}" == true ]]
   then
     workspaces:placed git "${doc}" || return 1
@@ -1225,8 +1241,9 @@ flow:picture() {
     done
     [[ "${reachable}" == true ]] || warn "no ${primary}: nothing fetched, no pull request shown"
     [[ "${forged}" == true ]] || warn "${said}"
-    jq --null-input --compact-output --argjson stages "$(flow:json-list "${stages[@]}")" "${named[@]}" \
-      '{stages: $stages} + $ARGS.named'
+    jq --null-input --compact-output --argjson contract "${flow_contract}" \
+      --argjson stages "$(flow:json-list "${stages[@]}")" "${named[@]}" \
+      '{contract: $contract, stages: $stages} + $ARGS.named'
     [[ "${failed}" == false ]]
     return
   fi

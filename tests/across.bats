@@ -93,7 +93,7 @@ EOF
   printf 'github.com/o/c' > "$d/2.member"; printf '[{"n":3}]' > "$d/2.out"; printf 0 > "$d/2.status"; : > "$d/2.err"
   run kit-bash "across:merge '$d' array"
   [ "$status" -eq 1 ]
-  [ "$output" = '{"rows":[{"n":1,"member":"github.com/o/a"},{"n":2,"member":"github.com/o/a"},{"n":3,"member":"github.com/o/c"}],"errors":[{"member":"github.com/o/b","error":"gh cannot read o/b"}]}' ]
+  [ "$output" = '{"contract":1,"rows":[{"n":1,"member":"github.com/o/a"},{"n":2,"member":"github.com/o/a"},{"n":3,"member":"github.com/o/c"}],"errors":[{"member":"github.com/o/b","error":"gh cannot read o/b"}]}' ]
 }
 
 @test "across:merge tags an object stage's object with its member" {
@@ -101,7 +101,7 @@ EOF
   printf 'github.com/o/a' > "$d/0.member"; printf '{"branch":"main"}' > "$d/0.out"; printf 0 > "$d/0.status"
   : > "$d/0.err"
   run kit-bash "across:merge '$d' object"
-  [ "$output" = '{"rows":[{"branch":"main","member":"github.com/o/a"}],"errors":[]}' ]
+  [ "$output" = '{"contract":1,"rows":[{"branch":"main","member":"github.com/o/a"}],"errors":[]}' ]
 }
 
 @test "kit --workspace= flow incoming prints each cloned member's incoming, tagged, in the group's order" {
@@ -140,7 +140,7 @@ EOF
   cd "${BATS_TEST_TMPDIR}"
   run "${kit_root}/bin/kit" --workspace=w flow incoming --no-fetch --json
   [ "$status" -eq 0 ]
-  [ "$output" = '{"rows":[],"errors":[]}' ]
+  [ "$output" = '{"contract":1,"rows":[],"errors":[]}' ]
 }
 
 @test "kit --workspace= flow refuses a workspace it does not know, and a pull request's number, with 2" {
@@ -428,7 +428,7 @@ EOF
   cd "${BATS_TEST_TMPDIR}"
   run --separate-stderr "${kit_root}/bin/kit" --workspace=w flow --no-fetch --json
   [ "$status" -eq 0 ]
-  [ "$(jq -c '.issues' <<<"$output")" = '{"rows":[],"errors":[]}' ]
+  [ "$(jq -c '.issues' <<<"$output")" = '{"contract":1,"rows":[],"errors":[]}' ]
   [ "$(jq -c '[.[] | objects | .errors[]]' <<<"$output")" = '[]' ]
   [ "$(jq -c '[.incoming.rows[].member]' <<<"$output")" = '["github.com/o/a","bitbucket.org/o/b"]' ]
 }
@@ -454,6 +454,102 @@ EOF
   run --separate-stderr "${kit_root}/bin/kit" --workspace=w workspace remotes --json
   [ "$status" -eq 0 ]
   [ "$(jq -c '.errors' <<<"$output")" = '[]' ]
+}
+
+# later-contract pins local-desks' second member to a release, in the kit's cache, whose stage documents state
+# contract 2, and whose tags stage prints name where this kit prints tag; each desk gets a tag.
+later-contract() {
+  local release=${XDG_CACHE_HOME}/kit/kit-9.9.9 d
+  later-release "${release}"
+  sed -i.bak 's/^declare -gr flow_contract=1$/declare -gr flow_contract=2/' "${release}/modules/bash/flow.sh"
+  sed -i.bak 's/{key: \.\[0\], tag: \.\[0\]/{key: .[0], name: .[0]/' "${release}/modules/jq/workspace.jq"
+  printf 'flow: [incoming]\nversion: 9.9.9\n' > "${BATS_TEST_TMPDIR}/code/b b/kit.yml"
+  for d in "${BATS_TEST_TMPDIR}/code/a" "${BATS_TEST_TMPDIR}/code/b b"
+  do
+    git -C "${d}" tag v1
+  done
+}
+
+@test "a stage's document that is an object, and a picture, states the contract, in a repository and over a group" {
+  local-desks
+  cd "${BATS_TEST_TMPDIR}/code/a"
+  [ "$("${kit_root}/bin/kit" workspace tags --json | jq -c '[.contract, (.rows | type)]')" = '[1,"array"]' ]
+  [ "$("${kit_root}/bin/kit" workspace repos --json | jq -c .contract)" = 1 ]
+  [ "$("${kit_root}/bin/kit" workspace --json | jq -c '[.contract, .repos.contract, .tags.contract]')" = '[1,1,1]' ]
+  [ "$("${kit_root}/bin/kit" platform settings --json | jq -c '[.contract, (.rows | type)]')" = '[1,"array"]' ]
+  [ "$("${kit_root}/bin/kit" platform --json | jq -c '[.contract, .settings.contract]')" = '[1,1]' ]
+  [ "$("${kit_root}/bin/kit" flow incoming --no-fetch --json | jq -c '[.contract, .fetched]')" = '[1,false]' ]
+  [ "$("${kit_root}/bin/kit" flow --no-fetch --json | jq -c '[.contract, .incoming.contract]')" = '[1,1]' ]
+  cd "${BATS_TEST_TMPDIR}"
+  [ "$("${kit_root}/bin/kit" --workspace=w workspace tags --json | jq -c .contract)" = 1 ]
+  [ "$("${kit_root}/bin/kit" --workspace=w workspace repos --json | jq -c .contract)" = 1 ]
+  [ "$("${kit_root}/bin/kit" --workspace=w platform settings --json | jq -c .contract)" = 1 ]
+  # a member's incoming is a row of the merged document, which states the contract once, not in each row
+  [ "$("${kit_root}/bin/kit" --workspace=w flow incoming --no-fetch --json \
+    | jq -c '[.contract, (.rows | map(has("contract")) | unique)]')" = '[1,[false]]' ]
+  [ "$("${kit_root}/bin/kit" --workspace=w flow --no-fetch --json \
+    | jq -c '[.contract, .incoming.contract, (.incoming.rows | map(has("contract")) | unique)]')" = '[1,1,[false]]' ]
+}
+
+@test "over a workspace, a member on a release of another contract is under errors, and none of its rows is read" {
+  local line='printed contract 2 of the stage documents, and this kit reads contract 1; update the kit you installed'
+  local b='"member":"github.com/o/b"'
+  local-desks
+  later-contract
+  cd "${BATS_TEST_TMPDIR}"
+  # a stage of kit workspace: the member's rows hold name where this kit's hold tag, and none is merged
+  run --separate-stderr "${kit_root}/bin/kit" --workspace=w workspace tags --json
+  [ "$status" -eq 1 ]
+  [ "$(jq -c '[.contract, [.rows[] | [.member, .tag]]]' <<<"$output")" = '[1,[["github.com/o/a","v1"]]]' ]
+  [ "$(jq -c .errors <<<"$output")" = "[{${b},\"error\":\"kit workspace tags ${line}\"}]" ]
+  run --separate-stderr "${kit_root}/bin/kit" --workspace=w workspace tags --text
+  [ "$status" -eq 1 ]
+  [[ "$output$stderr" == *"github.com/o/b: kit workspace tags ${line}"* ]]
+  # a stage of an app verb
+  run --separate-stderr "${kit_root}/bin/kit" --workspace=w platform settings --json
+  [ "$status" -eq 1 ]
+  [ "$(jq -c '[.contract, (.rows | map(.member) | unique)]' <<<"$output")" = '[1,["github.com/o/a"]]' ]
+  [ "$(jq -c .errors <<<"$output")" = "[{${b},\"error\":\"kit platform settings ${line}\"}]" ]
+  # incoming, whose document is an object, alone and cut from the members' pictures
+  run --separate-stderr "${kit_root}/bin/kit" --workspace=w flow incoming --no-fetch --json
+  [ "$status" -eq 1 ]
+  [ "$(jq -c '[.rows[].member]' <<<"$output")" = '["github.com/o/a"]' ]
+  [ "$(jq -c .errors <<<"$output")" = "[{${b},\"error\":\"kit flow incoming ${line}\"}]" ]
+  run --separate-stderr "${kit_root}/bin/kit" --workspace=w flow --no-fetch --json
+  [ "$status" -eq 1 ]
+  [ "$(jq -c '[.incoming.rows[].member]' <<<"$output")" = '["github.com/o/a"]' ]
+  [ "$(jq -c .incoming.errors <<<"$output")" = "[{${b},\"error\":\"kit flow incoming ${line}\"}]" ]
+  # repos reads each member's desk from its worktrees: the member is listed, its desk unread, and its row says why
+  run --separate-stderr "${kit_root}/bin/kit" --workspace=w workspace repos --json
+  [ "$status" -eq 1 ]
+  [ "$(jq -c '[.rows[] | [.repository, .branch]]' <<<"$output")" = \
+    '[["github.com/o/a","main"],["github.com/o/b",null],["github.com/o/c",null]]' ]
+  [ "$(jq -r '.rows[1].error' <<<"$output")" = "kit workspace worktrees ${line}" ]
+}
+
+@test "across:error names the side to update by which contract is later, and a member that states none is merged" {
+  d=${BATS_TEST_TMPDIR}/m && mkdir -p "$d"
+  printf 'github.com/o/a' > "$d/0.member"; printf 0 > "$d/0.status"; : > "$d/0.err"
+  printf '{"contract":0,"rows":[{"n":1}],"errors":[]}' > "$d/0.out"
+  run kit-bash "across_verb=workspace across:merge '$d' document tags"
+  [ "$status" -eq 1 ]
+  [ "$(jq -c .rows <<<"$output")" = '[]' ]
+  [ "$(jq -r '.errors[0].error' <<<"$output")" = "kit workspace tags printed contract 0 of the stage documents, and $(
+    )this kit reads contract 1; move it to a later release: run kit --version=<release> update in its checkout" ]
+  printf '{"contract":"one","rows":[{"n":1}],"errors":[]}' > "$d/0.out"
+  run kit-bash "across_verb=workspace across:merge '$d' document tags"
+  [ "$status" -eq 1 ]
+  [[ "$(jq -r '.errors[0].error' <<<"$output")" == \
+    'kit workspace tags printed contract "one" of the stage'*'; update the kit you installed' ]]
+  # no contract stated, as a kit before the first release prints, and this kit's: both are merged
+  printf '{"rows":[{"n":1}],"errors":[]}' > "$d/0.out"
+  run kit-bash "across:merge '$d' document tags"
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"contract":1,"rows":[{"n":1,"member":"github.com/o/a"}],"errors":[]}' ]
+  printf '{"contract":1,"rows":[{"n":2}],"errors":[]}' > "$d/0.out"
+  run kit-bash "across:merge '$d' document tags"
+  [ "$status" -eq 0 ]
+  [ "$output" = '{"contract":1,"rows":[{"n":2,"member":"github.com/o/a"}],"errors":[]}' ]
 }
 
 @test "kit workspace --marks over a workspace names a member it could not read, says its line, and exits 1" {
@@ -537,7 +633,7 @@ EOF
   printf 'github.com/o/b' > "$d/1.member"; : > "$d/1.out"; printf 3 > "$d/1.status"; : > "$d/1.err"
   run kit-bash "across:merge '$d' object incoming"
   [ "$status" -eq 1 ]
-  [ "$output" = '{"rows":[{"fetched":true,"member":"github.com/o/a"}],"errors":[{"member":"github.com/o/b","error":"kit flow incoming exited 3"}]}' ]
+  [ "$output" = '{"contract":1,"rows":[{"fetched":true,"member":"github.com/o/a"}],"errors":[{"member":"github.com/o/b","error":"kit flow incoming exited 3"}]}' ]
 }
 
 @test "over a workspace, the stages are kit's five, whatever the kit.yml where kit runs says" {

@@ -1,19 +1,30 @@
 # shellcheck shell=bash
 # across.sh - kit flow and kit workspace across a workspace: members, checkouts, and stages merged (sourced module)
 # ----------------------------------------------------------------------------------------------------------------------
-# shellcheck disable=SC2154  # flow_glyphs and flow_color, settings_stages, and out_color: flow.sh, settings.sh, 1st.sh
+# shellcheck disable=SC2154  # flow_glyphs, flow_color, and flow_contract are set by flow.sh
+# shellcheck disable=SC2154  # settings_stages is set by settings.sh, out_color by 1st.sh
 #
 # A workspace's stage is the stage as kit flow draws it in each member's checkout, each under that checkout's own
-# kit.yml, run at once, and merged into one document, {rows, errors}: every row, or every object of a stage that draws
-# one, tagged with its member, host and path; and a member that could not be read as {member, error}, its line. The
-# members keep the workspace's order. A member with no checkout here draws no stage. A command resolves the workspace,
-# and so walks the roots, once.
+# kit.yml, run at once, and merged into one document, {contract, rows, errors}: contract, as flow_contract says;
+# every row, or every object of a stage that draws one, tagged with its member, host and path; and a member that could
+# not be read as {member, error}, its line. The members keep the workspace's order. A member with no checkout here
+# draws no stage. A command resolves the workspace, and so walks the roots, once.
+#
+# Each member answers with the release its own kit.yml pins, so its document may be of another contract than this
+# kit reads. Such a member is not merged: it is under errors, its line saying both numbers and which side to update,
+# as across:error writes it. A document that states no contract, as an array cannot, is read.
 #
 # see: docs/workspaces.md, modules/bash/workspaces.sh
 use workspaces flow settings
 
 # across_verb is the verb each member's checkout runs: kit flow's, or kit workspace's, which sets it.
 across_verb=flow
+
+# across_agreed is the jq that passes on what a member printed, and fails on an object that states another contract
+# than flow_contract, given as $contract; across:error then says so.
+# shellcheck disable=SC2016  # a jq program, whose $ names are jq's
+across_agreed='(if type == "object" and has("contract") and .contract != $contract then error("another contract")
+  else . end)'
 
 # across_resolved is the workspace across:flow resolved, as workspaces:resolve prints it, so a command walks the roots
 # once; empty until it does.
@@ -42,10 +53,10 @@ across:members() {
 
 # across:merge <dir> <kind> [<stage>] prints the document of what each member printed, from <dir>'s <n>.member, <n>.out,
 # <n>.err, and <n>.status, for n from 0 up. For an array stage, each row a member printed gains its member; for an
-# object stage, the object does; for a document, {rows, errors}, each of its rows does. What a member printed is kept
-# whenever it parses as the stage's kind, as an incoming whose fetch failed prints the remotes and exits 1. One that
-# does not is its stderr's last line, less a leading ❌, under errors; with nothing said, that kit flow <stage> exited as
-# it did. It returns 1, after the document, when a member did not exit 0 or is under errors.
+# object stage, the object does, less its contract; for a document, {contract, rows, errors}, each of its rows does.
+# What a member printed is kept whenever it parses as the stage's kind and states no other contract, as an incoming
+# whose fetch failed prints the remotes and exits 1. One that does not is under errors, as across:error says it. It
+# returns 1, after the document, when a member did not exit 0 or is under errors.
 across:merge() {
   local dir=$1 kind=$2 stage=${3:-} n=0 member out failed=false
   local -a rows=() errors=()
@@ -53,11 +64,12 @@ across:merge() {
   do
     member=$(<"${dir}/${n}.member")
     across:exited-0 "${dir}/${n}" || failed=true
-    if [[ -s "${dir}/${n}.out" ]] && out=$(jq --compact-output --arg member "${member}" --arg kind "${kind}" '
-      if $kind == "array" and type == "array" then map(. + {member: $member})[]
-      elif $kind == "object" and type == "object" then . + {member: $member}
-      elif $kind == "document" and type == "object" and has("rows") then .rows | map(. + {member: $member})[]
-      else error("not the stage") end' "${dir}/${n}.out" 2>/dev/null)
+    if [[ -s "${dir}/${n}.out" ]] && out=$(jq --compact-output --arg member "${member}" --arg kind "${kind}" \
+      --argjson contract "${flow_contract}" "${across_agreed}"'
+      | if $kind == "array" and type == "array" then map(. + {member: $member})[]
+        elif $kind == "object" and type == "object" then del(.contract) + {member: $member}
+        elif $kind == "document" and type == "object" and has("rows") then .rows | map(. + {member: $member})[]
+        else error("not the stage") end' "${dir}/${n}.out" 2>/dev/null)
     then
       [[ -z "${out}" ]] || rows+=("${out}")
     else
@@ -75,21 +87,35 @@ across:exited-0() {
   [[ -f "$1.status" && "$(<"$1.status")" == 0 ]]
 }
 
-# across:error <prefix> <member> <stage> prints a member's error, {member, error}, from <prefix>.err and .status.
+# across:error <prefix> <member> <stage> prints a member's error, {member, error}, from <prefix>.out, .err, and
+# .status. Where what the member printed is an object that states another contract than flow_contract, the line says
+# both numbers and which side to update: the kit installed here for a later contract, the member's release for an
+# earlier one. Otherwise it is the last line of the member's stderr, less a leading ❌; with nothing said, that kit's
+# across_verb, with the stage, exited as it did.
 across:error() {
-  local line
-  line=$(across:line "$1.err")
+  local line='' theirs
+  theirs=$(jq --raw-output 'objects | .contract // empty | tojson' "$1.out" 2>/dev/null) || theirs=''
+  if [[ -n "${theirs}" && "${theirs}" != "${flow_contract}" ]]
+  then
+    line="kit ${across_verb}${3:+ $3} printed contract ${theirs} of the stage documents, and this kit reads contract"
+    if [[ "${theirs}" =~ ^[0-9]+$ ]] && (( theirs < flow_contract ))
+    then line+=" ${flow_contract}; move it to a later release: run kit --version=<release> update in its checkout"
+    else line+=" ${flow_contract}; update the kit you installed"
+    fi
+  fi
+  [[ -n "${line}" ]] || line=$(across:line "$1.err")
   [[ -n "${line}" ]] || line="kit ${across_verb}${3:+ $3} exited $(<"$1.status")"
   jq --null-input --compact-output --arg member "$2" --arg error "${line}" '{member: $member, error: $error}'
 }
 
-# across:document <rows> <errors> prints {rows, errors} from the two arrays of JSON values named.
+# across:document <rows> <errors> prints {contract, rows, errors}, contract as flow_contract says, from the two arrays
+# of JSON values named.
 across:document() {
   local -n document_rows=$1 document_errors=$2
-  jq --null-input --compact-output \
+  jq --null-input --compact-output --argjson contract "${flow_contract}" \
     --argjson rows "$(printf '%s\n' "${document_rows[@]}" | grep -v '^$' | jq --slurp --compact-output .)" \
     --argjson errors "$(printf '%s\n' "${document_errors[@]}" | grep -v '^$' | jq --slurp --compact-output .)" \
-    '{rows: $rows, errors: $errors}'
+    '{contract: $contract, rows: $rows, errors: $errors}'
 }
 
 # across:line <file> prints the last line of what a member said on stderr, less a leading ❌.
@@ -209,13 +235,14 @@ across:run() {
   printf '%s' "${code}" > "${prefix}.status"
 }
 
-# across:picture <workspace> <word>… prints the picture across the workspace as one JSON object: stages, as across:flow
-# --stages gives them, and each stage's document, {rows, errors}, cut from the picture each member's kit flow --json
-# printed. A stage a member's flow setting leaves out adds nothing, and so does one null in the picture of a member
-# that exited 0, as a member on a host kit has no forge for draws the forge's stages: nothing to read. One null in the
-# picture of a member that did not exit 0, which could not draw it, is its last line under errors, and so is a picture
-# that does not parse. It returns 1, after the picture, when a member's kit flow did not exit 0, or a stage holds a
-# member under errors.
+# across:picture <workspace> <word>… prints the picture across the workspace as one JSON object: contract, as
+# flow_contract says; stages, as across:flow --stages gives them; and each stage's document, {contract, rows, errors},
+# cut from the picture each member's kit flow --json printed. A member whose picture states another contract is under
+# each stage's errors. A stage a member's flow setting leaves out adds nothing, and so does one null in the picture of
+# a member that exited 0, as a member on a host kit has no forge for draws the forge's stages: nothing to read. One
+# null in the picture of a member that did not exit 0, which could not draw it, is its last line under errors, and so
+# is a picture that does not parse. It returns 1, after the picture, when a member's kit flow did not exit 0, or a
+# stage holds a member under errors.
 across:picture() {
   local workspace=$1 dir stages stage kind doc n=0 failed=false
   local -a named=()
@@ -236,8 +263,9 @@ across:picture() {
     [[ -n "${doc}" ]] || return 1
     named+=(--argjson "${stage}" "${doc}")
   done <<<"${stages}"
-  jq --null-input --compact-output --argjson stages "$(workspaces:lines-json <<<"${stages}")" \
-    "${named[@]}" '{stages: $stages} + $ARGS.named' || return 1
+  jq --null-input --compact-output --argjson contract "${flow_contract}" \
+    --argjson stages "$(workspaces:lines-json <<<"${stages}")" \
+    "${named[@]}" '{contract: $contract, stages: $stages} + $ARGS.named' || return 1
   [[ "${failed}" == false ]]
 }
 
@@ -249,12 +277,14 @@ across:cut() {
   while [[ -f "${dir}/${n}.member" ]]
   do
     member=$(<"${dir}/${n}.member")
-    if value=$(jq --compact-output --arg stage "${stage}" 'if has($stage) then .[$stage] else "absent" end' \
-      "${dir}/${n}.out" 2>/dev/null) && [[ -n "${value}" ]] \
+    if value=$(jq --compact-output --arg stage "${stage}" --argjson contract "${flow_contract}" \
+      "${across_agreed}"' | if has($stage) then .[$stage] else "absent" end' "${dir}/${n}.out" 2>/dev/null) \
+      && [[ -n "${value}" ]] \
       && { [[ "${value}" != null ]] || across:exited-0 "${dir}/${n}"; }
     then
       [[ "${value}" == '"absent"' || "${value}" == null ]] || rows+=("$(jq --compact-output --arg member "${member}" \
-        --arg kind "${kind}" 'if $kind == "array" then map(. + {member: $member})[] else . + {member: $member} end' \
+        --arg kind "${kind}" 'if $kind == "array" then map(. + {member: $member})[]
+          else del(.contract) + {member: $member} end' \
         <<<"${value}")")
     else
       errors+=("$(across:error "${dir}/${n}" "${member}" "${stage}")")
@@ -265,13 +295,13 @@ across:cut() {
   (( ${#errors[@]} == 0 ))
 }
 
-# across:repos <workspace> prints the repos stage's document, {rows, errors}: a row per member, in the workspace's
-# order, cloned or not, as workspaces:member-json gives it, with its desk's branch, ahead, and behind, its worktrees and
-# branches, as across:branches gives them, each null for a member not cloned, and error, the desk's line where it could
-# not be read, workspaces:unread's for a clone whose kit.yml does not parse, else null. A member's desk is the first row
-# of its kit workspace worktrees, ahead and behind the primary's default branch. No workspace is the repository here,
-# by here, its checkout the clone, even from one of its linked worktrees; outside one it returns 2. It returns 1, after
-# the document, when a row has an error.
+# across:repos <workspace> prints the repos stage's document, {contract, rows, errors}: a row per member, in the
+# workspace's order, cloned or not, as workspaces:member-json gives it, with its desk's branch, ahead, and behind, its
+# worktrees and branches, as across:branches gives them, each null for a member not cloned, and error, the desk's line
+# where it could not be read, workspaces:unread's for a clone whose kit.yml does not parse, else null. A member's desk
+# is the first row of its kit workspace worktrees, ahead and behind the primary's default branch. No workspace is the
+# repository here, by here, its checkout the clone, even from one of its linked worktrees; outside one it returns 2.
+# It returns 1, after the document, when a row has an error.
 across:repos() {
   local resolved top member row
   if [[ -n "$1" ]]
@@ -322,7 +352,8 @@ across:repos-of() {
     fi
     # The desk is the first row of the member's worktrees, kind desk.
     if [[ -f "${dir}/${n}.status" ]] && ! { across:exited-0 "${dir}/${n}" && desk=$(jq --compact-output \
-      --exit-status '.rows[] | select(.kind == "desk") | {branch, ahead: .base[0], behind: .base[1]}' \
+      --exit-status --argjson contract "${flow_contract}" "${across_agreed}"'
+      | .rows[] | select(.kind == "desk") | {branch, ahead: .base[0], behind: .base[1]}' \
       "${dir}/${n}.out" 2>/dev/null); }
     then
       desk=null
@@ -345,7 +376,8 @@ across:repos-of() {
         behind: ($desk.behind // null)} + $lists + {error: (if $error == "" then null else $error end)}' \
       <<<"${resolved}")")
   done
-  printf '%s\n' "${rows[@]}" | jq --slurp --compact-output '{rows: ., errors: []}' || return 1
+  printf '%s\n' "${rows[@]}" | jq --slurp --compact-output --argjson contract "${flow_contract}" \
+    '{contract: $contract, rows: ., errors: []}' || return 1
   [[ "${failed}" == false ]]
 }
 

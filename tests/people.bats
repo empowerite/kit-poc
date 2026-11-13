@@ -118,8 +118,8 @@ JSON
   cd "${BATS_TEST_TMPDIR}/r"
   run --separate-stderr "${kit_root}/bin/kit" people --json
   [ "$status" -eq 0 ]
-  expected='{"stages":["people","teams","agents"],"people":{"rows":[],"errors":[]},'
-  expected+='"teams":{"rows":[],"errors":[]},"agents":{"rows":[],"errors":[]}}'
+  expected='{"contract":1,"stages":["people","teams","agents"],"people":{"contract":1,"rows":[],"errors":[]},'
+  expected+='"teams":{"contract":1,"rows":[],"errors":[]},"agents":{"contract":1,"rows":[],"errors":[]}}'
   [ "$output" = "${expected}" ]
   run --separate-stderr "${kit_root}/bin/kit" people --marks
   [ "$status" -eq 0 ]

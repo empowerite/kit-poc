@@ -1,4 +1,4 @@
-{"rows": [
+{"contract": 1, "rows": [
   {"key": "generic AGENTS.md", "harness": "generic", "tier": "advisory", "mechanism": "AGENTS.md", "status": "active", "evidence": "documented", "detail": "AGENTS.md carries kit's region", "passes": ["an agent that does not follow it"], "links": {}, "source": "github", "organization": "o", "repository": "r"},
   {"key": "claude deny list", "harness": "claude", "tier": "best-effort", "mechanism": "deny list", "status": "unknown", "evidence": "documented", "detail": "merged into .claude/settings.json", "passes": ["git -C <dir> commit", "git merge"], "links": {}, "source": "github", "organization": "o", "repository": "r"},
   {"key": "generic deny list", "harness": "generic", "tier": "best-effort", "mechanism": "deny list", "status": "unknown", "evidence": "unverified", "detail": "kit delivers no deny list", "passes": null, "links": {}, "source": "github", "organization": "o", "repository": "r"},

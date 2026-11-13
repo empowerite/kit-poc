@@ -87,7 +87,7 @@ JSON
   route gh 'api graphql*projectsV2*' none.json
   run --separate-stderr "${kit_root}/bin/kit" issues iterations --json
   [ "$status" -eq 0 ]
-  [ "$output" = '{"rows":[],"errors":[]}' ]
+  [ "$output" = '{"contract":1,"rows":[],"errors":[]}' ]
 }
 
 @test "a GitLab tier without iterations answers 403, and iterations is the error {feature, off}, with no failure" {
@@ -101,7 +101,7 @@ JSON
   route glab 'api projects/o%2Fr/iterations?*' '!1 forbidden.txt'
   run --separate-stderr "${kit_root}/bin/kit" issues iterations --json
   [ "$status" -eq 0 ]
-  [ "$output" = '{"rows":[],"errors":[{"feature":"iterations","off":true}]}' ]
+  [ "$output" = '{"contract":1,"rows":[],"errors":[{"feature":"iterations","off":true}]}' ]
 }
 
 @test "Issues' first tab is kit flow's: kit issues issues prints what kit flow issues does, and backlog and underway the issues of that status" {
@@ -183,7 +183,7 @@ JSON
   fake-tools az
   run --separate-stderr "${kit_root}/bin/kit" issues milestones --json
   [ "$status" -eq 0 ]
-  [ "$output" = '{"rows":[],"errors":[]}' ]
+  [ "$output" = '{"contract":1,"rows":[],"errors":[]}' ]
 }
 
 @test "kit issues --json draws both stages, and a repository with no forge draws none" {
@@ -192,7 +192,7 @@ JSON
   cd "${BATS_TEST_TMPDIR}/r"
   run --separate-stderr "${kit_root}/bin/kit" issues --json
   [ "$status" -eq 0 ]
-  [ "$output" = '{"stages":["milestones","iterations"],"milestones":{"rows":[],"errors":[]},"iterations":{"rows":[],"errors":[]}}' ]
+  [ "$output" = '{"contract":1,"stages":["milestones","iterations"],"milestones":{"contract":1,"rows":[],"errors":[]},"iterations":{"contract":1,"rows":[],"errors":[]}}' ]
 }
 
 @test "each stage prints the keys of the fixture kittui's tests decode, and the fields its catalog declares" {

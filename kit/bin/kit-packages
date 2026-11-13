@@ -24,11 +24,12 @@
 #   - select is remove, then add, to reach the named set. It says what it kept for another package's sake. With
 #     nothing to change, it says the set.
 #
-# Packages is an app verb, as kit platform is: kit packages packages is its one stage, which prints {rows, errors},
-# and kit --workspace=<workspace> packages packages draws it across a workspace's members with checkouts, each row
-# tagged with its member. Each row says where it is from, as kit platform's do: organization and repository, the
-# owner and the name of the repository kit read it in, and source, kit. kit packages --json, with no stage, still
-# prints one object a package, of the repository here.
+# Packages is an app verb, as kit platform is: kit packages packages is its one stage, which prints {contract, rows,
+# errors}, contract the number of the stage documents' contract, as kit workspace's page says, and kit
+# --workspace=<workspace> packages packages draws it across a workspace's members with checkouts, each row tagged with
+# its member. Each row says where it is from, as kit platform's do: organization and repository, the owner and the
+# name of the repository kit read it in, and source, kit. kit packages --json, with no stage, still prints one object
+# a package, of the repository here.
 #
 # Legend
 #
@@ -51,7 +52,7 @@
 #   --inactive          the packages that are not active, excluded ones among them
 #   --text              lists the packages as text, even on a terminal; with packages, the stage as a table
 #   --json              one JSON object per package: name, origin, state, and description; with packages, the
-#                       stage's document, {rows, errors}
+#                       stage's document, {contract, rows, errors}
 #   --jq                the same JSON, formatted by jq for a person
 #   --stages            prints the stages, one per line: packages
 #   --marks             prints the stage's mark, as one JSON object, which changes when kit.yml or .kit/packages/ does

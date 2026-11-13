@@ -28,14 +28,20 @@
 # opens the picture in kittui, and kit workspace <stage> opens it with that stage maximized. Without one, or with
 # --text, --json, or --jq, it prints the stages as text.
 #
-# With --json, a stage prints {rows, errors}. A row is {key, …, links}: key is the row's own in its stage, and links
-# gives where a value leads, by its field: a page on the forge, or row:<stage>/<key>, a row of another stage. Every
-# row says where it is from: organization and repository, the owner and the name of the repository kit read it in,
-# as its primary remote's URL names them past the host, no organization for a primary on this machine; and source,
-# git, kit for a member repos lists that is not cloned. A remote's row says the organization and the repository it
-# is, and repos' repository is the member, host and path. Over a workspace, each row gains member, its host and path,
-# and a member that could not be read is {member, error} under errors, while every other member still draws. --marks
-# over a workspace names such a member the same way, under errors beside the marks, and says its line.
+# With --json, a stage prints {contract, rows, errors}. contract is the number of the stage documents' contract, 1 in
+# this release, which every stage of kit workspace and of the app verbs prints, and every picture beside stages. It
+# changes when a document changes so that a reader of the old one would misread it: a key renamed, removed, or given
+# another meaning; a key added does not change it. A row is {key, …, links}: key is the row's own in its stage, and
+# links gives where a value leads, by its field: a page on the forge, or row:<stage>/<key>, a row of another stage.
+# Every row says where it is from: organization and repository, the owner and the name of the repository kit read it
+# in, as its primary remote's URL names them past the host, no organization for a primary on this machine; and source,
+# git, kit for a member repos lists that is not cloned. A remote's row says the organization and the repository it is,
+# and repos' repository is the member, host and path. Over a workspace, each row gains member, its host and path, and
+# a member that could not be read is {member, error} under errors, while every other member still draws. --marks over
+# a workspace names such a member the same way, under errors beside the marks, and says its line. A member answers
+# with the release its own kit.yml pins: one whose document states another contract is not merged, and is {member,
+# error} too, its line saying both numbers and which side to update; for repos, the line is its row's error. A
+# document that states no contract is read.
 #
 #   repos               {repository, host, path, forge, remotes, checkout, checkouts, by, branch, ahead, behind,
 #                       worktrees, branches, error}: remotes is [{name, url, forge}]; by is fixed for a group's member,
@@ -123,7 +129,7 @@
 #
 # Arguments:
 #   --text              prints the picture as text, even on a terminal
-#   --json              the picture as one JSON object: stages, then each stage's document under its name
+#   --json              the picture as one JSON object: contract, stages, then each stage's document under its name
 #   --jq                the same JSON, formatted by jq for a person
 #   --stages            prints the stages the picture draws, one per line, in order, the same over any workspace
 #   --marks             prints a mark per stage, as one JSON object, which changes when what the stage draws does
@@ -221,9 +227,9 @@ then
   exit $?
 fi
 
-# document <stage> prints the stage's {rows, errors}: the repository here's rows, or every member's, merged; repos
-# lists the members, cloned or not, or the repository here alone. It returns 1, after the document, when a part of it
-# could not be read: a member under errors, or a desk repos could not read.
+# document <stage> prints the stage's {contract, rows, errors}: the repository here's rows, or every member's, merged;
+# repos lists the members, cloned or not, or the repository here alone. It returns 1, after the document, when a part
+# of it could not be read: a member under errors, or a desk repos could not read.
 document() {
   local rows into
   if [[ "$1" == repos ]]
@@ -240,7 +246,8 @@ document() {
   fi
   rows=$(workspace:stage "$1") || return 1
   rows=$(workspaces:placed git "${rows}") || return 1
-  jq --compact-output '{rows: ., errors: []}' <<<"${rows}"
+  # shellcheck disable=SC2154  # flow_contract is set by modules/bash/flow.sh
+  jq --compact-output --argjson contract "${flow_contract}" '{contract: $contract, rows: ., errors: []}' <<<"${rows}"
 }
 
 # repos prints the repos stage's document, as across:repos does, each row saying where it is from: the organization
@@ -296,8 +303,9 @@ do
 done
 if (( ${#named[@]} > 0 ))
 then
-  picture=$(jq --null-input --compact-output --argjson stages "$(printf '%s\n' "${stages[@]}" \
-    | workspaces:lines-json)" "${named[@]}" '{stages: $stages} + $ARGS.named')
+  picture=$(jq --null-input --compact-output --argjson contract "${flow_contract}" \
+    --argjson stages "$(printf '%s\n' "${stages[@]}" | workspaces:lines-json)" "${named[@]}" \
+    '{contract: $contract, stages: $stages} + $ARGS.named')
   shown '' "${picture}"
 fi
 exit "${status}"

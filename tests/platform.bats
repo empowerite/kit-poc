@@ -173,7 +173,7 @@ signed-in() {
   cd "${BATS_TEST_TMPDIR}"
   run --separate-stderr "${kit_root}/bin/kit" --workspace=w platform settings --json
   [ "$status" -eq 0 ]
-  [ "$output" = '{"rows":[],"errors":[]}' ]
+  [ "$output" = '{"contract":1,"rows":[],"errors":[]}' ]
 }
 
 @test "--workspace= reads each cloned member's settings, each row tagged with its member, in the group's order" {

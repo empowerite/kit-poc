@@ -1,4 +1,4 @@
-{"rows": [
+{"contract": 1, "rows": [
   {"key": "agents/claude", "name": "agents/claude", "state": "active", "origin": "release", "depends": ["kit", "agents/generic"], "includes": [], "dependents": [], "bundles": ["empowerite"], "description": "Claude Code: the deny list, a hook that names a file's rules, and the kit's MCP server", "links": {}, "source": "kit", "organization": "o", "repository": "r"},
   {"key": "agents/cursor", "name": "agents/cursor", "state": "inactive", "origin": "release", "depends": ["kit", "agents/generic"], "includes": [], "dependents": [], "bundles": [], "description": "Cursor: a rule per kit rule, attached by its paths", "links": {}, "source": "kit", "organization": "o", "repository": "r"},
   {"key": "agents/generic", "name": "agents/generic", "state": "active", "origin": "release", "depends": ["kit"], "includes": [], "dependents": ["agents/claude"], "bundles": [], "description": "Any agent that reads AGENTS.md", "links": {}, "source": "kit", "organization": "o", "repository": "r"},

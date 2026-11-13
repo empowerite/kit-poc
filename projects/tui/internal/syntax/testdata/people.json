@@ -165,7 +165,7 @@
       "description": "prints the stages as text, even on a terminal"
     },
     "--json": {
-      "description": "the stages as one JSON object: stages, then each stage's document under its name, null for one that could not be read"
+      "description": "the stages as one JSON object: contract, stages, then each stage's document under its name, null for one that could not be read"
     },
     "--jq": {
       "description": "the same JSON, formatted by jq for a person"

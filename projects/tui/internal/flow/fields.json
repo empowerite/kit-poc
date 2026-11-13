@@ -1,4 +1,5 @@
 {
+  "contract": 1,
   "stages": [
     {
       "stage": "workspace/repos", "command": ["workspace", "repos", "--json"], "staged": true,

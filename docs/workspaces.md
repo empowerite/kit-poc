@@ -144,9 +144,11 @@ kit --workspace=empowerite flow issues --json     # every member's open issues, 
 ```
 
 `--workspace=` runs `kit flow` in every member's checkout at once, each under that checkout's own `kit.yml`, so a
-GitLab member beside GitHub ones keeps its forges and trackers. With `--json`, a stage prints `{rows, errors}`: each
-row, or each desk, worktrees, or incoming object, gains `member`, its host and path; a member that could not be read
-is `{member, error}` under `errors`, and the others still draw. Every row already says where it is from, as each
+GitLab member beside GitHub ones keeps its forges and trackers. With `--json`, a stage prints `{contract, rows,
+errors}`: each row, or each desk, worktrees, or incoming object, gains `member`, its host and path; a member that
+could not be read is `{member, error}` under `errors`, and the others still draw. Each member answers with the release
+its own `kit.yml` pins, and one whose document states another `contract` is under `errors` too, not merged; see
+[apps.md](apps.md#the-contract-of-the-stage-documents). Every row already says where it is from, as each
 member's `kit flow` printed it: `organization` and `repository`, as the member's primary remote names them, and
 `source`, the forge, or `git` for incoming's; see [apps.md](apps.md). kit flow exits 1 when a member cannot be read: with
 `--json`, what was read is still printed. `--marks` names such a member under `errors` beside the marks, and
@@ -211,7 +213,7 @@ kit workspace                                     # the git of the repository he
 kit --workspace=empowerite workspace repos        # each member: its forge, branch, and checkout, or not cloned
 kit workspace branches                            # its branches, local and on each remote
 kit --workspace=empowerite workspace commits      # the commits not on the default branch, in every member
-kit workspace worktrees --json                    # {rows, errors}, each row a worktree
+kit workspace worktrees --json                    # {contract, rows, errors}, each row a worktree
 ```
 
 `kit workspace` draws what git holds across a workspace: its members, then a stage for each of git's entities:

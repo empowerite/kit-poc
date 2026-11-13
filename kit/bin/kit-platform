@@ -21,12 +21,13 @@
 # kit workspaces --current says. On a terminal, kit platform opens Platform in kittui, and kit platform <stage> opens
 # it on that tab, maximized. Without one, or with --text, it prints the stages as text; with --json or --jq, as JSON.
 #
-# With --json, a stage prints {rows, errors}. A row is {key, …, links}: key is the row's own in its stage, and links
-# gives where a value leads, by its field; no row of these stages leads anywhere. Every row says where it is from:
-# organization and repository, the owner and the name of the repository kit read it in, as its primary remote's URL
-# names them past the host, no organization for a primary on this machine; and source, kit, which reads them here. Over
-# a workspace, each row gains member, its host and path, and a member that could not be read is {member, error} under
-# errors, while every other member still draws.
+# With --json, a stage prints {contract, rows, errors}: contract is the number of the stage documents' contract, as
+# kit workspace's page says. A row is {key, …, links}: key is the row's own in its stage, and links gives where a
+# value leads, by its field; no row of these stages leads anywhere. Every row says where it is from: organization and
+# repository, the owner and the name of the repository kit read it in, as its primary remote's URL names them past the
+# host, no organization for a primary on this machine; and source, kit, which reads them here. Over a workspace, each
+# row gains member, its host and path, and a member that could not be read, or whose release prints another contract,
+# is {member, error} under errors, while every other member still draws.
 #
 #   services            {capability, service, provider, chosen, ready}: capability is hosting, review, ci, releases,
 #                       tracking <prefix>, toolchain, dependencies <provider>, or policy, and dependencies alone where
@@ -79,8 +80,8 @@
 #
 # Arguments:
 #   --text              prints the stages as text, even on a terminal
-#   --json              the stages as one JSON object: stages, then each stage's document under its name, null for one
-#                       that could not be read
+#   --json              the stages as one JSON object: contract, stages, then each stage's document under its name,
+#                       null for one that could not be read
 #   --jq                the same JSON, formatted by jq for a person
 #   --stages            prints the stages, one per line, in order, the same over any workspace
 #   --marks             prints a mark per stage, as one JSON object, which changes when what the stage draws does: a

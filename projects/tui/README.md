@@ -121,6 +121,8 @@ Each screen reads what it shows from kit as JSON. A form reads `kit syntax <verb
 - `internal/form/` turns a verb's grammar into form fields, and the fields back into a command line.
 - `internal/syntax/` decodes the grammar `kit syntax` prints.
 - `internal/flow/` draws `kit flow`: the stages as tabs, and each stage's rows. `fields.json` is the catalog. It
+  states the contract of kit's stage documents that it reads, and a tab whose document states another shows a line
+  with both numbers in place of its rows; see [apps.md](../../docs/apps.md#the-contract-of-the-stage-documents). It
   declares each stage's fields, each by a stable id, with its label, its type, what it can sort, group, and filter by,
   and its renderings in order, and the stage's own presets, the first the one it opens on: Default and Compact, or for
   issues All Issues, Backlog, Underway, By Milestone, By Iteration, By Swimlane, and Compact; a table with no presets of

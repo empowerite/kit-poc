@@ -236,8 +236,8 @@ JSON
   run --separate-stderr "${kit_root}/bin/kit" audit --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq -c '.stages' <<<"$output")" = '["evidence","findings","controls","waivers","policy","enforcement"]' ]
-  [ "$(jq -c '[.evidence, .findings, .controls, .waivers]' <<<"$output")" = "$(printf '[%s]' \
-    '{"rows":[],"errors":[]},{"rows":[],"errors":[]},{"rows":[],"errors":[]},{"rows":[],"errors":[]}')" ]
+  [ "$(jq -c '[.contract, .evidence, .findings, .controls, .waivers] | unique' <<<"$output")" \
+    = '[1,{"contract":1,"rows":[],"errors":[]}]' ]
   [ "$(jq -c '.policy.rows | length' <<<"$output")" -eq 5 ]
   run --separate-stderr "${kit_root}/bin/kit" audit --marks
   [ "$status" -eq 0 ]

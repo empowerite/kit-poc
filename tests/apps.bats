@@ -206,12 +206,12 @@ JSON
   run --separate-stderr "${root}/bin/kit" demo one --json
   [ "$status" -eq 0 ]
   [ "$(jq -c '.rows |= map(del(.organization, .repository))' <<<"$output")" \
-    = '{"rows":[{"key":"a","links":{},"source":"kit"}],"errors":[]}' ]
+    = '{"contract":1,"rows":[{"key":"a","links":{},"source":"kit"}],"errors":[]}' ]
   run --separate-stderr "${root}/bin/kit" demo --marks
   [ "$output" = '{"one":null}' ]
   run --separate-stderr "${root}/bin/kit" demo --json
   [ "$(jq -c '.one.rows |= map(del(.organization, .repository))' <<<"$output")" \
-    = '{"stages":["one"],"one":{"rows":[{"key":"a","links":{},"source":"kit"}],"errors":[]}}' ]
+    = '{"contract":1,"stages":["one"],"one":{"contract":1,"rows":[{"key":"a","links":{},"source":"kit"}],"errors":[]}}' ]
 }
 
 # ----------------------------------------------------------------------------------------------------------------------

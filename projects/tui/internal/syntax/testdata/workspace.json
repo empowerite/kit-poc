@@ -273,7 +273,7 @@
       "description": "prints the picture as text, even on a terminal"
     },
     "--json": {
-      "description": "the picture as one JSON object: stages, then each stage's document under its name"
+      "description": "the picture as one JSON object: contract, stages, then each stage's document under its name"
     },
     "--jq": {
       "description": "the same JSON, formatted by jq for a person"

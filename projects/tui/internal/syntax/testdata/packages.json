@@ -170,7 +170,7 @@
       "description": "lists the packages as text, even on a terminal; with packages, the stage as a table"
     },
     "--json": {
-      "description": "one JSON object per package: name, origin, state, and description; with packages, the stage's document, {rows, errors}"
+      "description": "one JSON object per package: name, origin, state, and description; with packages, the stage's document, {contract, rows, errors}"
     },
     "--jq": {
       "description": "the same JSON, formatted by jq for a person"

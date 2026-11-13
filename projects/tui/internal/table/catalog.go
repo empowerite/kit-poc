@@ -149,10 +149,12 @@ const (
 type Catalog map[string]*Schema
 
 // ReadCatalog reads a catalog, every key known: a list of tables under "stages", each its own Schema, as check holds
-// it. A catalog a table cannot index by, as one that declares a stage twice, is the error.
+// it, and the contract it may state beside them, as Contract reads it. A catalog a table cannot index by, as one that
+// declares a stage twice, is the error.
 func ReadCatalog(data []byte) (Catalog, error) {
 	var file struct {
-		Stages []*Schema `json:"stages"`
+		Contract int       `json:"contract"`
+		Stages   []*Schema `json:"stages"`
 	}
 	d := json.NewDecoder(bytes.NewReader(data))
 	d.DisallowUnknownFields()
@@ -172,6 +174,17 @@ func ReadCatalog(data []byte) (Catalog, error) {
 		return nil, err
 	}
 	return out, nil
+}
+
+// Contract gives the contract a catalog states, under "contract" beside its stages: the number of the documents its
+// stages' commands print, which kit prints in each as contract, so a screen can refuse a document of another. It is 0
+// for a catalog that states none, as a screen's own does, and for one that does not read.
+func Contract(data []byte) int {
+	var file struct {
+		Contract int `json:"contract"`
+	}
+	_ = json.Unmarshal(data, &file) // a catalog that does not read is ReadCatalog's error
+	return file.Contract
 }
 
 // check refuses a schema a table cannot index by: one that names no stage; a field declared twice, or without a

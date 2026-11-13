@@ -157,7 +157,7 @@ JSON
     'forge/plain:open-prs() { printf "%s\n" "{\"number\": 3, \"title\": \"x\"}"; }' > bash/forge/plain.sh
   run --separate-stderr "${kit_root}/bin/kit" changes checks --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
-  [ "$output" = '{"rows":[],"errors":[{"feature":"check-runs","off":true,"lacked":true}]}' ]
+  [ "$output" = '{"contract":1,"rows":[],"errors":[{"feature":"check-runs","off":true,"lacked":true}]}' ]
   run --separate-stderr "${kit_root}/bin/kit" changes checks --text
   [ "$status" -eq 0 ]
   [[ "$output" == *"check-runs is lacked by the provider of the forge here"* ]]
@@ -233,8 +233,8 @@ JSON
   cd "${BATS_TEST_TMPDIR}/r"
   run --separate-stderr "${kit_root}/bin/kit" changes --json
   [ "$status" -eq 0 ]
-  expected='{"stages":["reviews","checks","merged"],"reviews":{"rows":[],"errors":[]},'
-  expected+='"checks":{"rows":[],"errors":[]},"merged":{"rows":[],"errors":[]}}'
+  expected='{"contract":1,"stages":["reviews","checks","merged"],"reviews":{"contract":1,"rows":[],"errors":[]},'
+  expected+='"checks":{"contract":1,"rows":[],"errors":[]},"merged":{"contract":1,"rows":[],"errors":[]}}'
   [ "$output" = "${expected}" ]
   run --separate-stderr "${kit_root}/bin/kit" changes --marks
   [ "$status" -eq 0 ]

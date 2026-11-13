@@ -2,6 +2,7 @@
 # apps.sh - the app verbs' runner: their stages, marks, and hand-off to kittui (sourced module)
 # ----------------------------------------------------------------------------------------------------------------------
 # shellcheck disable=SC2154  # kit_jq and kit_root are set by modules/bash/1st.sh, the syntax_ arrays by guard:arguments
+# shellcheck disable=SC2154  # flow_contract is set by modules/bash/flow.sh, across_agreed by modules/bash/across.sh
 #
 # An app verb draws the tabs of one of kittui's apps, each a stage, as kit workspace draws its own. A module of its
 # own, apps/<verb>.sh, declares what is the verb's:
@@ -12,13 +13,15 @@
 #   <verb>_presets          optional, declared with declare -gA: each of those words that opens its tab on a preset,
 #                           to the jq condition that keeps the preset's rows: ([backlog]='.status == "backlog"')
 #   apps/<verb>:<stage>     prints the stage's document, {rows, errors}, and limited when a capped call stopped; it
-#                           returns 1, after its ❌ line, when nothing could be read
+#                           returns 1, after its ❌ line, when nothing could be read. apps:document adds contract,
+#                           the contract of the stage documents, as flow_contract says
 #   apps/<verb>:mark-<stage>  prints the stage's mark, a text that changes when what the stage draws does, or nothing
 #                           for none; a stage without one has none, null, and is read again only when asked
 #
 # A row is {key, …, links}: key is the row's own in its stage, and links gives where a value leads, by its field. Over
 # a workspace, each stage runs in every cloned member's checkout at once, each row gains member, its host and path, and
-# so does each of its errors; a member that could not be read is {member, error} under errors.
+# so does each of its errors; a member that could not be read, or whose document states another contract, is {member,
+# error} under errors.
 #
 # see: modules/jq/apps.jq, bin/kit-workspace, modules/bash/across.sh
 use workspaces across tui forge file terminal flow
@@ -27,12 +30,12 @@ use workspaces across tui forge file terminal flow
 # share a kind read the forge for it once; apps_forge_served says, once read, whether the forge serves marks.
 apps_forge_marks='{}' apps_forge_served=''
 
-# apps:main <verb> <word>… is an app verb's body, after guard:arguments: --stages prints the stages; --marks a mark per
-# stage, as one JSON object, a stage with none null; <stage> with --json its document, with --jq formatted, and with
-# --text, or off a terminal, as text; with no stage, every stage, as one JSON object {stages, <stage>: document…}, or
-# as text under each name. On a terminal, with no form chosen, it runs kittui on the verb and the stage named. A tab
-# kit flow draws is printed as apps:tab prints it. It returns 2 outside a repository with no workspace, and 1 when a
-# stage could not be read, after what was.
+# apps:main <verb> <word>… is an app verb's body, after guard:arguments: --stages prints the stages; --marks a mark
+# per stage, as one JSON object, a stage with none null; <stage> with --json its document, with --jq formatted, and
+# with --text, or off a terminal, as text; with no stage, every stage, as one JSON object {contract, stages, <stage>:
+# document…}, or as text under each name. On a terminal, with no form chosen, it runs kittui on the verb and the stage
+# named. A tab kit flow draws is printed as apps:tab prints it. It returns 2 outside a repository with no workspace,
+# and 1 when a stage could not be read, after what was.
 apps:main() {
   local verb=$1 workspace stage form command status=0 doc each first=true
   local -a named=() fresh=()
@@ -114,8 +117,9 @@ apps:main() {
   done
   if [[ "${form}" == --json || "${form}" == --jq ]]
   then
-    doc=$(jq --null-input --compact-output --argjson stages "$(printf '%s\n' "${apps_main_stages[@]}" \
-      | workspaces:lines-json)" "${named[@]}" '{stages: $stages} + $ARGS.named') || return 1
+    doc=$(jq --null-input --compact-output --argjson contract "${flow_contract}" \
+      --argjson stages "$(printf '%s\n' "${apps_main_stages[@]}" | workspaces:lines-json)" "${named[@]}" \
+      '{contract: $contract, stages: $stages} + $ARGS.named') || return 1
     apps:shown "${form}" "${doc}"
   fi
   return "${status}"
@@ -133,8 +137,8 @@ apps:elsewhere() {
 # apps:tab <verb> <word> <workspace> <form> prints the tab <word> names, one kit flow draws, as kit flow prints its
 # stage: with --json the stage's document, and otherwise its rows as text, without a heading. A word that opens the
 # tab on a preset, as <verb>_presets says, keeps the preset's rows. Over a workspace, each cloned member's kit prints
-# the tab in its checkout: as JSON they are one document, {rows, errors}, each row tagged with its member, as
-# across:merge makes it, and as text each member's is under its name, as across:text draws it. It returns what the
+# the tab in its checkout: as JSON they are one document, {contract, rows, errors}, each row tagged with its member,
+# as across:merge makes it, and as text each member's is under its name, as across:text draws it. It returns what the
 # stage returns: 1 when the forge could not be read, its line said.
 apps:tab() {
   local verb=$1 word=$2 workspace=$3 form=$4 stage keep='' doc dir
@@ -166,29 +170,29 @@ apps:tab() {
   fi
 }
 
-# apps:document <verb> <stage> <workspace> [<word>…] prints the stage's document: the repository here's, each row
-# saying where it is from, as workspaces:placed says, the forge's rows the forge, as apps:forge gives them, and the
-# others kit; or with a workspace, every member's, merged, each member's verb given the words. It returns 1 when it
-# could not be read, or a member could not, after what was read.
+# apps:document <verb> <stage> <workspace> [<word>…] prints the stage's document, contract first, as flow:contracted
+# adds it: the repository here's, each row saying where it is from, as workspaces:placed says, the forge's rows the
+# forge, as apps:forge gives them, and the others kit; or with a workspace, every member's, merged, each member's verb
+# given the words. It returns 1 when it could not be read, or a member could not, after what was read.
 apps:document() {
   local verb=$1 stage=$2 workspace=$3 doc status=0
   shift 3
   if [[ -n "${workspace}" ]]
   then
-    apps:across "${workspace}" "${stage}" "$@"
+    apps:across "${workspace}" "${stage}" "$@" | flow:contracted
     return
   fi
   doc=$("apps/${verb}:${stage}") || status=$?
   [[ -n "${doc}" ]] || return "${status}"
-  workspaces:placed kit "${doc}" || return 1
+  workspaces:placed kit "${doc}" | flow:contracted || return 1
   return "${status}"
 }
 
 # apps:across <workspace> <stage> [<word>…] runs the stage, with --json and the words, in every cloned member's
 # checkout at once, as across:start runs kit's across_verb, and prints one document of what they printed: each row and
-# each error tagged with its member, and limited the least. A member whose document does not parse is {member,
-# error}, its line, under errors. It returns 1, after the document, when a member did not exit 0, and what
-# across:start returns for a workspace it refuses.
+# each error tagged with its member, and limited the least. A member whose document does not parse, or states another
+# contract than this kit reads, is {member, error}, its line, as across:error says it, under errors. It returns 1,
+# after the document, when a member did not exit 0, and what across:start returns for a workspace it refuses.
 apps:across() {
   local workspace=$1 stage=$2 dir n=0 member doc failed=false
   local -a docs=()
@@ -199,8 +203,9 @@ apps:across() {
   do
     member=$(<"${dir}/${n}.member")
     across:exited-0 "${dir}/${n}" || failed=true
-    if [[ -s "${dir}/${n}.out" ]] && doc=$(jq --compact-output --arg member "${member}" '
-      if type == "object" and (.rows | type) == "array" then
+    if [[ -s "${dir}/${n}.out" ]] && doc=$(jq --compact-output --arg member "${member}" \
+      --argjson contract "${flow_contract}" "${across_agreed}"'
+      | if type == "object" and (.rows | type) == "array" then
         {rows: (.rows | map(. + {member: $member})), errors: ((.errors // []) | map(. + {member: $member}))}
         + (if .limited == null then {} else {limited} end)
       else error("not a document") end' "${dir}/${n}.out" 2>/dev/null)

@@ -1,4 +1,4 @@
-{"rows": [
+{"contract": 1, "rows": [
   {"key": "primary", "setting": "primary", "value": "upstream", "from": "set", "links": {}, "source": "kit", "organization": "o", "repository": "r"},
   {"key": "gate", "setting": "gate", "value": null, "from": "default", "links": {}, "source": "kit", "organization": "o", "repository": "r"},
   {"key": "log_days", "setting": "log_days", "value": 14, "from": "default", "links": {}, "source": "kit", "organization": "o", "repository": "r"},

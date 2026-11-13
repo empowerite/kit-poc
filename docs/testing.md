@@ -45,7 +45,14 @@ kit tools run go -C projects/tui test ./internal/flow
 kit tools run go -C projects/tui test ./internal/flow -update
 ```
 
-`bin/contracts` writes them all afresh: it runs those tests with `KIT_SNAPSHOTS=write`, and the form's with
+Each of those documents that is an object states `contract`, the number of the stage documents' contract, and
+`fields.json` states the one kittui reads; see [apps.md](apps.md#the-contract-of-the-stage-documents).
+`tests/flow.bats` holds the two numbers equal. `tests/across.bats` pins a member of a workspace to a release that
+prints another number, which kit names under `errors`, and kittui's tests refuse such a document. A change that
+renames or removes a key of a stage's document, or gives one another meaning, raises the number in
+`kit/modules/bash/flow.sh` and in `fields.json`, in the same commit.
+
+`bin/contracts` writes the snapshots afresh: it runs their tests with `KIT_SNAPSHOTS=write`, and the form's with
 `-update`. Review `git diff`, and commit what changed with the change that changed it. `bin/ci` runs the suite with
 `KIT_SNAPSHOTS` empty, so the gate never writes one.
 

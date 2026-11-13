@@ -58,11 +58,12 @@
 # with --text, --json, or --jq, or without a terminal, it exits 2 and names kit flow issues.
 #
 # One stage prints without its heading. With --json, a stage prints what the picture holds under its name: an array
-# for issues, changes, builds, and releases; an object for incoming. Above desks, --json prints an array with one
-# {path, status} per desk. Each row of issues, changes, builds, releases, and incoming's rows says
-# where it is from: organization and repository, the owner and the name of the repository kit read it in, as its
-# primary remote's URL names them past the host, no organization for a primary on this machine; and source, the
-# forge, git for incoming's. An issue keeps those of the tracker that holds it.
+# for issues, changes, builds, and releases; an object for incoming, which states contract, the number of the stage
+# documents' contract, as kit workspace's page says. The picture states it too, beside stages; an array holds no place
+# for it. Above desks, --json prints an array with one {path, status} per desk. Each row of issues, changes, builds,
+# releases, and incoming's rows says where it is from: organization and repository, the owner and the name of the
+# repository kit read it in, as its primary remote's URL names them past the host, no organization for a primary on
+# this machine; and source, the forge, git for incoming's. An issue keeps those of the tracker that holds it.
 #
 # issues lists every open issue of every tracker, the oldest first: the forge's own, and those of each tracker kit.yml
 # declares under trackers, as its provider lists them, a web tracker's none. Each is its reference, #7 or AB#4521, with
@@ -94,19 +95,19 @@
 # owner and name; on GitLab, its group, subgroups and all, and the project; on Azure DevOps, the project and the
 # repository, none for a tracker's work item. Each is null where the tracker has none.
 #
-# incoming's JSON is {fetched, primary, remotes, rows}. Each remote is {name, forge, host, default, commits, branches,
-# tags}: forge and host are null when it has none; branches is {new, updated, gone}. A remote whose fetch failed adds
-# error, git's line, and the stage exits 1. With --no-fetch, fetched is false and each remote is {name, forge, host}.
-# rows is everything incoming, flat, one row a thing, every remote's, the primary's first, each {key, remote, primary,
-# forge, host, url, default, kind, change, ref, sha, old, commits, author, age, subject, local, worktrees, ahead,
-# behind, issues}, null or an empty list where a row has no value. kind is remote, once a remote, its change fetched,
-# unchanged, not fetched, or failed, and its subject git's line when it failed; commit, a commit new on the default
-# branch; branch, one new, updated, forced, or gone, and commits how far it moved, or, new, how many are not on the
-# default branch; tag, one new or moved; or tracking, a local branch its upstream is ahead of, change behind, with
-# ahead and behind. issues are the issues a branch's name starts with and a subject names, as #12; local the local
-# branches on a branch, and worktrees the linked worktrees they are checked out in. A row may carry keys this list does
-# not name; kittui shows them under more. With --no-fetch, each remote's row says not fetched, and the tracking rows
-# stand as the last fetch left them.
+# incoming's JSON is {contract, fetched, primary, remotes, rows}. Each remote is {name, forge, host, default, commits,
+# branches, tags}: forge and host are null when it has none; branches is {new, updated, gone}. A remote whose fetch
+# failed adds error, git's line, and the stage exits 1. With --no-fetch, fetched is false and each remote is {name,
+# forge, host}. rows is everything incoming, flat, one row a thing, every remote's, the primary's first, each {key,
+# remote, primary, forge, host, url, default, kind, change, ref, sha, old, commits, author, age, subject, local,
+# worktrees, ahead, behind, issues}, null or an empty list where a row has no value. kind is remote, once a remote,
+# its change fetched, unchanged, not fetched, or failed, and its subject git's line when it failed; commit, a commit
+# new on the default branch; branch, one new, updated, forced, or gone, and commits how far it moved, or, new, how
+# many are not on the default branch; tag, one new or moved; or tracking, a local branch its upstream is ahead of,
+# change behind, with ahead and behind. issues are the issues a branch's name starts with and a subject names, as #12;
+# local the local branches on a branch, and worktrees the linked worktrees they are checked out in. A row may carry
+# keys this list does not name; kittui shows them under more. With --no-fetch, each remote's row says not fetched, and
+# the tracking rows stand as the last fetch left them.
 #
 # builds lists the 20 newest runs not owned by any pull request: pushes to the default branch or a tag, and scheduled or
 # manual runs. A run's JSON is {id, number, attempt, workflow, branch, tag, event, sha, title, state, age, took, url,
@@ -124,17 +125,19 @@
 #
 # Over a workspace
 #
-# kit --workspace=<workspace> flow, the kit option before the verb, names a group, or a repository by its host and path,
-# as kit workspaces names them. Outside a repository, without it, the workspace is the last group used, as kit
+# kit --workspace=<workspace> flow, the kit option before the verb, names a group, or a repository by its host and
+# path, as kit workspaces names them. Outside a repository, without it, the workspace is the last group used, as kit
 # workspaces --current says. Each form then runs in every member's checkout at once, each under that checkout's own
-# kit.yml, and the stages are kit's five, whatever the kit.yml where it runs says. With --json, a stage prints {rows,
-# errors}: each row, or each incoming object, gains member, its host and path; a member that could not be read is
-# {member, error}, its line, under errors, and every other member still draws, and the stage exits 1 after it. The
-# picture prints {stages, <stage>…}, each stage so. As text, the picture draws each cloned member's picture under its
-# member, and exits 1 when one of them did. A member with no checkout draws nothing; kit workspace repos lists every
-# member, cloned or not. --marks and --quota span the members: a member that could not be read says its line, its marks
-# are {member, error} under errors beside the others', its rate limits are left out, and kit flow exits 1 after the
-# rest. A pull request's number names one repository's, and is refused.
+# kit.yml, and the stages are kit's five, whatever the kit.yml where it runs says. With --json, a stage prints
+# {contract, rows, errors}: each row, or each incoming object, gains member, its host and path; a member that could
+# not be read is {member, error}, its line, under errors, and every other member still draws, and the stage exits 1
+# after it. So is a member whose incoming, or whose picture, states another contract than this kit reads, its line
+# saying both numbers; a member's array states none, and is read. The picture prints {contract, stages, <stage>…},
+# each stage so. As text, the picture draws each cloned member's picture under its member, and exits 1 when one of
+# them did. A member with no checkout draws nothing; kit workspace repos lists every member, cloned or not. --marks
+# and --quota span the members: a member that could not be read says its line, its marks are {member, error} under
+# errors beside the others', its rate limits are left out, and kit flow exits 1 after the rest. A pull request's
+# number names one repository's, and is refused.
 #
 # Legend
 #

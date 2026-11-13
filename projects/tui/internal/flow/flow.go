@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1199,18 +1200,23 @@ func several(records []record, id string) bool {
 
 // decode keeps what the stage's command printed, as its catalog entry reads it: its records, by the entry's record,
 // or, over a group, for a stage that takes workspace, by .rows[] of kit's {rows, errors}, as table.Records reads
-// them, fresh; over a group, a record that holds the entry's record, as incoming's object, is a member's document, and
-// its records are read from it, each taking its member. Each record is decoded once, as parsed holds it. A refusal,
-// named with the command: a document of another shape, as nothing, null, or an array where an object is expected; a
-// record without its key, as the key's paths read it; two records of one key; and a record whose member or links are
-// not what kit prints them as. Then what kit could not read, in the document's errors: the members whose read failed,
-// and the features the forge has off here; how many rows kit read of more, where the document is limited; and, for a
-// stage whose rows Go builds, the records as Go holds them, as builders decodes them. Each replaces what the stage held
-// whole; a refusal leaves it as it was.
+// them, fresh; over a group, a record that holds the entry's record, as incoming's object, is a member's document,
+// and its records are read from it, each taking its member. Each record is decoded once, as parsed holds it. A
+// refusal, named with the command: a document that states another contract than the catalog reads, as contractOf
+// reads it, which comes before any other, since nothing else in such a document can be trusted; a document of another
+// shape, as nothing, null, or an array where an object is expected; a record without its key, as the key's paths read
+// it; two records of one key; and a record whose member or links are not what kit prints them as. Then what kit could
+// not read, in the document's errors: the members whose read failed, and the features the forge has off here; how
+// many rows kit read of more, where the document is limited; and, for a stage whose rows Go builds, the records as Go
+// holds them, as builders decodes them. Each replaces what the stage held whole; a refusal leaves it as it was.
 func (s *stage) decode(data []byte, over bool) error {
 	c := catalog[s.name]
 	if c == nil {
 		return fmt.Errorf("kittui does not draw the stage '%s'", label(s.name))
+	}
+	if stated, ok := contractOf(data); ok && stated != strconv.Itoa(contract) {
+		return fmt.Errorf("%s printed contract %s of the stage documents, and this kittui reads contract %d; run kit "+
+			"and kittui from one release", command(s.name), stated, contract)
 	}
 	over = over && takes(s.name, "workspace")
 	record := c.Record
@@ -1258,6 +1264,20 @@ func (s *stage) decode(data []byte, over bool) error {
 	s.rows, s.parsed, s.typed = rows, all, typed
 	s.failed, s.limited = failedIn(data)
 	return nil
+}
+
+// contractOf gives the contract a document states, as kit prints it in one that is an object, under contract: a
+// number, given as its JSON, so that anything else stated there reads as another contract. One that states none is
+// not ok: an array, which holds no place for it, an object without the key or with null under it, as a kit before the
+// contract prints, and what is no JSON, which decode refuses by its shape.
+func contractOf(data []byte) (stated string, ok bool) {
+	var doc struct {
+		Contract json.RawMessage `json:"contract"`
+	}
+	if json.Unmarshal(data, &doc) != nil || len(doc.Contract) == 0 || string(doc.Contract) == "null" {
+		return "", false
+	}
+	return string(doc.Contract), true
 }
 
 // memberAndLinks gives a record's member and its links, by the field's id, as kit prints them: a member is a text, or

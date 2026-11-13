@@ -241,7 +241,7 @@ started() {
   [ "${lines[1]}" = "🛬 unchanged" ]
   run "${kit_root}/bin/kit" flow incoming --no-fetch --json
   [ "$status" -eq 0 ]
-  [ "$(jq -c 'del(.rows)' <<<"$output")" = '{"fetched":false,"primary":"origin","remotes":[{"name":"origin","forge":null,"host":null}]}' ]
+  [ "$(jq -c 'del(.rows)' <<<"$output")" = '{"contract":1,"fetched":false,"primary":"origin","remotes":[{"name":"origin","forge":null,"host":null}]}' ]
   # the remote's own row, and the desk's main, behind what the fetch above brought
   [ "$(jq -c '[.rows[] | [.key, .kind, .change, .behind]]' <<<"$output")" \
     = '[["origin remote","remote","not fetched",null],["origin tracking main","tracking","behind",2]]' ]
@@ -336,7 +336,7 @@ the desk its first row; run: cd "*" && kit workspace worktrees" ]]
   commit-settings 'forge: github' 'flow: [incoming, releases]'
   run "${kit_root}/bin/kit" flow --json
   [ "$status" -eq 0 ]
-  [ "$(jq -c 'keys_unsorted' <<<"$output")" = '["stages","incoming","releases"]' ]
+  [ "$(jq -c 'keys_unsorted' <<<"$output")" = '["contract","stages","incoming","releases"]' ]
   [ "$(jq -c '.stages' <<<"$output")" = '["incoming","releases"]' ]
   [ "$(jq -c '[.incoming.fetched, .incoming.primary, [.releases[].version]]' <<<"$output")" \
     = '[true,"origin",["0.1.0-rc.7","0.1.0-rc.6","0.0.9"]]' ]
@@ -379,7 +379,7 @@ the desk its first row; run: cd "*" && kit workspace worktrees" ]]
   run "${kit_root}/bin/kit" flow --no-fetch --json
   [ "$status" -eq 0 ]
   [ "$(jq -c '.stages' <<<"$output")" = '["issues","changes","builds","incoming","releases"]' ]
-  [ "$(jq -c 'keys_unsorted' <<<"$output")" = '["stages","issues","changes","builds","incoming","releases"]' ]
+  [ "$(jq -c 'keys_unsorted' <<<"$output")" = '["contract","stages","issues","changes","builds","incoming","releases"]' ]
   [ "$(jq -c '[(.issues | map([.number, .status, .pr.number, .here])), (.changes | map(.number)),
                (.builds | map(.id)), (.releases | map(.version))]' <<<"$output")" \
     = '[[[7,"underway",3,false],[9,"underway",null,false],[11,"backlog",null,null]],[3],[11],["0.1.0-rc.7","0.1.0-rc.6","0.0.9"]]' ]
@@ -522,7 +522,7 @@ the desk its first row; run: cd "*" && kit workspace worktrees" ]]
   [ "$status" -eq 0 ]
   [[ "${lines[0]}" == *"no origin: nothing fetched, no pull request shown" ]]
   [ "$(jq -c '[.issues, .incoming, .changes, .builds, .releases]' <<<"${lines[1]}")" \
-    = '[null,{"fetched":false,"primary":"origin","remotes":[],"rows":[]},null,null,null]' ]
+    = '[null,{"contract":1,"fetched":false,"primary":"origin","remotes":[],"rows":[]},null,null,null]' ]
   run "${kit_root}/bin/kit" flow changes
   [ "$status" -eq 1 ]
   [[ "$output" == *"does not have a remote named origin"* ]]
@@ -1049,6 +1049,13 @@ the desk its first row; run: cd "*" && kit workspace worktrees" ]]
   run fields-hold --catalog="${catalog}" s <<<'❌ no forge'
   [ "$status" -eq 1 ]
   [ "$output" = 's: kit printed no JSON document' ]
+}
+
+@test "kittui's catalog states the contract of the stage documents that kit prints" {
+  local catalog=${kit_root}/../projects/tui/internal/flow/fields.json
+  # shellcheck disable=SC2016  # the kit's own shell expands it
+  [ "$(jq .contract "${catalog}")" = "$(kit-bash 'use flow && printf %s "${flow_contract}"')" ]
+  [ "$(jq '.contract | type' "${catalog}")" = '"number"' ]
 }
 
 @test "each stage prints the keys of the fixture kittui's tests decode, and the fields its catalog declares" {
