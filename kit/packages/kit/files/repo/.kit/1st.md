@@ -127,6 +127,7 @@ The repository commits the declaration, and every worktree holds the text:
 
 - `kit.yml`, committed: its `version:` and `packages:` declare the release and the active packages.
 - `.kit/packages/`, committed: the repository's own packages.
+- `.kit/presets/`, committed: the table views a team shares from `kit flow`.
 - Everything else under `.kit/`, placed by `kit hydrate`: this file, the kinds, the rules, the styles from the
   style packages the repository takes, and the rest of what the packages deliver. Each is a link to its source
   when the source is inside the worktree, and otherwise a copy without the write bit. `.kit/.gitignore` names every

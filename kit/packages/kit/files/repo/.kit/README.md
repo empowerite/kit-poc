@@ -9,7 +9,8 @@ for the person at the desk. Agents read [1st.md](1st.md) instead, and `AGENTS.md
 
 ## What git tracks here
 
-One thing is committed here, and only this: `packages/`, packages of the repository's own, in the release's shape.
+Two directories are committed here. `packages/` holds packages of the repository's own, in the release's shape.
+`presets/` holds the table views a team shares from `kit flow`. You commit them like any file of the repository.
 
 The declaration, `kit.yml`, is committed at the root. `version:` names the kit release, `packages:` the active
 packages, and `excludes:` the members of a bundle the repository leaves out. `answers:` fills in the values templates
