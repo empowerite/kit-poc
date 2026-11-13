@@ -29,7 +29,9 @@
 #   retire [<branch>]         deletes every pre-release whose commit no remaining branch reaches. It runs after
 #                             <branch> is deleted. Default: the branch in the runner's delete event. A pre-release
 #                             tagged on the default branch, or merged into it by a merge commit, stays reachable,
-#                             so it is kept. A squash merge leaves it unreachable, so it is deleted.
+#                             so it is kept. A squash merge leaves it unreachable, so it is deleted. A list gh
+#                             cannot give fails the run and retires nothing; a list as long as the 1000 gh is asked for is
+#                             said to be cut short.
 #
 # A release is permanent. Only a pre-release is ever retired.
 #
@@ -207,7 +209,19 @@ case "${verb}" in
     [[ -n "${deleted}" || -z "${GITHUB_EVENT_PATH:-}" ]] \
       || deleted=$(jq --raw-output '.ref // empty' "${GITHUB_EVENT_PATH}")
     guard:require tool:gh
+    limit=1000
     git fetch --quiet --tags origin
+    # The list is read whole before it is judged: a gh that fails inside a process substitution would read as nothing
+    # to retire, and gh asked for a thousand says so when it was cut short.
+    if ! releases=$(gh release list --limit "${limit}" --json tagName,isPrerelease)
+    then
+      error "the releases could not be listed; see above. Nothing is retired"
+      exit 1
+    fi
+    if (( $(jq 'length' <<<"${releases}") >= limit ))
+    then
+      warn "the list holds ${limit} releases, the most gh is asked for; older pre-releases are not read"
+    fi
     retired=0
     while IFS= read -r tag
     do
@@ -218,7 +232,10 @@ case "${verb}" in
         warn "${tag} has no commit here; leaving it"
         continue
       fi
-      if git branch --remotes --contains "${commit}" | grep --quiet --invert-match 'origin/HEAD'
+      # The branches are read whole, and then looked at: a grep that ends at the first line leaves git writing into a
+      # closed pipe, and under pipefail that reads as no branch.
+      branches=$(git branch --remotes --contains "${commit}")
+      if [[ -n "$(grep --invert-match 'origin/HEAD' <<<"${branches}" || true)" ]]
       then
         step "keeping ${tag}: a branch still reaches ${commit:0:7}"
         continue
@@ -226,7 +243,7 @@ case "${verb}" in
       gh release delete "${tag}" --cleanup-tag --yes
       step "retired ${tag}: no branch reaches ${commit:0:7}${deleted:+ since ${deleted} was deleted}"
       retired=$(( retired + 1 ))
-    done < <(gh release list --limit 1000 --json tagName,isPrerelease --jq '.[] | select(.isPrerelease) | .tagName')
+    done <<<"$(jq --raw-output '.[] | select(.isPrerelease) | .tagName' <<<"${releases}")"
     ok "retired ${retired} pre-release(s)"
     summary "✅ Retired ${retired} pre-release(s)."
 esac

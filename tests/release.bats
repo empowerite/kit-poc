@@ -59,6 +59,65 @@ setup() {
   [[ "$output" == *"is not a release tag"* ]]
 }
 
+# retire-world <release-list-json> makes a desk with an origin, a pre-release tagged on a commit of a branch that origin
+# has deleted or kept, as the test says, and a gh that answers the list and records the deletes. It runs in the desk.
+retire-world() {
+  git init --quiet --bare --initial-branch=main origin.git && git clone --quiet origin.git desk 2>/dev/null && cd desk
+  printf 'one\n' > a && git add a && git commit --quiet --message one && git push --quiet origin main
+  git remote set-head origin main
+  git switch --quiet --create topic
+  printf 'two\n' > b && git add b && git commit --quiet --message two
+  git tag release/1.0.0-rc.1 && git push --quiet origin topic release/1.0.0-rc.1
+  printf '%s\n' '#!/usr/bin/env bash' 'printf "%s\n" "$*" >> "${FAKES}/gh.calls"' \
+    '[[ "$1 $2" == "release list" ]] && cat "${FAKES}/gh.list"; exit "${FAKE_GH_STATUS:-0}"' > "${fakes}/gh"
+  chmod +x "${fakes}/gh"
+  printf '%s\n' "$1" > "${fakes}/gh.list"
+}
+
+@test "retire deletes a pre-release no branch reaches, and keeps one a branch still reaches" {
+  retire-world '[{"tagName":"release/1.0.0-rc.1","isPrerelease":true},{"tagName":"release/1.0.0","isPrerelease":false}]'
+  run env GITHUB_ACTIONS=true "${repo_bin}/release" retire
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"keeping release/1.0.0-rc.1: a branch still reaches"* ]]
+  [[ "$output" == *"retired 0 pre-release(s)"* ]]
+  git push --quiet origin --delete topic
+  run env GITHUB_ACTIONS=true "${repo_bin}/release" retire topic
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"retired release/1.0.0-rc.1: no branch reaches"* ]]
+  grep -q '^release delete release/1.0.0-rc.1 --cleanup-tag --yes$' "${fakes}/gh.calls"
+  [ "$(grep -c '^release delete' "${fakes}/gh.calls")" -eq 1 ]
+}
+
+@test "retire keeps a pre-release when the branches that reach it fill more than a pipe holds" {
+  retire-world '[{"tagName":"release/1.0.0-rc.1","isPrerelease":true}]'
+  # a git whose branch listing is long, its first branch one that reaches the commit
+  real=$(command -v git)
+  printf '%s\n' '#!/usr/bin/env bash' \
+    "[[ \"\$*\" == *--contains* ]] || exec ${real} \"\$@\"" \
+    'echo "  origin/topic"; yes "  origin/another-branch-of-a-long-name" | head -c 400000' > "${fakes}/git"
+  chmod +x "${fakes}/git"
+  run env GITHUB_ACTIONS=true "${repo_bin}/release" retire
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"keeping release/1.0.0-rc.1"* ]]
+  run ! grep -q '^release delete' "${fakes}/gh.calls"
+}
+
+@test "retire fails, and deletes nothing, when the releases cannot be listed" {
+  retire-world '[]'
+  printf 'HTTP 401: Bad credentials\n' > "${fakes}/gh.list"
+  run env GITHUB_ACTIONS=true FAKE_GH_STATUS=1 "${repo_bin}/release" retire
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the releases could not be listed"* ]]
+  [[ "$output" != *"retired 0"* ]]
+}
+
+@test "retire says when the list is at its limit, so older pre-releases may be unread" {
+  retire-world "$(jq -n '[range(1000) | {tagName: "release/1.0.0-rc.\(.)", isPrerelease: false}]')"
+  run env GITHUB_ACTIONS=true "${repo_bin}/release" retire
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"the list holds 1000 releases, the most gh is asked for; older pre-releases are not read"* ]]
+}
+
 @test "publish refuses a release from a desk, and names the push that has the runner publish it" {
   run env -u GITHUB_ACTIONS "${repo_bin}/release" publish release/1.2.3
   [ "$status" -eq 1 ]
