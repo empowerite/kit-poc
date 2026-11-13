@@ -44,6 +44,12 @@ import "apps" as apps; apps::text
 "a     x, 1"
 "bb          {\"k\":true}"
 
+# A cell is cut at 60 columns, ending in an ellipsis, so one long value makes no row as wide as itself; the JSON form
+# keeps it whole.
+import "apps" as apps; [apps::text | length]
+[{"name": "a", "path": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, {"name": "bb", "path": "short"}]
+[10,66,11]
+
 import "apps" as apps; [apps::text]
 []
 []

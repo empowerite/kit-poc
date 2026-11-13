@@ -273,12 +273,13 @@ def shown:
 # text reads a stage's rows and gives its lines as text: a line of the fields' names, in the order the rows first hold
 # them, less key, links, member, and where each row is from, organization, repository, and source, which the rows
 # of a member are drawn under, then a line per row, each column as wide as its widest, two spaces apart, the last
-# unpadded; a stage with no rows gives none.
+# unpadded; a stage with no rows gives none. A cell longer than 60 columns is cut there, ending in an ellipsis, so one
+# long value does not widen every row; the JSON form keeps it whole.
 def text:
   . as $rows
   | (reduce ($rows[] | keys_unsorted[]) as $k ([]; if index([$k]) then . else . + [$k] end)
      | map(select(IN("key", "links", "member", "organization", "repository", "source") | not))) as $names
-  | [$rows[] | [.[$names[]] | shown]] as $cells
+  | [$rows[] | [.[$names[]] | shown | if length > 60 then .[:59] + "…" else . end]] as $cells
   | [range($names | length) as $k | ([$names[$k], $cells[][$k]] | map(length) | max)] as $widths
   | def line:
       [range(length) as $k | .[$k] + (if $k < length - 1 then " " * ($widths[$k] - (.[$k] | length) + 2) else "" end)]

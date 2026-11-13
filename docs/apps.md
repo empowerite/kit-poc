@@ -48,6 +48,8 @@ installed.
 | `--stages` | the names of the verb's own stages, one per line |
 | `--marks` | one JSON object that holds a mark for each stage |
 
+- As text, a cell longer than 60 columns is cut there and ends in `…`, so one long value does not widen every row. The
+  JSON forms keep it whole.
 - With `--json` and no stage, the object is `{contract, stages, <stage>: document, …}`. A stage that kit could not
   read is `null`.
 - `--stages` leaves out a tab that shows a stage of `kit flow`.
