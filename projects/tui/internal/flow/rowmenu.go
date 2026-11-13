@@ -1,6 +1,7 @@
 // A row's menu: what enter drops down from the row under the cursor, and a click on that row, so one row is acted on
-// without selecting it first. Its lines, top to bottom: the row's page opened; the row selected, or no longer; and, a
-// rule apart, on a stage with actions, those the tab's menu lists on rows. A line that cannot act now stays, dim. It
+// without selecting it first. Its lines, top to bottom: the row's page opened; the row's first link to another tab or
+// app followed, on a stage whose rows have some; the row selected, or no longer; and, a rule apart, on a stage with
+// actions, those the tab's menu lists on rows. A line that cannot act now stays, dim. It
 // hangs under the row's first line, or over it where the room under it is too little, and takes the keyboard while
 // it is open, the way the tab's menu does: up and down move, a line's key chooses it, enter and space choose the line
 // under the keyboard, and esc closes it; a click on a line chooses it, and a click anywhere else closes it.
@@ -12,6 +13,7 @@ package flow
 
 import (
 	"slices"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -22,9 +24,12 @@ import (
 )
 
 // The menus' lines that act on rows whatever the stage: each row's page opened; and, in a row's menu, the row under
-// the cursor selected, or, once it is, no longer.
+// the cursor selected, or, once it is, no longer; and, on a stage whose rows lead to a row of another tab or app, the
+// row's first such link followed, as a click on it does.
 const (
+	Follow     = "🧭" // beside Follow Link
 	OpenPage   = "Open Page"
+	FollowLink = "Follow Link"
 	SelectIt   = "Select"
 	UnselectIt = "Unselect"
 )
@@ -94,11 +99,32 @@ func (m Model) selectItem() shell.Item {
 	return shell.Item{Glyph: Checked, Name: SelectIt}
 }
 
-// rowItems gives the lines of the menu of the row under the cursor: its page opened; the row selected, or no
-// longer; and, a rule apart, the stage's actions on rows, where it has some. New…, which acts on no row, is the
+// linkOf gives what a row's first link to a row of another tab or app leads to, as jump reads it, none for a row with no
+// such link.
+func linkOf(r row) string {
+	for _, c := range r.Cells {
+		if to, ok := strings.CutPrefix(c.Link, jumps); ok {
+			return to
+		}
+	}
+	return ""
+}
+
+// leads says whether any row of the stage leads to a row of another tab or app: the stages whose rows never do have
+// no line to follow one, where a row that has none, among those that do, has the line dim.
+func (m Model) leads() bool {
+	return slices.ContainsFunc(m.every(m.stage), func(r row) bool { return linkOf(r) != "" })
+}
+
+// rowItems gives the lines of the menu of the row under the cursor: its page opened; the row's first link to another
+// tab or app followed, on a stage whose rows have some; the row selected, or no longer; and, a rule apart, the stage's actions on rows, where it has some. New…, which acts on no row, is the
 // tab's menu's alone.
 func (m Model) rowItems() []shell.Item {
-	items := []shell.Item{{Glyph: Browse, Name: OpenPage, Keys: "O"}, m.selectItem()}
+	items := []shell.Item{{Glyph: Browse, Name: OpenPage, Keys: "O"}}
+	if m.leads() {
+		items = append(items, shell.Item{Glyph: Follow, Name: FollowLink})
+	}
+	items = append(items, m.selectItem())
 	actions := slices.DeleteFunc(m.actions(), func(i shell.Item) bool { return i.Name == "New…" })
 	if len(actions) > 0 {
 		items = append(append(items, shell.Item{}), actions...)

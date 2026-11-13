@@ -10,6 +10,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/empowerite/kit/projects/tui/internal/grid"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/source"
 	"github.com/empowerite/kit/projects/tui/internal/testkit"
@@ -56,7 +57,7 @@ func TestEnterOnARowDropsItsMenuDownAndEnterAgainOpensItsPage(t *testing.T) {
 	}
 	y := rowY(m, "#46")
 	m = drive(m, press(tea.KeyEnter))
-	want := []string{OpenPage, SelectIt, "", "Start Local Work for Each", "Start Local Work Together…",
+	want := []string{OpenPage, FollowLink, SelectIt, "", "Start Local Work for Each", "Start Local Work Together…",
 		"Add to Pull Request…", "Assign to Me", "Assign to…", "Unassign", "Gather Under a Parent…",
 		"Close as Not Planned", "Close as Duplicate of…", "Copy Links"}
 	if !m.rowMenu.Open || !slices.Equal(names(m.rowItems()), want) || m.rowMenu.At != 0 {
@@ -78,8 +79,9 @@ func TestEnterOnARowDropsItsMenuDownAndEnterAgainOpensItsPage(t *testing.T) {
 		t.Errorf("enter on Open Page: menu open %v, opened %q", m.rowMenu.Open, browsed)
 	}
 	// esc closes it and does nothing; its keys are its own, so down moves along it and not along the rows
+	// #46 has no pull request, so Follow Link is dim and down passes over it to Select
 	m = drive(m, press(tea.KeyEnter), down)
-	if at := m.stages[0].Cursor; m.rowMenu.At != 1 || m.rows(0)[at].Key != "#46" {
+	if at := m.stages[0].Cursor; m.rowMenu.At != 2 || m.rows(0)[at].Key != "#46" {
 		t.Errorf("down in the menu: on line %d, the cursor on %q", m.rowMenu.At, m.rows(0)[at].Key)
 	}
 	if m = drive(m, esc); m.rowMenu.Open || !m.inRows || len(browsed) != 1 {
@@ -99,7 +101,12 @@ func TestEveryStagesRowsHaveTheMenu(t *testing.T) {
 		m.stage = i
 		m = drive(intoRows(m), press(tea.KeyEnter))
 		got := names(m.rowItems())
-		if !m.rowMenu.Open || got[0] != OpenPage || got[1] != SelectIt || name != "issues" && len(got) != 2 {
+		// issues lead to their pull requests, so their menu has the line to follow one, which no other stage's has
+		want := []string{OpenPage, SelectIt}
+		if name == "issues" {
+			want = []string{OpenPage, FollowLink, SelectIt}
+		}
+		if !m.rowMenu.Open || !slices.Equal(got[:min(len(got), len(want))], want) || name != "issues" && len(got) != 2 {
 			t.Errorf("%s: the row's menu, open %v: %q", name, m.rowMenu.Open, got)
 		}
 	}
@@ -263,11 +270,13 @@ func TestARowsMenuTakesAClick(t *testing.T) {
 	if m = drive(m, testkit.Click(left+3, top+1+dim)); !m.rowMenu.Open || m.ask != nil {
 		t.Errorf("a click on a dim line: menu open %v, asking %v", m.rowMenu.Open, m.ask != nil)
 	}
-	if m = drive(m, tea.MouseClickMsg{X: left + 3, Y: top + 2, Button: tea.MouseRight}); !m.rowMenu.Open ||
+	if m = drive(m, tea.MouseClickMsg{X: left + 3, Y: top + 1 + slices.Index(names(m.rowItems()), SelectIt),
+		Button: tea.MouseRight}); !m.rowMenu.Open ||
 		m.selected() != 0 {
 		t.Errorf("a right click on Select: menu open %v, %d selected", m.rowMenu.Open, m.selected())
 	}
-	if m = drive(m, testkit.Click(left+3, top+2)); m.rowMenu.Open || m.selected() != 1 {
+	if m = drive(m, testkit.Click(left+3, top+1+slices.Index(names(m.rowItems()), SelectIt))); m.rowMenu.Open ||
+		m.selected() != 1 {
 		t.Errorf("a click on Select: menu open %v, %d selected", m.rowMenu.Open, m.selected())
 	}
 	m = drive(m, press(tea.KeyEnter))
@@ -318,5 +327,34 @@ func TestAPackagesRowsMenuActsOnThePackageUnderTheCursor(t *testing.T) {
 	drive(m, press(tea.KeyEnter))
 	if got := actedOn(t, record); !slices.Equal(got, []string{"packages add agents/cursor"}) {
 		t.Errorf("the calls: %q", got)
+	}
+}
+
+// Follow Link in a row's menu does what a click on the row's link does: an issue's pull request is followed to its
+// row under changes. On a row of a stage whose rows lead somewhere that has no link, the line is dim, and a click on
+// it does nothing; a stage none of whose rows lead anywhere has no such line.
+func TestAFollowLinkLineInARowsMenuLeadsToTheRowsLinkedRow(t *testing.T) {
+	m := loaded(t, bare())
+	m.apply(m.viewsOf(0).Chosen("Underway"))
+	m = drive(intoRows(m), down, press(tea.KeyEnter))
+	k := slices.Index(names(m.rowItems()), FollowLink)
+	if k < 0 || !m.rowEnabled(k) {
+		t.Fatalf("the line: %d, %q", k, names(m.rowItems()))
+	}
+	m.rowMenu.At = k
+	m = drive(m, press(tea.KeyEnter))
+	if s := m.stages[m.stage]; s.name != "changes" || !m.inRows || m.rows(m.stage)[s.Cursor].Key != "#4" || m.rowMenu.Open {
+		t.Errorf("Follow Link: %s, row %d, menu open %v", s.name, s.Cursor, m.rowMenu.Open)
+	}
+	// a row with no link: the line is there and dim
+	n := loaded(t, options(), tea.WindowSizeMsg{Width: 120, Height: 40})
+	at := slices.IndexFunc(n.rows(0), func(r row) bool { return !r.Aside && !grid.Heads(r) && linkOf(r) == "" })
+	if at < 0 {
+		t.Fatal("every issue row has a link")
+	}
+	n.inRows, n.stages[0].Cursor = true, at
+	n = drive(n, press(tea.KeyEnter))
+	if k := slices.Index(names(n.rowItems()), FollowLink); k < 0 || n.rowEnabled(k) {
+		t.Errorf("the line on a row with no link: %d", k)
 	}
 }

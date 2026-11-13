@@ -138,6 +138,9 @@ func (m Model) acts(name string) bool {
 		return m.watchable(m.stage)
 	case OpenPage:
 		return len(m.pages()) > 0
+	case FollowLink:
+		under, ok := m.underCursor()
+		return ok && linkOf(under) != ""
 	case SelectIt, UnselectIt:
 		return m.selects()
 	case "Select All":
@@ -178,6 +181,9 @@ func (m *Model) do(name string) tea.Cmd {
 		return m.toggleWatch(m.stage)
 	case OpenPage:
 		return m.openPages(m.pages())
+	case FollowLink:
+		under, _ := m.underCursor()
+		return m.jump(linkOf(under))
 	case SelectIt, UnselectIt:
 		m.selectRow(false)
 		return nil

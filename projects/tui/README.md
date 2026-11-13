@@ -115,6 +115,19 @@ see [docs/workspaces.md](../../docs/workspaces.md).
   view first holds `@me`.
 - Every action runs a kit verb. kittui changes nothing itself, so a terminal, an agent over `kit serve`, and a
   menu do the same thing. An action that writes asks first, in one dialog that lists what it will change.
+- Two tabs act on their rows: issues and packages. Every other tab shows its rows and opens their pages. The issues
+  menu leaves out Add to Pull Request in an app with no changes tab, since there is no pull request to add to.
+- A row whose link leads to a row of another tab or app, such as an issue's pull request, is followed by a click on
+  the link, or by Follow Link in the row's menu.
+- A tab that loads again keeps the cursor on the row it was on, wherever the new rows put that row.
+- A row opens the page whose address kit printed as `url`. kittui builds no address of its own.
+- A filter on a person can name the caller as `@me`. kittui asks kit for the login, with `kit flow --me`, when a
+  view first holds `@me`.
+- Every action runs a kit verb. kittui changes nothing itself, so a terminal, an agent over `kit serve`, and a
+  menu do the same thing. An action that writes asks first, in one dialog that lists what it will change.
+- Only two tabs act on their rows: issues, where Add to Pull Request is left out of an app that has no changes tab, and
+  packages. Every other tab shows its rows and opens their pages. A row whose link leads to a row of another tab or
+  app, such as an issue's pull request, is followed by a click on the link, or by Follow Link in the row's menu.
 
 `internal/source` holds the two kinds of read. A load is a read that a screen shows, such as a stage. A poll is a
 read that repeats, such as the marks. Every wait goes through a clock, so a test fires the timers it means to.
