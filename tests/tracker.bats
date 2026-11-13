@@ -161,7 +161,7 @@ JSON
 }
 
 @test "an Azure DevOps work item asked of without az on PATH answers 1 and names az, not 127 and nothing" {
-  rm "${FAKE_DIR}/bin/az"
+  rm "${FAKE_DIR}/bin/az" "${BATS_TEST_TMPDIR}/unfaked/az"
   for call in 'assign ada@example.com' 'comment Hello' 'close completed' 'create Title'
   do
     # shellcheck disable=SC2086  # a call and its arguments, split on purpose

@@ -33,3 +33,22 @@ load helper
   [ "$status" -eq 1 ]
   [[ "$output" == *"nonesuch-tool is pinned by kit.yml and is not on PATH, so the toolchain is broken"* ]]
 }
+
+@test "a forge tool no test faked fails, naming itself, and a fake put first on PATH answers" {
+  local tool
+  for tool in gh glab az
+  do
+    run "${tool}" --version
+    [ "$status" -eq 97 ]
+    [[ "$output" == *"a test reached the real ${tool}"* ]]
+  done
+  # the teardown fails a test that reached one, though the test passed over its failure
+  run helper:outside-checkout
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the test called a forge tool no test faked"* && "$output" == *"az --version"* ]]
+  : > "${BATS_TEST_TMPDIR}/unfaked.calls"
+  fake-tools gh
+  route gh 'api user*' '!0'
+  run gh api user
+  [ "$status" -eq 0 ]
+}

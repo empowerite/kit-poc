@@ -16,6 +16,7 @@ setup_file() {
 
 teardown() {
   git -C "${RELEASE_REPO}" checkout --quiet -- . && git -C "${RELEASE_REPO}" clean --quiet --force -d
+  helper:outside-checkout
 }
 
 setup() {

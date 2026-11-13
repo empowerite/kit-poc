@@ -13,7 +13,8 @@
 # takes a few milliseconds.
 #
 # The file's own setup() adds what its tests need. Its teardown is this file's: a test that ends inside the checkout
-# fails, because a verb run there writes into the checkout's own .git/kit and .kit/. A file that defines teardown() of
+# fails, because a verb run there writes into the checkout's own .git/kit and .kit/, and so does one that reached a
+# forge tool it did not fake. A file that defines teardown() of
 # its own calls helper:outside-checkout from it.
 
 kit_root=$(cd "${BATS_TEST_DIRNAME}/../kit" && pwd)
@@ -91,6 +92,18 @@ helper:isolate-in() {
   # the marker of a toolchain the desk's shell activated, which would make that toolchain active in every test, and
   # mise's environment, the desk's or the runner's, which a test names for itself where it counts
   unset MISE_SHELL MISE_ENV
+  # The forge tools are stood in for by a stub that fails, so a test that reaches one it did not fake fails, where the
+  # real tool on a desk or a runner would answer from the network, and the test would pass whatever it said. fake-tools
+  # puts the fake of a test first on PATH, ahead of these.
+  local tool
+  mkdir -p "${dir}/unfaked"
+  for tool in gh glab az
+  do
+    printf '#!/bin/sh\necho "%s $*" >> "%s/unfaked.calls"\necho "a test reached the real %s, which no test may: fake-tools %s puts a fake first on PATH" >&2\nexit 97\n' \
+      "${tool}" "${dir}" "${tool}" "${tool}" > "${dir}/unfaked/${tool}"
+    chmod +x "${dir}/unfaked/${tool}"
+  done
+  export PATH="${dir}/unfaked:${PATH}"
   # a file whose setup() goes nowhere runs its verbs here, outside the checkout, rather than where bats was started
   cd "${dir}" || return 1
 }
@@ -150,9 +163,16 @@ world-copy-repo() {
   cd "${repo}" || return 1
 }
 
-# helper:outside-checkout fails when the working directory is inside the checkout, naming where the test ended.
+# helper:outside-checkout fails when the working directory is inside the checkout, naming where the test ended, and
+# when the test reached a forge tool it did not fake, naming each call, whatever the test made of the failure.
 helper:outside-checkout() {
   local here checkout
+  if [[ -s "${BATS_TEST_TMPDIR}/unfaked.calls" ]]
+  then
+    echo "the test called a forge tool no test faked; fake-tools puts a fake first on PATH:" >&2
+    cat "${BATS_TEST_TMPDIR}/unfaked.calls" >&2
+    return 1
+  fi
   here=$(pwd -P 2>/dev/null || true)
   checkout=$(cd "${kit_root}/.." && pwd -P)
   if [[ "${here}" == "${checkout}" || "${here}" == "${checkout}/"* ]]

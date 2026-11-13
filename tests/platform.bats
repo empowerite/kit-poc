@@ -119,6 +119,7 @@ signed-in() {
 }
 
 @test "tools that kit tools refuses is its line and exit 1, and toolchains still draws" {
+  fake-tools gh  # a gh that answers nothing, so no call reaches a forge
   repo-at "${BATS_TEST_TMPDIR}/r" github.com/o/r
   cd "${BATS_TEST_TMPDIR}/r"
   KIT_TOOLCHAIN=nonesuch run --separate-stderr "${kit_root}/bin/kit" platform tools --json
@@ -193,6 +194,7 @@ signed-in() {
 }
 
 @test "as text, a stage is a line of its fields' names and a line per row, and the picture each stage under its name" {
+  fake-tools gh  # a gh that answers nothing, so no call reaches a forge
   repo-at "${BATS_TEST_TMPDIR}/r" github.com/o/r
   cd "${BATS_TEST_TMPDIR}/r"
   printf 'primary: origin\n' > kit.yml

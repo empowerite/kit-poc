@@ -489,6 +489,7 @@ later-contract() {
 }
 
 @test "a stage's document that is an object, and a picture, states the contract, in a repository and over a group" {
+  fake-tools gh  # a gh that answers nothing, so no call reaches a forge
   local-desks
   cd "${BATS_TEST_TMPDIR}/code/a"
   [ "$("${kit_root}/bin/kit" workspace tags --json | jq -c '[.contract, (.rows | type)]')" = '[1,"array"]' ]
@@ -664,6 +665,7 @@ later-contract() {
 }
 
 @test "on a terminal, kit --workspace= flow hands off to kittui; --json, --text, and a stage stay across the members" {
+  fake-tools gh  # a gh that answers nothing, so no call reaches a forge
   fake-tui
   two-desks
   cd "${BATS_TEST_TMPDIR}"
