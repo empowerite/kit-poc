@@ -37,7 +37,8 @@ place:
 rules that govern the file; see [docs/context.md](../../context.md).
 A session is told a set of rules once: the hook says nothing when the same set governs the next file. Where `kit` is
 not on the harness's `PATH`, or kit does not answer, the command prints one line of additional context that says no
-rule was read, so the agent knows to run `kit context <path>` itself.
+rule was read, so the agent knows to run `kit context <path>` itself. In a clone you have not trusted, kit reads no
+rule: the hook says so in the same form, and that the person runs `kit trust` to give the trust.
 
 The package merges one more entry, `mcpServers.kit`, into `.mcp.json`: the kit's MCP server, `kit serve`, which
 offers the rules as resources and the verbs as tools in three groups; see [docs/serve.md](../../serve.md):
