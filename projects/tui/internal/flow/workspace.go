@@ -104,6 +104,10 @@ func stageNamed(verb, stage string) string {
 	if name, ok := stageNames[[2]string{verb, stage}]; ok {
 		return name
 	}
+	if name, ok := stageNames[[2]string{"flow", stage}]; ok {
+		// a row of kit changes, issues, or delivery leads to the stage of kit flow it shares a name with
+		return name
+	}
 	return verb + "/" + stage
 }
 

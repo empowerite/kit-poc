@@ -560,6 +560,12 @@ func TestARowOfAnAppVerbLeadsToItsVerbsStage(t *testing.T) {
 			t.Errorf("the waiver leads to %q", r.values["waives"].Link)
 		}
 	}
+	// a row of kit changes, issues, or delivery leads to the stage of kit flow of its name: it is the app's home tab
+	if stageNamed("changes", "changes") != "changes" || stageNamed("delivery", "builds") != "builds" ||
+		stageNamed("changes", "reviews") != "changes/reviews" {
+		t.Errorf("a link to a kit flow stage from an app verb: %q %q", stageNamed("changes", "changes"),
+			stageNamed("delivery", "builds"))
+	}
 	if stageNamed("flow", "changes") != "changes" || stageNamed("nonesuch", "x") != "nonesuch/x" {
 		t.Errorf("kit flow's changes is %q", stageNamed("flow", "changes"))
 	}
@@ -698,6 +704,18 @@ func TestAJumpOpensTheHeadingsOverItsRowAndSaysWhenTheRowIsNotShown(t *testing.T
 	m = drive(m, shell.JumpMsg{Screen: shell.Changes, To: "changes/#4"})
 	if m.note.Text != "" || m.landing != "" {
 		t.Errorf("a jump into a refused tab: the notice %q, waiting for %q", m.note.Text, m.landing)
+	}
+}
+
+// The title line names the verb that opens the app, not the app: Trust is kit audit, Repositories kit workspace.
+func TestTheTitleLineNamesTheVerbThatOpensTheApp(t *testing.T) {
+	for _, a := range apps {
+		if got, want := (Model{app: a.screen}).appLabel(), "kit "+a.verb; got != want {
+			t.Errorf("%s is titled %q, not %q", a.screen, got, want)
+		}
+	}
+	if got := (Model{app: shell.Flow}).appLabel(); got != "kit flow" {
+		t.Errorf("Flow is titled %q", got)
 	}
 }
 
