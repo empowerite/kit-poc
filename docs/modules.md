@@ -28,7 +28,9 @@ repository all of it is under `kit/`, the release.
 ## Bash modules
 
 The verbs are written in bash, and share code through bash modules, which a repository can extend with its own. The
-rule is [.kit/rules/bash.md](../.kit/rules/bash.md), the style [.kit/styles/bash.md](../.kit/styles/bash.md).
+rule is [bash.md](../kit/packages/kit/files/repo/.kit/rules/bash.md), and the style is
+[bash.md](../kit/packages/style/bash/files/repo/.kit/styles/bash.md). kit places them in a repository as
+`.kit/rules/bash.md` and `.kit/styles/bash.md`.
 
 ### The module path
 

@@ -430,6 +430,29 @@ EOF
   [ "${status}" -eq 1 ]
 }
 
+@test "a link a page gives to a file in the tree is to one git holds, not one kit places and git ignores" {
+  local page target dir bad=()
+  cd "${root}"
+  while IFS=$'\t' read -r page target
+  do
+    target=$(awk -v path="$(dirname "${page}")/${target%%#*}" 'BEGIN {
+      n = split(path, part, "/")
+      for (i = 1; i <= n; i++) {
+        if (part[i] == "..") { if (m > 0) m-- }
+        else if (part[i] != "." && part[i] != "") kept[++m] = part[i]
+      }
+      for (i = 1; i <= m; i++) printf "%s%s", (i > 1 ? "/" : ""), kept[i]
+    }')
+    git check-ignore --quiet "${target}" && bad+=("${page}: ${target}")
+  done < <(pages | while read -r p
+    do
+      grep --only-matching --extended-regexp '\]\([^)#:[:space:]][^):[:space:]]*(#[^)]*)?\)' "${p}" \
+        | awk -v page="${p}" '{ sub(/^\]\(/, ""); sub(/\)$/, ""); print page "\t" $0 }'
+    done)
+  cd "${BATS_TEST_TMPDIR}"
+  [ "${#bad[@]}" -eq 0 ] || { printf '%s\n' "${bad[@]}"; return 1; }
+}
+
 @test "a count a page gives of what the code holds is the count, and a list it gives is the list, in its order" {
   local found
   facts > "${BATS_TEST_TMPDIR}/facts.json"
