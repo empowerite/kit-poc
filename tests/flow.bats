@@ -762,6 +762,18 @@ the desk its first row; run: cd "*" && kit workspace worktrees" ]]
   [ "$status" -eq 1 ]
 }
 
+@test "above desks, --json has a row for a desk whose kit flow printed nothing, its status null" {
+  stages 'incoming'
+  cd "${work}"
+  git clone --quiet origin.git group/two 2>/dev/null
+  git -C group/two remote set-head origin main
+  printf 'flow: [\n' > group/two/kit.yml
+  run --separate-stderr "${kit_root}/bin/kit" flow --no-fetch --json
+  [ "$status" -eq 1 ]
+  [ "$(jq -c 'map(.path)' <<<"$output")" = '["desk","group/two"]' ]
+  [ "$(jq -c '.[1].status' <<<"$output")" = null ]
+}
+
 @test "a pull request's row carries its author when asked and ends with its branch, and the issues it closes follow as rows" {
   doc='{"number":2,"title":"The first","author":"ada","branch":"2-the-first","state":"queued","age":259200,'
   doc+='"unresolved":0,"checks":{"state":"PENDING","passed":0,"total":1,"failing":0,"took":36},'

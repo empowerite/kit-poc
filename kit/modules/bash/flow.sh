@@ -1397,9 +1397,14 @@ flow:above() {
   then
     for index in "${!desks[@]}"
     do
-      jq --compact-output --arg path "$(flow:relative "${desks[${index}]}")" '{path: $path, status: .}' \
-        "${scratch}/${index}.out" 2>/dev/null || jq --null-input --compact-output \
-        --arg path "$(flow:relative "${desks[${index}]}")" '{path: $path, status: null}'
+      # jq prints nothing for an empty file and exits 0, so an empty output is told apart first
+      if [[ -s "${scratch}/${index}.out" ]]
+      then
+        jq --compact-output --arg path "$(flow:relative "${desks[${index}]}")" '{path: $path, status: .}' \
+          "${scratch}/${index}.out" 2>/dev/null && { cat "${scratch}/${index}.err" >&2; continue; }
+      fi
+      jq --null-input --compact-output --arg path "$(flow:relative "${desks[${index}]}")" \
+        '{path: $path, status: null}'
       cat "${scratch}/${index}.err" >&2
     done | jq --slurp . || return 1
     [[ "${failed}" == false ]]
