@@ -29,11 +29,18 @@ load helper
   ln -s "${kit_root}" "${BATS_TEST_TMPDIR}/nest/kit"
   printf '%s\n' 'load "'"${BATS_TEST_DIRNAME}"'/helper"' '@test "t" { needs sh nonesuch-tool; false; }' \
     > "${BATS_TEST_TMPDIR}/nest/tests/needs.bats"
-  run timeout 60 env -u BATS_TEST_TMPDIR bats --tap "${BATS_TEST_TMPDIR}/nest/tests/needs.bats"
+  # the outer run's state variables (its jobs, its tmpdirs, its file) would make the nested run wait on it; its paths stay
+  local -a own=()
+  local var
+  while IFS= read -r var
+  do
+    own+=(-u "${var}")
+  done < <(compgen -e BATS_ | grep -E '^BATS_(TEST|SUITE|RUN|FILE|NUMBER|PARALLEL|STACK|CURRENT|SOURCE|LINE)')
+  run timeout 60 env "${own[@]}" bats --tap "${BATS_TEST_TMPDIR}/nest/tests/needs.bats"
   [ "$status" -eq 0 ]
   [[ "$output" == *"ok 1 t # skip nonesuch-tool is not on PATH"* ]]
-  run timeout 60 env -u BATS_TEST_TMPDIR KIT_TESTS_REQUIRE='sh nonesuch-tool' bats --tap \
-    "${BATS_TEST_TMPDIR}/nest/tests/needs.bats"
+  run timeout 60 env "${own[@]}" KIT_TESTS_REQUIRE='sh nonesuch-tool' bats --tap \
+    "${BATS_TEST_TMPDIR}/nest/tests/needs.bats" 3>&-
   [ "$status" -eq 1 ]
   [[ "$output" == *"nonesuch-tool is pinned by kit.yml and is not on PATH, so the toolchain is broken"* ]]
 }
