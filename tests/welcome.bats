@@ -781,9 +781,23 @@ good-probes() {
   run --separate-stderr "${kit_root}/bin/kit" welcome --unkeep=terminal-probe-emoji-width
   [ "$status" -eq 0 ]
   [[ "$output" == "❌ "* ]]
+}
+
+@test "--keep= refuses with 2 a check that holds, and one of another terminal than the one kit runs in, and writes nothing" {
+  export SSH_TTY=/dev/ttys1 KIT_TERMINAL_PROBES
+  KIT_TERMINAL_PROBES=$(good-probes 1)
   run --separate-stderr "${kit_root}/bin/kit" welcome --keep=terminal-probe-color
+  [ "$status" -eq 2 ]
+  [[ "$stderr" == *"terminal-probe-color holds, so there is nothing to keep"* ]]
+  run --separate-stderr "${kit_root}/bin/kit" welcome --keep=terminal-iterm-option
+  [ "$status" -eq 2 ]
+  [[ "$stderr" == *"terminal-iterm-option is not a check of the terminal kit runs in"* ]]
+  [ ! -e "${HOME}/.kit/settings.yml" ]
+  # a check that is kept holds, and keeping it again is no refusal
+  run "${kit_root}/bin/kit" welcome --keep=terminal-probe-emoji-width
   [ "$status" -eq 0 ]
-  [[ "$output" == "✅ "* ]]
+  run "${kit_root}/bin/kit" welcome --keep=terminal-probe-emoji-width
+  [ "$status" -eq 0 ]
 }
 
 @test "--fix of a check that is not the terminal's leaves the terminal's settings unread" {

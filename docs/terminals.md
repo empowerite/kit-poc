@@ -57,7 +57,8 @@ kit welcome --keep=terminal-iterm-triggers
 
 kit writes it under `terminal: kept:` in `~/.kit/settings.yml`, after the profile it was judged in where the terminal
 has profiles, so a keep in one profile never silences another; where it cannot read which profile that is, kit
-refuses the keep. The finding then holds, and its line starts with `kept:`, as `kit welcome --keep=` says when it ends;
+refuses the keep. It also refuses, with 2, a check that holds and a check of another terminal than the one kit runs
+in. The finding then holds, and its line starts with `kept:`, as `kit welcome --keep=` says when it ends;
 with `--json`, it gives the check as `kit welcome --checks --json` would.
 `kit welcome --unkeep=terminal-iterm-triggers` undoes it, and the last one takes `terminal:` out of the file. In
 kittui, a failed finding offers later and keep.

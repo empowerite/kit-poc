@@ -895,6 +895,19 @@ welcome:keep() {
     error "${id} is not a finding of a terminal, which is all kit welcome --${action}= takes; see: kit welcome --checks"
     return 2
   fi
+  welcome:plan-terminal
+  if [[ "${action}" == keep ]]
+  then
+    if [[ -z "${welcome_terminal[${id}]+x}" ]]
+    then
+      error "${id} is not a check of the terminal kit runs in, or kit did not ask the terminal; see: kit welcome --checks"
+      return 2
+    elif jq --exit-status '.ok and (.line | startswith("kept: ") | not)' <<<"${welcome_terminal[${id}]}" >/dev/null
+    then
+      error "${id} holds, so there is nothing to keep; see: kit welcome --checks"
+      return 2
+    fi
+  fi
   "terminal:${action}" "${id}" || return $?
   welcome:plan-terminal
   [[ -z "${welcome_terminal[${id}]+x}" ]] || welcome:terminal "${id}"
