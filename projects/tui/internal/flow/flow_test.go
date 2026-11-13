@@ -331,7 +331,7 @@ func TestEveryStageLoadsAtOnceWithItsWords(t *testing.T) {
 
 func TestLeftAndRightMoveAlongTheBarOnlyWhileItHasTheKeyboard(t *testing.T) {
 	m := flat(t, options())
-	if mark, _ := style.In(stageColors["issues"]); m.stage != 0 || !strings.Contains(m.View().Content, mark("➊")) {
+	if mark, _ := style.In(stageColors["issues"]); m.stage != 0 || !strings.Contains(m.View().Content, mark("1")) {
 		t.Fatalf("the first stage is not selected:\n%s", view(m))
 	}
 	// left at the first stage stays there, and right at the last
@@ -423,11 +423,11 @@ func TestANumberOrAClickSelectsAStageFromAnywhere(t *testing.T) {
 	if m = drive(m, tea.KeyPressMsg{Code: '9', Text: "9"}); m.stage != 4 {
 		t.Errorf("9 with five stages moved to %d", m.stage)
 	}
-	// wide enough that ➂ shows with the last stage selected
+	// wide enough that 3 shows with the last stage selected
 	m = drive(m, tea.WindowSizeMsg{Width: 200, Height: 24})
-	x := testkit.Column(lines(m)[1], '➂')
+	x := testkit.Column(lines(m)[1], '3')
 	if m = drive(m, down, testkit.Click(x, 1)); m.stage != 2 || m.inRows {
-		t.Errorf("a click on ➂: stage %d, in rows %v\n%s", m.stage, m.inRows, view(m))
+		t.Errorf("a click on 3: stage %d, in rows %v\n%s", m.stage, m.inRows, view(m))
 	}
 	if m.View().MouseMode != tea.MouseModeCellMotion {
 		t.Error("the mouse is off")
@@ -798,7 +798,8 @@ func TestTheTitleCarriesOriginAndTheFetchIsTheIncomingStage(t *testing.T) {
 		t.Errorf("the repository is not in its own color: %q", lines(m)[0])
 	}
 	// the bar comes right under the title
-	if !strings.Contains(lines(m)[1], "➊") || !shows(m, Fetched, "7") {
+	if mark, _ := style.In(stageColors["issues"]); m.stage != 0 ||
+		!strings.Contains(strings.Split(m.View().Content, "\n")[1], mark("1")) || !shows(m, Fetched, "7") {
 		t.Errorf("the bar: %q", lines(m)[2])
 	}
 	// while incoming loads, its tab says so
@@ -1215,7 +1216,7 @@ func TestOpenAppReadsTheStagesAndTheWords(t *testing.T) {
 			t.Errorf("OpenApp %s: on %q set as %q, maximized %v, filters %q", word, s.name, s.ViewName, m.maximized,
 				m.filters)
 		}
-		if !strings.Contains(lines(m)[0], "kit issues · ") || !strings.Contains(lines(m)[0], " · ➊ issues") {
+		if !strings.Contains(lines(m)[0], "kit issues · ") || !strings.Contains(lines(m)[0], " · 1 issues") {
 			t.Errorf("OpenApp %s, the title: %q", word, lines(m)[0])
 		}
 		m.Close()

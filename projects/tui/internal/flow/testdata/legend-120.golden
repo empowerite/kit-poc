@@ -1,32 +1,32 @@
   = kit flow · - empowerite/kit                                                                              🔎 /search
-  ➊╶───────────────╮➁╶────────────────╮➂╶───────────────╮➃╶──────────────────╮➄╶─────────────────╮
+  1╶───────────────╮2╶────────────────╮3╶───────────────╮4╶──────────────────╮5╶─────────────────╮
   │ 🎫 issues  7 : │  🔀 changes  3   │  🏭 builds  4   │  🛬 incoming  7    │  📦 releases  3   │
   ╵                ╰──────────────────╰─────────────────╰────────────────────╰───────────────────╰──────────────────────
   Issues — What is open, who has it, and where the work on it stands
 
-  ▾ source · organization · repository ▾ 7                                                    📇 Fields  All Issues ▼
-    ·────────·──────────────·─────────────
-  ▾ github · empowerite 7
-
-        id   status  assignees         age  change  state             where     labels            title
-        ·────·───────×·────────────────·────·───────·─────────────────·─────────×·────────────────·────────────────────
-    ▾ jig 1
-      ▸ #7   💤      ada           +1  40d                                                        🎫 Fix the thing
-    ▾ kit 6
-      ▸ #1   🛫      jeffrey-aguilera   8d  🔀 #2   🏁 ready          🌿 here   priorityh… +1  🎫 The first release…
-        #8   🛫                         2d  🔀 #4   🔥 failing:gate   👤 bob                      🎫 Lint the modules
-        #8   🛫                         2d  🔀 #11  🔨 draft    ╭─ issues legend ───────────────────────────── ↖ ↗ ↙ ↘ ╮
-      ▸ #46  💤      jeffrey-aguilera   2d                      │ =  kit menu              📦 releases stage           │
-      ▸ #31  🛫      ada                3h  🔀 #12  💬 comments:│ -  workspace menu        ▾  open: click to close     │
-      ▸ #45  💤                         2h                      │ 🔎 search: / or click    📇 fields dialog            │
-                                                                │ ➊  selected tab          ▼  presets menu, not a sort │
-                                                                │ ➁  tab: click to select  ·  sortable: click to sort  │
-                                                                │ 🎫 issues stage          ×  list: click to flatten   │
-                                                                │    issue 🔗              ▸  closed: click to open    │
-                                                                │ :  tab menu              💤 backlog                  │
-                                                                │ 🔀 changes stage         🛫 underway                 │
-                                                                │    pull request †        🌿 branch or worktree †     │
-                                                                │ 🏭 builds stage          👤 assignees or author      │
-                                                                │ 🛬 incoming stage        🌱 local branch             │
-                                                                ╰──────────────────────────────────────────────────────╯
+  ▾ source · organization · repository ▾ 7                                 ╭─ issues legend ────────────────── ↖ ↗ ↙ ↘ ╮
+    ·────────·──────────────·─────────────                                 │ =  kit menu                               │
+  ▾ github · empowerite 7                                                  │ -  workspace menu                         │
+                                                                           │ 🔎 search: / or click                     │
+        id   status  assignees         age  change  state             where│ 1  tab: click to select; bold is selected │
+        ·────·───────×·────────────────·────·───────·─────────────────·────│ 🎫 issues stage                           │
+    ▾ jig 1                                                                │    issue 🔗                               │
+      ▸ #7   💤      ada           +1  40d                                 │ :  tab menu                               │
+    ▾ kit 6                                                                │ 🔀 changes stage                          │
+      ▸ #1   🛫      jeffrey-aguilera   8d  🔀 #2   🏁 ready          🌿 he│    pull request †                         │
+        #8   🛫                         2d  🔀 #4   🔥 failing:gate   👤 bo│ 🏭 builds stage                           │
+        #8   🛫                         2d  🔀 #11  🔨 draft          🌱 lo│ 🛬 incoming stage                         │
+      ▸ #46  💤      jeffrey-aguilera   2d                                 │ 📦 releases stage                         │
+      ▸ #31  🛫      ada                3h  🔀 #12  💬 comments:open  👤 ad│ ▾  open: click to close                   │
+      ▸ #45  💤                         2h                                 │ 📇 fields dialog                          │
+                                                                           │ ▼  presets menu, not a sort               │
+                                                                           │ ·  sortable: click to sort                │
+                                                                           │ ×  list: click to flatten                 │
+                                                                           │ ▸  closed: click to open                  │
+                                                                           │ 💤 backlog                                │
+                                                                           │ 🛫 underway                               │
+                                                                           │ 🌿 branch or worktree †                   │
+                                                                           │ 👤 assignees or author                    │
+                                                                           │ 🌱 local branch                           │
+                                                                           ╰───────────────────────────────────────────╯
  = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ groups 1-5 jump : tab menu

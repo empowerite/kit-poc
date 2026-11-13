@@ -1,5 +1,5 @@
   = kit flow · - empowerite/kit                                      🔎 /search
-  ➊╶───────────────╮➁╶────────────────╮➂╶───────────────╮➃╶──────────────────╮➄╶
+  1╶───────────────╮2╶────────────────╮3╶───────────────╮4╶──────────────────╮5╶
   │ 🎫 issues  7 : │  🔀 changes  3   │  🏭 builds  4   │  🛬 incoming  7    │
   ╵                ╰──────────────────╰─────────────────╰────────────────────╰──
   Issues — What is open, who has it, and where the work on it stands
@@ -7,18 +7,18 @@
   ▾ source · organization · repository ▾ 7            📇 Fields  All Issues ▼
     ·────────·──────────────·─────────────
   ▾ github · empowerite 7
-                        ╭─ issues legend ───────────────────────────── ↖ ↗ ↙ ↘ ╮
-      ▸ id   status  ass│ =  kit menu              ▾  open: click to close     │
-        ·────·───────×·─│ -  workspace menu        📇 fields dialog            │
-    ▾ jig 1             │ 🔎 search: / or click    ▼  presets menu, not a sort │
-      ▸ #7   💤      ada│ ➊  selected tab          ·  sortable: click to sort  │
-    ▾ kit 6             │ ➁  tab: click to select  ▸  closed: click to open    │
-      ▸ #1   🛫      jef│ 🎫 issues stage          ×  list: click to flatten   │
-      ▸ #8   🛫         │    issue 🔗              💤 backlog                  │
-      ▸ #8   🛫         │ :  tab menu              🛫 underway                 │
-      ▸ #46  💤      jef│ 🔀 changes stage         🌿 branch or worktree †     │
-      ▸ #31  🛫      ada│    pull request †        👤 assignees or author      │
-      ▸ #45  💤         │ 🏭 builds stage          🌱 local branch             │
-                        │ 🛬 incoming stage                                    │
-                        ╰──────────────────────────────────────────────────────╯
+
+      ╭─ issues legend ─────────────────────────────────────────────── ↖ ↗ ↙ ↘ ╮
+      │ =  kit menu                                ▾  open: click to close     │
+    ▾ │ -  workspace menu                          📇 fields dialog            │
+      │ 🔎 search: / or click                      ▼  presets menu, not a sort │
+    ▾ │ 1  tab: click to select; bold is selected  ·  sortable: click to sort  │
+      │ 🎫 issues stage                            ▸  closed: click to open    │
+      │    issue 🔗                                ×  list: click to flatten   │
+      │ :  tab menu                                💤 backlog                  │
+      │ 🔀 changes stage                           🛫 underway                 │
+      │    pull request †                          🌿 branch or worktree †     │
+      │ 🏭 builds stage                            👤 assignees or author      │
+      │ 🛬 incoming stage                          🌱 local branch             │
+      ╰────────────────────────────────────────────────────────────────────────╯
  = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ groups 1-5 jump : ta…

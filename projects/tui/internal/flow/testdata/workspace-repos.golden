@@ -1,5 +1,5 @@
   = kit repositories · - empowerite/kit                                                                      🔎 /search
-  ➊╶──────────────╮➁╶────────────────╮➂╶─────────────────╮
+  1╶──────────────╮2╶────────────────╮3╶─────────────────╮
   │ 📚 repos  2 : │  📡 remotes  1   │  🌿 branches  4   │
   ╵               ╰──────────────────╰───────────────────╰──────────────────────────────────────────────────────────────
   Repos — What is cloned, where, on which branch, and how far from upstream

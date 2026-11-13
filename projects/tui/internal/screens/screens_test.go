@@ -101,7 +101,7 @@ func TestAJumpShowsTheAppAndGivesItTheJump(t *testing.T) {
 	if m.here != shell.Repositories {
 		t.Fatalf("shown: %s", m.here)
 	}
-	if v := ansi.Strip(m.View().Content); !strings.Contains(v, "kit repositories · ") || !strings.Contains(v, "➋╶") {
+	if v := ansi.Strip(m.View().Content); !strings.Contains(v, "kit repositories · ") || selectedTab(m) != "2" {
 		t.Errorf("the jump did not select remotes, the second tab:\n%s", v)
 	}
 	m, _ = testkit.Drive(m, nil, shell.JumpMsg{Screen: "nowhere", To: "x/y"})

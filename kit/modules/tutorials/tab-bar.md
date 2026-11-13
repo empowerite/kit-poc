@@ -7,7 +7,7 @@ order: 12
 ---
 
 ```text
-  ➊╶───────────────╮➁╶────────────────╮➂╶───────────────╮
+  1╶───────────────╮2╶────────────────╮3╶───────────────╮
   │ 🎫 issues  7 : │  🔀 changes  3   │  🏭 builds  4   │
   ╵                ╰──────────────────╰─────────────────╰──
 ```
@@ -17,8 +17,8 @@ Each [app](kittui:welcome/terms/application) has its own tabs: one [stage](kittu
 
 ## Reading a tab
 
-- `➊`  the selected tab's number, filled
-- `➁`  another tab's number. Click to select it.
+- `1`  the selected tab's number, in bold. Its key selects it, and so does a click on it.
+- `2`  another tab's number, the key that selects it. Click to select it.
 - `🎫`  the stage's glyph
 - `3`  how many rows it has. `50+` means kit read only part.
 - `•`  yellow dot: the tab is stale. Click it to read it again.
@@ -26,7 +26,7 @@ Each [app](kittui:welcome/terms/application) has its own tabs: one [stage](kittu
 
 ## Keys
 
-- `1`–`9`  jump to a tab
+- `1`–`9` and `0`  jump to a tab, `0` to the tenth
 - `⇥` `⇧⇥`  next and previous tab
 - `↓`  down to the [control line](kittui:tutorials/control-line)
 - `:`  the tab menu

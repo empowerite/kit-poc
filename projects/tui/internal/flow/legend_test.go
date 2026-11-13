@@ -102,8 +102,8 @@ func TestEveryGlyphDrawnIsInTheHeaderLegendAndInItsStagesLegend(t *testing.T) {
 	for i, name := range five {
 		m := opened(t, i)
 		for g := range testkit.Glyphs(raw(m)) {
-			// the bar's numbers are the tabs', and the panel's glyphs its controls', not the picture's
-			if !strings.Contains(text, g) && !isMarker(g) && !isControl(g) {
+			// the panel's glyphs are its controls', not the picture's
+			if !strings.Contains(text, g) && !isControl(g) {
 				t.Errorf("%s draws %s, which kit help flow's legend lacks", name, g)
 			}
 		}
@@ -134,16 +134,6 @@ func TestEveryGlyphDrawnIsInTheHeaderLegendAndInItsStagesLegend(t *testing.T) {
 func isControl(g string) bool {
 	return slices.Contains([]string{grid.Search, grid.Ticked, grid.Unticked, grid.Picked, grid.Unpicked, tabs.Menu,
 		Save}, g)
-}
-
-// isMarker says whether a glyph is one of the tab bar's numbers.
-func isMarker(g string) bool {
-	for i := range 10 {
-		if g == tabs.Marker(i, false) || g == tabs.Marker(i, true) {
-			return true
-		}
-	}
-	return false
 }
 
 // stateOf gives the state word a glyph draws, or nothing.
@@ -437,7 +427,7 @@ func TestTheLegendExplainsEveryGlyphOnTheScreenInOrder(t *testing.T) {
 		order = append(order, ansi.Strip(l))
 	}
 	want := []string{shell.App + "  kit menu", shell.Workspaces + "  workspace menu", grid.Search + " search: / or click",
-		tabs.Marker(0, true) + "  selected tab", tabs.Marker(1, false) + "  tab: click to select", Issue + " issues stage",
+		tabs.Marker(0) + "  tab: click to select; bold is selected", Issue + " issues stage",
 		Fields + " fields dialog", table.Presets + "  presets menu, not a sort", Sortable + "  sortable: click to sort"}
 	at := -1
 	for _, w := range want {

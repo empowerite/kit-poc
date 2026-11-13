@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -22,13 +23,30 @@ import (
 // crumbAt gives the column the title's crumb starts at, -1 with none.
 func crumbAt(m Model) int { return testkit.Column(title(m), []rune(shell.Back)[0]) }
 
+// bold finds the digits drawn bold on the line over the tabs, whatever the screen shown: the number of the selected
+// tab, the others' being the same digit, dim or plain.
+var bold = regexp.MustCompile(`\x1b\[1;[0-9;]*m(\d)\x1b\[m`)
+
+// selectedTab gives the number of the tab the screen shows selected, from the bold digit on the bar's top line, and
+// nothing where none is.
+func selectedTab(m Model) string {
+	lines := strings.Split(m.View().Content, "\n")
+	if len(lines) < 2 {
+		return ""
+	}
+	if found := bold.FindStringSubmatch(lines[1]); found != nil {
+		return found[1]
+	}
+	return ""
+}
+
 // onRepositoriesIncoming gives the root on Repositories' third tab, incoming, as the app's menu and the tab's number
 // show it, over the fake kit, whose Repositories has branches, remotes, and incoming.
 func onRepositoriesIncoming(t *testing.T) Model {
 	t.Helper()
 	m := help(t)
 	m = drive(m, shell.SwitchMsg{Screen: shell.Repositories}, testkit.Press("3"))
-	if v := ansi.Strip(m.View().Content); !strings.Contains(v, "➌╶") || crumbAt(m) >= 0 {
+	if v := ansi.Strip(m.View().Content); selectedTab(m) != "3" || crumbAt(m) >= 0 {
 		t.Fatalf("incoming is not selected, or a crumb shows:\n%s", v)
 	}
 	return m
@@ -45,7 +63,7 @@ func TestALinkToAnotherAppLeavesACrumbThatAClickFollowsBack(t *testing.T) {
 		t.Errorf("the keys bar: %q", lines[len(lines)-1])
 	}
 	m = drive(m, testkit.Click(crumbAt(m)+1, shell.Top))
-	if v := ansi.Strip(m.View().Content); m.here != shell.Repositories || !strings.Contains(v, "➌╶") {
+	if v := ansi.Strip(m.View().Content); m.here != shell.Repositories || selectedTab(m) != "3" {
 		t.Fatalf("the click went back to %s:\n%s", m.here, v)
 	}
 	if crumbAt(m) >= 0 {
@@ -60,7 +78,7 @@ func TestCrumbsChainAndEachGoesBackToTheViewItLeft(t *testing.T) {
 	m := onRepositoriesIncoming(t)
 	m = drive(m, shell.JumpMsg{Screen: shell.Changes, To: "changes/#2"})
 	m = drive(m, shell.JumpMsg{Screen: shell.Repositories, To: "workspace/remotes/origin"})
-	if v := ansi.Strip(m.View().Content); m.here != shell.Repositories || !strings.Contains(v, "➋╶") ||
+	if v := ansi.Strip(m.View().Content); m.here != shell.Repositories || selectedTab(m) != "2" ||
 		!strings.Contains(title(m), shell.Back+" changes") {
 		t.Fatalf("the second link, on %s, the title %q:\n%s", m.here, title(m), v)
 	}
@@ -69,7 +87,7 @@ func TestCrumbsChainAndEachGoesBackToTheViewItLeft(t *testing.T) {
 		t.Fatalf("⌫ went back to %s, the title %q", m.here, title(m))
 	}
 	m = drive(m, testkit.Press("backspace"))
-	if v := ansi.Strip(m.View().Content); m.here != shell.Repositories || !strings.Contains(v, "➌╶") ||
+	if v := ansi.Strip(m.View().Content); m.here != shell.Repositories || selectedTab(m) != "3" ||
 		crumbAt(m) >= 0 {
 		t.Errorf("⌫ again, on %s, the title %q:\n%s", m.here, title(m), v)
 	}

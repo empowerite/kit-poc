@@ -11,7 +11,7 @@ looks like this:
 
 ```text
   = kit flow · - owner/repo                 🔎 /search   ← menu bar
-  ➊╶───────────────╮➁╶────────────────╮                  ← tab bar
+  1╶───────────────╮2╶────────────────╮                  ← tab bar
   │ 🎫 issues  7 : │  🔀 changes  3   │
   ╵                ╰──────────────────╰──
   ▾ source 7                       All Issues ▼          ← control line

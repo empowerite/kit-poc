@@ -7,13 +7,13 @@ order: 16
 ---
 
 ```text
-  ╭─ issues legend ─── ↖ ↗ ↙ ↘ ─╮
-  │ =  kit menu                 │
-  │ -  workspace menu           │
-  │ ➊  selected tab             │
-  │ ▼  presets menu, not a sort │
-  │ ▸  closed: click to open    │
-  ╰─────────────────────────────╯
+  ╭─ issues legend ────────────────── ↖ ↗ ↙ ↘ ╮
+  │ =  kit menu                               │
+  │ -  workspace menu                         │
+  │ 1  tab: click to select; bold is selected │
+  │ ▼  presets menu, not a sort               │
+  │ ▸  closed: click to open                  │
+  ╰───────────────────────────────────────────╯
 ```
 
 ## Using it

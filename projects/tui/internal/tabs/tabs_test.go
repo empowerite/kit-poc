@@ -47,7 +47,7 @@ func TestLabelIsTheSelectedTabAsTheBarDrawsIt(t *testing.T) {
 		t.Errorf("stale, the dot after the name: %q", got)
 	}
 	// the numbered label's dot, as a click on it needs it, after the number, a space, and the name
-	if got := b.LabelStaleAt(); got != ansi.StringWidth(Marker(1, true)+" underway") {
+	if got := b.LabelStaleAt(); got != ansi.StringWidth(Marker(1)+" underway") {
 		t.Errorf("the numbered label's dot at %d: %q", got, ansi.Strip(b.NumberedLabel()))
 	}
 	b.Stale = nil
@@ -60,20 +60,36 @@ func TestLabelIsTheSelectedTabAsTheBarDrawsIt(t *testing.T) {
 	}
 }
 
-func TestTheMarkersAreNumberedToTenThenNone(t *testing.T) {
-	cases := []struct {
-		i        int
-		selected bool
-		want     string
-	}{{0, false, "➀"}, {0, true, "➊"}, {8, false, "➈"}, {8, true, "➒"}, {9, false, "➉"}, {9, true, "➓"}}
-	for _, c := range cases {
-		if got := Marker(c.i, c.selected); got != c.want || ansi.StringWidth(got) != 1 {
-			t.Errorf("Marker(%d, %v) = %q, %d cells; want %q, one cell", c.i, c.selected, got, ansi.StringWidth(got),
-				c.want)
+func TestTheMarkersAreTheDigitsThatSelectThenNone(t *testing.T) {
+	for i, want := range []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"} {
+		if got := Marker(i); got != want || ansi.StringWidth(got) != 1 {
+			t.Errorf("Marker(%d) = %q, %d cells; want %q, one cell", i, got, ansi.StringWidth(got), want)
 		}
 	}
-	if Marker(10, false) != "" || Marker(12, true) != "" {
-		t.Errorf("a tab past the tenth has a number: %q %q", Marker(10, false), Marker(12, true))
+	if Marker(10) != "" || Marker(12) != "" {
+		t.Errorf("a tab past the tenth has a number: %q %q", Marker(10), Marker(12))
+	}
+}
+
+// The number is the same digit on every tab, and only its style says which tab is selected: bold, in the accent, on the
+// selected tab, and dim on the others, wherever the keyboard is.
+func TestTheSelectedTabsNumberIsBoldAndTheOthersAreDim(t *testing.T) {
+	mark, _ := style.In("")
+	for selected := range 8 {
+		b := stages(selected, natural())
+		b.Focused = false
+		// the line over the tabs holds their numbers and lines, no count
+		v := strings.Split(b.View(), "\n")[0]
+		for i := range 8 {
+			digit := Marker(i)
+			bold, faint := strings.Contains(v, mark(digit)), strings.Contains(v, style.Off(digit))
+			if bold != (i == selected) || faint == (i == selected) {
+				t.Errorf("tab %d of %d: number bold %v, dim %v", i, selected, bold, faint)
+			}
+		}
+		if got := plain(b); strings.Count(got, Marker(selected)+"╶") != 1 {
+			t.Errorf("the selected tab's number is drawn once: %q", got)
+		}
 	}
 }
 
@@ -85,11 +101,11 @@ func TestPastTheTenthATabsBorderRunsThroughItsNumbersCell(t *testing.T) {
 	}
 	b := Bar{Tabs: many, Selected: 10, Focused: true, Width: 200}
 	over := row(b, 0)
-	if !strings.Contains(over, "➉") || !strings.Contains(over, "─╴╭") ||
+	if !strings.Contains(over, "0") || !strings.Contains(over, "─╴╭") ||
 		strings.Count(over, "╮") != 11 || !strings.HasSuffix(over, "╮") {
 		t.Errorf("the line over twelve tabs: %q", over)
 	}
-	if got, ok := b.Update(tea.KeyPressMsg{Code: '0', Text: "0"}); !ok || got.Selected != 9 || !strings.Contains(row(got, 0), "➓") {
+	if got, ok := b.Update(tea.KeyPressMsg{Code: '0', Text: "0"}); !ok || got.Selected != 9 || !strings.Contains(row(got, 0), "0") {
 		t.Errorf("0 with twelve tabs: tab %d, taken %v", got.Selected, ok)
 	}
 }
@@ -111,8 +127,8 @@ func TestTheBarIsThreeLinesWithinTheScreenAndKeepsEveryNumberWhenItFits(t *testi
 				continue
 			}
 			for i := range 8 {
-				if !strings.Contains(lines[0], Marker(i, i == selected)) {
-					t.Errorf("at %d, tab %d: no %s: %q", width, selected, Marker(i, i == selected), lines[0])
+				if !strings.Contains(lines[0], Marker(i)) {
+					t.Errorf("at %d, tab %d: no %s: %q", width, selected, Marker(i), lines[0])
 				}
 			}
 		}
@@ -149,8 +165,8 @@ func TestEveryTabIsWholeAtItsOwnWidthAndTheLineUnderRunsOnPastThem(t *testing.T)
 // runs on.
 func TestTheSelectedTabIsOpenBelowAndItsEdgesCurve(t *testing.T) {
 	want := []string{
-		"  ➀╶─────────────────╮➁╶──────────────────╮➂╶─────────────────╴➍╶─────────────╮➄╶──────────────────╮" +
-			"➅╶────────────────╮➆╶───────────────╮➇╶─────────────────╮",
+		"  1╶─────────────────╮2╶──────────────────╮3╶─────────────────╴4╶─────────────╮5╶──────────────────╮" +
+			"6╶────────────────╮7╶───────────────╮8╶─────────────────╮",
 		"    🎫 backlog  15   │  🛫 underway  58   │  🛬 incoming  2    │ 💻 desk  1 : │  🌿 worktrees  4   │" +
 			"  🔀 changes  3   │  🏭 builds  4   │  📦 releases  3   │",
 		"  ───────────────────╰────────────────────╰────────────────────╯              ╰────────────────────╰" +
@@ -163,7 +179,7 @@ func TestTheSelectedTabIsOpenBelowAndItsEdgesCurve(t *testing.T) {
 	// the first tab and the last have the same edges, the first's after the gutter, each over a half line where no tab
 	// is beside it
 	first, last := strings.Split(plain(stages(0, natural())), "\n"), strings.Split(plain(stages(7, natural())), "\n")
-	for k, edge := range []string{"➊", "│", "╵"} {
+	for k, edge := range []string{"1", "│", "╵"} {
 		if !strings.HasPrefix(first[k], "  "+edge) {
 			t.Errorf("the first tab's line %d does not start with %s: %q", k, edge, first[k])
 		}
@@ -178,7 +194,7 @@ func TestTheSelectedTabIsOpenBelowAndItsEdgesCurve(t *testing.T) {
 		t.Errorf("the selected last tab short of the edge: %q", under)
 	}
 	// the selected tab's lines are in the accent, and so is the line under every tab; the others' hooks are dim
-	if v := b.View(); !strings.Contains(v, style.Mark("➍")) || !strings.Contains(v, style.Mark("╯")) ||
+	if v := b.View(); !strings.Contains(v, style.Mark("4")) || !strings.Contains(v, style.Mark("╯")) ||
 		!strings.Contains(v, style.Mark("╰")) || !strings.Contains(v, style.Mark(strings.Repeat("─", 17))) ||
 		!strings.Contains(v, style.Off("╰")) {
 		t.Errorf("the edges are not in the accent: %q", v)
@@ -342,16 +358,16 @@ func TestANumberSelectsItsTabFromAnywhere(t *testing.T) {
 func TestAClickOnTheBarSelectsTheTabUnderIt(t *testing.T) {
 	b := stages(0, 80)
 	b.Focused = false
-	x, click := testkit.Column(row(b, 0), '➃'), testkit.Click
+	x, click := testkit.Column(row(b, 0), '4'), testkit.Click
 	if got, ok := b.Update(click(x, 1)); !ok || got.Selected != 3 || !got.Focused {
-		t.Errorf("a click on ➃: tab %d, taken %v, focused %v", got.Selected, ok, got.Focused)
+		t.Errorf("a click on 4: tab %d, taken %v, focused %v", got.Selected, ok, got.Focused)
 	}
 	if got, ok := b.Update(click(x+4, 1)); !ok || got.Selected != 3 {
-		t.Errorf("a click on ➃'s rule: tab %d, taken %v", got.Selected, ok)
+		t.Errorf("a click on 4's rule: tab %d, taken %v", got.Selected, ok)
 	}
 	for _, y := range []int{2, 3} {
 		if got, ok := b.Update(click(x, y)); !ok || got.Selected != 3 {
-			t.Errorf("a click on ➃'s line %d: tab %d, taken %v", y, got.Selected, ok)
+			t.Errorf("a click on 4's line %d: tab %d, taken %v", y, got.Selected, ok)
 		}
 	}
 	for _, y := range []int{0, 4} {
@@ -372,7 +388,7 @@ func TestTheOtherTabsAreDimWhileThePaneHasTheKeyboard(t *testing.T) {
 	}
 	b.Focused = false
 	got := b.View()
-	if !strings.Contains(got, dim+" 🛬 incoming") || !strings.Contains(got, dim+"➂") || !strings.Contains(got, dim+"╶─") ||
+	if !strings.Contains(got, dim+" 🛬 incoming") || !strings.Contains(got, dim+"3") || !strings.Contains(got, dim+"╶─") ||
 		!strings.Contains(got, style.Mark("backlog")) {
 		t.Errorf("the other tabs and their lines are not dim beside the selected one: %q", got)
 	}
@@ -458,7 +474,7 @@ func TestTheBarsEdges(t *testing.T) {
 	}
 	// a tab without a glyph has its name under its number
 	bare := Bar{Selected: 1, Width: 40, Tabs: []Tab{{"", "nonesuch", "!"}, {"🎫", "backlog", "3"}}}
-	if got := plain(bare); !strings.HasPrefix(got, "  ➀╶") || !strings.HasPrefix(row(bare, 1), "    nonesuch  !    │") {
+	if got := plain(bare); !strings.HasPrefix(got, "  1╶") || !strings.HasPrefix(row(bare, 1), "    nonesuch  !    │") {
 		t.Errorf("a tab without a glyph: %q", got)
 	}
 }
@@ -589,7 +605,8 @@ func TestACountThatWantsAttentionStandsOut(t *testing.T) {
 		b := stages(0, 120)
 		b.Focused, b.Alert = focused, []bool{false, false, true}
 		got := b.View()
-		if !strings.Contains(got, style.Loss("2")) || strings.Contains(got, style.Off("2")) {
+		// a dim 2 may be the second tab's number, while the pane has the keyboard, but not the count
+		if !strings.Contains(got, style.Loss("2")) || strings.Count(got, style.Off("2")) > 1 {
 			t.Errorf("focused %v: incoming's count is not red: %q", focused, got)
 		}
 		without := stages(0, 120)
@@ -667,7 +684,7 @@ func TestANumberedLabelShowsTheTabsNumberInPlaceOfItsGlyph(t *testing.T) {
 	b := stages(1, 120)
 	b.Color = "33"
 	mark, _ := style.In("33")
-	if got := b.NumberedLabel(); ansi.Strip(got) != "➋ underway 58 "+Menu || !strings.Contains(got, mark("➋")) {
+	if got := b.NumberedLabel(); ansi.Strip(got) != "2 underway 58 "+Menu || !strings.Contains(got, mark("2")) {
 		t.Errorf("underway's: %q", got)
 	}
 	ten := Bar{Selected: 9, Tabs: slices.Repeat([]Tab{{"🎫", "backlog", "3"}}, 10)}

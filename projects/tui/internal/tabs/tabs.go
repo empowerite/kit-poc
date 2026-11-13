@@ -14,8 +14,8 @@
 // gutter before the bar for the tabs it hides on the left and ▹ after those on the right, a tab at either edge cut
 // there. The selected tab always shows whole, with its count and its menu's glyph: when it would not, the view centers
 // it, as near as the bar's ends let. A triangle scrolls the view to show whole the nearest tab it hides, never
-// selecting it; one that would cut the selected tab is hidden, its cell left blank, and moves nothing. The first ten tabs are numbered ➀ to ➉, the selected one ➊ to ➓; past the tenth a tab has no number, and its
-// border runs through the number's cell. The selected tab, its lines, and the line under every tab are in the accent,
+// selecting it; one that would cut the selected tab is hidden, its cell left blank, and moves nothing. The first ten tabs are numbered 1 to 9 and 0, the key that selects each, the selected tab's digit bold and
+// in the accent, the others' dim; past the tenth a tab has no number, and its border runs through the number's cell. The selected tab, its lines, and the line under every tab are in the accent,
 // wherever the keyboard is; while the pane under the bar has it, the other tabs are dim, all but a count that wants
 // attention. Widths are terminal cells, so a two-cell glyph never pushes the line past the edge.
 //
@@ -179,17 +179,18 @@ func number(k tea.KeyPressMsg) (int, bool) {
 	return 0, false
 }
 
-// Marker gives a tab's number: ➀ to ➉, ➊ to ➓ when selected, and past the tenth nothing, its cell then the tab's
-// border. The dingbats' sans-serif digits are one cell in every terminal, as Unicode fixes their width, and the two
-// sets come from one font; ① and ❶ are of ambiguous width, and terminals draw them from fonts of different sizes.
-func Marker(i int, selected bool) string {
+// Marker gives a tab's number, the key that selects it: 1 to 9, 0 for the tenth, and past the tenth nothing, its cell
+// then the tab's border. It is the same digit for the selected tab and the others; the bar draws the selected tab's
+// bold, in the accent, and the others' dim. A circled digit is one cell wide, but it reads alike open or filled in
+// many fonts, and the digit in it is hard to make out.
+func Marker(i int) string {
 	switch {
 	case i >= 10:
 		return ""
-	case selected:
-		return string(rune('➊' + i))
+	case i == 9:
+		return "0"
 	}
-	return string(rune('➀' + i))
+	return string(rune('1' + i))
 }
 
 // label gives a tab's label on the middle line, as three parts: its glyph and a space, when it has one, and its name,
@@ -253,7 +254,7 @@ func (b Bar) numbered() Bar {
 	mark, _ := style.In(b.Color)
 	numbered := b
 	numbered.Tabs = slices.Clone(b.Tabs)
-	numbered.Tabs[b.Selected].Glyph = mark(Marker(b.Selected, true))
+	numbered.Tabs[b.Selected].Glyph = mark(Marker(b.Selected))
 	return numbered
 }
 
@@ -435,14 +436,14 @@ func (b Bar) View() string {
 		label := pane.Pad(body, room, false) + tail + " "
 		dimmed := pane.Pad(dimBody, room, false) + tail + " "
 		if i == b.Selected {
-			cell(mark(cmp.Or(Marker(i, true), "╭")), mark("│"), curve("╯", i == 0))
+			cell(mark(cmp.Or(Marker(i), "╭")), mark("│"), curve("╯", i == 0))
 			cell(mark(top(cells-1)), label, strings.Repeat(" ", cells-1))
 			cell(mark("╮"), mark("│"), curve("╰", i == n-1 && edge))
 			continue
 		}
 		// the others' borders are dim, and the line under them in the selected tab's color; the tab before the selected
 		// one has no edge after it
-		number := b.dim(Marker(i, false))
+		number := b.dim(Marker(i))
 		if number == "" {
 			number = style.Off("─")
 		}

@@ -23,7 +23,7 @@ columns wide, drawn from the sample data that kittui's tests use:
 
 ```text
   = kit flow · - empowerite/kit                                      🔎 /search
-  ➊╶───────────────╮➁╶────────────────╮➂╶───────────────╮➃╶──────────────────╮➄╶
+  1╶───────────────╮2╶────────────────╮3╶───────────────╮4╶──────────────────╮5╶
   │ 🎫 issues  7 : │  🔀 changes  3   │  🏭 builds  4   │  🛬 incoming  7    │
   ╵                ╰──────────────────╰─────────────────╰────────────────────╰──
   Issues — What is open, who has it, and where the work on it stands

@@ -30,18 +30,17 @@ type Bar struct {
 	Tabs, Menu func(y int) bool
 }
 
-// Tabs gives the parts of the tab bar: the selected tab's menu, its number and the others', the arrows that scroll
-// the tabs, and the dot of a tab that is stale. The tab menu stands on the bar, or, as the tab is maximized, on the
-// menu bar.
+// Tabs gives the parts of the tab bar: the selected tab's menu, the tabs' numbers, one line for all of them, since the
+// selected tab's is the same digit, bold; the arrows that scroll the tabs, and the dot of a tab that is stale. The tab
+// menu stands on the bar, or, as the tab is maximized, on the menu bar.
 func Tabs(b Bar) []Part {
-	var numbers, selected []string
+	var numbers []string
 	for i := range 10 {
-		numbers, selected = append(numbers, tabs.Marker(i, false)), append(selected, tabs.Marker(i, true))
+		numbers = append(numbers, tabs.Marker(i))
 	}
 	return []Part{
 		One(tabs.Menu, "tab menu", func(y int) bool { return b.Tabs(y) || b.Menu(y) }),
-		{selected, "selected tab", "", b.Tabs},
-		{numbers, "tab: click to select", "", b.Tabs},
+		{numbers, "tab: click to select; bold is selected", "", b.Tabs},
 		{[]string{tabs.Before, tabs.After}, "more tabs: click to scroll", "", b.Tabs},
 		One(tabs.Stale, "stale: click to reload", b.Tabs),
 	}

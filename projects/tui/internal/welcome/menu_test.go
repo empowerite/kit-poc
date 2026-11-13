@@ -76,7 +76,7 @@ func TestMaximizeGivesThePaneTheBarsLines(t *testing.T) {
 	switch {
 	case !m.maximized || m.tabMenu.Open || m.paneHeight() != before+2:
 		t.Fatalf("maximized %v, open %v, pane %d lines, not %d", m.maximized, m.tabMenu.Open, m.paneHeight(), before+2)
-	case !strings.Contains(lines[0], "➋ toolchains 3 "+tabs.Menu) || strings.Contains(lines[0], "🧰"):
+	case !strings.Contains(lines[0], "2 toolchains 3 "+tabs.Menu) || strings.Contains(lines[0], "🧰"):
 		t.Errorf("the title does not name the tab: %q", lines[0])
 	case strings.Trim(lines[1], shell.Rule) != "" || ansi.StringWidth(lines[1]) != at120.Width:
 		t.Errorf("no banner under the title: %q", lines[1])
