@@ -171,8 +171,14 @@ SH
   [ "$status" -eq 0 ]
   [ ! -e ran ]
   cmp kit/modules/tutorials.yml "${BATS_TEST_TMPDIR}/before"
-  # with a projects/tutorials, as in kit's source, the command runs bin/tutorials, and a lost execute bit fails
+  # a projects/tutorials of the repository's own, with no audiences.yml as kit's source has, is not kit's source either
   mkdir -p projects/tutorials
+  run "${kit_root}/bin/kit" generate kit/modules/tutorials.yml
+  [ "$status" -eq 0 ]
+  [ ! -e ran ]
+  cmp kit/modules/tutorials.yml "${BATS_TEST_TMPDIR}/before"
+  # with its audiences.yml, as in kit's source, the command runs bin/tutorials, and a lost execute bit fails
+  : > projects/tutorials/audiences.yml
   chmod -x bin/tutorials
   run "${kit_root}/bin/kit" generate kit/modules/tutorials.yml
   [ "$status" -ne 0 ]
