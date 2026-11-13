@@ -42,10 +42,11 @@
 #   3. otherwise patterns
 #
 # kit commit reads the policy from the tree it will commit, never from the disk: kit.yml as that tree holds it, and
-# each .rego file under .kit/policy/ from that tree when its source is a file of the repository's, such as a package
-# of its own. A file the release delivers is read as placed, since the pinned release cannot change under a commit.
-# So an edit on the disk that is not staged cannot weaken the judgment of the commit. policy:from sets this up;
-# policy:from-disk puts it back.
+# every file that tree holds under .kit/policy/, Rego and the data files beside it, in a subdirectory too, a link
+# resolved in the tree, as policy:base-held reads a base. Then comes what kit placed there, which git does not hold:
+# a link to a file of the repository's, such as a package of its own, is read from that tree, and a file the release
+# delivers is read as placed, since the pinned release cannot change under a commit. So an edit on the disk that is
+# not staged cannot weaken the judgment of the commit. policy:from sets this up; policy:from-disk puts it back.
 #
 # kit policy and kit linked judge a branch past the default one by the policy on its base, the ref the commits are
 # counted from (policy:base), so a branch cannot loosen the rule that judges it: a pattern it blanks, a login it
@@ -668,28 +669,43 @@ policy:settings() {
 
 # policy:from <rev> <dir> makes the policy read its settings and its Rego as <rev> holds them, an empty <rev> being the
 # index that GIT_INDEX_FILE names, or the default one. It writes them under <dir>, which it makes. A tree with no
-# kit.yml reads as one with no settings, the kit's defaults, and a source of a link under .kit/policy/ that the tree
-# lacks is not part of its policy. The package.yml of each package that kit.yml lists is read as the tree holds it
-# where the package is the repository's own, under its root, and from where it is otherwise (policy:tree-metas). It
-# returns 1 when a file the tree holds cannot be read, or a package listed is in reach of neither.
+# kit.yml reads as one with no settings, the kit's defaults. What opa loads, <dir>/rego, is first every file the tree
+# holds under .kit/policy/, Rego or data, at its path below it, a link resolved in the tree (policy:base-held): the
+# disk's copy of a file git holds is never read. Then it is each file on the disk under .kit/policy/ that the tree
+# does not hold, which kit placed: a link to a file under the repository's root as the tree holds that file, and no
+# part of the policy where the tree lacks it, and any other file as placed. The package.yml of each package that
+# kit.yml lists is read as the tree holds it where the package is the repository's own, under its root, and from
+# where it is otherwise (policy:tree-metas). It returns 1 when a file the tree holds cannot be read, the index cannot
+# be read as a tree, as while a merge is unresolved, or a package listed is in reach of neither.
 policy:from() {
-  local rev=$1 dir=$2 rego target root object where=${1:-the index}
+  local rev=$1 dir=$2 tree=$1 file name target root object where=${1:-the index}
+  local -a placed=()
   mkdir -p "${dir}/rego" || return 1
   policy:settings "${rev}" "${dir}/kit.yml" || return 1
   root=$(git rev-parse --show-toplevel) || return 1
   policy:tree-metas "${rev}" "${dir}" "${where}" || return 1
-  for rego in .kit/policy/*.rego
+  if [[ -z "${tree}" ]] && ! tree=$(git write-tree 2>/dev/null)
+  then
+    error "run: git status (the index could not be read as a tree, so the policy it holds cannot be read)"
+    return 1
+  fi
+  policy:base-held "${tree}" .kit/policy "${dir}/rego" "${where}" || return 1
+  [[ ! -d .kit/policy ]] || list:read0 placed find .kit/policy '(' -type f -o -type l ')' -print0 || return 1
+  for file in "${placed[@]}"
   do
-    [[ -e "${rego}" ]] || continue
-    target=$(readlink -f "${rego}")
-    if [[ -L "${rego}" && "${target}" == "${root}/"* ]]
+    name=${file#.kit/policy/}
+    object=$(policy:object "${rev}" "${file}") || return 1
+    [[ -z "${object}" ]] || continue
+    target=$(readlink -f "${file}")
+    if [[ -L "${file}" && "${target}" == "${root}/"* ]]
     then
       object=$(policy:object "${rev}" "${target#"${root}/"}") || return 1
-      rm -f "${dir}/rego/${rego##*/}"
-      [[ -z "${object}" ]] || policy:blob "${object}" "${dir}/rego/${rego##*/}" \
-        "${target#"${root}/"} in ${where}" || return 1
+      [[ -n "${object}" ]] || continue
+      mkdir -p "${dir}/rego/$(dirname "${name}")" || return 1
+      policy:blob "${object}" "${dir}/rego/${name}" "${target#"${root}/"} in ${where}" || return 1
     else
-      cp "${rego}" "${dir}/rego/" || return 1
+      mkdir -p "${dir}/rego/$(dirname "${name}")" || return 1
+      cp "${file}" "${dir}/rego/${name}" || return 1
     fi
   done
   # shellcheck disable=SC2034  # settings:file reads settings_file
@@ -837,16 +853,17 @@ policy:base-tree() {
   done
 }
 
-# policy:base-held <base> <path> <into> writes into the directory <into> every file <base> holds under the directory
-# <path>, at its path below it: a file as <base> holds it, and a link as <base> holds its target, resolved in
-# <base>'s tree. A link whose target <base> does not hold is not part of it, and a submodule is no file. It returns 1
-# when a file cannot be read, or a link leaves the tree or names something other than a file.
+# policy:base-held <base> <path> <into> [<where>] writes into the directory <into> every file <base> holds under the
+# directory <path>, at its path below it: a file as <base> holds it, and a link as <base> holds its target, resolved
+# in <base>'s tree. A link whose target <base> does not hold is not part of it, and a submodule is no file. It
+# returns 1 when a file cannot be read, or a link leaves the tree or names something other than a file. <where> is
+# what a message calls <base>, where it is a tree with no name of its own, as the index's.
 policy:base-held() {
-  local base=$1 path=${2%/} into=$3 entry name object target
+  local base=$1 path=${2%/} into=$3 where=${4:-$1} entry name object target
   local -a entries
   if ! list:read0 entries git ls-tree -z -r --full-tree "${base}" -- "${path}/" 2>/dev/null
   then
-    error "run: git fsck (${path}/ in ${base} could not be read)"
+    error "run: git fsck (${path}/ in ${where} could not be read)"
     return 1
   fi
   for entry in "${entries[@]}"
@@ -860,23 +877,23 @@ policy:base-held() {
     then
       if ! target=$(git cat-file blob "${object}" 2>/dev/null)
       then
-        error "run: git fsck (${name} in ${base} could not be read)"
+        error "run: git fsck (${name} in ${where} could not be read)"
         return 1
       fi
       if ! target=$(policy:tree-path "${name%/*}" "${target}")
       then
-        error "make ${name} on ${base} a link inside the repository (it leaves the tree)"
+        error "make ${name} in ${where} a link inside the repository (it leaves the tree)"
         return 1
       fi
       if ! entry=$(git ls-tree --full-tree "${base}" -- "${target}" 2>/dev/null)
       then
-        error "run: git fsck (${target} in ${base} could not be read)"
+        error "run: git fsck (${target} in ${where} could not be read)"
         return 1
       fi
       [[ -n "${entry}" ]] || continue
       if [[ "${entry}" != 100* ]]
       then
-        error "make ${name} on ${base} a link to a file (${target} is not one)"
+        error "make ${name} in ${where} a link to a file (${target} is not one)"
         return 1
       fi
       object=${entry#* * }
@@ -884,7 +901,7 @@ policy:base-held() {
     fi
     name=${name#"${path}/"}
     mkdir -p "${into}/$(dirname "${name}")" || return 1
-    policy:blob "${object}" "${into}/${name}" "${path}/${name} in ${base}" || return 1
+    policy:blob "${object}" "${into}/${name}" "${path}/${name} in ${where}" || return 1
   done
 }
 

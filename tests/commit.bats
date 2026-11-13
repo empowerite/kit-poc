@@ -886,6 +886,63 @@ EOF
   [ "$(git log --oneline | wc -l | tr -d ' ')" = 1 ]
 }
 
+@test "Rego git holds under .kit/policy/ judges as the commit holds it: taken out on the disk, it still refuses" {
+  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  mkdir -p .kit/policy
+  printf 'package kit.policy\n\nimport rego.v1\n\ndeny contains "never" if true\n' > .kit/policy/own.rego
+  git add --force .kit/policy/own.rego && git commit --quiet --message '#7 policy: a rule of our own'
+  # the attack: the rule is turned off on the disk alone, and never staged
+  printf 'package kit.policy\n\nimport rego.v1\n\ndeny contains "never" if false\n' > .kit/policy/own.rego
+  [ "$(git status --porcelain -- .kit/policy/own.rego)" = " M .kit/policy/own.rego" ]
+  printf 'x\n' > x && git add x
+  run kit commit --message='#7 x: a file'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"never"* ]]
+  run kit commit --message='#7 x: a file' x
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"never"* ]]
+  # taken off the disk, it judges still
+  rm .kit/policy/own.rego
+  run kit commit --message='#7 x: a file'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"never"* ]]
+  [ "$(git log --oneline | wc -l | tr -d ' ')" = 2 ]
+  # staged, the rule that is off is the commit's own, and allows it
+  printf 'package kit.policy\n\nimport rego.v1\n\ndeny contains "never" if false\n' > .kit/policy/own.rego
+  git add --force .kit/policy/own.rego
+  run kit commit --message='#7 x: a file'
+  [ "$status" -eq 0 ]
+}
+
+@test "the data and the subdirectories git holds under .kit/policy/ judge the commit, as the commit holds them" {
+  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  mkdir -p .kit/policy/team
+  printf 'package kit.policy\n\nimport rego.v1\n\ndeny contains "too many files" if count(input.tree) > data.max_files\n' \
+    > .kit/policy/own.rego
+  printf '{"max_files": 0}\n' > .kit/policy/limits.json
+  cat > .kit/policy/team/banned.rego <<'REGO'
+package kit.policy
+
+import rego.v1
+
+deny contains sprintf("%s is banned", [path]) if {
+	some path, _ in input.tree
+	path in data.team.banned
+}
+REGO
+  printf '{"banned": ["x"]}\n' > .kit/policy/team/data.json
+  git add --force .kit/policy && git commit --quiet --message '#7 policy: a limit, and the team'"'"'s rule'
+  # on the disk alone, the limit is raised and nothing is banned
+  printf '{"max_files": 100000}\n' > .kit/policy/limits.json
+  printf '{"banned": []}\n' > .kit/policy/team/data.json
+  printf 'x\n' > x && git add x
+  run kit commit --message='#7 x: a file'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"too many files"* ]]
+  [[ "$output" == *"x is banned"* ]]
+  [ "$(git log --oneline | wc -l | tr -d ' ')" = 2 ]
+}
+
 @test "a path staged by another session while kit commit checks is refused, and nothing is committed" {
   opa-rule 'deny contains "never" if input.never'
   mkdir "${work}/bin"

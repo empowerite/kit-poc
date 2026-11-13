@@ -83,6 +83,12 @@ deny list stops one.
 - When the engine errors, because `opa` is missing or a `.rego` file is broken, it refuses the commit. It fails closed.
 - The engine and the patterns are read from the tree being judged, so an unstaged edit to `kit.yml` or
   `.kit/policy/` does not change the verdict.
+- What `opa` loads is every file that tree holds under `.kit/policy/`, as the tree holds it: the Rego, a data file
+  beside it, and a subdirectory, a link resolved in the tree. A file git holds there is never read from the disk, so
+  one edited or deleted on the disk and not staged judges as staged.
+- Then comes what kit placed under `.kit/policy/`, which git does not hold. A link to a file of the repository's
+  own, such as a package of its own, is read as the tree holds that file. A file the release delivers is read as
+  placed, since the pinned release cannot change under a commit.
 - Warnings print, and the commit still goes through.
 
 ### What judges a branch
