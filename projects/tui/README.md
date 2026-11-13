@@ -12,7 +12,10 @@ It has six screens:
   the verb's name, opens the verb's form. [ and ] move to the group before and after, { and } to the first and the
   last.
 - **A verb's form.** It opens when a verb at a terminal is short of its arguments. It finishes the command line. In
-  one opened from the palette, esc, or a click on ‹ verbs, goes back.
+  one opened from the palette, esc, or a click on ‹ verbs, goes back. A click on a field gives it the keyboard. A
+  click on a flag's name flips it, and one on a name in a row of options chooses or flips that option, as the space
+  does. A click on a row of the list that has the keyboard picks it. A click on the command line gives it the
+  keyboard, and a second click there runs it, as ⏎ does, so no single click runs a command.
 - **The flow picture.** `kit flow` at a terminal draws its stages here. Over a group, `kit --workspace=<group> flow`
   or one picked from the 📚 workspace menu, every tab gathers every cloned member's rows, grouped by member as they
   load. An action on rows runs in each row's member's checkout.

@@ -14,6 +14,10 @@
 // verb's name, and the search field; the status bar last. A click on the kit menu or the workspace menu drops it down,
 // and = or - does where the field with the keyboard types no text; a click on the search field, or / where no text is
 // typed, asks for the palette's search, the Help screen's, as FindMsg.
+//
+// Every field takes a plain click, as press says: a click on a field gives it the keyboard; one on a flag's name, or
+// on a name of a row of options, does there what the space does; one on a row of the list that has the keyboard
+// picks it; and one on the command line that has the keyboard runs it.
 package form
 
 import (
@@ -187,8 +191,8 @@ func (m Model) onBack(x, y int) bool {
 		x <= ansi.StringWidth(backLabel)
 }
 
-// click takes a click on the menu bar: an open menu's, the kit menu's =, the workspace menu, or the search field; and
-// one on the way back, which goes back to the palette. Anywhere else it does nothing.
+// click takes a click on the menu bar: an open menu's, the kit menu's =, the workspace menu, or the search field; one
+// on the way back, which goes back to the palette; and one on the form, as press says. Anywhere else it does nothing.
 func (m *Model) click(msg tea.MouseClickMsg) tea.Cmd {
 	booksAt := m.menuBar().WorkspaceAt()
 	switch {
@@ -210,8 +214,61 @@ func (m *Model) click(msg tea.MouseClickMsg) tea.Cmd {
 		return func() tea.Msg { return FindMsg{} }
 	case m.onBack(msg.X, msg.Y):
 		return func() tea.Msg { return BackMsg{} }
+	default:
+		return m.press(msg.X, msg.Y)
 	}
 	return nil
+}
+
+// press takes a click on the form, read through the window that clips it. A click on a field gives it the keyboard,
+// and one on a name does there what the space does: on a flag's name it flips the flag, and on a name of a row it
+// puts the cursor on the option and chooses or flips it. The name acts only while its field is the one the keyboard
+// came to, which a move that brings a verb's own arguments may replace. A click on a row of the list that has the
+// keyboard puts the cursor on the row, and picks it or unpicks it on a list of many, as the space does, or takes it
+// and goes on, on a list of one, as Enter does. A click on the command line gives it the keyboard, and one on it
+// while it has the keyboard runs it, as Enter does there, so no single click runs a command. A click on a blank
+// line, or on a line that says how many are hidden, does nothing.
+func (m *Model) press(x, y int) tea.Cmd {
+	fields, o := m.viewFields(), m.options()
+	content, header, first, last, at := Layout(m.spec, fields, o)
+	_, from := window(content, m.room(), header, first, last, at)
+	if y -= 2; y < 0 || y >= len(from) || from[y] < 0 { // the menu bar and its rule stand over the form
+		return nil
+	}
+	if at >= 0 {
+		if k, span := m.cursor+from[y]-at, m.span(); k >= span.Start && k < span.End {
+			m.cursor = k
+			if m.fields[m.focus].Kind == PickMany {
+				return m.list(tea.KeyPressMsg{}, "space")
+			}
+			return m.list(tea.KeyPressMsg{}, "enter")
+		}
+	}
+	spot, on := SpotAt(Spots(m.spec, fields, o), x, from[y])
+	switch {
+	case !on:
+		return nil
+	case spot.Field < len(m.fields):
+	case m.focus < len(m.fields):
+		return m.move(len(m.fields) - m.focus)
+	default:
+		return m.tryRun()
+	}
+	key, cmd := m.fields[spot.Field].Key, tea.Cmd(nil)
+	if spot.Field != m.focus {
+		cmd = m.move(spot.Field - m.focus)
+	}
+	if spot.Option < 0 || m.focus >= len(m.fields) || m.fields[m.focus].Key != key {
+		return cmd
+	}
+	switch f := &m.fields[m.focus]; f.Kind {
+	case Toggle:
+		m.toggle("space")
+	case AnyOf, OneOf:
+		m.cursor = spot.Option
+		m.pickOption(f)
+	}
+	return cmd
 }
 
 // typing says whether the field with the keyboard types what is pressed: a value, a line, or a list's filter.
@@ -238,19 +295,33 @@ func (m Model) View() tea.View {
 // frame gives the screen's lines over its last, before the legend and the menus are drawn over them: the menu bar and
 // its rule, and the form clipped to the terminal's lines.
 func (m Model) frame() []string {
+	content, header, first, last, at := Layout(m.spec, m.viewFields(), m.options())
+	shown, _ := window(content, m.room(), header, first, last, at)
+	lines := strings.Split(strings.TrimSuffix(shown, "\n"), "\n")
+	return append([]string{m.menuBar().Line(m.width), shell.RuleLine(m.width, "")}, lines...)
+}
+
+// options gives how the form is drawn as it stands: where the keyboard is, and what is typed and said there.
+func (m Model) options() Options {
 	focus := m.focus
 	if focus >= len(m.fields) {
 		focus = -1
 	}
-	content, header, first, last, at := Layout(m.spec, m.viewFields(), Options{Width: m.width, Focus: focus,
-		Cursor: m.cursor, Styles: live, Expand: m.expand, Note: m.note, CommandFocus: m.focus >= len(m.fields),
-		CommandRefusal: m.refusal, Back: m.back})
-	room := 0
-	if m.height > 0 {
-		room = max(1, m.height-4) // the menu bar and its rule over the form, and the gap and the status bar under it
+	return Options{Width: m.width, Focus: focus, Cursor: m.cursor, Styles: live, Expand: m.expand, Note: m.note,
+		CommandFocus: m.focus >= len(m.fields), CommandRefusal: m.refusal, Back: m.back}
+}
+
+// room gives the lines the form has on the terminal, zero before the terminal says its own, when nothing is clipped.
+func (m Model) room() int {
+	if m.height <= 0 {
+		return 0
 	}
-	lines := strings.Split(strings.TrimSuffix(window(content, room, header, first, last, at), "\n"), "\n")
-	return append([]string{m.menuBar().Line(m.width), shell.RuleLine(m.width, "")}, lines...)
+	return max(1, m.height-4) // the menu bar and its rule over the form, and the gap and the status bar under it
+}
+
+// span gives the rows the window of the list that has the keyboard shows, around its cursor.
+func (m Model) span() pane.Span {
+	return pane.Frame(len(m.filtered()), listWindow, m.cursor-4, m.cursor, m.cursor)
 }
 
 // bottom gives the screen's last line, the keys bar, which nothing above it moves.
@@ -1044,7 +1115,7 @@ func (m Model) drawList(b *strings.Builder, f Field, indent string) int {
 	if len(rows) == 0 {
 		b.WriteString(indent + style.Off("nothing matches") + "\n")
 	}
-	span := pane.Frame(len(rows), listWindow, m.cursor-4, m.cursor, m.cursor)
+	span := m.span()
 	start, end, at := span.Start, span.End, -1
 	if span.Above {
 		b.WriteString(pane.Above(start) + "\n")

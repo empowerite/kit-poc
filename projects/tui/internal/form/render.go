@@ -1,6 +1,7 @@
 // The form drawn as text: the purpose, one block per field with its label, description, and answer, and the command
 // line last. The live model draws with the same layout, adding focus and color; RenderStatic draws it plain. Widths
-// are terminal cells, so a two-cell glyph never pushes a line past the edge.
+// are terminal cells, so a two-cell glyph never pushes a line past the edge. As it draws, the layout notes the spots
+// a click reaches: each field's lines, each name that flips or chooses, and the command line.
 package form
 
 import (
@@ -69,13 +70,45 @@ func Render(spec syntax.Spec, fields []Field, o Options) string {
 // the way back, the first and last line of the field that has the keyboard, or of the command line, and the line of
 // a list's cursor, each -1 for none. A short terminal shows the top and those lines.
 func Layout(spec syntax.Spec, fields []Field, o Options) (content string, header, first, last, at int) {
-	d := drawer{spec: spec, fields: fields, width: o.Width, focus: o.Focus, cursor: o.Cursor, st: o.Styles, o: o,
+	d, header := lay(spec, fields, o)
+	return d.b.String(), header, d.first, d.last, d.at
+}
+
+// Spot is what a click on the form Layout draws reaches: the lines it stands on, from First to Last, and on each the
+// columns from From to the one before Until; the field, len(fields) for the command line; and the name the click is
+// on, an option of a row, or 0 for a flag's own name, -1 for the rest of the field's lines.
+type Spot struct {
+	First, Last, From, Until int
+	Field, Option            int
+}
+
+// Spots gives what a click on the form Layout draws reaches, as Spot says: each name before the field it is in, and a
+// field drawn under a row's name before the row.
+func Spots(spec syntax.Spec, fields []Field, o Options) []Spot {
+	d, _ := lay(spec, fields, o)
+	return d.spots
+}
+
+// SpotAt gives the spot a click at the column x of a line reaches, the first of those Spots gives that holds the
+// cell, and whether one does.
+func SpotAt(spots []Spot, x, line int) (Spot, bool) {
+	for _, s := range spots {
+		if line >= s.First && line <= s.Last && x >= s.From && x < s.Until {
+			return s, true
+		}
+	}
+	return Spot{}, false
+}
+
+// lay draws the form, as Layout says, and gives the drawer that drew it and the lines on top that stay in place.
+func lay(spec syntax.Spec, fields []Field, o Options) (*drawer, int) {
+	d := &drawer{spec: spec, fields: fields, width: o.Width, focus: o.Focus, cursor: o.Cursor, st: o.Styles, o: o,
 		column: labelColumn(fields), first: -1, last: -1, at: -1}
 	if o.Back {
 		d.b.WriteString(" " + o.Styles.Off(backLabel) + "\n\n")
 	}
 	width := o.Width
-	header = d.count()
+	header := d.count()
 	for _, line := range pane.Wrap("kit "+spec.Verb+" - "+spec.Purpose, width-1) {
 		d.b.WriteString(" " + line + "\n")
 	}
@@ -94,26 +127,29 @@ func Layout(spec syntax.Spec, fields []Field, o Options) (content string, header
 		}
 		d.b.WriteString(" " + line + "\n")
 	}
+	d.spots = append(d.spots, Spot{First: before, Last: d.count() - 1, Until: width, Field: len(fields), Option: -1})
 	if o.CommandRefusal != "" {
 		d.b.WriteString(" " + o.Styles.Refusal("❌ "+o.CommandRefusal) + "\n")
 	}
 	if o.CommandFocus {
 		d.first, d.last = before, d.count()-1
 	}
-	return d.b.String(), header, d.first, d.last, d.at
+	return d, header
 }
 
 // window clips a form to the height: the header stays, and the lines under it are the window that shows the focused
 // lines, from their first when they all fit, else from their first still, and the line at, a list's cursor, always.
 // A line says how many lines the window hides above it, and one how many it hides below, as pane.Above and pane.More
-// draw them, each in a line's place. A height of zero clips nothing.
-func window(content string, height, header, first, last, at int) string {
-	if height <= 0 {
-		return content
-	}
+// draw them, each in a line's place. A height of zero clips nothing. It gives, beside the lines shown, the line of
+// the content each of them shows, -1 for a line that says how many are hidden, which a click on the line is read by.
+func window(content string, height, header, first, last, at int) (string, []int) {
 	lines := strings.Split(strings.TrimSuffix(content, "\n"), "\n")
-	if len(lines) <= height {
-		return content
+	from := make([]int, len(lines))
+	for k := range from {
+		from[k] = k
+	}
+	if height <= 0 || len(lines) <= height {
+		return content, from
 	}
 	header = min(header, height-1)
 	body, room := lines[header:], height-header
@@ -122,19 +158,19 @@ func window(content string, height, header, first, last, at int) string {
 	if at >= 0 && (at < s.Start || at >= s.End) {
 		s = pane.Frame(len(body), room, 0, at, at)
 	}
-	shown := lines[:header:header]
+	shown, shows := lines[:header:header], from[:header:header]
 	if s.Above {
-		shown = append(shown, pane.Above(s.Start))
+		shown, shows = append(shown, pane.Above(s.Start)), append(shows, -1)
 	}
-	shown = append(shown, body[s.Start:s.End]...)
+	shown, shows = append(shown, body[s.Start:s.End]...), append(shows, from[header+s.Start:header+s.End]...)
 	if s.Below {
-		shown = append(shown, pane.More(len(body)-s.End))
+		shown, shows = append(shown, pane.More(len(body)-s.End)), append(shows, -1)
 	}
-	return strings.Join(shown, "\n") + "\n"
+	return strings.Join(shown, "\n") + "\n", shows
 }
 
-// drawer holds what every block shares while the form is drawn, the first and last line of the focused field, and the
-// line of a list's cursor.
+// drawer holds what every block shares while the form is drawn, the first and last line of the focused field, the
+// line of a list's cursor, and the spots a click reaches, in the order SpotAt reads them.
 type drawer struct {
 	spec          syntax.Spec
 	fields        []Field
@@ -145,6 +181,18 @@ type drawer struct {
 	st            Styles
 	o             Options
 	b             strings.Builder
+	spots         []Spot
+}
+
+// name notes a name drawn on the next line, from a column and so many cells wide, as the spot of the field's option.
+func (d *drawer) name(i, option, from, width int) {
+	line := d.count()
+	d.spots = append(d.spots, Spot{First: line, Last: line, From: from, Until: from + width, Field: i, Option: option})
+}
+
+// lines notes the lines drawn since before, whole, as the spot of the field.
+func (d *drawer) lines(i, before int) {
+	d.spots = append(d.spots, Spot{First: before, Last: d.count() - 1, Until: d.width, Field: i, Option: -1})
 }
 
 // count gives the lines drawn so far.
@@ -273,6 +321,7 @@ func (d *drawer) block(i, margin int) {
 		if len(f.Values) > 0 {
 			name = d.st.Chosen(f.Label)
 		}
+		d.name(i, 0, margin, ansi.StringWidth(f.Label))
 		d.beside(lead, name, ansi.StringWidth(f.Label), d.column, f.Description)
 		d.note(i, indent)
 	case AnyOf, OneOf:
@@ -290,6 +339,7 @@ func (d *drawer) block(i, margin int) {
 		d.b.WriteString(indent + d.st.Refusal("❌ "+f.Refusal) + "\n")
 	}
 	d.mark(i, before)
+	d.lines(i, before)
 	d.b.WriteString("\n")
 }
 
@@ -378,6 +428,10 @@ func (d *drawer) row(i int, lead string) {
 			row, width = row+" "+d.st.Dim(required), width+reserve
 		}
 		column := max(d.column, gutter+ansi.StringWidth(plain)+reserve+gap)
+		for k, at := 0, ansi.StringWidth(lead); k < len(f.Options); k++ {
+			d.name(i, k, at, ansi.StringWidth(f.Options[k]))
+			at += ansi.StringWidth(f.Options[k]) + len(sep)
+		}
 		d.beside(lead, row, width, column, d.optionDescription(f.Options[shown]))
 		return
 	}
@@ -390,6 +444,7 @@ func (d *drawer) row(i int, lead string) {
 	}
 	room := d.width - ansi.StringWidth(lead) // a name wider than the screen, a whole usage line, is clipped
 	for k, option := range f.Options {
+		d.name(i, k, ansi.StringWidth(lead), min(ansi.StringWidth(option), room))
 		d.beside(lead, pane.Clip(name(k), room), min(ansi.StringWidth(option), room), d.column, d.optionDescription(option))
 		lead = strings.Repeat(" ", ansi.StringWidth(lead))
 		if !on(k) || f.Kind != OneOf {
@@ -402,7 +457,9 @@ func (d *drawer) row(i int, lead string) {
 				continue // the name itself says it: a required flag has no value to show
 			}
 			if g.Key == option && g.Kind != AnyOf && g.Kind != OneOf {
+				under := d.count()
 				d.values(j, g, strings.Repeat(" ", d.column)) // the option's own value: no second label
+				d.lines(j, under)
 				continue
 			}
 			if !apart {
