@@ -149,8 +149,10 @@ kit:trust-file() {
 # trackers), so a line kit cannot place under one of those is in it, and a key written in quotes too; .kit/manifest's
 # version line, which the loader reads where kit.yml has none; and the frontmatter of each rule and style, where a
 # lint: command is, read as modules/bash/yaml.sh reads one, or the whole file where its first line is not ---. A
-# file's text starts with a line that names it, where it has any. bin/kit, the loader, holds the same program, and
-# every release keeps it, as any installed kit checks the records any release wrote.
+# file's text starts with a line that names it, where it has any. .kit/settings.yml, which kit:trust-digest hands it
+# where there is no kit.yml, is read as the kit.yml kit:move-settings makes of it, under that name and with the
+# modeline the move writes, so the move changes no digest. bin/kit, the loader, holds the same program, and every
+# release keeps it, as any installed kit checks the records any release wrote.
 # shellcheck disable=SC2016  # the program is awk's, whose $0 and fields are its own, not the shell's
 kit_trust_text='
 BEGIN {
@@ -158,7 +160,7 @@ BEGIN {
   data = data "require_signing|trackers)[[:space:]]*:"
 }
 function emit() {
-  if (!named) printf "== %s\n", FILENAME
+  if (!named) printf "== %s\n", name
   named = 1
   print
 }
@@ -166,13 +168,16 @@ FNR == 1 {
   named = 0
   mode = "whole"
   keep = 1
+  name = FILENAME
   first = $0
   sub(/\r$/, "", first)
   if (FILENAME == "kit.yml") mode = "settings"
+  else if (FILENAME == ".kit/settings.yml") { mode = "settings"; name = "kit.yml" }
   else if (FILENAME == ".kit/manifest") mode = "manifest"
   else if (first == "---") { mode = "front"; next }
 }
 mode == "settings" {
+  if (name != FILENAME) sub(/\$schema=settings\.schema\.json/, "$schema=.kit/kit.schema.json")
   if ($0 ~ /^[^[:space:]#-]/)
     keep = $0 !~ data
   if (keep) emit()
@@ -185,7 +190,9 @@ mode == "whole" { emit() }
 
 # kit:trust-digest <clone> prints the sha256 of what the clone at <clone> asks kit to run: kit_trust_text over its
 # kit.yml, its .kit/manifest, its own packages' rules and styles, and each rule and style under .kit/ that a person or
-# a pull put there, in byte order, as bin/kit, the loader, digests it. What kit placed under .kit/rules/ and
+# a pull put there, in byte order, as bin/kit, the loader, digests it. Where there is no kit.yml, the settings kit
+# reads are the .kit/settings.yml that kit:move-settings moves there, so that file is digested in its place, before
+# anything moves it; beside a kit.yml it is never read, and is left out. What kit placed under .kit/rules/ and
 # .kit/styles/ is left out: a copy without its write bit, and a link kit's own .kit/.gitignore names, one without its
 # write bit, as kit writes it. Those come from the release and the packages, whose names the digest holds, and are
 # there in one worktree and not yet in a new one; a file a pull brings has its write bit, as git checks every file out
@@ -198,6 +205,7 @@ kit:trust-digest() {
     local file writable ignore
     local -a trust_digest_files=()
     cd "$1" 2>/dev/null || exit 1
+    [[ -e kit.yml || ! -f .kit/settings.yml ]] || trust_digest_files+=(.kit/settings.yml)
     for file in kit.yml .kit/manifest .kit/packages/*/files/repo/.kit/rules/*.md \
       .kit/packages/*/files/repo/.kit/styles/*.md .kit/packages/*/*/files/repo/.kit/rules/*.md \
       .kit/packages/*/*/files/repo/.kit/styles/*.md
@@ -315,7 +323,9 @@ kit:harden-git() {
 }
 
 # kit:move-settings moves .kit/settings.yml to kit.yml at the root, where a release before kit.yml left it, and
-# points its schema modeline at .kit/kit.schema.json. Where kit.yml is there already, it leaves both alone.
+# points its schema modeline at .kit/kit.schema.json. Where kit.yml is there already, it leaves both alone. The trust
+# was judged of the file it moves: kit:trust-digest digests it as the kit.yml this writes, and kit trust shows what it
+# names, so the move runs nothing you were not shown and keeps the trust.
 kit:move-settings() {
   [[ -f .kit/settings.yml && ! -e kit.yml ]] || return 0
   # shellcheck disable=SC2016  # $schema is the modeline's own text, not the shell's

@@ -182,8 +182,62 @@ answering() {
   [ "$status" -eq 1 ]
   run "${kit}" trust --check
   [ "$status" -eq 1 ]
+  run "${kit}" trust --asks
+  [ "$output" = 'load bash into every kit command from mods (bash_path)' ]
   [ ! -e kit.yml ]
   [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
+}
+
+@test "a .kit/settings.yml kit would move to kit.yml is judged and shown as the kit.yml it becomes: a pull that brings one asks again before anything moves" {
+  "${kit}" trust --yes
+  # a pull brings the settings of an earlier release into a clone with no kit.yml
+  mkdir -p .kit mods bin
+  printf '# yaml-language-server: $schema=settings.schema.json\ngate: bin/ci\nbash_path:\n  - kit:modules/bash/\n  - mods\n' \
+    > .kit/settings.yml
+  printf ': > "%s/sourced"\n' "${BATS_TEST_TMPDIR}" > mods/settings.sh
+  run "${kit}" trust --check
+  [ "$status" -eq 1 ]
+  run "${kit}" kinds x
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"$(pwd -P) asks kit to run something new since you trusted it"* ]]
+  run "${kit_checkout}/bin/kit-kinds" x
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"asks kit to run something new since you trusted it"* ]]
+  [ ! -e kit.yml ]
+  [ ! -e "${BATS_TEST_TMPDIR}/sourced" ]
+  # kit trust shows what the file names, and the move, which changes the modeline alone, keeps the trust
+  run "${kit}" trust --yes
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"  - load bash into every kit command from mods (bash_path)"* ]]
+  [[ "$output" == *"  - run bin/ci for kit gate (gate)"* ]]
+  run "${kit}" kinds x
+  [[ "$output" == *"kit.yml: the settings moved here from .kit/settings.yml"* ]]
+  [ -e "${BATS_TEST_TMPDIR}/sourced" ]
+  [ "$(sed -n '1p' kit.yml)" = '# yaml-language-server: $schema=.kit/kit.schema.json' ]
+  run "${kit}" trust --check
+  [ "$status" -eq 0 ]
+  # beside a kit.yml, kit reads nothing of .kit/settings.yml, and neither does the trust
+  printf 'gate: bin/other\n' > .kit/settings.yml
+  run "${kit}" trust --check
+  [ "$status" -eq 0 ]
+}
+
+@test "the loader and modules/bash/1st.sh hold one awk program for what a clone asks kit to run" {
+  loader=$(sed -n "/^trust_text='\$/,/^'\$/p" "${kit_checkout}/bin/kit" | sed 1d)
+  module=$(sed -n "/^kit_trust_text='\$/,/^'\$/p" "${kit_checkout}/modules/bash/1st.sh" | sed 1d)
+  [ -n "${loader}" ]
+  [ "${loader}" = "${module}" ]
+}
+
+@test "a release .kit/settings.yml pins, where there is no kit.yml, is the one kit trust shows and the loader runs" {
+  own-kit
+  mkdir .kit
+  mv kit.yml .kit/settings.yml
+  run "${kit}" trust --yes
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"  - run its own kit, kit/ in the clone, for every kit command there (version: unreleased)"* ]]
+  run "${kit}" kinds x
+  [ -e "${BATS_TEST_TMPDIR}/ran" ]
 }
 
 @test "a clone you have not trusted runs none of its own code: not its kit/, not a release it names, not its bash_path" {

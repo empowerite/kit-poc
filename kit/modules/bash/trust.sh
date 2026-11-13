@@ -19,18 +19,31 @@
 
 use yaml file
 
+# trust:settings <clone> prints the settings file kit reads at <clone>: its kit.yml, or where there is none, the
+# .kit/settings.yml that kit:move-settings moves there, which kit:trust-digest digests in its place. It prints
+# nothing where there is neither.
+trust:settings() {
+  if [[ -f "$1/kit.yml" ]]
+  then printf '%s\n' "$1/kit.yml"
+  elif [[ ! -e "$1/kit.yml" && -f "$1/.kit/settings.yml" ]]
+  then printf '%s\n' "$1/.kit/settings.yml"
+  fi
+}
+
 # trust:pinned <value> <from> <clone> puts in the variable <value> the release the clone at <clone> pins, read as
-# bin/kit, the loader, reads it, by the same two sed programs: the first line of kit.yml that starts with version:,
-# without quotes and without a comment beside it, and where that gives nothing, the version .kit/manifest records. It
-# puts in <from> the words that name where the release was read, for the line kit trust shows. yq is not asked: a
-# version it finds and the loader does not, as under a key in quotes, is not the release that runs.
+# bin/kit, the loader, reads it, by the same two sed programs: the first line of its settings, trust:settings', that
+# starts with version:, without quotes and without a comment beside it, and where that gives nothing, the version
+# .kit/manifest records. It puts in <from> the words that name where the release was read, for the line kit trust
+# shows. yq is not asked: a version it finds and the loader does not, as under a key in quotes, is not the release
+# that runs.
 trust:pinned() {
-  local pinned='' pinned_from='version:'
-  if [[ -f "$3/kit.yml" ]]
+  local pinned='' pinned_from='version:' pinned_settings
+  pinned_settings=$(trust:settings "$3")
+  if [[ -n "${pinned_settings}" ]]
   then
     pinned=$(sed -n -e '/^version:/{' -e 's/^version:[[:space:]]*//' -e 's/^#.*$//' \
       -e 's/[[:space:]]\{1,\}#.*$//' -e 's/[[:space:]]*$//' -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/" \
-      -e p -e q -e '}' "$3/kit.yml")
+      -e p -e q -e '}' "${pinned_settings}")
   fi
   if [[ -z "${pinned}" && -f "$3/.kit/manifest" ]]
   then
@@ -63,10 +76,11 @@ trust:ask() {
 # brings packages from, or fetches tools from, by its kind and url; the tools it has kit download and run; and each
 # lint: command a rule or a style names, of the kit's packages or the clone's own, once each. It prints nothing for
 # a clone that asks for none of them. A folder outside a clone pins no release: the loader chooses one in a clone
-# alone, and runs the kit you installed elsewhere. It reads the rest of kit.yml, and the frontmatter, with yq, and
-# runs nothing the clone names.
+# alone, and runs the kit you installed elsewhere. It reads the rest of the settings, trust:settings', so a
+# .kit/settings.yml kit has yet to move is shown as the kit.yml it becomes, and the frontmatter, with yq, and runs
+# nothing the clone names.
 trust:asks() {
-  local clone=$1 version='' from='' entry gate file lint name kind url
+  local clone=$1 version='' from='' entry gate file lint name kind url settings
   local -a entries=() sources=() tools=() files=()
   local -A said=()
   [[ ! -e "${clone}/.git" ]] || trust:pinned version from "${clone}"
@@ -82,16 +96,17 @@ trust:asks() {
     trust:ask 'run kit %s, downloaded from its release and checked against its digest (%s %s)' \
       "${version}" "${from}" "${version}"
   fi
-  if [[ -f "${clone}/kit.yml" ]]
+  settings=$(trust:settings "${clone}")
+  if [[ -n "${settings}" ]]
   then
-    list:read entries yaml:list "${clone}/kit.yml" bash_path || return 1
+    list:read entries yaml:list "${settings}" bash_path || return 1
     for entry in "${entries[@]}"
     do
       [[ "${entry}" == kit:* ]] || trust:ask 'load bash into every kit command from %s (bash_path)' "${entry}"
     done
-    gate=$(yaml:value "${clone}/kit.yml" gate) || return 1
+    gate=$(yaml:value "${settings}" gate) || return 1
     [[ -z "${gate}" ]] || trust:ask 'run %s for kit gate (gate)' "${gate}"
-    list:read sources yaml:records "${clone}/kit.yml" sources name kind url || return 1
+    list:read sources yaml:records "${settings}" sources name kind url || return 1
     for entry in "${sources[@]}"
     do
       IFS=$'\x1f' read -r name kind url <<<"${entry}"
@@ -100,7 +115,7 @@ trust:asks() {
         (*) trust:ask 'fetch its tools from the %s source %s, at %s (sources)' "${kind}" "${name}" "${url}"
       esac
     done
-    list:read tools yaml:eval "${clone}/kit.yml" tool-names '(.tools // {}) | keys | .[]' || return 1
+    list:read tools yaml:eval "${settings}" tool-names '(.tools // {}) | keys | .[]' || return 1
     if (( ${#tools[@]} ))
     then
       trust:ask 'download and run the tools it pins, from the URLs it names: %s (tools)' "$(trust:joined "${tools[@]}")"

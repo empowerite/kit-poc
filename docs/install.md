@@ -143,6 +143,9 @@ kit runs nothing in a clone until you trust it.
   of a repository is such a folder. Until you trust it, kit reads no `bash_path` there and runs nothing its `kit.yml`
   names. kit reads `kit.yml` only in the folder you type in, so a folder below it is asked nothing, and neither is
   a folder with no `kit.yml`.
+- Where there is no `kit.yml`, kit reads the `.kit/settings.yml` an earlier release kept, and moves it to `kit.yml`.
+  The trust judges that file, and `kit trust` shows what it names, before anything moves: a pull that brings one
+  withdraws the trust, and the move itself keeps it. The loader reads the release it pins the same way.
 - `kit trust --list` and `kit trust --revoke` read and change the records, which are plain lines in
   `~/.config/kit/trusted`. `kit trust --check` and `kit trust --asks` answer a screen that asks for the trust itself.
 

@@ -13,8 +13,9 @@
 # clone asks kit to run: the release it pins, read as the loader reads it, and whether that is the clone's own kit/,
 # which version: unreleased names whether or not the clone holds one yet; the bash it loads; its gate; the sources
 # it brings packages from; the tools it has kit download; and the lint: command of each rule and style. Each is one
-# line, with its value whole. Then it asks you, and records your answer for the clone and every worktree of it, with
-# the digest of what it asks. A folder, written with a / at its end, trusts every clone under it.
+# line, with its value whole. Where the clone has no kit.yml, its settings are the .kit/settings.yml that kit moves
+# there, and kit trust shows what that file names. Then it asks you, and records your answer for the clone and every
+# worktree of it, with the digest of what it asks. A folder, written with a / at its end, trusts every clone under it.
 #
 # Outside a clone, a folder that holds a kit.yml is held to the same trust, by its own path: an unpacked archive of
 # a repository is one. Until you trust it, kit reads no bash_path there and runs nothing its kit.yml names, and kit

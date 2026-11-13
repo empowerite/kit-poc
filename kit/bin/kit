@@ -12,7 +12,8 @@
 #   3. version: in the kit.yml at the root of the clone kit runs in: the nearest directory at or above the working
 #      directory that holds .git, a directory in a desk and a file in a worktree. It looks no further, so a worktree
 #      outside its desk reads its own kit.yml alone. A clone whose kit.yml declares no version has the one its
-#      .kit/manifest records, if any.
+#      .kit/manifest records, if any. A clone with no kit.yml has its settings in the .kit/settings.yml a release
+#      moves there, and that file's version: is read in its place.
 #   4. this release, outside a clone, and in a clone that declares none
 #
 # A release is named by its version, 0.1.0, or, by --version= or KIT_VERSION alone, by the absolute path of a copy
@@ -168,7 +169,8 @@ trust_name() {
 }
 
 # trust_text is the awk program that prints what a clone asks kit to run, as modules/bash/1st.sh's kit_trust_text,
-# which says what it reads: the same program, which every release keeps.
+# which says what it reads, and how .kit/settings.yml is read as the kit.yml it becomes: the same program, which
+# every release keeps.
 # shellcheck disable=SC2016  # the program is awk's, whose $0 and fields are its own, not the shell's
 trust_text='
 BEGIN {
@@ -176,7 +178,7 @@ BEGIN {
   data = data "require_signing|trackers)[[:space:]]*:"
 }
 function emit() {
-  if (!named) printf "== %s\n", FILENAME
+  if (!named) printf "== %s\n", name
   named = 1
   print
 }
@@ -184,13 +186,16 @@ FNR == 1 {
   named = 0
   mode = "whole"
   keep = 1
+  name = FILENAME
   first = $0
   sub(/\r$/, "", first)
   if (FILENAME == "kit.yml") mode = "settings"
+  else if (FILENAME == ".kit/settings.yml") { mode = "settings"; name = "kit.yml" }
   else if (FILENAME == ".kit/manifest") mode = "manifest"
   else if (first == "---") { mode = "front"; next }
 }
 mode == "settings" {
+  if (name != FILENAME) sub(/\$schema=settings\.schema\.json/, "$schema=.kit/kit.schema.json")
   if ($0 ~ /^[^[:space:]#-]/)
     keep = $0 !~ data
   if (keep) emit()
@@ -209,6 +214,8 @@ trust_digest() {
     export LC_ALL
     cd "$1" 2>/dev/null || exit 1
     set --
+    # where there is no kit.yml, the settings are the .kit/settings.yml a release moves there
+    [ -e kit.yml ] || [ ! -f .kit/settings.yml ] || set -- .kit/settings.yml
     for trust_digest_file in kit.yml .kit/manifest .kit/packages/*/files/repo/.kit/rules/*.md \
       .kit/packages/*/files/repo/.kit/styles/*.md .kit/packages/*/*/files/repo/.kit/rules/*.md \
       .kit/packages/*/*/files/repo/.kit/styles/*.md
@@ -316,16 +323,19 @@ trusted() {
 }
 
 # pinned <clone> prints the release <clone>'s kit.yml declares: its top-level version: line, without quotes and
-# without a comment beside it. Without one, it prints the version .kit/manifest records, or nothing.
-# modules/bash/trust.sh's trust:pinned reads the same two files with the same two sed programs, so kit trust shows
+# without a comment beside it. Without one, it prints the version .kit/manifest records, or nothing. Where the clone
+# has no kit.yml, its settings are the .kit/settings.yml a release moves there, and that file's line is read.
+# modules/bash/trust.sh's trust:pinned reads the same files with the same two sed programs, so kit trust shows
 # the release this loader runs: a change to one is a change to both.
 pinned() {
   pinned_value=''
-  if [ -f "$1/kit.yml" ]
+  pinned_file=$1/kit.yml
+  [ -e "${pinned_file}" ] || pinned_file=$1/.kit/settings.yml
+  if [ -f "${pinned_file}" ]
   then
     pinned_value=$(sed -n -e '/^version:/{' -e 's/^version:[[:space:]]*//' -e 's/^#.*$//' \
       -e 's/[[:space:]]\{1,\}#.*$//' -e 's/[[:space:]]*$//' -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/" \
-      -e p -e q -e '}' "$1/kit.yml")
+      -e p -e q -e '}' "${pinned_file}")
   fi
   if [ -z "${pinned_value}" ] && [ -f "$1/.kit/manifest" ]
   then
