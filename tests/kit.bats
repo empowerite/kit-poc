@@ -1044,6 +1044,19 @@ tree-digest() {
   fi
 }
 
+@test "a second hydrate in one process places what the packages deliver now, as a server's second does" {
+  "${kit_checkout}/bin/kit" install
+  mkdir -p .kit/packages/mine/files/repo/.kit/notes
+  printf 'description: "mine"\ndepends:\n  - kit\n' > .kit/packages/mine/package.yml
+  printf 'one\n' > .kit/packages/mine/files/repo/.kit/notes/one.md
+  "${kit_checkout}/bin/kit" packages add mine >/dev/null 2>&1
+  [ -f .kit/notes/one.md ]
+  local kit_bash_modules=materialize
+  run kit-bash 'materialize:hydrate --full >/dev/null 2>&1 && printf "two\n" > .kit/packages/mine/files/repo/.kit/notes/two.md && materialize:hydrate --full >/dev/null 2>&1'
+  [ "$status" -eq 0 ]
+  [ -f .kit/notes/two.md ]
+}
+
 @test "update retires nothing when the paths the release delivers cannot be read" {
   "${kit_checkout}/bin/kit" install
   local before kit_bash_modules=place

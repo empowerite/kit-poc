@@ -18,6 +18,16 @@ use release place manifest settings render file trust
 # kit serve resolves each pass afresh.
 declare -gA materialize_real=()
 
+# materialize:forget empties what a process remembers of the packages: the paths each release delivers, the sources of
+# those paths, and the directories the templates and regions were rendered into, which it removes. A process that
+# places again, as kit serve does when kit.yml changes, would otherwise place from what the first pass read.
+# shellcheck disable=SC2034  # the arrays are read in place.sh and render.sh, which this module uses
+materialize:forget() {
+  place_delivered=() place_source=()
+  render_rendered=() render_root_digest=() render_rendered_all=''
+  [[ -z "${render_tmp:-}" ]] || rm -rf "${render_tmp:?}"/*
+}
+
 # materialize_left holds each path the last materialize:all left alone because it holds the repository's own file, so
 # kit hydrate can say how many there are, and fail.
 declare -ga materialize_left=()
@@ -340,6 +350,7 @@ materialize:all() {
     return 1
   fi
   materialize_real=()
+  materialize:forget
   [[ "${check}" == true ]] || materialize_left=()
   list:read rows place:delivered "${kit_root}" repo "$@" || return 1
   for row in "${rows[@]}"
