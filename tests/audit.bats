@@ -390,7 +390,7 @@ rows() { jq -c '.rows[] | [.harness, .mechanism, .status, .evidence]' <<<"$1"; }
   # each names what passes it: forms a deny list's literal patterns miss, --no-verify, and who may bypass the ruleset,
   # which a required row links to
   [ "$(jq -c '.rows[] | select(.key == "claude deny list") | .passes' <<<"$output")" \
-    = '["git -C <dir> commit","git merge"]' ]
+    = '["a git command run inside bash -c"]' ]
   [ "$(jq -c '.rows[] | select(.key == "repository pre-commit hook") | .passes' <<<"$output")" \
     = '["git commit --no-verify","LEFTHOOK=0 git commit"]' ]
   [ "$(jq -c '.rows[] | select(.key == "repository required check CI") | [.detail, .passes, .links]' <<<"$output")" \
@@ -434,7 +434,7 @@ rows() { jq -c '.rows[] | [.harness, .mechanism, .status, .evidence]' <<<"$1"; }
   cp "${kit_root}/packages/agents/gemini/files/repo/.gemini/settings.json" .gemini/
   run --separate-stderr "${kit_root}/bin/kit" audit enforcement --json
   [ "$(jq -c '.rows[] | select(.key == "gemini deny list") | .passes' <<<"$output")" \
-    = '["git -C <dir> commit","git merge","git checkout trunk","git switch trunk"]' ]
+    = '["git -C <dir> commit","a git command run inside bash -c","git checkout trunk","git switch trunk"]' ]
 }
 
 @test "the local floor is active where git runs lefthook here, unknown where lefthook is not on PATH, else missing" {

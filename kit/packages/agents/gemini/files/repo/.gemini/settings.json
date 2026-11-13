@@ -21,6 +21,18 @@
       "run_shell_command(git checkout main)",
       "run_shell_command(git switch main)",
       "run_shell_command(git reset --hard)",
+      "run_shell_command(gh pr merge)",
+      "run_shell_command(glab mr merge)",
+      "run_shell_command(az repos pr update)",
+      "run_shell_command(git merge)",
+      "run_shell_command(git restore)",
+      "run_shell_command(git clean)",
+      "run_shell_command(git stash)",
+      "run_shell_command(git checkout -B)",
+      "run_shell_command(git switch -C)",
+      "run_shell_command(git switch --create)",
+      "run_shell_command(git branch -d)",
+      "run_shell_command(git branch --delete)",
       "run_shell_command(kit trust)"
     ]
   }

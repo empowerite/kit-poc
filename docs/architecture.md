@@ -307,7 +307,7 @@ What holds an agent to the rules is in one of four tiers, and only the last bind
 | Tier | What | What passes it |
 | --- | --- | --- |
 | Advisory | the instructions an agent reads: `AGENTS.md`'s region, `.claude/CLAUDE.md`'s import of it, Gemini CLI's context files, and the rule files Cursor and Copilot apply by path | an agent that does not follow them |
-| Best-effort | a harness's deny list, in Claude Code and Gemini CLI, and the Claude Code hook; each fails open, and Cursor and Copilot have none a repository can commit | `git -C <dir> commit`, `git merge`, and a checkout of a default branch not named `main`, which the literal patterns miss; the hook refuses nothing |
+| Best-effort | a harness's deny list, in Claude Code and Gemini CLI, and the Claude Code hook; each fails open, and Cursor and Copilot have none a repository can commit | `git -C <dir> commit` under Gemini CLI, a git command run inside `bash -c`, and a checkout of a default branch not named `main`, which the literal patterns miss; the hook refuses nothing |
 | Local floor | `lefthook install` in this clone, its `lefthook.yml` extending `.kit/lefthook.yml` | `git commit --no-verify`, `LEFTHOOK=0`, and a commit made in another clone |
 | Authoritative | `kit ci` on the pull request's commit, where a ruleset or protection on the default branch requires its check, `CI`, and an approving review, and a human merges | who may bypass those controls |
 

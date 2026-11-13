@@ -255,12 +255,13 @@ apps/audit:enforced() {
     --args "${@:7}"
 }
 
-# apps/audit:deny-passes <default> prints, one a line, what passes a deny list of the raw git commands: the forms its
-# literal patterns do not name, git -C and git merge, and where the default branch is not main, a checkout of it, as
-# the list names main.
+# apps/audit:deny-passes <harness> <default> prints, one a line, what passes a deny list of the raw git commands: the
+# forms its literal patterns do not name, a git command run inside bash -c, git -C where the harness matches a prefix,
+# as Gemini CLI does, and where the default branch is not main, a checkout of it, as the list names main.
 apps/audit:deny-passes() {
-  printf '%s\n' 'git -C <dir> commit' 'git merge'
-  [[ "$1" == main ]] || printf '%s\n' "git checkout $1" "git switch $1"
+  [[ "$1" == claude ]] || printf '%s\n' 'git -C <dir> commit'
+  printf '%s\n' 'a git command run inside bash -c'
+  [[ "$2" == main ]] || printf '%s\n' "git checkout $2" "git switch $2"
 }
 
 # apps/audit:package-file <package> <path> prints the path of a file the agent package places at <path>, in the
@@ -343,7 +344,7 @@ apps/audit:enforcement-generic() {
 apps/audit:enforcement-claude() {
   local lacked file=.claude/settings.json
   local -a passes
-  list:read passes apps/audit:deny-passes "$1" || return 1
+  list:read passes apps/audit:deny-passes claude "$1" || return 1
   if apps/audit:region-holds .claude/CLAUDE.md @../AGENTS.md --line-regexp
   then
     apps/audit:enforced claude advisory .claude/CLAUDE.md active documented \
@@ -389,7 +390,7 @@ apps/audit:listed() {
 apps/audit:enforcement-gemini() {
   local lacked file=.gemini/settings.json
   local -a passes
-  list:read passes apps/audit:deny-passes "$1" || return 1
+  list:read passes apps/audit:deny-passes gemini "$1" || return 1
   # Gemini CLI reads AGENTS.md where its context files name it, whatever else they name.
   lacked=$(jq --raw-output "if [${audit_filters[context]}] | index([\"AGENTS.md\"]) then 0 else 1 end" "${file}" \
     2>/dev/null) || lacked=''  # a file that is not here, or not JSON, says so below

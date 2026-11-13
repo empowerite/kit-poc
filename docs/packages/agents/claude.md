@@ -27,6 +27,10 @@ place:
 | `git worktree remove`, `git branch -D` | `kit tidy` |
 | `git checkout main`, `git switch main`, `git reset --hard` | none: an agent leaves the desk as it is |
 | `git push --force`, `git push -f` | none: `kit submit` never forces |
+| `gh pr merge`, `glab mr merge`, `az repos pr update`, `git merge` | none: a person merges |
+| `git restore`, `git clean`, `git stash` | none: an agent does not discard or hide work |
+| `git checkout -B`, `git switch -C`, `git switch --create` | `kit work` |
+| `git branch -d`, `git branch --delete` | `kit tidy` |
 | `kit trust` | none: the trust is the person's to give, so the agent asks them to run it |
 
 `hooks.PreToolUse` runs `kit context --claude` before each `Write`, `Edit`, and `MultiEdit`. It shows the agent the

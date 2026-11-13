@@ -54,6 +54,10 @@ Elsewhere, this rule is the only thing that stops it.
 - `kit tidy`, never `git worktree remove` or `git branch -D`.
 - An agent never switches or resets the desk. `git checkout main`, `git switch main`, `git reset --hard`, and
   `git push --force` are on the same deny list. It names `main` literally.
+- An agent never merges: `gh pr merge`, `glab mr merge`, `az repos pr update`, and `git merge` are on the same deny
+  list. A person merges, after review.
+- An agent never discards or hides work on the desk or in a worktree: `git restore`, `git clean`, and `git stash` are
+  on the same deny list.
 - An agent never runs `kit trust`, which is on the same deny list. The trust is the person's to give. When kit
   answers that it runs nothing in a clone until you trust it, the agent stops and asks the person to run `kit trust`
   in a terminal.

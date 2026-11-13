@@ -116,8 +116,9 @@ contract. A repository that leaves the package out writes its own steps in `AGEN
 
 The `agents/claude` and `agents/gemini` packages each deliver a deny list. The list refuses the
 raw git commands that these verbs replace, such as `git commit`, `git push`, `git rebase`, `git
-worktree add`, and `git branch -D`. It matches literal patterns, so a form it does not list, such
-as `git -C <dir> commit`, passes. The other agent tools get no deny list. `kit audit enforcement`
+worktree add`, and `git branch -D`, and the merge commands of each forge. It matches literal patterns, so a form it
+does not list passes: Claude Code's list names `git -C <dir>` before the writing commands, and Gemini's, which matches
+a prefix, does not. The other agent tools get no deny list. `kit audit enforcement`
 shows what binds an agent and what is only advice, for the repository and for each agent tool.
 
 see: `kit help <verb>` for each verb, [architecture.md](architecture.md#the-workflow-and-the-gate),

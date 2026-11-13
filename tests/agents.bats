@@ -98,8 +98,23 @@ claude-prefixes() {
 
 @test "agents/gemini denies the commands agents/claude denies, as prefixes, which is how Gemini matches a shell command" {
   kit install agents/gemini
-  expected=$(claude-prefixes | sed 's/.*/run_shell_command(&)/')
+  expected=$(claude-prefixes | grep --invert-match '[*]' | sed 's/.*/run_shell_command(&)/')
   [ "$(jq --raw-output '.tools.exclude[]' .gemini/settings.json | sort)" = "${expected}" ]
+}
+
+@test "the deny lists refuse a merge on each forge, the git forms that undo or hide work, and git -C before a write" {
+  kit install agents/claude agents/gemini
+  local denied
+  for denied in 'gh pr merge' 'glab mr merge' 'az repos pr update' 'git merge' 'git restore' 'git clean' 'git stash' \
+    'git checkout -B' 'git switch -C' 'git switch --create' 'git branch -d' 'git branch --delete'
+  do
+    jq --exit-status --arg c "Bash(${denied} *)" '.permissions.deny | index($c)' .claude/settings.json >/dev/null
+    jq --exit-status --arg c "run_shell_command(${denied})" '.tools.exclude | index($c)' .gemini/settings.json >/dev/null
+  done
+  for denied in commit push rebase merge 'reset --hard' 'worktree add' 'worktree remove'
+  do
+    jq --exit-status --arg c "Bash(git -C * ${denied} *)" '.permissions.deny | index($c)' .claude/settings.json >/dev/null
+  done
 }
 
 @test "the trust is the person's to give: the AGENTS.md region tells an agent to ask them, and the deny lists refuse kit trust" {
