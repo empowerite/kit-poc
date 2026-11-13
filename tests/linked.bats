@@ -33,7 +33,7 @@ JSON
   git commit --quiet --allow-empty --message one
   git checkout --quiet --detach
   # Drone names the change it builds
-  DRONE_PULL_REQUEST=3 run env -u GITHUB_EVENT_PATH "${kit_checkout}/bin/kit" linked
+  DRONE=true DRONE_PULL_REQUEST=3 run env -u GITHUB_EVENT_PATH "${kit_checkout}/bin/kit" linked
   [ "$status" -eq 0 ]
   [[ "$output" == *"pull request #3 is linked to #7"* ]]
   # a runner that names none is still refused

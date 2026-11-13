@@ -38,15 +38,21 @@ run its pipeline elsewhere, on Jenkins, CircleCI, Buildkite, or Azure Pipelines.
 a detached HEAD, which has no branch to ask about, and name the change in a variable of their own. `forge:pr-here`
 reads that variable first, from the seam's table, `forge_ci_changes` in `kit/modules/bash/forge.sh`:
 
-| CI system | Variable | Its value |
-| --- | --- | --- |
-| Buildkite | `BUILDKITE_PULL_REQUEST` | the number, or `false` on a run for no change |
-| CircleCI | `CIRCLE_PULL_REQUEST` | the address of the change's page, which the number ends |
-| Jenkins, a multibranch pipeline | `CHANGE_ID` | the number |
-| Azure Pipelines, for a repository on GitHub | `SYSTEM_PULLREQUEST_PULLREQUESTNUMBER` | the number |
-| AWS CodeBuild | `CODEBUILD_WEBHOOK_TRIGGER` | `pr/` and the number |
-| Woodpecker | `CI_COMMIT_PULL_REQUEST` | the number |
-| Drone | `DRONE_PULL_REQUEST` | the number |
+| CI system | Its marker | Variable | Its value |
+| --- | --- | --- | --- |
+| Buildkite | `BUILDKITE` | `BUILDKITE_PULL_REQUEST` | the number, or `false` on a run for no change |
+| CircleCI | `CIRCLECI` | `CIRCLE_PULL_REQUEST` | the address of the change's page, which the number ends |
+| Jenkins, a multibranch pipeline | `JENKINS_URL` | `CHANGE_ID` | the number |
+| Azure Pipelines, for a repository on GitHub | `TF_BUILD` | `SYSTEM_PULLREQUEST_PULLREQUESTNUMBER` | the number |
+| AWS CodeBuild | `CODEBUILD_BUILD_ID` | `CODEBUILD_WEBHOOK_TRIGGER` | `pr/` and the number |
+| Woodpecker | `CI` | `CI_COMMIT_PULL_REQUEST` | the number |
+| Drone | `DRONE` | `DRONE_PULL_REQUEST` | the number |
+
+A variable counts only where its system's marker is set, the variable that system sets on every run of its own.
+Woodpecker's is `CI`, which every CI system sets. A desk's shell can export a variable of the same name, `CHANGE_ID`
+for one, and `kit ready` and `kit settle` write to the change `forge:pr-here` names, so at a desk the table names
+none and the branch checked out is asked about. A Jenkins controller with no URL configured sets no `JENKINS_URL`:
+set it in the job, or name the change, `kit linked "${CHANGE_ID}"`.
 
 A value that holds no number names no change. With none of them, the provider reads the forge's own runner,
 GitHub's event payload, GitLab's `CI_MERGE_REQUEST_IID`, or Azure DevOps' `SYSTEM_PULLREQUEST_PULLREQUESTID`, else

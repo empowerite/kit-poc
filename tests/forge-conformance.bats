@@ -449,12 +449,13 @@ named-afresh() {
   done
 }
 
-# here <NAME=value>… prints what forge:pr-here answers on a runner that sets those variables and no other that names a
-# change: a forge's own, or a CI system's.
+# here <NAME=value>… prints what forge:pr-here answers in a shell that sets those variables and no other that names a
+# change or marks a CI system: a forge's own, or a CI system's.
 here() {
   env -u GITHUB_EVENT_PATH -u CI_MERGE_REQUEST_IID -u SYSTEM_PULLREQUEST_PULLREQUESTID -u BUILDKITE_PULL_REQUEST \
     -u CIRCLE_PULL_REQUEST -u CHANGE_ID -u SYSTEM_PULLREQUEST_PULLREQUESTNUMBER -u CODEBUILD_WEBHOOK_TRIGGER \
-    -u CI_COMMIT_PULL_REQUEST -u DRONE_PULL_REQUEST "$@" \
+    -u CI_COMMIT_PULL_REQUEST -u DRONE_PULL_REQUEST -u BUILDKITE -u CIRCLECI -u JENKINS_URL -u TF_BUILD \
+    -u CODEBUILD_BUILD_ID -u CI -u DRONE "$@" \
     bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge && forge:pr-here'
 }
 
@@ -466,19 +467,24 @@ here() {
     world "${forge}"
     # Buildkite, Jenkins, Azure Pipelines over GitHub, Woodpecker, and Drone set the number; CircleCI the address of
     # the change's page; CodeBuild pr/ and the number
-    for named in BUILDKITE_PULL_REQUEST=3 CHANGE_ID=3 SYSTEM_PULLREQUEST_PULLREQUESTNUMBER=3 CI_COMMIT_PULL_REQUEST=3 \
-      DRONE_PULL_REQUEST=3 CIRCLE_PULL_REQUEST=https://github.com/empowerite/example/pull/3 \
-      CODEBUILD_WEBHOOK_TRIGGER=pr/3
+    for named in 'BUILDKITE=true BUILDKITE_PULL_REQUEST=3' 'JENKINS_URL=https://ci.example/ CHANGE_ID=3' \
+      'TF_BUILD=True SYSTEM_PULLREQUEST_PULLREQUESTNUMBER=3' 'CI=woodpecker CI_COMMIT_PULL_REQUEST=3' \
+      'DRONE=true DRONE_PULL_REQUEST=3' 'CIRCLECI=true CIRCLE_PULL_REQUEST=https://github.com/empowerite/example/pull/3' \
+      'CODEBUILD_BUILD_ID=example:1f2e CODEBUILD_WEBHOOK_TRIGGER=pr/3'
     do
-      run --separate-stderr here "${named}"
+      # shellcheck disable=SC2086  # the marker and the variable are two words
+      run --separate-stderr here ${named}
       [ "$status" -eq 0 ] || { echo "${forge} ${named}: ${stderr}"; false; }
       [ "$output" = 3 ] || { echo "${forge} ${named}: ${output}"; false; }
     done
     # a value that holds no number names no change: a run for none, a branch's run, a change that is no number
-    for named in BUILDKITE_PULL_REQUEST=false CIRCLE_PULL_REQUEST= CODEBUILD_WEBHOOK_TRIGGER=branch/main \
-      CODEBUILD_WEBHOOK_TRIGGER=3 CHANGE_ID=I8f3a2c DRONE_PULL_REQUEST=
+    for named in 'BUILDKITE=true BUILDKITE_PULL_REQUEST=false' 'CIRCLECI=true CIRCLE_PULL_REQUEST=' \
+      'CODEBUILD_BUILD_ID=example:1f2e CODEBUILD_WEBHOOK_TRIGGER=branch/main' \
+      'CODEBUILD_BUILD_ID=example:1f2e CODEBUILD_WEBHOOK_TRIGGER=3' 'JENKINS_URL=https://ci.example/ CHANGE_ID=I8f3a2c' \
+      'DRONE=true DRONE_PULL_REQUEST='
     do
-      run --separate-stderr here "${named}"
+      # shellcheck disable=SC2086  # the marker and the variable are two words
+      run --separate-stderr here ${named}
       [ "$status" -eq 0 ]
       [ -z "$output" ] || { echo "${forge} ${named}: ${output}"; false; }
     done
@@ -492,7 +498,7 @@ here() {
   # the variable is read before the branch is asked about: Jenkins may check a branch of its own name out
   world github
   git switch --quiet --create PR-3
-  run --separate-stderr here CHANGE_ID=3
+  run --separate-stderr here JENKINS_URL=https://ci.example/ CHANGE_ID=3
   [ "$status" -eq 0 ]
   [ "$output" = 3 ]
   ! grep --quiet '^pr list --head' "${FAKE_DIR}/gh.calls"
@@ -503,9 +509,34 @@ here() {
   grep --quiet '^pr list --head 7-fix-the-thing' "${FAKE_DIR}/gh.calls"
   # a primary with no forge has no change, whatever a variable says
   printf 'forge: none\n' > kit.yml
-  run --separate-stderr here DRONE_PULL_REQUEST=3
+  run --separate-stderr here DRONE=true DRONE_PULL_REQUEST=3
   [ "$status" -eq 1 ]
   [ -z "$output" ]
+}
+
+@test "at a desk a CI system's variable names no change: the branch is asked about, and kit ready marks its change" {
+  git commit --quiet --allow-empty --message one
+  git switch --quiet --create 7-fix-the-thing
+  world github
+  # a shell that exports a CI system's variable, and not the marker that system sets on its runners, is a desk
+  for named in BUILDKITE_PULL_REQUEST=99 CHANGE_ID=99 SYSTEM_PULLREQUEST_PULLREQUESTNUMBER=99 \
+    CI_COMMIT_PULL_REQUEST=99 DRONE_PULL_REQUEST=99 CIRCLE_PULL_REQUEST=https://github.com/empowerite/example/pull/99 \
+    CODEBUILD_WEBHOOK_TRIGGER=pr/99
+  do
+    run --separate-stderr here "${named}"
+    [ "$status" -eq 0 ] || { echo "${named}: ${stderr}"; false; }
+    [ "$output" = 3 ] || { echo "${named}: ${output}"; false; }
+  done
+  # another system's marker does not make the variable count
+  run --separate-stderr here CI=true DRONE=true CHANGE_ID=99
+  [ "$output" = 3 ]
+  # so a verb that writes takes its change from the branch, never from the variable
+  route gh 'pr ready 3' '!0'
+  CHANGE_ID=99 run "${kit_root}/bin/kit" ready
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"pull request #3 is ready for review"* ]]
+  grep --quiet --line-regexp 'pr ready 3' "${FAKE_DIR}/gh.calls"
+  ! grep --quiet ' 99' "${FAKE_DIR}/gh.calls"
 }
 
 @test "with push naming a fork, every provider opens the change from the fork's branch, and a fork with no owner is refused" {

@@ -899,29 +899,32 @@ forge:pr-state()            { forge:call pr-state "$@"; }
 forge:pr-state-for-branch() { forge:call pr-state-for-branch "$@"; }
 forge:pr-head-for-branch()  { forge:call pr-head-for-branch "$@"; }
 
-# forge_ci_changes is the table of the CI systems that are no forge's own: for each, the variable it sets to the
-# change a run builds, and how the variable's value reads as the change's number. number: the value is the number.
-# url: the number ends the address of the change's page, as https://github.com/o/r/pull/3. pr: the number follows
-# pr/, as pr/3. Bitbucket Pipelines sets BITBUCKET_PR_ID, which the table leaves out: kit has no provider for
+# forge_ci_changes is the table of the CI systems that are no forge's own: for each, the marker it sets on every run
+# of its own, the variable it sets to the change a run builds, and how the variable's value reads as the change's
+# number. number: the value is the number. url: the number ends the address of the change's page, as
+# https://github.com/o/r/pull/3. pr: the number follows pr/, as pr/3. A row counts only where its marker is set: a
+# desk's shell may export a variable of the same name, CHANGE_ID for one, and kit ready and kit settle write to the
+# change this names. Bitbucket Pipelines sets BITBUCKET_PR_ID, which the table leaves out: kit has no provider for
 # Bitbucket, so that number names no change kit can read.
 declare -gra forge_ci_changes=(
-  'BUILDKITE_PULL_REQUEST number'                # Buildkite, which says false on a run for no change
-  'CIRCLE_PULL_REQUEST url'                      # CircleCI
-  'CHANGE_ID number'                             # Jenkins, in a multibranch pipeline
-  'SYSTEM_PULLREQUEST_PULLREQUESTNUMBER number'  # Azure Pipelines, for a repository on GitHub
-  'CODEBUILD_WEBHOOK_TRIGGER pr'                 # AWS CodeBuild, which says branch/ or tag/ on a run for no change
-  'CI_COMMIT_PULL_REQUEST number'                # Woodpecker
-  'DRONE_PULL_REQUEST number'                    # Drone
+  'BUILDKITE BUILDKITE_PULL_REQUEST number'               # Buildkite, which says false on a run for no change
+  'CIRCLECI CIRCLE_PULL_REQUEST url'                      # CircleCI
+  'JENKINS_URL CHANGE_ID number'                          # Jenkins, in a multibranch pipeline
+  'TF_BUILD SYSTEM_PULLREQUEST_PULLREQUESTNUMBER number'  # Azure Pipelines, for a repository on GitHub
+  'CODEBUILD_BUILD_ID CODEBUILD_WEBHOOK_TRIGGER pr'       # AWS CodeBuild, which says branch/ or tag/ on a run for none
+  'CI CI_COMMIT_PULL_REQUEST number'                      # Woodpecker, whose marker is the one every CI system sets
+  'DRONE DRONE_PULL_REQUEST number'                       # Drone
 )
 
 # forge:ci-change prints the number of the change the CI run here builds, as the first variable of forge_ci_changes
-# whose value reads as a number says, or nothing: off a runner, on a run for no change, or on a CI system the table
-# does not have.
+# whose marker is set and whose value reads as a number says, or nothing: at a desk, whatever its shell exports, on a
+# run for no change, or on a CI system the table does not have.
 forge:ci-change() {
-  local row name how value
+  local row marker name how value
   for row in "${forge_ci_changes[@]}"
   do
-    read -r name how <<<"${row}"
+    read -r marker name how <<<"${row}"
+    [[ -n "${!marker:-}" ]] || continue
     value=${!name:-}
     case "${how}" in
       (url) value=${value##*/} ;;
@@ -938,10 +941,10 @@ forge:ci-change() {
 
 # forge:pr-here prints the number of the change this checkout is working on, or nothing. A CI system that is no
 # forge's own mostly checks out a detached HEAD, which has no branch to ask about, and names the change it builds in
-# a variable of its own, so forge:ci-change is read first, before the branch is asked about. Otherwise the provider
-# answers: from its forge's own runner, else the open change on the branch checked out. A runner that names no
-# change, on a detached HEAD, has none, and the caller refuses. The number is the primary's forge's, so a primary
-# with no forge, or with a setting kit refuses, fails here as the provider's call would.
+# a variable of its own, so on its runner forge:ci-change is read first, before the branch is asked about. Otherwise
+# the provider answers: from its forge's own runner, else the open change on the branch checked out. A runner that
+# names no change, on a detached HEAD, has none, and the caller refuses. The number is the primary's forge's, so a
+# primary with no forge, or with a setting kit refuses, fails here as the provider's call would.
 forge:pr-here() {
   local number
   number=$(forge:ci-change)
