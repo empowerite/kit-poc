@@ -5,7 +5,7 @@
 # groups as the kit prints them; help is a fixed page; flow --stages names kit flow's five, flow --me prints ada,
 # another flag of flow is refused, and a stage echoes its words as JSON, after sleeping FAKE_KIT_SLEEP seconds when it
 # is set, with the sleep's pid written to the file FAKE_KIT_RECORD names; workspace --stages names two stages, each
-# other app verb's --stages its own, as kit audit's five, and a stage of theirs answers with no rows; root prints a
+# other app verb's --stages its own, as kit audit's five, packages --stages its one, and a stage of theirs answers with no rows; root prints a
 # fixed directory, trust --check prints /the/clone and holds unless FAKE_KIT_REFUSE=trust, which refuses trust --yes
 # too, and finds no clone, exit 2, for FAKE_KIT_REFUSE=trust-no-clone, trust --asks prints two lines, trust --yes writes
 # its words to the file FAKE_KIT_RECORD names, and welcome --checks the welcome screen's fixture;
@@ -321,6 +321,16 @@ case "${1:-}" in
     fi
     echo "out $*"
     echo "✅ kit $* done" >&2
+    ;;
+  (packages)
+    # packages --stages names its one stage; any other call is recorded, as another verb's is
+    if [[ "${2:-}" == --stages ]]
+    then
+      printf 'packages\n'
+    else
+      printf '%s\n' "$*" > "${FAKE_KIT_RECORD:?}"
+      pwd -P >> "${FAKE_KIT_RECORD}"
+    fi
     ;;
   (*)
     printf '%s\n' "$*" > "${FAKE_KIT_RECORD:?}"

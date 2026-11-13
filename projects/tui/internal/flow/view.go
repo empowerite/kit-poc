@@ -22,13 +22,11 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/tabs"
 )
 
-// appLabel gives the screen's name on the title line, after the app menu's =: kit and the verb that opens the app, kit
-// flow for Flow, kit audit for Trust and kit workspace for Repositories; a click on either drops the menu down.
+// appLabel gives the screen's name on the title line, after the app menu's =: kit and the name of the app's line in the
+// menu, in lower case, so the app a click on that line opens is titled as the line is named, kit trust for Trust; a
+// click on either drops the menu down.
 func (m Model) appLabel() string {
-	if k := slices.IndexFunc(apps, func(a entityApp) bool { return a.screen == m.app }); k >= 0 {
-		return "kit " + apps[k].verb
-	}
-	return "kit " + string(m.app)
+	return "kit " + strings.ToLower(shell.NameOf(m.app))
 }
 
 // top gives the screen line the pane starts on: under the bar, which is open there to the selected tab, its title

@@ -102,6 +102,26 @@ var sections = [][]screenItem{
 // screens are the app's menu's screens, in its order, without the rules.
 var screens = slices.Concat(sections...)
 
+// Screens gives the screens of the app's menu's lines, in its order.
+func Screens() []Screen {
+	return slices.Collect(func(yield func(Screen) bool) {
+		for _, i := range screens {
+			if !yield(i.screen) {
+				return
+			}
+		}
+	})
+}
+
+// NameOf gives the name of a screen's line in the app's menu, as Trust or Repositories; none for a screen the menu has
+// no line for.
+func NameOf(s Screen) string {
+	if k := slices.IndexFunc(screens, func(i screenItem) bool { return i.screen == s }); k >= 0 {
+		return screens[k].item.Name
+	}
+	return ""
+}
+
 // Menu is the app's menu on a screen: the screen it is on, whose item is bold and does nothing; the screen's own items, which come
 // after kit's screens, and the names of those that do nothing now, dim; the name of the screen's crumb, the place a
 // link led from, which the title draws after the workspace, the way back the menu's screens are not, none without one;

@@ -55,7 +55,7 @@ func TestAScreenIsMadeWhenFirstShownAndKeptAsItWasLeft(t *testing.T) {
 	}
 	// Repositories is a screen of its own, beside Issues, on kit workspace's stages
 	m, _ = testkit.Drive(m, nil, shell.SwitchMsg{Screen: shell.Repositories})
-	if v := ansi.Strip(m.View().Content); m.here != shell.Repositories || !strings.Contains(v, "kit workspace") ||
+	if v := ansi.Strip(m.View().Content); m.here != shell.Repositories || !strings.Contains(v, "kit repositories") ||
 		!strings.Contains(v, "branches") {
 		t.Fatalf("the workspace is not shown:\n%s", v)
 	}
@@ -84,6 +84,21 @@ func TestAScreenIsMadeWhenFirstShownAndKeptAsItWasLeft(t *testing.T) {
 	m.Close()
 }
 
+// A click on an app's name in the = menu opens the app of the same name: its title line is kit and the name of the menu's
+// line, in lower case, for every line of the menu.
+func TestEveryLineOfTheMenuOpensAScreenTitledWithItsName(t *testing.T) {
+	m := help(t)
+	for _, screen := range shell.Screens() {
+		m, _ = testkit.Drive(m, nil, shell.SwitchMsg{Screen: screen})
+		want := "kit " + strings.ToLower(shell.NameOf(screen))
+		title := strings.Split(ansi.Strip(m.View().Content), "\n")[0]
+		if m.here != screen || !strings.Contains(title, " "+shell.App+" "+want) {
+			t.Errorf("%s: shown is %s, its title line is %q, not with %q", screen, m.here, title, want)
+		}
+	}
+	m.Close()
+}
+
 // The menu's Tutorials opens the tutorials screen, made on its first showing.
 func TestTheMenuOpensTheTutorials(t *testing.T) {
 	m := help(t)
@@ -102,7 +117,7 @@ func TestAJumpShowsTheAppAndGivesItTheJump(t *testing.T) {
 	if m.here != shell.Repositories {
 		t.Fatalf("shown: %s", m.here)
 	}
-	if v := ansi.Strip(m.View().Content); !strings.Contains(v, "kit workspace · ") || !strings.Contains(v, "➋╶") {
+	if v := ansi.Strip(m.View().Content); !strings.Contains(v, "kit repositories · ") || !strings.Contains(v, "➋╶") {
 		t.Errorf("the jump did not select remotes, the second tab:\n%s", v)
 	}
 	m, _ = testkit.Drive(m, nil, shell.JumpMsg{Screen: "nowhere", To: "x/y"})

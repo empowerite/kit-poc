@@ -707,10 +707,11 @@ func TestAJumpOpensTheHeadingsOverItsRowAndSaysWhenTheRowIsNotShown(t *testing.T
 	}
 }
 
-// The title line names the verb that opens the app, not the app: Trust is kit audit, Repositories kit workspace.
-func TestTheTitleLineNamesTheVerbThatOpensTheApp(t *testing.T) {
+// The title line names the app as the = menu does, not the verb that opens it: Trust is kit trust, not kit audit, and
+// Repositories kit repositories, not kit workspace.
+func TestTheTitleLineNamesTheAppAsTheMenuDoes(t *testing.T) {
 	for _, a := range apps {
-		if got, want := (Model{app: a.screen}).appLabel(), "kit "+a.verb; got != want {
+		if got, want := (Model{app: a.screen}).appLabel(), "kit "+strings.ToLower(shell.NameOf(a.screen)); got != want {
 			t.Errorf("%s is titled %q, not %q", a.screen, got, want)
 		}
 	}

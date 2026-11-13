@@ -73,7 +73,7 @@ func TestRepositoriesReadsKitWorkspacesStagesAndIncoming(t *testing.T) {
 		t.Errorf("OpenApp ran %q", got)
 	}
 	m = drive(m, tea.WindowSizeMsg{Width: 120, Height: 24})
-	if top := lines(m)[0]; !strings.Contains(top, "kit workspace") {
+	if top := lines(m)[0]; !strings.Contains(top, "kit repositories") {
 		t.Errorf("the title: %q", top)
 	}
 	for _, s := range m.bar().Tabs {
