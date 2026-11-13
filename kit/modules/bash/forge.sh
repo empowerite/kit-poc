@@ -1205,14 +1205,45 @@ forge:json() {
   jq --exit-status true <<<"$1" >/dev/null 2>&1
 }
 
+# forge_fold_inline is the longest value forge:fold hands jq in a command line.
+declare -gr forge_fold_inline=16384
+
 # forge:fold <remedy> <what> <answer> <jq argument>… prints what jq, given the kit's jq modules, makes of a provider's
 # answer. When jq fails, as on an answer not in the shape asked for, it prints nothing, says the remedy and that <what>
-# could not be read, and returns 1.
+# could not be read, and returns 1. The answer is jq's input. A value given with --argjson that is longer than
+# forge_fold_inline is the forge's to size, a list of changes or a discussion, and a command line, or one argument of
+# it, may be no larger than 128 KiB on Linux, so jq reads it from a file instead, as --slurpfile, and the program,
+# the last argument, binds it again under its own name, after the imports it starts with.
 forge:fold() {
-  local remedy=$1 what=$2 answer=$3 out
+  local remedy=$1 what=$2 answer=$3 out name program head rest file
+  local -i i last
+  local -a args
   shift 3
+  args=("$@")
+  last=$(( ${#args[@]} - 1 ))
+  program=${args[last]}
+  for (( i = 0; i < last - 1; i++ ))
+  do
+    [[ "${args[i]}" == --argjson && ${#args[i + 2]} -gt forge_fold_inline ]] || continue
+    name=${args[i + 1]}
+    file:temp file fold || return 1
+    # shellcheck disable=SC2154  # file is set by file:temp
+    printf '%s\n' "${args[i + 2]}" > "${file}" || return 1
+    args[i]=--slurpfile
+    args[i + 1]=__${name}
+    args[i + 2]=${file}
+    head=''
+    rest=${program}
+    while [[ "${rest}" =~ ^[[:space:]]*(import|include)[[:space:]][^\;]*\; ]]
+    do
+      head+=${BASH_REMATCH[0]}
+      rest=${rest#"${BASH_REMATCH[0]}"}
+    done
+    program="${head} \$__${name}[0] as \$${name} | ${rest}"
+  done
+  args[last]=${program}
   # shellcheck disable=SC2154  # kit_jq is exported by modules/bash/1st.sh
-  if ! out=$(jq -L "${kit_jq}" "$@" <<<"${answer}" 2>/dev/null)
+  if ! out=$(jq -L "${kit_jq}" "${args[@]}" <<<"${answer}" 2>/dev/null)
   then
     error "${remedy} (${what} could not be read)"
     return 1

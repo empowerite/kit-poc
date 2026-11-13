@@ -436,6 +436,30 @@ added+='"bot-accounts","merge-closing"'
   [ "$(call open-prs | jq --raw-output .state)" = blocked:approval ]
 }
 
+@test "a page of 100 pull requests, and a pull request's threads, larger than a command line may be, are read" {
+  # about 1.5 MB each: over macOS's limit for a command line, and 128 KiB over Linux's for one argument
+  local big
+  big=$(printf 'x%.0s' $(seq 1 15000))
+  cp "${FAKE_DIR}/prs.json" "${FAKE_DIR}/prs-one.json"
+  jq --compact-output --arg big "${big}" '[range(100) as $i | .[0] | .pullRequestId = ($i + 10) | .description = $big]
+    | .[0].pullRequestId = 3' "${FAKE_DIR}/prs-one.json" > "${FAKE_DIR}/prs.json"
+  az-route "repos pr list --project empowerite --repository example --status active --top 100 --skip 100 --output json" \
+    none.json
+  run call branch-for-issue 7
+  [ "$status" -eq 0 ] || { echo "${output}"; false; }
+  [ "$output" = 7-fix-the-thing ]
+  # the threads of a pull request with a long discussion
+  cp "${FAKE_DIR}/prs-one.json" "${FAKE_DIR}/prs.json"
+  jq --compact-output --arg big "${big}" '.value[0].comments[0].content = ($big * 100)' "${FAKE_DIR}/threads.json" \
+    > "${FAKE_DIR}/threads-big.json"
+  mv "${FAKE_DIR}/threads-big.json" "${FAKE_DIR}/threads.json"
+  forge-forget
+  run call open-prs
+  [ "$status" -eq 0 ] || { echo "${output}"; false; }
+  [ "$(jq --raw-output .number <<<"$output")" = 3 ]
+  [ "$(jq --raw-output .unresolved <<<"$output")" = 1 ]
+}
+
 @test "the provider lists the pull requests completed last, as the others do, and says when it stopped at 50" {
   expected='{"number":2,"title":"Do the other thing","author":"bob","branch":"9-other","merged":1791018000,"by":"ada",'
   expected+='"url":"https://dev.azure.com/acme/empowerite/_git/example/pullrequest/2","named":["AB#12"]}'

@@ -274,8 +274,9 @@ forge/gitlab:mark-of() {
       forge/gitlab:ask mark_answer "the ${mark_kind} mark" "${forge_gitlab_mark_paths[${mark_list}]}" || return 1
       forge_gitlab_marks_read[${mark_list}]=${mark_answer}
     fi
-    mark_lists=$(jq --compact-output --arg list "${mark_list}" \
-      --argjson answer "${forge_gitlab_marks_read[${mark_list}]}" '.[$list] = $answer' <<<"${mark_lists}") || return 1
+    # the answer is the forge's to size, up to 100 environments, so jq reads it on its input, never in an argument
+    mark_lists=$(jq --compact-output --slurp --arg list "${mark_list}" '.[0] + {($list): .[1]}' \
+      <<<"${mark_lists}"$'\n'"${forge_gitlab_marks_read[${mark_list}]}") || return 1
   done
   mark_answer=$(forge/gitlab:fold "the ${mark_kind} mark" "${mark_lists}" --compact-output --arg kind "${mark_kind}" \
     'import "forge" as forge; forge::gitlab_mark($kind)') || return 1

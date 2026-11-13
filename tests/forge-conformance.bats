@@ -1014,6 +1014,19 @@ JSON
 '"dismissed":{"critical":0,"high":1,"medium":0,"low":0,"info":0,"unknown":0}}' ]
 }
 
+@test "GitLab reads the environments a mark is made from when they are larger than a command line may be" {
+  world gitlab
+  local p='projects/empowerite%2Fexample' big
+  big=$(printf 'x%.0s' $(seq 1 15000))
+  jq --null-input --compact-output --arg big "${big}" \
+    '[range(100) as $i | {id: $i, name: "env\($i)", state: "available", updated_at: "2026-11-07", note: $big}]' \
+    > "${FAKE_DIR}/gl-environments.json"
+  route glab "api ${p}/environments?per_page=100" gl-environments.json
+  run call marks environments
+  [ "$status" -eq 0 ] || { echo "${output}"; false; }
+  [ "$(jq --raw-output '.environments | fromjson | length' <<<"$output")" -eq 100 ]
+}
+
 @test "a provider that cannot read the rate limits says how to fix it, and kit flow --quota prints nothing" {
   world github
   route gh 'api rate_limit' '!1'
