@@ -142,6 +142,24 @@ setup() {
   [[ "$output" == *"toml "*".kit/kinds/toml.yml"*"**/*.toml · embeds bash"* ]]
 }
 
+@test "a package that overrides a path outside .kit/ that another delivers has its file placed by add, and the other's restored by remove" {
+  local path=.github/instructions/kit-json.instructions.md
+  "${kit_checkout}/bin/kit" install >/dev/null 2>&1
+  "${kit_checkout}/bin/kit" packages add agents/copilot >/dev/null 2>&1
+  [ -f "${path}" ]
+  mkdir -p ".kit/packages/mine/files/repo/${path%/*}"
+  printf 'description: "mine"\ndepends:\n  - agents/copilot\n' > .kit/packages/mine/package.yml
+  printf 'MINE\n' > ".kit/packages/mine/files/repo/${path}"
+  run "${kit_checkout}/bin/kit" packages add mine
+  [ "$status" -eq 0 ]
+  [ "$(cat "${path}")" = MINE ]
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 0 ]
+  run "${kit_checkout}/bin/kit" packages remove mine
+  [ "$status" -eq 0 ]
+  [ "$(cat "${path}")" != MINE ]
+}
+
 @test "kit new kind writes a pattern as it was given: a backslash, a double quote, and a single quote are literal" {
   "${kit_checkout}/bin/kit" install >/dev/null 2>&1
   run "${kit_checkout}/bin/kit" new kind rx --content='^\s*fn "(\w+)" it'"'"'s' --path="*.it's"

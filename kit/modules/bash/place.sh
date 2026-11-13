@@ -144,6 +144,25 @@ place:beyond() {
   done <<<"${place_delivered[${has}]}"
 }
 
+# place:swapped <root> <base> <before> <after> prints the paths under the base that both package sets deliver, from
+# different files: the package that wins a path is not the same one, so what is placed there is another's file. Sorted.
+# Each set is passed as one space-separated word.
+place:swapped() {
+  local root=$1 base=$2 had has path
+  local -a before after
+  read -r -a before <<<"$3"
+  read -r -a after <<<"$4"
+  place:delivered "${root}" "${base}" "${before[@]}" >/dev/null || return 1
+  place:delivered "${root}" "${base}" "${after[@]}" >/dev/null || return 1
+  place:key had "${root}" "${base}" "${before[@]}"
+  place:key has "${root}" "${base}" "${after[@]}"
+  while IFS=$'\t' read -r path _
+  do
+    [[ -n "${path}" && -n "${place_source[${had}${path}]+x}" ]] || continue
+    [[ "${place_source[${had}${path}]}" == "${place_source[${has}${path}]}" ]] || printf '%s\n' "${path}"
+  done <<<"${place_delivered[${has}]}"
+}
+
 # place:merged <path> succeeds for a destination that is merged by key instead of copied: a .json settings
 # file. Every .json file the kit delivers is a settings file, except a schema (*.schema.json).
 place:merged() { [[ "$1" == *.json && "$1" != *.schema.json ]]; }

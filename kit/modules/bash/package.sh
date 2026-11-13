@@ -92,6 +92,33 @@ package:matches() {
   return 1
 }
 
+# package:swap <base> <before> <after> places, for each path both package sets deliver from different files, the file
+# of <after>, as <before>'s was placed: a path edited since is warned of and left as it is. Each set is one word, its
+# packages joined by spaces. It returns 1 when a path could not be written.
+package:swap() {
+  local base=$1 path old new dest status=0
+  local -a paths before after
+  read -r -a before <<<"$2"
+  read -r -a after <<<"$3"
+  list:read paths place:swapped "${kit_root}" "${base}" "$2" "$3" || return 1
+  for path in "${paths[@]}"
+  do
+    [[ -n "${path}" ]] || continue
+    place:source old "${kit_root}" "${base}" "${path}" "${before[@]}" || return 1
+    place:source new "${kit_root}" "${base}" "${path}" "${after[@]}" || return 1
+    release:dest "${base}" "${path}" dest || return 1
+    if place:edited "${base}" "${path}" "${old}"
+    then
+      warn "${dest}: edited since the kit placed it; it is left as it is"
+    elif [[ -e "${dest}" || -L "${dest}" ]]
+    then
+      step "${dest}: now the file of the package that delivers it last"
+      place:content "${new}" "${dest}" || status=1
+    fi
+  done
+  return "${status}"
+}
+
 # package:add <package>… activates the packages, the packages they depend on, and the members they include, places
 # the files they deliver, and rewrites the manifests. A package named here is no longer excluded. When a different
 # file is already at a delivered path, it is named and left alone, no manifest is written, and it returns 1.
@@ -124,6 +151,7 @@ package:add() {
       release:dest "${base}" "${path}" dest || return 1
       place:new "${src}" "${dest}" "placed" || refused=$(( refused + 1 ))
     done
+    package:swap "${base}" "${active[*]}" "${wanted[*]}" || refused=$(( refused + 1 ))
   done
   if (( refused > 0 ))
   then
@@ -214,6 +242,7 @@ package:remove() {
         fi
         place:remove "${src}" "${dest}" || refused=$(( refused + 1 ))
       done
+      package:swap "${base}" "${active[*]}" "${remaining[*]}" || refused=$(( refused + 1 ))
     done
   fi
   if (( refused > 0 ))
