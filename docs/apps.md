@@ -69,9 +69,12 @@ or outside a repository's working tree with no workspace.
 
 ## Issues: kit issues
 
-`kit issues` prints the planning the forge keeps. Its first tab in kittui, issues, every open issue in the backlog or
-underway, is `kit flow`'s: `kit issues issues` opens it on a terminal, and `kit issues backlog` and `kit issues
-underway` open it on its Backlog or Underway preset; with a form, each refuses with 2, naming `kit flow issues --json`.
+`kit issues` prints the open issues and the planning the forge keeps. Its first tab in kittui, issues, every open
+issue in the backlog or underway, is `kit flow`'s stage: `kit issues issues` opens it on a terminal, and `kit issues
+backlog` and `kit issues underway` open it on its Backlog or Underway preset. Off a terminal, or with a form, `kit
+issues issues` prints what `kit flow issues` prints, as text or as JSON, and `kit issues backlog` and `kit issues
+underway` print the issues of that status. `kit issues` with no tab named prints the stages in the table below, not
+the issues, and `--stages` and `--marks` name those alone.
 The tab's presets are All Issues, which it opens on, Backlog, Underway, By Milestone, By Iteration, and By Swimlane.
 
 | Stage | A row per | Fields | Mark |
@@ -94,8 +97,9 @@ The tab's presets are All Issues, which it opens on, Backlog, Underway, By Miles
 ## Changes: kit changes
 
 `kit changes` prints what the forge says of the repository's changes. Its other tab in kittui, the open changes, is
-`kit flow`'s: `kit changes changes` opens on a terminal, and with a form refuses with 2, naming
-`kit flow changes --json`.
+`kit flow`'s stage: `kit changes changes` opens it on a terminal, and off one, or with a form, prints what
+`kit flow changes` prints, as text or as JSON. `kit changes` with no tab named prints the stages in the table below,
+not the open changes.
 
 | Stage | A row per | Fields | Mark |
 | --- | --- | --- | --- |
@@ -139,8 +143,9 @@ The tab's presets are All Issues, which it opens on, Backlog, Underway, By Miles
 ## Delivery: kit delivery
 
 `kit delivery` prints what the forge holds of the repository's delivery. Its other tabs in kittui, the releases and
-the builds, are `kit flow`'s: `kit delivery releases` and `kit delivery builds` open on a terminal, and with a form
-refuse with 2, naming `kit flow releases --json` or `kit flow builds --json`.
+the builds, are `kit flow`'s stages: `kit delivery releases` and `kit delivery builds` open them on a terminal, and
+off one, or with a form, print what `kit flow releases` and `kit flow builds` print, as text or as JSON.
+`kit delivery` with no tab named prints the stages in the table below.
 
 | Stage | A row per | Fields | Mark |
 | --- | --- | --- | --- |

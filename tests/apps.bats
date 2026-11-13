@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# apps.bats - the app verbs' runner: a forge call's document, documents merged, hashes, marks, and another app's tab
+# apps.bats - the app verbs' runner: a forge call's document, documents merged, hashes, marks, and a tab of kit flow's
 # ----------------------------------------------------------------------------------------------------------------------
 # The runner's helpers run in a repository whose origin is on GitHub, through kit-bash, with a forge call stood in by a
 # function where a test needs an answer the fake gh cannot give. apps:main runs through a verb written for the tests,
@@ -127,7 +127,7 @@ setup() {
   [ -z "$output" ]
 }
 
-@test "a verb's tab of another app is refused with --json, naming the command that prints it; its own stage prints" {
+@test "a verb's tab that kit flow draws prints that stage, a preset's rows alone; its own stage prints" {
   root="${BATS_TEST_TMPDIR}/kit"
   mkdir -p "${root}"
   cp -R "${kit_root}/bin" "${kit_root}/libexec" "${kit_root}/modules" "${kit_root}/packages" "${root}/"
@@ -142,7 +142,7 @@ setup() {
 #   kit demo one [--text | --json | --jq]
 #   kit demo backlog [--text | --json | --jq]
 #
-# Draws a stage of its own, and names another app's tab.
+# Draws a stage of its own, and a tab kit flow draws.
 #
 # Arguments:
 #   --text    text
@@ -151,7 +151,7 @@ setup() {
 #   --stages  the stages
 #   --marks   the marks
 #   one       its own stage
-#   backlog   another app's tab
+#   backlog   a preset of a tab kit flow draws
 #
 # Exits 0, and 2 on a usage error.
 #
@@ -168,13 +168,41 @@ EOF
   cat > "${root}/modules/bash/apps/demo.sh" <<'EOF'
 # shellcheck shell=bash
 demo_stages=(one)
-declare -gA demo_elsewhere=([backlog]='kit flow backlog')
+declare -gA demo_elsewhere=([backlog]=issues)
+declare -gA demo_presets=([backlog]='.status == "backlog"')
 apps/demo:one() { printf '{"rows":[{"key":"a","links":{}}],"errors":[]}\n'; }
 EOF
+  fixture user.json <<<'{"login": "ada"}'
+  fixture repo.json <<<'{"nameWithOwner": "o/r", "url": "https://github.com/o/r"}'
+  fixture issues.json <<'JSON'
+[{"number": 11, "title": "Third thing", "assignees": [], "createdAt": "2026-09-30T09:00:00Z"},
+ {"number": 7, "title": "Fix the thing", "assignees": [], "createdAt": "2026-09-20T09:00:00Z"}]
+JSON
+  fixture open-prs.json <<'JSON'
+{"data": {"repository": {"nameWithOwner": "o/r", "issues": {"nodes": [{"number": 7, "assignees": {"nodes": []}}]},
+  "pullRequests": {"nodes": [{"number": 3, "title": "Fix the thing", "isDraft": true, "headRefName": "7-fix",
+  "createdAt": "2026-10-01T09:00:00Z", "mergeStateStatus": "CLEAN", "reviewDecision": null,
+  "author": {"login": "ada"},
+  "closingIssuesReferences": {"nodes": [{"number": 7, "title": "Fix the thing", "createdAt": "2026-09-20T09:00:00Z",
+                                         "repository": {"nameWithOwner": "o/r"}}]},
+  "reviewThreads": {"nodes": []}, "commits": {"nodes": [{"commit": {"statusCheckRollup": null}}]}}]}}}}
+JSON
+  fixture issue-iterations.json <<<'{"data": {"repository": {"issues": {"pageInfo": {"hasNextPage": false}, "nodes": []}}}}'
+  route 'api user*' user.json
+  route 'repo view*' repo.json
+  route 'issue list --state open --limit 10000 --json *' issues.json
+  route 'api graphql*projectItems*' issue-iterations.json
+  route 'api graphql*' open-prs.json
+  # the tab is kit flow's issues stage, and the word its preset: the rows of that status, as JSON and as text
+  run --separate-stderr "${root}/bin/kit" flow issues --json
+  [ "$(jq -c 'map([.number, .status])' <<<"$output")" = '[[7,"underway"],[11,"backlog"]]' ]
   run --separate-stderr "${root}/bin/kit" demo backlog --json
-  [ "$status" -eq 2 ]
-  [ -z "$output" ]
-  [[ "$stderr" == *"run: cd "*" && kit flow backlog --json"* ]]
+  [ "$status" -eq 0 ]
+  [ -z "$stderr" ]
+  [ "$(jq -c 'map([.number, .status, .source])' <<<"$output")" = '[[11,"backlog","github"]]' ]
+  run --separate-stderr "${root}/bin/kit" demo backlog --text
+  [ "$status" -eq 0 ]
+  [[ "${#lines[@]}" -eq 1 && "$output" == *"#11"*"Third thing"* ]]
   run --separate-stderr "${root}/bin/kit" demo one --json
   [ "$status" -eq 0 ]
   [ "$(jq -c '.rows |= map(del(.organization, .repository))' <<<"$output")" \

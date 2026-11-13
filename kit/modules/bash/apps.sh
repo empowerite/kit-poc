@@ -7,8 +7,10 @@
 # own, apps/<verb>.sh, declares what is the verb's:
 #
 #   <verb>_stages           the stages, in the app's tab order: platform_stages=(services toolchains tools settings)
-#   <verb>_elsewhere        optional, declared with declare -gA: each tab of the app that another kit command prints,
-#                           to that command: ([issues]='kit flow issues')
+#   <verb>_elsewhere        optional, declared with declare -gA: each word that names a tab of the app kit flow
+#                           draws, to the stage of kit flow that draws it: ([issues]=issues [backlog]=issues)
+#   <verb>_presets          optional, declared with declare -gA: each of those words that opens its tab on a preset,
+#                           to the jq condition that keeps the preset's rows: ([backlog]='.status == "backlog"')
 #   apps/<verb>:<stage>     prints the stage's document, {rows, errors}, and limited when a capped call stopped; it
 #                           returns 1, after its ❌ line, when nothing could be read
 #   apps/<verb>:mark-<stage>  prints the stage's mark, a text that changes when what the stage draws does, or nothing
@@ -19,7 +21,7 @@
 # so does each of its errors; a member that could not be read is {member, error} under errors.
 #
 # see: modules/jq/apps.jq, bin/kit-workspace, modules/bash/across.sh
-use workspaces across tui forge file terminal
+use workspaces across tui forge file terminal flow
 
 # apps_forge_marks holds the forge's marks of each kind apps:forge-mark has read in this process, so the stages that
 # share a kind read the forge for it once; apps_forge_served says, once read, whether the forge serves marks.
@@ -29,8 +31,8 @@ apps_forge_marks='{}' apps_forge_served=''
 # stage, as one JSON object, a stage with none null; <stage> with --json its document, with --jq formatted, and with
 # --text, or off a terminal, as text; with no stage, every stage, as one JSON object {stages, <stage>: document…}, or
 # as text under each name. On a terminal, with no form chosen, it runs kittui on the verb and the stage named. A tab
-# another command prints is refused with 2, naming that command. It returns 2 outside a repository with no workspace,
-# and 1 when a stage could not be read, after what was.
+# kit flow draws is printed as apps:tab prints it. It returns 2 outside a repository with no workspace, and 1 when a
+# stage could not be read, after what was.
 apps:main() {
   local verb=$1 workspace stage form command status=0 doc each first=true
   local -a named=() fresh=()
@@ -57,13 +59,6 @@ apps:main() {
     export KIT="${kit_root}/bin/kit"
     exec "${command}" "${verb}" ${workspace:+--workspace="${workspace}"} "$@"
   fi
-  command=$(apps:elsewhere "${verb}" "${stage}")
-  if [[ -n "${command}" ]]
-  then
-    error "kit ${verb} ${stage} opens the tab in kittui, on a terminal; ${stage} is printed by another command; run:" \
-      "${command} --json"
-    return 2
-  fi
   # A bare repository, or a .git directory, has no working tree to read, so it is outside a repository too.
   if [[ -z "${workspace}" ]] && ! workspaces:in-repository >/dev/null
   then
@@ -78,6 +73,12 @@ apps:main() {
   then
     # shellcheck disable=SC2034  # read by modules/bash/across.sh
     across_resolved=$(workspaces:resolve "${workspace}") || return $?
+  fi
+  # A tab of the app that kit flow draws is printed as kit flow prints its stage.
+  if [[ -n "$(apps:elsewhere "${verb}" "${stage}")" ]]
+  then
+    apps:tab "${verb}" "${stage}" "${workspace}" "${form}"
+    return
   fi
   if [[ -n "${syntax_options[--marks]+x}" ]]
   then
@@ -120,13 +121,49 @@ apps:main() {
   return "${status}"
 }
 
-# apps:elsewhere <verb> <stage> prints the command that prints <stage>, where it is a tab of the verb's app that
-# another command prints, as <verb>_elsewhere names it, or nothing.
+# apps:elsewhere <verb> <word> prints the stage of kit flow that draws the tab <word> names, where it names a tab of
+# the verb's app that kit flow draws, as <verb>_elsewhere says, or nothing.
 apps:elsewhere() {
   local verb=$1 stage=$2
   [[ -n "${stage}" ]] && declare -p "${verb}_elsewhere" >/dev/null 2>&1 || return 0
   local -n apps_elsewhere_of="${verb}_elsewhere"
   printf '%s' "${apps_elsewhere_of[${stage}]:-}"
+}
+
+# apps:tab <verb> <word> <workspace> <form> prints the tab <word> names, one kit flow draws, as kit flow prints its
+# stage: with --json the stage's document, and otherwise its rows as text, without a heading. A word that opens the
+# tab on a preset, as <verb>_presets says, keeps the preset's rows. Over a workspace, each cloned member's kit prints
+# the tab in its checkout: as JSON they are one document, {rows, errors}, each row tagged with its member, as
+# across:merge makes it, and as text each member's is under its name, as across:text draws it. It returns what the
+# stage returns: 1 when the forge could not be read, its line said.
+apps:tab() {
+  local verb=$1 word=$2 workspace=$3 form=$4 stage keep='' doc dir
+  stage=$(apps:elsewhere "${verb}" "${word}")
+  if declare -p "${verb}_presets" >/dev/null 2>&1
+  then
+    local -n apps_tab_presets="${verb}_presets"
+    keep=${apps_tab_presets[${word}]:-}
+  fi
+  if [[ -n "${workspace}" && "${form}" == --json ]]
+  then
+    file:scratch dir
+    across:start "${workspace}" "${dir}" "${word}" --json >/dev/null || return $?
+    across:merge "${dir}" array "${word}"
+    return
+  fi
+  if [[ -n "${workspace}" ]]
+  then
+    across:text "${workspace}" '' "${word}"
+    return
+  fi
+  doc=$(flow:stage "${stage}" --json) || return $?
+  [[ -z "${keep}" ]] || doc=$(jq --compact-output "map(select(${keep}))" <<<"${doc}") || return 1
+  if [[ "${form}" == --json ]]
+  then
+    printf '%s\n' "${doc}"
+  else
+    "${stage}:draw" "${doc}" all
+  fi
 }
 
 # apps:document <verb> <stage> <workspace> [<word>…] prints the stage's document: the repository here's, each row

@@ -20,9 +20,9 @@ use apps forge
 # shellcheck disable=SC2034  # read by modules/bash/apps.sh
 delivery_stages=(artifacts environments deployments)
 
-# delivery_elsewhere names the tabs of Delivery that kit flow prints.
+# delivery_elsewhere names the tabs of Delivery that kit flow draws, its releases and builds stages.
 # shellcheck disable=SC2034  # read by modules/bash/apps.sh
-declare -gA delivery_elsewhere=([releases]='kit flow releases' [builds]='kit flow builds')
+declare -gA delivery_elsewhere=([releases]=releases [builds]=builds)
 
 # apps/delivery:artifacts prints the artifacts document, through apps::artifact, limited when the forge holds more
 # than it read.

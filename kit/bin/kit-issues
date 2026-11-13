@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# kit-issues - lists the forge's milestones and iterations of the repository (kit verb: workflow)
+# kit-issues - lists the repository's open issues, and the forge's milestones and iterations (kit verb: workflow)
 # ----------------------------------------------------------------------------------------------------------------------
 # Usage:
 #   kit issues [--text | --json | --jq]
@@ -11,9 +11,10 @@
 #   kit issues backlog [--text | --json | --jq]
 #   kit issues underway [--text | --json | --jq]
 #
-# Draws the planning the forge keeps, a stage for each of Issues' tabs in kittui that the forge answers. It changes
-# nothing. Its first tab, issues, every open issue, in the backlog or underway, is kit flow's, as kit flow issues prints
-# it. The stages, in order:
+# Draws the open issues and the planning the forge keeps, the tabs of Issues in kittui. It changes nothing. Its first
+# tab, issues, every open issue, in the backlog or underway, is kit flow's stage: kit issues issues prints it as kit
+# flow issues does, and kit issues backlog and kit issues underway print the issues of that status, as the tab's
+# Backlog and Underway presets show them. The other tabs are the stages the forge answers here, in order:
 #
 #   milestones → iterations
 #
@@ -22,8 +23,11 @@
 # none names no workspace. Without it, the workspace is the repository here, and outside one, the last group used, as
 # kit workspaces --current says. On a terminal, kit issues opens Issues in kittui, and kit issues <stage> opens it on
 # that tab, maximized; so does kit issues issues, and kit issues backlog and kit issues underway open it on its Backlog
-# or Underway preset. Without one, or with --text, it prints the stages as text; with --json or --jq, as JSON; the tab
-# of kit flow, and its presets, with a form, are refused, naming kit flow issues.
+# or Underway preset. Without one, or with --text, it prints text; with --json or --jq, JSON: the stages where no tab
+# is named, and the tab named alone. kit issues with no tab prints its stages, not the issues.
+#
+# With --json, issues, backlog, and underway print what kit flow issues --json prints: an array of issues, and over a
+# workspace {rows, errors}, each row with its member.
 #
 # With --json, a stage prints {rows, errors}. A row is {key, …, links}: key is the row's own in its stage, and links
 # gives where a value leads, by its field. Every row says where it is from: organization and repository, the owner and
@@ -73,13 +77,15 @@
 #   iterations          each iteration, by start: GitHub's from the projects linked to the repository, GitLab's with
 #                       its groups', and Azure DevOps' of its team, the one forge_settings.ado.team names, else the
 #                       project's default team
-#   issues              a tab kit flow prints; on a terminal it opens in kittui, and with a form it is refused
-#   backlog             the issues tab's Backlog preset; on a terminal it opens in kittui, and with a form it is refused
-#   underway            the issues tab's Underway preset; on a terminal it opens in kittui, and with a form it is
-#                       refused
+#   issues              every open issue, in the backlog or underway, as kit flow issues prints it; on a terminal it
+#                       opens in kittui
+#   backlog             the open issues in the backlog, the issues tab's Backlog preset; on a terminal it opens in
+#                       kittui on that preset
+#   underway            the open issues underway, the issues tab's Underway preset; on a terminal it opens in kittui
+#                       on that preset
 #
-# Exits 0 when the stages are drawn, 1 when a stage could not be read, after what was, and 2 on a usage error, or
-# outside a repository's working tree with no workspace.
+# Exits 0 when the stages, or the tab named, are drawn, 1 when one could not be read, after what was, and 2 on a usage
+# error, or outside a repository's working tree with no workspace.
 #
 # see: modules/bash/apps.sh, modules/bash/apps/issues.sh, modules/jq/apps.jq, docs/apps.md
 

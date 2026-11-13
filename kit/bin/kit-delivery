@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# kit-delivery - lists the artifacts, environments, and deployments the forge holds (kit verb: workflow)
+# kit-delivery - lists the forge's releases, builds, artifacts, environments, and deployments (kit verb: workflow)
 # ----------------------------------------------------------------------------------------------------------------------
 # Usage:
 #   kit delivery [--text | --json | --jq]
@@ -11,9 +11,9 @@
 #   kit delivery releases [--text | --json | --jq]
 #   kit delivery builds [--text | --json | --jq]
 #
-# Draws what the forge says of the repository's delivery, a stage for each of Delivery's tabs in kittui that the forge
-# answers. It changes nothing. The tabs releases and builds are kit flow's, as kit flow releases and kit flow builds
-# print them. The stages, in order:
+# Draws what the forge says of the repository's delivery, the tabs of Delivery in kittui. It changes nothing. The tabs
+# releases and builds are kit flow's stages: kit delivery releases and kit delivery builds print them as kit flow
+# releases and kit flow builds do. The other tabs are the stages the forge answers here, in order:
 #
 #   artifacts → environments → deployments
 #
@@ -22,7 +22,11 @@
 # none names no workspace. Without it, the workspace is the repository here, and outside one, the last group used, as
 # kit workspaces --current says. On a terminal, kit delivery opens Delivery in kittui, and kit delivery <stage> opens it
 # on that tab, maximized; so do kit delivery releases and kit delivery builds. Without one, or with --text, it prints
-# the stages as text; with --json or --jq, as JSON; a tab of kit flow, with a form, is refused, naming kit flow.
+# text; with --json or --jq, JSON: the stages where no tab is named, and the tab named alone. kit delivery with no tab
+# prints its stages, not the releases or the builds.
+#
+# With --json, releases and builds print what kit flow releases --json and kit flow builds --json print: an array,
+# and over a workspace {rows, errors}, each row with its member.
 #
 # With --json, a stage prints {rows, errors}, and limited where the forge holds more than it read. A row is {key, …,
 # links}: key is the row's own in its stage, and links gives where a value leads, by its field. Every row says where it
@@ -94,11 +98,11 @@
 #   artifacts           the artifacts the runs kept, the newest 100 at most
 #   environments        the deployment environments, each with what guards it
 #   deployments         the deployments, the newest 50 at most
-#   releases            a tab kit flow prints; on a terminal it opens in kittui, and with a form it is refused
-#   builds              a tab kit flow prints; on a terminal it opens in kittui, and with a form it is refused
+#   releases            the releases on the forge, as kit flow releases prints them; on a terminal it opens in kittui
+#   builds              the runs no change owns, as kit flow builds prints them; on a terminal it opens in kittui
 #
-# Exits 0 when the stages are drawn, 1 when a stage could not be read, after what was, and 2 on a usage error, or
-# outside a repository's working tree with no workspace.
+# Exits 0 when the stages, or the tab named, are drawn, 1 when one could not be read, after what was, and 2 on a usage
+# error, or outside a repository's working tree with no workspace.
 #
 # see: modules/bash/apps.sh, modules/bash/apps/delivery.sh, modules/jq/apps.jq, docs/apps.md
 

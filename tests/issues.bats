@@ -104,17 +104,75 @@ JSON
   [ "$output" = '{"rows":[],"errors":[{"feature":"iterations","off":true}]}' ]
 }
 
-@test "Issues' first tab is kit flow's: kit issues issues, backlog, or underway --json refuses with 2, naming kit flow issues" {
+@test "Issues' first tab is kit flow's: kit issues issues prints what kit flow issues does, and backlog and underway the issues of that status" {
   github-world
-  for tab in issues backlog underway
+  fixture issues.json <<'JSON'
+[{"number": 11, "title": "Third thing", "assignees": [{"login": "ada"}], "createdAt": "2026-09-30T09:00:00Z"},
+ {"number": 7, "title": "Fix the thing", "assignees": [{"login": "bob"}], "createdAt": "2026-09-20T09:00:00Z"}]
+JSON
+  fixture open-prs.json <<'JSON'
+{"data": {"repository": {"nameWithOwner": "o/r",
+  "issues": {"nodes": [{"number": 7, "assignees": {"nodes": [{"login": "bob"}]}}]},
+  "pullRequests": {"nodes": [{
+  "number": 3, "title": "Fix the thing", "isDraft": true, "headRefName": "7-fix-the-thing",
+  "createdAt": "2026-10-01T09:00:00Z", "mergeStateStatus": "CLEAN", "reviewDecision": null,
+  "author": {"login": "ada"},
+  "closingIssuesReferences": {"nodes": [{"number": 7, "title": "Fix the thing", "createdAt": "2026-09-20T09:00:00Z",
+                                         "repository": {"nameWithOwner": "o/r"}}]},
+  "reviewThreads": {"nodes": []},
+  "commits": {"nodes": [{"commit": {"statusCheckRollup": null}}]}}]}}}}
+JSON
+  fixture issue-iterations.json <<<'{"data": {"repository": {"issues": {"pageInfo": {"hasNextPage": false}, "nodes": []}}}}'
+  route gh 'issue list --state open --limit 10000 --json *' issues.json
+  route gh 'api graphql*projectItems*' issue-iterations.json
+  route gh 'api graphql*' open-prs.json
+  local flow
+  # as JSON, the document kit flow issues prints; the ages count seconds from now, so they are left out
+  flow=$("${kit_root}/bin/kit" flow issues --json | jq -c 'del(.. | .age?)')
+  [ "$(jq -c 'map(.number)' <<<"${flow}")" = '[7,11]' ]
+  run --separate-stderr "${kit_root}/bin/kit" issues issues --json
+  [ "$status" -eq 0 ]
+  [ -z "$stderr" ]
+  [ "$(jq -c 'del(.. | .age?)' <<<"$output")" = "${flow}" ]
+  run --separate-stderr "${kit_root}/bin/kit" issues issues --jq
+  [ "$status" -eq 0 ]
+  [ "$(wc -l <<<"$output")" -gt 1 ]
+  [ "$(jq -c 'del(.. | .age?)' <<<"$output")" = "${flow}" ]
+  # as text, with --text or off a terminal, the rows kit flow issues draws
+  flow=$("${kit_root}/bin/kit" flow issues)
+  [[ "${flow}" == *"#7"*"Fix the thing"*"#11"*"Third thing"* ]]
+  for form in --text ''
   do
-    run --separate-stderr "${kit_root}/bin/kit" issues "${tab}" --json
-    [ "$status" -eq 2 ]
-    [ -z "$output" ]
-    [[ "$stderr" == *"run: cd "*" && kit flow issues --json"* ]]
+    # shellcheck disable=SC2086  # no form is no word
+    run --separate-stderr "${kit_root}/bin/kit" issues issues ${form}
+    [ "$status" -eq 0 ]
+    [ -z "$stderr" ]
+    [ "$output" = "${flow}" ]
   done
+  # backlog and underway are the tab's presets: the issues of that status
+  run --separate-stderr "${kit_root}/bin/kit" issues backlog --json
+  [ "$status" -eq 0 ]
+  [ "$(jq -c 'map([.number, .status])' <<<"$output")" = '[[11,"backlog"]]' ]
+  run --separate-stderr "${kit_root}/bin/kit" issues underway --json
+  [ "$(jq -c 'map([.number, .status, .pr.number])' <<<"$output")" = '[[7,"underway",3]]' ]
+  run --separate-stderr "${kit_root}/bin/kit" issues backlog --text
+  [ "$status" -eq 0 ]
+  [[ "${#lines[@]}" -eq 1 && "$output" == *"#11"*"Third thing"* ]]
+  run --separate-stderr "${kit_root}/bin/kit" issues underway
+  [[ "${#lines[@]}" -eq 1 && "$output" == *"#7"*"#3"*"Fix the thing"* ]]
+  # a preset with no issue says so, as the stage does
+  fixture issues.json <<<'[{"number": 7, "title": "Fix the thing", "assignees": [], "createdAt": "2026-09-20T09:00:00Z"}]'
+  forge-forget
+  run --separate-stderr "${kit_root}/bin/kit" issues backlog
+  [[ "$status" -eq 0 && "$output" == "no open issue" ]]
+  # the stages are still the two the forge answers through kit issues, as kittui reads them
   run --separate-stderr "${kit_root}/bin/kit" issues --stages
   [ "$output" = $'milestones\niterations' ]
+  # a forge that cannot be read is the stage's refusal, and 1
+  forge-forget
+  PATH="$(shims gh)" run --separate-stderr "${kit_root}/bin/kit" issues issues --json
+  [ "$status" -eq 1 ]
+  [[ -z "$output" && "$stderr" == "❌ "* ]]
 }
 
 @test "on Azure DevOps, which has no milestones, milestones is no rows and no errors, and exits 0" {

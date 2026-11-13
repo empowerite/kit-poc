@@ -1,7 +1,7 @@
- kit changes - lists each open change's reviews and checks, and the changes merged last
+ kit changes - lists the open changes, their reviews and checks, and the changes merged last
 
    one of
-   *kit changes*  lists each open change's reviews and checks, and the changes merged last
+   *kit changes*  lists the open changes, their reviews and checks, and the changes merged last
 
      --text   --json   --jq
                            prints the stages as text, even on a terminal
@@ -13,8 +13,7 @@
    reviews      each open change's reviewers: those it asks, and those who reviewed it, by login
    checks       each open change's checks: the latest run of each on its head commit
    merged       the changes merged last, 50 at most, merged last first
-   changes      a tab kit flow prints; on a terminal it opens in kittui, and with a form it is
-                refused
+   changes      every open change, as kit flow changes prints it; on a terminal it opens in kittui
 
 
  kit changes

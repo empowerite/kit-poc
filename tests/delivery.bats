@@ -119,15 +119,40 @@ JSON
   [ "${lines[-1]}" = 'kit read the first 1; the forge holds more' ]
 }
 
-@test "the other Delivery tabs are kit flow's: kit delivery releases or builds --json refuses with 2, naming it" {
+@test "the other Delivery tabs are kit flow's: kit delivery releases and builds print what kit flow releases and builds do" {
   github-world
+  fixture releases.json <<'JSON'
+[{"tag_name": "release/0.0.9", "name": "kit 0.0.9", "prerelease": false, "draft": false,
+  "published_at": "2026-10-20T07:30:14Z", "created_at": "2026-10-20T07:30:14Z",
+  "html_url": "https://github.com/o/r/releases/tag/release/0.0.9", "body": "", "assets": []}]
+JSON
+  fixture runs.json <<'JSON'
+[{"databaseId": 11, "workflowName": "kit", "headBranch": "main", "event": "push",
+  "status": "completed", "conclusion": "success", "createdAt": "2026-10-01T10:00:00Z",
+  "startedAt": "2026-10-01T10:00:00Z", "updatedAt": "2026-10-01T10:03:36Z", "url": "https://github.com/r/11"}]
+JSON
+  route gh 'api --paginate repos/{owner}/{repo}/releases?per_page=100' releases.json
+  route gh 'run list --event *' runs.json
+  local tab flow
   for tab in releases builds
   do
+    flow=$("${kit_root}/bin/kit" flow "${tab}" --json | jq -c 'del(.. | .age?)')
+    [ "$(jq 'length' <<<"${flow}")" -eq 1 ]
     run --separate-stderr "${kit_root}/bin/kit" delivery "${tab}" --json
-    [ "$status" -eq 2 ] || { echo "${tab}: ${status}"; return 1; }
-    [ -z "$output" ]
-    [[ "$stderr" == *"run: cd "*" && kit flow ${tab} --json"* ]]
+    [ "$status" -eq 0 ] || { echo "${tab}: ${status} ${stderr}"; return 1; }
+    [ "$(jq -c 'del(.. | .age?)' <<<"$output")" = "${flow}" ]
+    flow=$("${kit_root}/bin/kit" flow "${tab}")
+    [ -n "${flow}" ]
+    for form in --text ''
+    do
+      # shellcheck disable=SC2086  # no form is no word
+      run --separate-stderr "${kit_root}/bin/kit" delivery "${tab}" ${form}
+      [ "$status" -eq 0 ]
+      [ "$output" = "${flow}" ]
+    done
   done
+  run --separate-stderr "${kit_root}/bin/kit" delivery --stages
+  [ "$output" = $'artifacts\nenvironments\ndeployments' ]
 }
 
 @test "kit delivery --json draws every stage, and a repository with no forge draws none" {

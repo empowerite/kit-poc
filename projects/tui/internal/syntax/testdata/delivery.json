@@ -1,6 +1,6 @@
 {
   "verb": "delivery",
-  "purpose": "lists the artifacts, environments, and deployments the forge holds",
+  "purpose": "lists the forge's releases, builds, artifacts, environments, and deployments",
   "usage": [
     "kit delivery [--text | --json | --jq]",
     "kit delivery --stages",
@@ -258,10 +258,10 @@
       "description": "the deployments, the newest 50 at most"
     },
     "releases": {
-      "description": "a tab kit flow prints; on a terminal it opens in kittui, and with a form it is refused"
+      "description": "the releases on the forge, as kit flow releases prints them; on a terminal it opens in kittui"
     },
     "builds": {
-      "description": "a tab kit flow prints; on a terminal it opens in kittui, and with a form it is refused"
+      "description": "the runs no change owns, as kit flow builds prints them; on a terminal it opens in kittui"
     }
   }
 }

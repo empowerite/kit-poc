@@ -22,9 +22,9 @@ use apps forge
 # shellcheck disable=SC2034  # read by modules/bash/apps.sh
 changes_stages=(reviews checks merged)
 
-# changes_elsewhere names the tab of Changes that kit flow prints.
+# changes_elsewhere names the tab of Changes that kit flow draws, its changes stage.
 # shellcheck disable=SC2034  # read by modules/bash/apps.sh
-declare -gA changes_elsewhere=([changes]='kit flow changes')
+declare -gA changes_elsewhere=([changes]=changes)
 
 # apps/changes:reviews prints the reviews document: each open change's reviewers, as the forge's open-prs call prints
 # them, through apps::review. A primary with no forge, or a forge without reviewers, gives none.

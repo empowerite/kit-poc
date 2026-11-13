@@ -187,12 +187,44 @@ JSON
   [[ "${lines[1]}" == "3  "*"Fix the thing  "*"bob  "*"requested"* ]]
 }
 
-@test "the other Changes tab is kit flow's: kit changes changes --json refuses with 2, and names the command" {
+@test "the other Changes tab is kit flow's: kit changes changes prints what kit flow changes does, over a workspace too" {
   github-world
+  local flow
+  flow=$("${kit_root}/bin/kit" flow changes --json | jq -c 'del(.. | .age?)')
+  [ "$(jq -c 'map(.number)' <<<"${flow}")" = '[3]' ]
   run --separate-stderr "${kit_root}/bin/kit" changes changes --json
-  [ "$status" -eq 2 ]
-  [ -z "$output" ]
-  [[ "$stderr" == *"run: cd "*" && kit flow changes --json"* ]]
+  [ "$status" -eq 0 ]
+  [ -z "$stderr" ]
+  [ "$(jq -c 'del(.. | .age?)' <<<"$output")" = "${flow}" ]
+  flow=$("${kit_root}/bin/kit" flow changes)
+  [[ "${flow}" == *"#3 Fix the thing"* ]]
+  for form in --text ''
+  do
+    # shellcheck disable=SC2086  # no form is no word
+    run --separate-stderr "${kit_root}/bin/kit" changes changes ${form}
+    [ "$status" -eq 0 ]
+    [ -z "$stderr" ]
+    [ "$output" = "${flow}" ]
+  done
+  run --separate-stderr "${kit_root}/bin/kit" changes --stages
+  [ "$output" = $'reviews\nchecks\nmerged' ]
+  # over a workspace, each member's, as kit --workspace= flow changes prints them
+  mkdir -p "${BATS_TEST_TMPDIR}/code/o"
+  git -C "${BATS_TEST_TMPDIR}/r" commit --quiet --allow-empty --message one
+  git clone --quiet "${BATS_TEST_TMPDIR}/r" "${BATS_TEST_TMPDIR}/code/o/a"
+  git -C "${BATS_TEST_TMPDIR}/code/o/a" remote set-url origin https://github.com/o/a.git
+  mkdir -p "${XDG_CONFIG_HOME}/kit"
+  printf 'roots: [%s]\nworkspaces: {w: {repos: [github.com/o/a]}}\n' "${BATS_TEST_TMPDIR}/code" \
+    > "${XDG_CONFIG_HOME}/kit/workspaces.yml"
+  flow=$("${kit_root}/bin/kit" --workspace=w flow changes --json | jq -c 'del(.. | .age?)')
+  [ "$(jq -c '[.rows[] | [.member, .number]]' <<<"${flow}")" = '[["github.com/o/a",3]]' ]
+  run --separate-stderr "${kit_root}/bin/kit" --workspace=w changes changes --json
+  [ "$status" -eq 0 ]
+  [ "$(jq -c 'del(.. | .age?)' <<<"$output")" = "${flow}" ]
+  run --separate-stderr "${kit_root}/bin/kit" --workspace=w changes changes --text
+  [ "$status" -eq 0 ]
+  [ "$output" = "$("${kit_root}/bin/kit" --workspace=w flow changes)" ]
+  [[ "${lines[0]}" == "📚 github.com/o/a" && "${lines[1]}" == *"#3 Fix the thing"* ]]
 }
 
 @test "kit changes --json draws every stage, and a repository with no forge draws none" {

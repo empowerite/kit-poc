@@ -19,10 +19,13 @@ use apps forge
 # shellcheck disable=SC2034  # read by modules/bash/apps.sh
 issues_stages=(milestones iterations)
 
-# issues_elsewhere names the tab of Issues that kit flow prints, and its Backlog and Underway presets, by the words
-# that open them.
+# issues_elsewhere names the tab of Issues that kit flow draws, its issues stage, by the words that open it: issues,
+# and backlog and underway, which open it on its Backlog and Underway presets. issues_presets says which rows each
+# preset keeps.
 # shellcheck disable=SC2034  # read by modules/bash/apps.sh
-declare -gA issues_elsewhere=([issues]='kit flow issues' [backlog]='kit flow issues' [underway]='kit flow issues')
+declare -gA issues_elsewhere=([issues]=issues [backlog]=issues [underway]=issues)
+# shellcheck disable=SC2034  # read by modules/bash/apps.sh
+declare -gA issues_presets=([backlog]='.status == "backlog"' [underway]='.status == "underway"')
 
 # apps/issues:milestones prints the milestones document: each milestone the forge's milestones call prints, through
 # apps::milestone. A primary with no forge, or a forge without milestones, gives none.

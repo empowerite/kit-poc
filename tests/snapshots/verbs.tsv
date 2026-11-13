@@ -1,14 +1,14 @@
 assign	assigns issues to the caller, or to someone else	workflow
 audit	lists the forge's attestations, alerts, controls, waivers, the policy, and what binds	workflow
 bots	lists, adopts, and forgets the bots that act for you	workflow
-changes	lists each open change's reviews and checks, and the changes merged last	workflow
+changes	lists the open changes, their reviews and checks, and the changes merged last	workflow
 check	fails when a delivered file differs from the pinned release	checks
 ci	runs the delivered CI job's four checks on any machine	checks
 close	closes issues as not planned, or as a duplicate of another	workflow
 commit	commits what is staged, after the kit's checks	workflow
 completion	prints shell completion for kit	plumbing
 context	prints the rules that govern a file	files
-delivery	lists the artifacts, environments, and deployments the forge holds	workflow
+delivery	lists the forge's releases, builds, artifacts, environments, and deployments	workflow
 facts	prints the facts a policy engine judges, as JSON	plumbing
 flow	shows where the work stands, from the issues to releases	workflow
 gate	runs the repository's gate	checks
@@ -17,7 +17,7 @@ generate	expands each kit:generate region, or checks that it is current	files
 help	prints kit's overview, a verb's page, or a group's verbs	help
 hydrate	places what the active packages deliver under .kit/	installation
 install	mirrors the release into the repository and the home directory	installation
-issues	lists the forge's milestones and iterations of the repository	workflow
+issues	lists the repository's open issues, and the forge's milestones and iterations	workflow
 kinds	lists the kinds of file, or the kinds a path is of	files
 leases	lists, takes, renews, and releases the paths each issue's work claims	workflow
 linked	refuses a pull request not linked to an open issue	checks

@@ -1,6 +1,6 @@
 {
   "verb": "changes",
-  "purpose": "lists each open change's reviews and checks, and the changes merged last",
+  "purpose": "lists the open changes, their reviews and checks, and the changes merged last",
   "usage": [
     "kit changes [--text | --json | --jq]",
     "kit changes --stages",
@@ -253,7 +253,7 @@
       "description": "the changes merged last, 50 at most, merged last first"
     },
     "changes": {
-      "description": "a tab kit flow prints; on a terminal it opens in kittui, and with a form it is refused"
+      "description": "every open change, as kit flow changes prints it; on a terminal it opens in kittui"
     }
   }
 }
