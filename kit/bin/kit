@@ -13,7 +13,9 @@
 #      directory that holds .git, a directory in a desk and a file in a worktree. It looks no further, so a worktree
 #      outside its desk reads its own kit.yml alone. A clone whose kit.yml declares no version has the one its
 #      .kit/manifest records, if any. A clone with no kit.yml has its settings in the .kit/settings.yml a release
-#      moves there, and that file's version: is read in its place.
+#      moves there, and that file's version: is read in its place. The line is the first that starts with version:,
+#      so the release is written on one plain line, from the first column; a verb that reads the release through yq
+#      refuses a kit.yml in which yq finds another, as modules/bash/settings.sh's settings:version says.
 #   4. this release, outside a clone, and in a clone that declares none
 #
 # A release is named by its version, 0.1.0, or, by --version= or KIT_VERSION alone, by the absolute path of a copy

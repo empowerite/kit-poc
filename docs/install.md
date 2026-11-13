@@ -110,7 +110,10 @@ kit uses the first of these that is set:
 
 1. `kit --version=<release> …`, for this call and every kit call it makes in the same clone.
 2. `KIT_VERSION=<release>` in the environment, which does the same.
-3. `version:` in the `kit.yml` at the root of the clone you are in. Each worktree is its own root.
+3. `version:` in the `kit.yml` at the root of the clone you are in. Each worktree is its own root. The loader reads
+   the first line that starts with `version:`, so write the release on one plain line, from the first column, as
+   `version: 0.1.0`. A verb that reads the release refuses a `kit.yml` in which yq finds another version than that
+   line gives, such as one under a key in quotes.
 4. The kit you installed. This applies outside a clone, and in a clone that pins no version.
 
 A release is named by its version, such as `0.1.0`. `--version=` and `KIT_VERSION` also take the path of a copy of a

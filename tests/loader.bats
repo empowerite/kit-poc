@@ -68,6 +68,48 @@ publish() {
   [ "$output" = 9.9.9 ]
 }
 
+@test "a kit.yml whose version yq reads otherwise than the loader's line gives is refused by the verbs that read the release, in one line" {
+  cached 9.9.9
+  reads() { bash -c 'source "$1/modules/bash/1st.sh" && use settings && settings:version' _ "${kit_checkout}"; }
+  # the plain line, as kit writes it, quoted or not, with a comment beside it or not: both readers agree
+  for line in 'version: unreleased' 'version: "unreleased"  # this checkout' "version: 'unreleased'"
+  do
+    printf 'gate: bin/ci\n%s\n' "${line}" > kit.yml
+    run reads
+    [ "$status" -eq 0 ]
+    [ "$output" = unreleased ]
+  done
+  # a version the loader's line does not give: this release runs, and no verb names another
+  for text in '"version": 9.9.9' '{version: 9.9.9}' 'version : 9.9.9' $'version:\n  9.9.9'
+  do
+    printf '%s\n' "${text}" > kit.yml
+    run "${kit}" version
+    [ "$output" = unreleased ]
+    run reads
+    [ "$status" -eq 1 ]
+    [ "${#lines[@]}" -eq 1 ]
+    [[ "$output" == *"kit.yml declares kit 9.9.9 where the loader, which chooses the release that runs, reads none"* ]]
+    [[ "$output" == *"write it on one plain line, from the first column, the key without quotes: version: 9.9.9"* ]]
+    run "${kit}" check
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"kit.yml declares kit 9.9.9 where the loader"* ]]
+    [[ "$output" != *"and this is kit unreleased"* ]]
+  done
+  # a key written twice, of which the loader takes the first, and a tag the loader takes for part of the value
+  printf 'version: unreleased\nversion: 9.9.9\n' > kit.yml
+  run "${kit}" version
+  [ "$output" = unreleased ]
+  run reads
+  [ "$status" -eq 1 ]
+  [ "${#lines[@]}" -eq 1 ]
+  [[ "$output" == *"kit.yml: the loader, which chooses the release that runs, reads 'unreleased' from the first line that starts with version:, and yq reads 'unreleased 9.9.9' from the file"* ]]
+  [[ "$output" == *"keep one plain line, from the first column: version: <release>"* ]]
+  printf 'version: !!str 9.9.9\n' > kit.yml
+  run reads
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"reads '!!str 9.9.9' from the first line that starts with version:, and yq reads '9.9.9' from the file"* ]]
+}
+
 @test "a kit.yml with no version: runs the release its .kit/manifest records, and one with neither runs this one" {
   cached 9.9.9
   mkdir .kit && printf 'version 9.9.9\n' > .kit/manifest && printf 'packages:\n  - kit\n' > kit.yml

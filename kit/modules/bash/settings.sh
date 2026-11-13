@@ -6,9 +6,13 @@
 # and comments keep their places. A repository from a release before the declaration still carries it on the first
 # lines of .kit/manifest, and settings:version reads it there until materialize:hydrate moves it into kit.yml.
 #
+# The version is one plain line, version: <release>, from the first column, as settings:declare writes it: bin/kit,
+# the loader, reads that line alone, with sed, to choose the release that runs. settings:version reads it through yq,
+# and refuses a file in which yq finds another version than that line gives.
+#
 # see: docs/packages.md
 
-use yaml file resolve
+use yaml file resolve trust
 
 # settings_file names the settings file a policy judgment reads, as the judged tree holds it (policy:from), or is
 # empty for kit.yml on the disk.
@@ -258,16 +262,52 @@ settings:declaration-text() {
   fi
 }
 
+# settings_version_agreed holds the text of the settings file in which both readers of the version were last seen to
+# read the same, settings:version-agrees'.
+declare -g settings_version_agreed=''
+
+# settings:version-agrees <file> <version> succeeds when bin/kit, the loader, reads from the settings file <file> the
+# version yq read there, <version>. The loader chooses the release that runs, from the first line that starts with
+# version:, which trust:version-line reads by the loader's own sed program. A version yq finds and that line does not
+# give, as under a key in quotes, in a flow mapping, or under a key written twice, is not the release that runs, so a
+# verb must not name it: this refuses the file, in one line that says what each reads and how to write the line, and
+# returns 1. A file is read by sed once per process, and again only when its text changes.
+settings:version-agrees() {
+  local settings_version_text='' settings_version_line=''
+  [[ -f "$1" ]] || return 0
+  # read, a builtin, takes the file's text with no process; at the end of a file with no NUL it returns 1
+  IFS= read -r -d '' settings_version_text < "$1" || true
+  [[ "${settings_version_text}" != "${settings_version_agreed}" ]] || return 0
+  trust:version-line settings_version_line "$1"
+  if [[ "${settings_version_line}" == "$2" ]]
+  then
+    settings_version_agreed=${settings_version_text}
+    return 0
+  fi
+  if [[ -z "${settings_version_line}" ]]
+  then
+    error "$1 declares kit ${2//$'\n'/ } where the loader, which chooses the release that runs, reads none; write" \
+      "it on one plain line, from the first column, the key without quotes: version: ${2//$'\n'/ }"
+  else
+    error "$1: the loader, which chooses the release that runs, reads '${settings_version_line}' from the first" \
+      "line that starts with version:, and yq reads '${2//$'\n'/ }' from the file; keep one plain line, from the" \
+      "first column: version: <release>"
+  fi
+  return 1
+}
+
 # settings:version [<name>] prints the kit version the repository declares in kit.yml. A manifest that
 # still carries a version line, from a release before the declaration, is read as the declaration until kit update
 # moves it, and so are its packages and excludes lines below. A kit.yml that is absent, or declares no version,
-# declares no kit, and it prints nothing; it returns 1, after yq's line, when kit.yml cannot be read. With a name, it
-# sets that variable to the version instead, and forks nothing where kit.yml declares one; its own variables start
-# settings_version_, so the name does not.
+# declares no kit, and it prints nothing; it returns 1, after yq's line, when kit.yml cannot be read, and after
+# settings:version-agrees' line when it names its version where the loader does not read it. With a name, it sets
+# that variable to the version instead, and forks nothing where kit.yml declares one, once that file has been
+# checked; its own variables start settings_version_, so the name does not.
 settings:version() {
   local settings_version_found settings_version_file
   settings:file settings_version_file
   yaml:get settings_version_found value "${settings_version_file}" version || return 1
+  settings:version-agrees "${settings_version_file}" "${settings_version_found}" || return 1
   [[ -n "${settings_version_found}" ]] \
     || settings_version_found=$(sed -n 's/^version //p' .kit/manifest 2>/dev/null)
   if (( $# ))

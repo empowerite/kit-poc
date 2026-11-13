@@ -30,21 +30,25 @@ trust:settings() {
   fi
 }
 
+# trust:version-line <value> <file> puts in the variable <value> the release bin/kit, the loader, reads from the
+# settings file <file>, by the loader's own sed program: its first line that starts with version:, without quotes and
+# without a comment beside it. It is the one place in bash that holds that program, for trust:pinned, which shows the
+# release, and for modules/bash/settings.sh's settings:version, which holds yq's reading to it.
+trust:version-line() {
+  printf -v "$1" '%s' "$(sed -n -e '/^version:/{' -e 's/^version:[[:space:]]*//' -e 's/^#.*$//' \
+    -e 's/[[:space:]]\{1,\}#.*$//' -e 's/[[:space:]]*$//' -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/" \
+    -e p -e q -e '}' "$2")"
+}
+
 # trust:pinned <value> <from> <clone> puts in the variable <value> the release the clone at <clone> pins, read as
-# bin/kit, the loader, reads it, by the same two sed programs: the first line of its settings, trust:settings', that
-# starts with version:, without quotes and without a comment beside it, and where that gives nothing, the version
-# .kit/manifest records. It puts in <from> the words that name where the release was read, for the line kit trust
-# shows. yq is not asked: a version it finds and the loader does not, as under a key in quotes, is not the release
-# that runs.
+# bin/kit, the loader, reads it, by the same two sed programs: the version line of its settings, trust:settings', as
+# trust:version-line reads it, and where that gives nothing, the version .kit/manifest records. It puts in <from>
+# the words that name where the release was read, for the line kit trust shows. yq is not asked: a version it finds
+# and the loader does not, as under a key in quotes, is not the release that runs.
 trust:pinned() {
   local pinned='' pinned_from='version:' pinned_settings
   pinned_settings=$(trust:settings "$3")
-  if [[ -n "${pinned_settings}" ]]
-  then
-    pinned=$(sed -n -e '/^version:/{' -e 's/^version:[[:space:]]*//' -e 's/^#.*$//' \
-      -e 's/[[:space:]]\{1,\}#.*$//' -e 's/[[:space:]]*$//' -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/" \
-      -e p -e q -e '}' "${pinned_settings}")
-  fi
+  [[ -z "${pinned_settings}" ]] || trust:version-line pinned "${pinned_settings}"
   if [[ -z "${pinned}" && -f "$3/.kit/manifest" ]]
   then
     pinned=$(sed -n 's/^version //p' "$3/.kit/manifest")
