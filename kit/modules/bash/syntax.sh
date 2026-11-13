@@ -8,13 +8,16 @@
 # kit <verb>, a usage line is written in this grammar:
 #
 #   word                a literal subcommand
-#   a | b               alternatives; several usage lines are alternatives too
+#   a | b               alternatives, each with a word; several usage lines are alternatives too
 #   <name>              an operand; <name>… repeats
 #   --name              a flag
 #   --name=<value>      an option, its value after =; repeated, a list of names may join them with :
 #   --<hole>=<value>    a wildcard option: any --x=y
 #   [ … ]               optional; ( … ) a required group
 #   …                   after a word or a group: it may repeat; ... is read as …
+#
+# An optional word is written [word]. An alternative with no word, as in (a | ) or [a | ], is refused, since a form
+# would draw an option with no name.
 #
 # A name is lowercase, [a-z][a-z0-9-]*, so a word is --name, --name=<value>, --<hole>=<value>, <name>, or a lowercase
 # literal. Any other word, one with a dot or a capital, or <a|b>, does not parse, and the error names the word and its
@@ -31,7 +34,7 @@ use help
 # The parser's state: the words of one usage line, the next word to read, the JSON written so far, and the error
 # that stopped it.
 declare -ag syntax_tokens=()
-declare -g syntax_pos=0 syntax_json='' syntax_error=''
+declare -g syntax_pos=0 syntax_json='' syntax_error='' syntax_empty=0
 
 # The shape of a name, of the words a usage line is made of (a flag, an option, a wildcard option, an operand, or a
 # literal), and of a value, which a flag followed by one writes as --name <value> in place of --name=<value>.
@@ -123,20 +126,33 @@ syntax:tokens() {
   done
 }
 
-# syntax:parse-alternatives appends the alternatives up to a closing bracket or the end, as an array of sequences.
+# syntax:parse-alternatives [group] appends the alternatives up to a closing bracket or the end, as an array of
+# sequences. An alternative with no word is refused where a group holds it, and beside a | at the top of a line: an
+# optional word is written [<word>], so a form never has an option with no name. A line with no word at all is the
+# verb that takes none.
 syntax:parse-alternatives() {
+  local group=${1:-} count=1 empty=0
   syntax_json+='['
   syntax:parse-sequence || return 1
+  empty=${syntax_empty}
   while (( syntax_pos < ${#syntax_tokens[@]} )) && [[ "${syntax_tokens[syntax_pos]}" == '|' ]]
   do
     syntax_pos=$(( syntax_pos + 1 ))
     syntax_json+=','
     syntax:parse-sequence || return 1
+    count=$(( count + 1 ))
+    (( syntax_empty == 0 )) || empty=1
   done
+  if (( empty && ( count > 1 || ${#group} ) ))
+  then
+    syntax_error='an alternative with no word; an optional word is written [<word>], not (<word> | )'
+    return 1
+  fi
   syntax_json+=']'
 }
 
-# syntax:parse-sequence appends the nodes up to a |, a closing bracket, or the end, as an array.
+# syntax:parse-sequence appends the nodes up to a |, a closing bracket, or the end, as an array. It sets syntax_empty
+# to 1 when it held no node, and to 0 otherwise.
 syntax:parse-sequence() {
   local first=1
   syntax_json+='['
@@ -149,6 +165,7 @@ syntax:parse-sequence() {
     first=0
     syntax:parse-item || return 1
   done
+  syntax_empty=${first}
   syntax_json+=']'
 }
 
@@ -165,7 +182,7 @@ syntax:parse-item() {
       fi
       syntax_pos=$(( syntax_pos + 1 ))
       syntax_json+="{\"kind\":\"group\",\"optional\":${optional},\"alternatives\":"
-      syntax:parse-alternatives || return 1
+      syntax:parse-alternatives group || return 1
       if (( syntax_pos >= ${#syntax_tokens[@]} )) || [[ "${syntax_tokens[syntax_pos]}" != "${close}" ]]
       then
         syntax_error="'${token}' is not closed"

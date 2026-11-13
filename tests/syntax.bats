@@ -197,6 +197,31 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
+@test "an empty alternative is refused, with how to write an optional word; a line with nothing after the verb is not one" {
+  verb gap 'kit gap (b | )'
+  verb lead 'kit lead [ | b]'
+  verb hollow 'kit hollow []'
+  verb trail 'kit trail a |'
+  verb nested 'kit nested [<a> (b | )]'
+  verb bare 'kit bare'
+  local word="an alternative with no word; an optional word is written [<word>], not (<word> | )"
+  run "${root}/bin/kit" syntax gap
+  [ "$status" -eq 1 ]
+  [ "$(jq -r .error <<<"$output")" = "${word} in: kit gap (b | )" ]
+  for name in lead hollow trail nested
+  do
+    run "${root}/bin/kit" syntax "${name}"
+    [ "$status" -eq 1 ]
+    [[ "$(jq -r .error <<<"$output")" == "${word} in: kit ${name}"* ]]
+  done
+  run "${root}/bin/kit" syntax --check gap
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit gap: usage does not parse: ${word} in: kit gap (b | )"* ]]
+  run "${root}/bin/kit" syntax bare
+  [ "$status" -eq 0 ]
+  jq -e '.syntax == [[]]' <<<"$output"
+}
+
 @test "a group that repeats takes a word for each turn: kit help names verbs and groups in any order" {
   run "${kit_root}/bin/kit" syntax help
   [ "$status" -eq 0 ]
