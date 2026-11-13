@@ -688,3 +688,64 @@ func TestATableThatIsNotDrawnTakesNoClickAndNoKey(t *testing.T) {
 		t.Error("n did not reach the screen past a card that is not drawn")
 	}
 }
+
+// Under kit's refusal after it listed groups, the screen draws no row, so no group is under the cursor: the keys bar
+// names new alone of the actions, the menus draw the rest dim, Enter switches to nothing, r, a, x, d, o, and c open
+// no dialog, and f asks kit nothing. A dialog opened on a group before kit refused still names that group to kittui.
+// When kit lists the groups again, the row under the cursor has its actions back.
+func TestUnderARefusalNoGroupIsUnderTheCursor(t *testing.T) {
+	m, record := opened(t, listJSON)
+	if bar := ansi.Strip(m.keys().Line(120)); !strings.Contains(bar, "⏎ switch") || !strings.Contains(bar, "d delete") {
+		t.Fatalf("the keys on a group: %q", bar)
+	}
+	list := filepath.Join(os.Getenv("FAKE_WORKSPACES"), "list.json")
+	if err := os.Remove(list); err != nil {
+		t.Fatal(err)
+	}
+	renaming, _ := drive(m, testkit.Press("r"))
+	m, _ = drive(m, m.read()())
+	bar := ansi.Strip(m.keys().Line(120))
+	if !strings.Contains(view(m), Failed) || !strings.Contains(bar, "n new") {
+		t.Fatalf("kit did not refuse: %q\n%s", bar, view(m))
+	}
+	for _, hint := range []string{"⏎ switch", "r rename", "a add", "x remove", "d delete"} {
+		if strings.Contains(bar, hint) {
+			t.Errorf("the keys bar offers %q with no row drawn: %q", hint, bar)
+		}
+	}
+	if dim := m.menu().Dim; slices.Contains(dim, New) || !slices.Contains(dim, SwitchTo) ||
+		!slices.Contains(dim, Favorite) || !slices.Contains(dim, Rename) || !slices.Contains(dim, DeleteOne) {
+		t.Errorf("the menus' dim lines: %q", dim)
+	}
+	for _, key := range []string{"enter", "r", "a", "x", "d", "o", "c", "f"} {
+		got, asked := drive(m, testkit.Press(key))
+		if got.prompt.open || got.prompt.busy || len(asked) != 0 {
+			t.Errorf("%s acted on a group that is not drawn: the dialog %+v, asked %#v", key, got.prompt, asked)
+		}
+	}
+	if got, err := os.ReadFile(record); err == nil && strings.Contains(string(got), "favorite") {
+		t.Errorf("f asked kit: %q", got)
+	}
+	if got, _ := drive(m, testkit.Press("n")); !got.prompt.open {
+		t.Error("n opened no dialog under the refusal")
+	}
+	// the dialog opened on w before kit refused renames w, and tells kittui so
+	renaming, _ = drive(renaming, renaming.read()())
+	renaming, _ = drive(renaming, tea.KeyPressMsg{Code: 'u', Mod: tea.ModCtrl})
+	renaming, _ = drive(renaming, testkit.Typed("core")...)
+	_, asked := drive(renaming, testkit.Press("enter"))
+	if len(asked) != 1 || asked[0] != (shell.ChangedMsg{From: "w", To: "core"}) {
+		t.Errorf("a rename asked before the refusal told kittui %#v", asked)
+	}
+	// kit lists the groups again, and the row has its actions
+	if err := os.WriteFile(list, []byte(listJSON), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	m, _ = drive(m, m.read()())
+	if bar := ansi.Strip(m.keys().Line(120)); !strings.Contains(bar, "⏎ switch") {
+		t.Errorf("the keys once kit lists again: %q", bar)
+	}
+	if _, asked := drive(m, testkit.Press("enter")); len(asked) != 1 || asked[0] != (shell.PickMsg{Workspace: "w"}) {
+		t.Errorf("enter once kit lists again: %#v", asked)
+	}
+}

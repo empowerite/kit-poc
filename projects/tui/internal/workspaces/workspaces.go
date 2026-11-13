@@ -18,7 +18,8 @@
 // where it is, but not under an open menu or dialog. Ctrl-c quits with 130, and ctrl-q with 0.
 //
 // While the screen draws no table, with no group yet, before kit answers, or under kit's refusal, the table takes no
-// key, no click, and no paste, and the keys bar names the screen's keys alone.
+// key, no click, and no paste, and the keys bar names the screen's keys alone. No group is under the cursor then, so
+// of the actions New Workspace… alone acts, and the menus draw the rest dim.
 package workspaces
 
 import (
@@ -255,10 +256,11 @@ func records(list kit.WorkspaceList) []table.Record {
 // place puts the table under the title line, over the keys bar.
 func (m *Model) place() { m.sheet.Place(tableTop, max(1, m.height-3), m.width, m.height) }
 
-// current gives the group under the cursor, and whether there is one.
+// current gives the group under the cursor, and whether there is one: none while the screen draws no table (see
+// listed), whose cursor then stands on a row nobody sees.
 func (m Model) current() (kit.ListedGroup, bool) {
 	rows, t := m.sheet.Rows(), m.sheet.Table()
-	if !m.sheet.InRows() || t.Cursor < 0 || t.Cursor >= len(rows) {
+	if !m.listed() || !m.sheet.InRows() || t.Cursor < 0 || t.Cursor >= len(rows) {
 		return kit.ListedGroup{}, false
 	}
 	key := rows[t.Cursor].Key
@@ -429,13 +431,14 @@ func (m Model) do(action string) (Model, tea.Cmd) {
 	return m, nil
 }
 
-// asked runs what a prompt asked kit, when it asked: a rename followed from the group to its new name, a delete to none.
+// asked runs what a prompt asked kit, when it asked: a rename followed from the group to its new name, a delete to
+// none. The group is the one the prompt was opened on, which its words name, whatever the cursor is on by now.
 func (m Model) asked(words []string) tea.Cmd {
 	if words == nil {
 		return nil
 	}
-	g, _ := m.current()
-	from, to := g.Name, g.Name
+	_, name, _ := strings.Cut(words[1], "=")
+	from, to := name, name
 	switch {
 	case strings.HasPrefix(words[1], "--rename="):
 		to = words[2]
