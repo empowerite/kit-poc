@@ -38,7 +38,7 @@
 #   --outdated          only the tools behind their latest version; reaches the network
 #   --check             with --outdated: fails when any tool is behind
 #   --toolchain=<name>  uses this toolchain for the run, as KIT_TOOLCHAIN does; with run, before the command's name
-#   <name>              mise, nix, brew, docker, devcontainer, or ambient
+#   <name>              kit, mise, nix, brew, docker, devcontainer, or ambient
 #   --json              one JSON object per tool: name, pinned, installed, latest with --outdated, and from; and
 #                       tagged where a newer version is tagged upstream than the pull path serves
 #   --jq                the same JSON, formatted by jq for a person

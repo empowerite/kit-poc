@@ -261,7 +261,7 @@ Installs software on the machine, such as brew or apt.
 
 ### tool manager
 
-Installs and pins the versions of the tools a repository uses, such as mise or asdf.
+Installs and pins the versions of the tools a repository uses, such as mise or nix.
 
 `kit toolchains`
 

@@ -7,7 +7,7 @@
 #
 # Alone, it lists each manager kit can use, one row for each role it fills: a tool manager, which installs and pins
 # the versions of the repository's toolchain, the set of tools its work runs with; or a package manager, which installs
-# software on the machine. They are mise, nix, brew, docker, devcontainer, or, for the system, apt, dnf, or pacman.
+# software on the machine. They are kit, mise, nix, brew, docker, devcontainer, or, for the system, apt, dnf, or pacman.
 # kit finds them where it runs. The listing never asks which to use. The columns:
 #
 #   - ✅ marks a manager usable here: its tool is installed, and for the project role its file is here.
@@ -23,7 +23,7 @@
 #   --json              one JSON object per row: provider, role, usable, active, chosen, and fills
 #   --jq                the same JSON, formatted by jq for a person
 #   use <name>          records the project's tool manager; ambient uses none
-#   <name>              mise, nix, brew, docker, devcontainer, apt, dnf, pacman, or ambient
+#   <name>              kit, mise, nix, brew, docker, devcontainer, apt, dnf, pacman, or ambient
 #   --system            records it for the system role, which supplies bash, git, jq, and yq
 #
 # Exits 0 when it did it, 1 when it could not, and 2 on a usage error.
