@@ -71,6 +71,25 @@
 use yaml 2>/dev/null
 use settings forge materialize render place toolchain dependencies workspaces file terminal markdown bots
 
+# welcome_color is 1 when what welcome prints on stdout is painted: never under NO_COLOR, always under a CLICOLOR_FORCE
+# that is set and not 0, and otherwise when stdout is a terminal as this module loads. The text goes to stdout, so its
+# color follows stdout, not stderr, where the messages go and out:sgr looks.
+if [[ -n "${NO_COLOR:-}" ]]
+then
+  welcome_color=0
+elif [[ ( -n "${CLICOLOR_FORCE:-}" && "${CLICOLOR_FORCE}" != 0 ) || -t 1 ]]
+then
+  welcome_color=1
+else
+  welcome_color=0
+fi
+
+# welcome:sgr <code> prints the escape sequence for one SGR code when the text is painted, and nothing otherwise.
+welcome:sgr() {
+  (( welcome_color )) && printf '\x1b[%sm' "$1"
+  return 0
+}
+
 # welcome_ids holds the machine checks' ids, in order, and welcome_folder_ids the checks of the folder here, in order;
 # the maps beside them hold what judging one needs: the rule that names each linter, and the forge of each host.
 # welcome:plan-machine and welcome:plan-folder fill them.
@@ -1114,7 +1133,7 @@ welcome:show-all() {
       head=$(jq --raw-output '"\(.repository), " + (if .desk then "the desk" else "a worktree" end)
         + (if .branch then " on \(.branch)" else "" end) + ", " + (if .kit then "kit \(.kit)" else "no kit" end)
         + ": \(.folder)"' <<<"${check}")
-      printf '%s%s%s\n' "$(out:sgr 1)" "${head}" "$(out:sgr 0)"
+      printf '%s%s%s\n' "$(welcome:sgr 1)" "${head}" "$(welcome:sgr 0)"
     fi
     last=${folder}
     welcome:show "${check}"
@@ -1134,7 +1153,7 @@ welcome:show() {
     fix=$(welcome:fix-line "${check}" "${fix}")
     if [[ "${ok}" == true && -n "${fix}" ]]
     then
-      printf '💡 %s\n   %s%s%s\n' "${line}" "$(out:sgr 90)" "${fix}" "$(out:sgr 0)"
+      printf '💡 %s\n   %s%s%s\n' "${line}" "$(welcome:sgr 90)" "${fix}" "$(welcome:sgr 0)"
       continue
     elif [[ "${ok}" == true ]]
     then
@@ -1148,11 +1167,11 @@ welcome:show() {
     done < <(jq --raw-output '.findings // [] | .[]' <<<"${check}")
     if [[ -n "${fix}" ]]
     then
-      printf '   %s%s%s\n' "$(out:sgr 90)" "${fix}" "$(out:sgr 0)"
-      [[ -z "${more}" ]] || printf '   %s%s%s\n' "$(out:sgr 90)" "${more}" "$(out:sgr 0)"
+      printf '   %s%s%s\n' "$(welcome:sgr 90)" "${fix}" "$(welcome:sgr 0)"
+      [[ -z "${more}" ]] || printf '   %s%s%s\n' "$(welcome:sgr 90)" "${more}" "$(welcome:sgr 0)"
     elif [[ -n "${more}" ]]
     then
-      printf '   %sread: %s%s\n' "$(out:sgr 90)" "${more}" "$(out:sgr 0)"
+      printf '   %sread: %s%s\n' "$(welcome:sgr 90)" "${more}" "$(welcome:sgr 0)"
     fi
   done
 }

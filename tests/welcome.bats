@@ -148,6 +148,19 @@ ambient-system() {
   [ "${guide}" = "$(grep --extended-regexp '^(✅|💡|❌)' <<<"$output")" ]
 }
 
+@test "the guide's color follows stdout: none into a pipe or a file while stderr is a terminal, some where it is forced" {
+  local out="${BATS_TEST_TMPDIR}/checks.txt" esc=$'\x1b'
+  # the pseudo-terminal is stderr's, and stdout goes to a file, as in kit welcome --checks | cat
+  if script --version >/dev/null 2>&1
+  then script --quiet --return --command "env -u NO_COLOR '${kit_root}/bin/kit' welcome --checks > '${out}'" /dev/null </dev/null >/dev/null
+  else script -q /dev/null bash -c "env -u NO_COLOR '${kit_root}/bin/kit' welcome --checks > '${out}'" </dev/null >/dev/null
+  fi
+  [[ "$(cat "${out}")" == *"kit install"* ]]
+  [[ "$(cat "${out}")" != *"${esc}"* ]]
+  run --separate-stderr env -u NO_COLOR CLICOLOR_FORCE=1 "${kit_root}/bin/kit" welcome --checks
+  [[ "$output" == *"${esc}[90mcd "*"kit install${esc}[0m"* ]]
+}
+
 @test "welcome offers the shellenv line when brew is at a prefix but not on PATH, and shows no check otherwise" {
   # on PATH: no check
   run --separate-stderr check brew-path
