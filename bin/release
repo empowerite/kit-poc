@@ -16,8 +16,9 @@
 #                             loader runs, and kittui, the binary kit tui runs, built from projects/tui/ with go for
 #                             linux and darwin on amd64 and arm64. The .sha256 holds the tarball's sha256; where none
 #                             comes back, pack leaves neither file.
-#   publish <tag>             packs, then creates a GitHub release with both files. A tag with a suffix is marked
-#                             pre-release. Only a runner publishes a release, from the release workflow that a
+#   publish <tag>             packs, then creates a GitHub release with both files. Its notes give the download lines
+#                             of docs/install.md, By download, for this version, and then the mise pin. A tag with a
+#                             suffix is marked pre-release. Only a runner publishes a release, from the release workflow that a
 #                             pushed tag starts. A desk may publish a pre-release.
 #   fetch <tag>               fetches the published release as any machine does: the loader, bin/kit, downloads it
 #                             into a cache of its own, checks it against the digest published beside it, and runs
@@ -58,6 +59,21 @@ build-kittui() {
           -o "${into}/kittui-${goos}-${goarch}" ./cmd/kittui
     ) || return 1
   done
+}
+
+# download-lines <version> prints the lines docs/install.md gives under By download, the first sh block there, with its
+# version set to <version>: the lines the notes of a release give, so the page is their one source. It fails, naming
+# the page, when it finds no block.
+download-lines() {
+  local page="${kit_root}/../docs/install.md" lines
+  lines=$(awk -v version="$1" '
+    $0 == "### By download" { under = 1; next }
+    under && /^```sh$/ { inside = 1; next }
+    inside && /^```$/ { exit }
+    inside { sub(/^version=.*/, "version=" version); print }
+  ' "${page}") || return 1
+  [[ -n "${lines}" ]] || { error "${page} has no download lines under By download"; return 1; }
+  printf '%s\n' "${lines}"
 }
 
 # refuse-tag <message> prints the message as an error and to the step summary, then exits 1.
@@ -145,7 +161,10 @@ case "${verb}" in
     trap "rm -rf '${into}'" EXIT
     run "${self}" pack "${tag}" "${into}"
     pin=$(printf '"github:empowerite/kit" = { version = "%s", version_prefix = "release/" }' "${version}")
-    notes=$(printf 'Pin it in mise.toml:\n\n    [tools]\n    %s\n\n' "${pin}"
+    lines=$(download-lines "${version}") || exit 1
+    notes=$(printf 'Install it by download, with the digest checked before anything is unpacked:\n\n'
+      printf '    %s\n' "${lines//$'\n'/$'\n'    }"
+      printf '\nOr pin it in mise.toml:\n\n    [tools]\n    %s\n\n' "${pin}"
       printf 'Then, in the repository: kit install\n')
     flags=()
     [[ "${version}" == *-* ]] && flags+=(--prerelease)

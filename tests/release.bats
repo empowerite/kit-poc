@@ -185,4 +185,25 @@ install-lines() {
   grep -q '^kit-9\.9\.9/libexec/kittui-darwin-arm64$' "${fakes}/listing"
 }
 
+@test "the notes of a release give the download lines the pages lead with, for that version, then the mise pin" {
+  printf '%s\n' '#!/usr/bin/env bash' 'while (( $# )); do [[ "$1" == --notes ]] && printf "%s\n" "$2" > "${FAKES}/notes"; shift; done' \
+    > "${fakes}/gh"
+  chmod +x "${fakes}/gh"
+  run env GITHUB_ACTIONS=true "${repo_bin}/release" publish release/9.9.9
+  [ "$status" -eq 0 ]
+  # the lines are the pages' with version set to this release's; the README's are the install page's, as another test holds
+  pasted=$(install-lines README.md '## Install')
+  expected=$(sed 's/^version=.*/version=9.9.9/' <<<"${pasted}")
+  [ "$(install-lines docs/install.md '### By download' | sed 's/^version=.*/version=9.9.9/')" = "${expected}" ]
+  lines=$(sed -n '/^    version=9.9.9$/,/^      ln -s -f /p' "${fakes}/notes" | sed 's/^    //')
+  [ "${lines}" = "${expected}" ]
+  # the pin follows, in mise.toml, and kit install after it
+  [[ "$(<"${fakes}/notes")" == *'"github:empowerite/kit" = { version = "9.9.9", version_prefix = "release/" }'* ]]
+  [[ "$(<"${fakes}/notes")" == *'kit install'* ]]
+  # a pre-release's notes name its own version
+  run env GITHUB_ACTIONS=true "${repo_bin}/release" publish release/9.9.9-rc.1
+  [ "$status" -eq 0 ]
+  grep -q '^    version=9\.9\.9-rc\.1$' "${fakes}/notes"
+}
+
 # ----------------------------------------------------------------------------------------------------------------------
