@@ -228,6 +228,7 @@ type Model struct {
 type built struct {
 	stages map[int]shown
 	lines  map[int]drawnLines
+	names  map[int][]string // the header's names, which an open tab menu asks for once for each row it weighs
 }
 
 // drawnLines is a stage's lines as allLines last drew them, and what they were drawn for, as drawnFor says it.
@@ -238,7 +239,7 @@ type drawnLines struct {
 
 // rebuild drops the rows built so far, and the lines drawn from them; each is built again when it is next drawn.
 func (m *Model) rebuild() {
-	m.built = &built{stages: map[int]shown{}, lines: map[int]drawnLines{}}
+	m.built = &built{stages: map[int]shown{}, lines: map[int]drawnLines{}, names: map[int][]string{}}
 }
 
 // open opens the screen on the stages the options name, origin read from git, and kit flow's words: the tab named,

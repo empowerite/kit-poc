@@ -140,6 +140,7 @@ func (m Model) checkoutOf(member string) string {
 // underway that two rows stand for once.
 func (m Model) refsByMember() []memberRefs {
 	var out []memberRefs
+	seen := map[[2]string]bool{}
 	for _, r := range m.subjects() {
 		member, ref := refOf(r.Key)
 		k := slices.IndexFunc(out, func(g memberRefs) bool { return g.member == member })
@@ -147,7 +148,8 @@ func (m Model) refsByMember() []memberRefs {
 			out = append(out, memberRefs{member: member, dir: m.checkoutOf(member)})
 			k = len(out) - 1
 		}
-		if !slices.Contains(out[k].refs, ref) {
+		if !seen[[2]string{member, ref}] {
+			seen[[2]string{member, ref}] = true
 			out[k].refs = append(out[k].refs, ref)
 		}
 	}
@@ -177,8 +179,10 @@ type actedMsg struct {
 // once.
 func (m Model) refs() []string {
 	var out []string
+	seen := map[string]bool{}
 	for _, r := range m.subjects() {
-		if _, ref := refOf(r.Key); !slices.Contains(out, ref) {
+		if _, ref := refOf(r.Key); !seen[ref] {
+			seen[ref] = true
 			out = append(out, ref)
 		}
 	}

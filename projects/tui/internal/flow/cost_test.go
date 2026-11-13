@@ -91,6 +91,21 @@ func TestADrawingCostsWhatTheScreenShowsNotTheIssues(t *testing.T) {
 	}
 }
 
+// An open tab menu weighs its fold lines against every row, and draws the header's names for each: the names are read
+// once for what the stage was built for, so with three thousand issues a drawing of the menu allocates no more than
+// 512 bytes an issue past what it does with three hundred, counted, not timed; read for each row it was 66 000.
+func TestADrawingOfTheTabMenuCostsLittleForEachIssue(t *testing.T) {
+	drawing := func(n int) uint64 {
+		m, _ := issuesWheel(loaded(t, options()), n)
+		m = drive(m, press(':'))
+		_ = m.View()
+		return allocated(func() { _ = m.View() })
+	}
+	if few, many := drawing(300), drawing(3000); many > few+2700*512 {
+		t.Errorf("a drawing of the tab menu over three thousand issues allocates %d bytes, over three hundred %d", many, few)
+	}
+}
+
 // tallBuild gives builds' answer as the screen's latest load: the runs testdata/builds.json holds, the first with n
 // jobs, each with a name long enough to cut, every third failed at a step, so its open row is taller than any pane.
 func tallBuild(m Model, n int) source.Answer[[]byte] {

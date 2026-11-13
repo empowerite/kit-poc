@@ -248,12 +248,18 @@ func (m Model) reserve(i int) int {
 }
 
 // names gives the labels of a stage's columns that its panel shows, in its order, as table.HeaderNames gives them;
-// none while the headers are hidden, as a test of the rows alone asks.
+// none while the headers are hidden, as a test of the rows alone asks. They are read once for what the stage was built
+// for, as shown is, since an open tab menu asks for them for every row it weighs.
 func (m Model) names(i int) []string {
 	if m.noHeaders {
 		return nil
 	}
-	return table.HeaderNames(m.filter(i), columnsOf(m.stages[i].name))
+	names, ok := m.built.names[i]
+	if !ok {
+		names = table.HeaderNames(m.filter(i), columnsOf(m.stages[i].name))
+		m.built.names[i] = names
+	}
+	return names
 }
 
 // shownColumns gives the ids of a stage's columns its panel shows, in its order, as table.ShownColumns gives them.
