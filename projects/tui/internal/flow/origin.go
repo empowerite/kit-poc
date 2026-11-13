@@ -1,8 +1,8 @@
-// Where origin points, read from git, for the title and the URLs a row opens to.
+// Where origin points, read from git: what the workspace menu names, and the repository a row is read in, until kit
+// says the workspace. No page is built from it: a row opens the page kit printed, which the forge's provider gives.
 package flow
 
 import (
-	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -41,41 +41,4 @@ func parseRemote(url string) Origin {
 		return Origin{}
 	}
 	return Origin{Host: host, Repo: strings.Join(segments[len(segments)-2:], "/")}
-}
-
-// issue gives an issue's URL: the one kit printed when it did, else origin's, GitLab's shape on a GitLab host and
-// GitHub's otherwise, or nothing when origin is unknown.
-func (o Origin) issue(number int, given string) string {
-	if given != "" {
-		return given
-	}
-	if o.Repo == "" {
-		return ""
-	}
-	return fmt.Sprintf("https://%s/%s/%sissues/%d", o.Host, o.Repo, o.infix(), number)
-}
-
-// pull gives a pull request's URL by its number, as issue gives an issue's: a merge request's on GitLab.
-func (o Origin) pull(number int, given string) string {
-	if given != "" {
-		return given
-	}
-	if o.Repo == "" {
-		return ""
-	}
-	if o.gitlab() {
-		return fmt.Sprintf("https://%s/%s/-/merge_requests/%d", o.Host, o.Repo, number)
-	}
-	return fmt.Sprintf("https://%s/%s/pull/%d", o.Host, o.Repo, number)
-}
-
-// gitlab says whether the host looks like GitLab's, whose paths carry a -/ before the kind.
-func (o Origin) gitlab() bool { return strings.Contains(strings.ToLower(o.Host), "gitlab") }
-
-// infix gives the path segment before issues: -/ on GitLab, nothing on GitHub.
-func (o Origin) infix() string {
-	if o.gitlab() {
-		return "-/"
-	}
-	return ""
 }

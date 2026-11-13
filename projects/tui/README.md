@@ -22,7 +22,9 @@ It has six screens:
   first, once, in one dialog: its title says what it will do, a line for each issue or package says which it changes,
   the repository is named under them, and for `kit work`, what it makes. The dialog has two buttons. ⏎, or a click on
   the button that does it, runs kit. Esc, a click on Cancel, or a click off the dialog runs nothing and keeps the
-  selection. Where an action ran more than one command, the notice says how many.
+  selection. Where an action ran more than one command, the notice says how many. An issue's row and a pull
+  request's open the page kit printed for each, `url`, which its forge's provider gives; kittui builds no address of
+  its own, so a row kit gave none leads nowhere.
 - **The workspace picture.** `kit workspace` at a terminal draws what git holds across the workspace here: the 📚 repos
   tab first, a row per member of the workspace, then a tab for each of git's entities, remotes, branches, worktrees,
   commits, and tags. It is the flow picture's screen on kit workspace's stages, which kittui knows after `workspace/`,

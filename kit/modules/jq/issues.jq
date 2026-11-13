@@ -36,9 +36,10 @@ def started($started; $worktrees; $branches):
 # one of the desk's, $branches, a checked-out one first, else one of $heads, the primary's; its row has that branch, no
 # pr, and here, local, and worktree as the branch has them. One no change closes and no branch names is in the backlog,
 # its branch, pr, here, local, and worktree null. Every row's keys start number, ref, tracker, title, assignees,
-# labels, age, source, organization, repository, milestone, iteration, swimlane, status, branch, pr, here, local, and
-# worktree, in that order, any other the issue holds after them, but its key. ref is the issue's reference, #7 where
-# the issue names none. The oldest issue comes first; one issue that two changes close gives two rows, by the changes'
+# labels, age, source, organization, repository, milestone, iteration, swimlane, status, branch, pr, here, local,
+# worktree, and url, in that order, any other the issue holds after them, but its key. ref is the issue's reference, #7
+# where the issue names none, and url its page, as its forge's provider or its tracker's gives it, null where neither
+# does; the page of the change that closes it is pr.url. The oldest issue comes first; one issue that two changes close gives two rows, by the changes'
 # numbers.
 def rows($changes; $heads; $worktrees; $branches; $merged):
   map(select(.key == null)) as $forge
@@ -57,7 +58,7 @@ def rows($changes; $heads; $worktrees; $branches; $merged):
          else $by[] as $pr | $issue | underway::row($pr; $worktrees; $branches)
               | . + {status: "underway", branch: $pr.branch} end]
   | map({number, ref, tracker, title, assignees, labels, age, source, organization, repository, milestone, iteration,
-         swimlane, status, branch, pr, here, local, worktree} + . | .ref //= "#\(.number)" | del(.key))
+         swimlane, status, branch, pr, here, local, worktree, url} + . | .ref //= "#\(.number)" | del(.key))
   | sort_by(-(.age // 0), .number, .ref, (.pr.number // 0));
 
 # rows($changes; $heads; $worktrees; $branches) gives the rows of the open issues as rows does, with no change merged.

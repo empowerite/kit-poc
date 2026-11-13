@@ -27,7 +27,8 @@
         "labels": [],
         "source": "github",
         "organization": "empowerite",
-        "repository": "kit"
+        "repository": "kit",
+        "url": "https://github.com/empowerite/kit/issues/1"
       }
     ],
     "labels": [
@@ -37,6 +38,7 @@
       }
     ],
     "source": "github",
+    "url": "https://github.com/empowerite/kit/pull/2",
     "fork": null,
     "pushed": {
       "age": 3600,
@@ -69,6 +71,7 @@
     "branch": "3-a-spike",
     "closes": [],
     "source": "github",
+    "url": "https://github.com/empowerite/kit/pull/3",
     "fork": null,
     "pushed": null,
     "reviewers": [],
@@ -103,7 +106,8 @@
         "labels": [],
         "source": "github",
         "organization": "empowerite",
-        "repository": "kit"
+        "repository": "kit",
+        "url": "https://github.com/empowerite/kit/issues/8"
       },
       {
         "number": 9,
@@ -115,10 +119,12 @@
         "labels": [],
         "source": "github",
         "organization": "empowerite",
-        "repository": "kit"
+        "repository": "kit",
+        "url": "https://github.com/empowerite/kit/issues/9"
       }
     ],
     "source": "github",
+    "url": "https://github.com/empowerite/kit/pull/4",
     "fork": "bob",
     "pushed": {
       "age": 90000,

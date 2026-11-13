@@ -92,10 +92,11 @@ import "forge" as forge; forge::gitlab_runs | map([.name, .verdict, .took])
 [{"name": "test", "status": "success", "started_at": "1970-01-12T13:45:00.5Z", "finished_at": "1970-01-12T13:46:40.5Z"}, {"name": "deploy", "status": "manual", "started_at": null, "finished_at": null, "created_at": "1970-01-12T13:45:00Z"}, {"name": "lint", "status": "running", "started_at": "1970-01-12T13:45:00Z", "finished_at": null}, {"name": "build", "status": "failed", "started_at": null, "finished_at": null}]
 [["test","passed",100],["deploy","passed",null],["lint","pending",null],["build","failed",null]]
 
-# A merge request folds into the document, with its ref written !<iid>; with no pipeline, its last push is unknown.
-import "forge" as forge; forge::gitlab_pr(1000000; [{"name": "test", "status": "success", "started_at": "1970-01-12T13:45:00Z", "finished_at": "1970-01-12T13:46:40Z"}]; [{"notes": [{"resolvable": true, "resolved": false}, {"resolvable": false}]}]; [{"iid": 7, "title": "Fix the thing", "created_at": "1970-01-12T13:40:00Z", "assignees": [{"username": "bob"}], "references": {"full": "empowerite/tools/example#7"}}]; null; {"approved_by": null})
-{"iid": 3, "source_branch": "7-fix-the-thing", "title": "Fix it", "author": {"username": "ada"}, "created_at": "1970-01-12T13:30:00Z", "draft": false, "has_conflicts": false, "detailed_merge_status": "mergeable"}
-{"number":3,"ref":"!3","source":"gitlab","branch":"7-fix-the-thing","fork":null,"title":"Fix it","author":"ada","createdAt":"1970-01-12T13:30:00Z","age":1000,"pushed":null,"state":"comments:open","checks":{"state":"SUCCESS","passed":1,"total":1,"failing":"","took":100},"unresolved":1,"labels":[],"closes":[{"number":7,"title":"Fix the thing","assignees":["bob"],"labels":[],"source":"gitlab","organization":"empowerite/tools","repository":"example","age":400}],"named":[],"reviewers":[],"runs":[{"name":"test","workflow":null,"event":null,"verdict":"passed","at":999900,"took":100}]}
+# A merge request folds into the document, with its ref written !<iid> and its page, GitLab's web_url, as each issue
+# it closes has its own; with no pipeline, its last push is unknown.
+import "forge" as forge; forge::gitlab_pr(1000000; [{"name": "test", "status": "success", "started_at": "1970-01-12T13:45:00Z", "finished_at": "1970-01-12T13:46:40Z"}]; [{"notes": [{"resolvable": true, "resolved": false}, {"resolvable": false}]}]; [{"iid": 7, "title": "Fix the thing", "created_at": "1970-01-12T13:40:00Z", "assignees": [{"username": "bob"}], "references": {"full": "empowerite/tools/example#7"}, "web_url": "https://gitlab.com/empowerite/tools/example/-/issues/7"}]; null; {"approved_by": null})
+{"iid": 3, "web_url": "https://gitlab.com/empowerite/tools/example/-/merge_requests/3", "source_branch": "7-fix-the-thing", "title": "Fix it", "author": {"username": "ada"}, "created_at": "1970-01-12T13:30:00Z", "draft": false, "has_conflicts": false, "detailed_merge_status": "mergeable"}
+{"number":3,"ref":"!3","source":"gitlab","url":"https://gitlab.com/empowerite/tools/example/-/merge_requests/3","branch":"7-fix-the-thing","fork":null,"title":"Fix it","author":"ada","createdAt":"1970-01-12T13:30:00Z","age":1000,"pushed":null,"state":"comments:open","checks":{"state":"SUCCESS","passed":1,"total":1,"failing":"","took":100},"unresolved":1,"labels":[],"closes":[{"number":7,"title":"Fix the thing","assignees":["bob"],"labels":[],"source":"gitlab","url":"https://gitlab.com/empowerite/tools/example/-/issues/7","organization":"empowerite/tools","repository":"example","age":400}],"named":[],"reviewers":[],"runs":[{"name":"test","workflow":null,"event":null,"verdict":"passed","at":999900,"took":100}]}
 
 # A merge request from a fork names the fork's owner, and its head pipeline gives the last push: its age, and who
 # started it; a pipeline that names no one gives a null by.
@@ -108,6 +109,12 @@ import "forge" as forge; [forge::gitlab_pr(1000000; []; []; []; "cy"; {}), (.hea
 import "forge" as forge; [forge::github_prs(1000000) | {fork, pushed}]
 {"data": {"repository": {"pullRequests": {"nodes": [{"number": 3, "title": "Fix", "isDraft": true, "headRefName": "7-fix", "createdAt": "1970-01-12T13:30:00Z", "isCrossRepository": true, "headRepositoryOwner": {"login": "cy"}, "author": {"login": "ada"}, "closingIssuesReferences": {"nodes": []}, "commits": {"nodes": [{"commit": {"committedDate": "1970-01-12T13:45:00Z", "author": {"user": {"login": "dee"}}, "statusCheckRollup": null}}]}}, {"number": 4, "title": "Also", "isDraft": true, "headRefName": "8-also", "createdAt": "1970-01-12T13:30:00Z", "isCrossRepository": false, "headRepositoryOwner": {"login": "empowerite"}, "author": {"login": "ada"}, "closingIssuesReferences": {"nodes": []}, "commits": {"nodes": [{"commit": {"committedDate": "1970-01-12T13:46:00Z", "author": {"user": null}, "statusCheckRollup": null}}]}}, {"number": 5, "title": "Old", "isDraft": true, "headRefName": "9-old", "createdAt": "1970-01-12T13:30:00Z", "author": {"login": "ada"}, "closingIssuesReferences": {"nodes": []}, "commits": {"nodes": [{"commit": {"statusCheckRollup": null}}]}}]}}}}
 [{"fork":"cy","pushed":{"age":100,"by":"dee"}},{"fork":null,"pushed":{"age":40,"by":null}},{"fork":null,"pushed":null}]
+
+# A GitHub pull request says its page, and each issue it closes its own, another repository's among them, as the
+# answer gives them; one the answer gives no page has none.
+import "forge" as forge; forge::github_prs(1000000) | [.url, (.closes | map(.url))]
+{"data": {"repository": {"nameWithOwner": "o/r", "pullRequests": {"nodes": [{"number": 3, "title": "Fix", "isDraft": true, "headRefName": "7-fix", "createdAt": "1970-01-12T13:30:00Z", "url": "https://github.com/o/r/pull/3", "author": {"login": "ada"}, "closingIssuesReferences": {"nodes": [{"number": 9, "title": "Nine", "createdAt": "1970-01-12T13:30:00Z", "url": "https://github.com/other/repo/issues/9", "repository": {"nameWithOwner": "other/repo"}}, {"number": 7, "title": "Seven", "createdAt": "1970-01-12T13:30:00Z", "repository": {"nameWithOwner": "o/r"}}]}, "commits": {"nodes": [{"commit": {"statusCheckRollup": null}}]}}]}}}}
+["https://github.com/o/r/pull/3",["https://github.com/other/repo/issues/9",null]]
 
 # A closed issue's assignees come from the answer's open issues with an assignee, not from the issue itself: one they
 # do not name has none, as has an issue of another repository with the same number. Each says the organization and the
@@ -150,18 +157,19 @@ import "forge" as forge; . as $lists | ["issues", "runs", "releases", "milestone
 {"issues":"[[7,\"a\"],[3,\"b\"]]","runs":"[[11,\"running\",\"c\"]]","releases":"[]","milestones":"[[2,\"d\"],[7,\"a\"]]","deployments":"[[9,\"success\",\"e\"]]","environments":"[[1,\"prod\",\"available\",\"f\"]]"}
 
 # GitHub's open issues fold into one document each, oldest first, with the assignees by login, the labels by name and
-# color, the age in seconds, and the organization and the repository their url names, or null without one.
+# color, the age in seconds, its page, the url gh gives, and the organization and the repository that url names, each
+# null without one.
 import "forge" as forge; forge::github_issues(1000000)
 [{"number": 9, "title": "Other thing", "assignees": [], "createdAt": "1970-01-12T13:46:30Z"}, {"number": 7, "title": "Fix the thing", "assignees": [{"login": "bob"}], "labels": [{"id": "LA_1", "name": "priority=high", "description": "", "color": "B60205"}], "createdAt": "1970-01-12T13:46:20Z", "url": "https://github.com/empowerite/kit/issues/7"}]
-{"number":7,"ref":"#7","title":"Fix the thing","assignees":["bob"],"labels":[{"name":"priority=high","color":"#b60205"}],"createdAt":"1970-01-12T13:46:20Z","milestone":null,"iteration":null,"age":20,"source":"github","organization":"empowerite","repository":"kit"}
-{"number":9,"ref":"#9","title":"Other thing","assignees":[],"labels":[],"createdAt":"1970-01-12T13:46:30Z","milestone":null,"iteration":null,"age":10,"source":"github","organization":null,"repository":null}
+{"number":7,"ref":"#7","title":"Fix the thing","assignees":["bob"],"labels":[{"name":"priority=high","color":"#b60205"}],"createdAt":"1970-01-12T13:46:20Z","milestone":null,"iteration":null,"age":20,"source":"github","url":"https://github.com/empowerite/kit/issues/7","organization":"empowerite","repository":"kit"}
+{"number":9,"ref":"#9","title":"Other thing","assignees":[],"labels":[],"createdAt":"1970-01-12T13:46:30Z","milestone":null,"iteration":null,"age":10,"source":"github","url":null,"organization":null,"repository":null}
 
 # GitLab's fold the same, from iid, username, the labels' details, and a created_at with fractional seconds; the
-# organization is the group, subgroups and all, its full reference names.
+# organization is the group, subgroups and all, its full reference names, and its page GitLab's web_url.
 import "forge" as forge; forge::gitlab_issues(1000000)
-[{"iid": 7, "title": "Fix the thing", "assignees": [{"username": "bob"}], "labels": [{"id": 4, "name": "area::tui", "color": "#6699CC", "text_color": "#FFFFFF"}], "created_at": "1970-01-12T13:46:20.000Z", "references": {"full": "empowerite/tools/kit#7"}}, {"iid": 9, "title": "Other thing", "assignees": [], "created_at": "1970-01-12T13:46:30.500Z"}]
-{"number":7,"ref":"#7","title":"Fix the thing","assignees":["bob"],"labels":[{"name":"area::tui","color":"#6699cc"}],"createdAt":"1970-01-12T13:46:20.000Z","milestone":null,"iteration":null,"age":20,"source":"gitlab","organization":"empowerite/tools","repository":"kit"}
-{"number":9,"ref":"#9","title":"Other thing","assignees":[],"labels":[],"createdAt":"1970-01-12T13:46:30.500Z","milestone":null,"iteration":null,"age":10,"source":"gitlab","organization":null,"repository":null}
+[{"iid": 7, "title": "Fix the thing", "assignees": [{"username": "bob"}], "labels": [{"id": 4, "name": "area::tui", "color": "#6699CC", "text_color": "#FFFFFF"}], "created_at": "1970-01-12T13:46:20.000Z", "references": {"full": "empowerite/tools/kit#7"}, "web_url": "https://gitlab.com/empowerite/tools/kit/-/issues/7"}, {"iid": 9, "title": "Other thing", "assignees": [], "created_at": "1970-01-12T13:46:30.500Z"}]
+{"number":7,"ref":"#7","title":"Fix the thing","assignees":["bob"],"labels":[{"name":"area::tui","color":"#6699cc"}],"createdAt":"1970-01-12T13:46:20.000Z","milestone":null,"iteration":null,"age":20,"source":"gitlab","url":"https://gitlab.com/empowerite/tools/kit/-/issues/7","organization":"empowerite/tools","repository":"kit"}
+{"number":9,"ref":"#9","title":"Other thing","assignees":[],"labels":[],"createdAt":"1970-01-12T13:46:30.500Z","milestone":null,"iteration":null,"age":10,"source":"gitlab","url":null,"organization":null,"repository":null}
 
 # An issue says its milestone and its iteration by title: GitHub's milestone from gh issue list, and its iteration the
 # one forge/github:open-issues puts beside it; GitLab's from its own fields, an iteration with no title by its dates.

@@ -26,11 +26,17 @@ import "issues" as issues; issues::rows([{"number": 3, "branch": "b", "closes": 
 [{"number": 7, "age": 100, "milestone": "v1", "iteration": "Sprint 4", "swimlane": "ops"}]
 [[7,"v1","Sprint 4","ops"],[8,null,null,null]]
 
-# Every row's keys start in one order, whatever its status, any other the issue holds after them, but its key; an issue
-# that names no reference is #<number>.
+# Every row's keys start in one order, whatever its status, its page, null where it has none, the last of them, any
+# other the issue holds after them, but its key; an issue that names no reference is #<number>.
 import "issues" as issues; issues::rows([{"number": 3, "branch": "b", "closes": [{"number": 7, "age": 100}]}]; []; {}; []) | map(keys_unsorted + [.ref])
 [{"number": 7, "age": 100}, {"ref": "#9", "number": 9, "age": 300, "url": "u"}, {"ref": "AB#4", "key": "ab4", "number": 4, "age": 200}]
-[["number","ref","tracker","title","assignees","labels","age","source","organization","repository","milestone","iteration","swimlane","status","branch","pr","here","local","worktree","url","#9"],["number","ref","tracker","title","assignees","labels","age","source","organization","repository","milestone","iteration","swimlane","status","branch","pr","here","local","worktree","AB#4"],["number","ref","tracker","title","assignees","labels","age","source","organization","repository","milestone","iteration","swimlane","status","branch","pr","here","local","worktree","#7"]]
+[["number","ref","tracker","title","assignees","labels","age","source","organization","repository","milestone","iteration","swimlane","status","branch","pr","here","local","worktree","url","#9"],["number","ref","tracker","title","assignees","labels","age","source","organization","repository","milestone","iteration","swimlane","status","branch","pr","here","local","worktree","url","AB#4"],["number","ref","tracker","title","assignees","labels","age","source","organization","repository","milestone","iteration","swimlane","status","branch","pr","here","local","worktree","url","#7"]]
+
+# An issue underway says its own page, as the change's document gives it under closes, and its change's, as pr.url; one
+# in the backlog its own, and no change's.
+import "issues" as issues; issues::rows([{"number": 3, "branch": "b", "url": "c3", "closes": [{"number": 7, "age": 100, "url": "i7"}]}]; []; {}; []) | map([.number, .url, .pr.url])
+[{"number": 7, "age": 100, "url": "i7"}, {"number": 9, "age": 50, "url": "i9"}]
+[[7,"i7","c3"],[9,"i9",null]]
 
 # An issue of another tracker, one with a key, is underway beside each open change that names it, by its branch or a
 # closing keyword in its body, whatever number the change closes on the forge; done, with no row, once a merged change

@@ -1,5 +1,5 @@
 // Issues of more than one tracker: each by its reference, under its tracker where there is more than one, its page
-// the one kit gave where the forge's is not.
+// the one kit gave, the forge's own and another tracker's alike.
 package flow
 
 import (
@@ -12,7 +12,8 @@ import (
 // trackers is the issues stage of a repository with an Azure DevOps tracker beside the forge's own: #7 on GitHub, and
 // two work items, AB#4521 with its page and AB#9 without one.
 const trackers = `[
-  {"number": 7, "ref": "#7", "tracker": "#", "title": "Seven", "source": "github", "status": "backlog"},
+  {"number": 7, "ref": "#7", "tracker": "#", "title": "Seven", "source": "github", "status": "backlog",
+   "url": "https://github.com/empowerite/kit/issues/7"},
   {"number": 4521, "ref": "AB#4521", "tracker": "AB#", "title": "Claim form", "source": "ado", "status": "backlog",
    "url": "https://dev.azure.com/example/Claims/_workitems/edit/4521"},
   {"number": 9, "ref": "AB#9", "tracker": "AB#", "title": "Nine", "source": "ado", "status": "backlog"}]`
@@ -26,8 +27,8 @@ func issuesOf(t *testing.T, doc string) Model {
 }
 
 // An issue of another tracker is drawn by its reference, its title leading to the page kit gave, or nowhere, as kit
-// knows no page of a tracker it did not name one for; the forge's own leads to its page on the forge, as ever. Its
-// tracker is a value of its own.
+// knows no page of a tracker it did not name one for; the forge's own leads to the page kit gave too. Its tracker is a
+// value of its own.
 func TestAnIssueOfAnotherTrackerIsItsReference(t *testing.T) {
 	m := issuesOf(t, trackers)
 	got := map[string][2]string{}

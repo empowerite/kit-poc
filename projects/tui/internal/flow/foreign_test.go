@@ -14,12 +14,15 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/testkit"
 )
 
-// twoOfOneNumber is kit's issues where pull request 5 closes #12 of the repository here and #12 of jig.
+// twoOfOneNumber is kit's issues where pull request 5 closes #12 of the repository here and #12 of jig, each with its
+// own page and the pull request's, as kit prints them.
 const twoOfOneNumber = `[
   {"number": 12, "ref": "#12", "title": "kit's twelve", "status": "underway", "source": "github",
-   "organization": "empowerite", "repository": "kit", "pr": {"number": 5, "state": "ready", "author": "ada"}},
+   "organization": "empowerite", "repository": "kit", "url": "https://github.com/empowerite/kit/issues/12",
+   "pr": {"number": 5, "state": "ready", "author": "ada", "url": "https://github.com/empowerite/kit/pull/5"}},
   {"number": 12, "ref": "#12", "title": "jig's twelve", "status": "underway", "source": "github",
-   "organization": "empowerite", "repository": "jig", "pr": {"number": 5, "state": "ready", "author": "ada"}}]`
+   "organization": "empowerite", "repository": "jig", "url": "https://github.com/empowerite/jig/issues/12",
+   "pr": {"number": 5, "state": "ready", "author": "ada", "url": "https://github.com/empowerite/kit/pull/5"}}]`
 
 // writes are the issues' actions that hand kit an issue's reference.
 var writes = []string{"Start Local Work for Each", "Start Local Work Together…", "Assign to Me", "Assign to…",
@@ -58,11 +61,12 @@ func TestAnIssueOfAnotherRepositoryIsARowOfItsOwn(t *testing.T) {
 			t.Errorf("%s's pull request leads to %q", r.Key, got)
 		}
 	}
-	// where kittui knows the workspace and no origin, the row is keyed by its repository and has no page
+	// where kittui knows the workspace and no origin, the row is keyed by its repository, and its page is still kit's
 	m = New(runner(t), Options{Stages: []string{"issues"}, NoPresets: true, Clock: &testkit.Clock{}})
 	m = drive(m, shell.WorkspaceMsg{Workspace: kit.Workspace{Kind: "repository", Member: "github.com/empowerite/kit"}},
 		answer("issues", twoOfOneNumber))
-	if r := m.records(m.stages[0])[1]; r.Key != "empowerite/jig#12 #5" || r.values["title"].Link != "" {
+	if r := m.records(m.stages[0])[1]; r.Key != "empowerite/jig#12 #5" ||
+		r.values["title"].Link != "https://github.com/empowerite/jig/issues/12" {
 		t.Errorf("with no origin: the key %q, the page %q", r.Key, r.values["title"].Link)
 	}
 }

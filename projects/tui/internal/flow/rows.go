@@ -24,7 +24,8 @@ import (
 // that pull request, none for an issue no pull request closes: its Fork is the owner of the repository its branch is
 // in, when that is not origin; Pushed is its branch's last push, how long ago and by whom, when the forge says. Here
 // says a worktree on this desk has the branch, and Worktree is its path; Local says this desk has the branch, but no
-// checkout of it. The URLs are kit's when it prints them.
+// checkout of it. URL is the issue's page, and the pull request's its own, each as kit printed it, its forge's
+// provider's or its tracker's, and empty where kit printed none: kittui builds no page.
 type issue struct {
 	Number       int           `json:"number"`
 	Ref          string        `json:"ref"`
@@ -74,10 +75,12 @@ type checkout struct {
 	Behind   int    `json:"behind"`
 }
 
-// pull is one open pull request, with its labels, the issues it closes, and its reviewers.
+// pull is one open pull request, with its labels, the issues it closes, and its reviewers. URL is its page, as kit
+// printed it, and empty where kit printed none.
 type pull struct {
 	Number     int           `json:"number"`
 	Ref        string        `json:"ref"`
+	URL        string        `json:"url"`
 	Title      string        `json:"title"`
 	Author     string        `json:"author"`
 	State      string        `json:"state"`
@@ -451,15 +454,6 @@ func (m Model) memberValue(member string) table.Value {
 	return v
 }
 
-// originOf gives the origin a row's links are built from: the screen's, for a row of no member, else the member's
-// host and path.
-func (m Model) originOf(member string) Origin {
-	if member == "" {
-		return m.origin
-	}
-	return parseRemote("https://" + member)
-}
-
 // short gives a member's short name: its path past the owner where every member of the workspace shares its host and
 // owner, else its host and path, as kit names it, until kit has said the members.
 func (m Model) short(member string) string {
@@ -484,33 +478,25 @@ func (m Model) short(member string) string {
 
 // issueRows gives each issue, oldest first as kit prints them, an issue underway once beside each pull request that
 // closes it: number, source, organization, repository, status, assignees, age, milestone, iteration, swimlane, branch,
-// the issue's labels, and the title, its glyph leading to the issue's page; and underway, the pull request's number and
-// state, where the work is, the fork its branch is in, when last pushed, its age right-aligned after the glyph, and by
+// the issue's labels, and the title, its glyph leading to the issue's page, the one kit printed, or nowhere where kit
+// printed none; and underway, the pull request's number and state, where the work is, the fork its branch is in, when last pushed, its age right-aligned after the glyph, and by
 // whom when not the author. Where is here when a checkout on this desk has the branch, as here draws it, local when
 // this desk has the branch but no checkout of it, else the author, or, for an issue underway that no pull request
 // closes, the branch named for it, on the primary. The pull request's glyph leads to its row under
-// changes, or to its page when no app draws changes; the state's glyph to its page. Open, every assignee, the title
+// changes, or to its page when no app draws changes; the state's glyph to its page, kit's too. Open, every assignee, the title
 // wrapped, and every label; the pull request's title is under changes, and the checkout's path on Repositories'
 // worktrees tab. A row belongs to the issue's assignees, whoever opened the pull request, as kit flow --mine says. An
 // issue of another repository, as elsewhere says, is keyed by its repository and its reference, as named gives them,
-// and its title leads to its page in that repository.
+// and its title leads to its page in that repository, as kit printed it.
 func (m Model) issueRows(s stage) []record {
 	var out []record
 	for _, i := range of[issue](s) {
-		o, ref, page := m.originOf(i.Member), reference(i), i.URL
-		if strings.HasPrefix(ref, "#") {
-			in := o
-			if m.elsewhere(i) && in.Repo != "" {
-				in.Repo = i.Organization + "/" + i.Repository
-			}
-			page = in.issue(i.Number, i.URL)
-		}
 		values := map[string]table.Value{
-			"id": table.One(ref), "tracker": table.Some(i.Tracker), "source": table.Some(i.Source), "organization": table.Some(i.Organization),
+			"id": table.One(reference(i)), "tracker": table.Some(i.Tracker), "source": table.Some(i.Source), "organization": table.Some(i.Organization),
 			"repository": table.Some(i.Repository), "status": table.Some(i.Status), "assignees": {Raw: i.Assignees},
 			"age": table.Seconds(i.Age), "milestone": table.Some(i.Milestone), "iteration": table.Some(i.Iteration),
 			"swimlane": table.Some(i.Swimlane), "branch": table.Some(i.Branch), "labels": table.Labelled(i.Labels),
-			"title": {Raw: []string{i.Title}, Link: page}, "member": m.memberValue(i.Member),
+			"title": {Raw: []string{i.Title}, Link: i.URL}, "member": m.memberValue(i.Member),
 		}
 		key := m.named(i)
 		switch {
@@ -524,7 +510,7 @@ func (m Model) issueRows(s stage) []record {
 			values["where"] = table.Value{Raw: []string{i.Branch}, Of: "branch"}
 		}
 		if u := i.PR; u != nil {
-			pr, page := "#"+strconv.Itoa(u.Number), o.pull(u.Number, u.URL)
+			pr := "#" + strconv.Itoa(u.Number)
 			key += " " + pr
 			var pushed, by table.Value
 			if p := u.Pushed; p != nil {
@@ -533,12 +519,12 @@ func (m Model) issueRows(s stage) []record {
 					by = table.Some(p.By)
 				}
 			}
-			change := page
+			change := u.URL
 			if m.reaches("changes") {
 				change = jumpTo("changes", m.pullKey(i.Member, u.Source, u.Number))
 			}
 			values["change"], values["state"] = table.Value{Raw: []string{pr}, Link: change},
-				table.Value{Raw: []string{u.State}, Link: page}
+				table.Value{Raw: []string{u.State}, Link: u.URL}
 			values["fork"], values["pushed"], values["by"] = table.Some(u.Fork), pushed, by
 		}
 		out = append(out, record{row{Key: m.keyOf(i.Member, key)}, values})
@@ -662,19 +648,18 @@ func ref(p pull) string {
 
 // changeRows gives each pull request: number, title, author, state, age, checks, threads, labels, branch; open, the
 // title wrapped and every label, then what holds it back, a line each, as blockers says, then the issues it closes,
-// one row each, in flight. The pull request's glyph and its state's lead to its page. A pull request belongs to its
-// author.
+// one row each, in flight. The pull request's glyph and its state's lead to its page, the one kit printed, or nowhere
+// where kit printed none. A pull request belongs to its author.
 func (m Model) changeRows(s stage) []record {
 	var out []record
 	for _, p := range of[pull](s) {
-		page := m.originOf(p.Member).pull(p.Number, "")
 		var checked table.Value
 		if p.Checks != nil {
 			checked = table.Value{Raw: []string{p.Checks.State}, Of: p.Checks}
 		}
 		r := record{row{Key: m.keyOf(p.Member, ref(p))}, map[string]table.Value{
-			"change": {Raw: []string{ref(p)}, Link: page}, "title": table.One(p.Title), "author": table.Some(p.Author),
-			"state": {Raw: []string{p.State}, Link: page}, "age": table.Seconds(&p.Age), "checks": checked,
+			"change": {Raw: []string{ref(p)}, Link: p.URL}, "title": table.One(p.Title), "author": table.Some(p.Author),
+			"state": {Raw: []string{p.State}, Link: p.URL}, "age": table.Seconds(&p.Age), "checks": checked,
 			"threads": table.One(strconv.Itoa(p.Unresolved)), "branch": table.Some(p.Branch), "labels": table.Labelled(p.Labels),
 			"member": m.memberValue(p.Member),
 		}}

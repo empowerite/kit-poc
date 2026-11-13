@@ -49,7 +49,8 @@ func recordKeys(m Model, name string) []string {
 func TestOverAGroupEachStageDrawsEveryMembersRows(t *testing.T) {
 	m := over(t, "issues")
 	m = drive(m, answer("issues", `{"rows": [{"number": 1, "title": "a1", "member": "github.com/o/a"},
-		{"number": 1, "title": "b1", "member": "github.com/o/b"}], "errors": []}`))
+		{"number": 1, "title": "b1", "member": "github.com/o/b", "url": "https://github.com/o/b/issues/1"}],
+		"errors": []}`))
 	if s := m.find("issues"); s.refusal != "" {
 		t.Fatalf("refused: %s", s.refusal)
 	}

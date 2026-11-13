@@ -1,7 +1,9 @@
 # Entities First-Release Decisions Implementation Plan
 
 **Status, 2026-11-12:** The review of 2026-11-12 read this plan against commit `0e76266c`, where it found none of the
-5 tasks built. [The review's page](../reviews/2026-11-12-review-plans.md) has each task's evidence.
+5 tasks built. [The review's page](../reviews/2026-11-12-review-plans.md) has each task's evidence. Since then #352
+built the page, Step 0 of Tasks 1 and 2: kit prints the page of each issue and change of a forge, and kittui opens it
+and builds none. No reference is built, and no task is whole.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -91,39 +93,51 @@ for what only this machine holds, a path; an artifact is `sha256:<64 hex>`. `…
 
 ### Task 1: Every row kit prints carries its reference, and a forge's row its page
 
+The page is built, with #352, ahead of the reference. Each forge provider gives the page of an open issue, of an
+open change, and of each issue a change closes, as `url`: what its tool reports, GitHub's `url` and GitLab's
+`web_url`, or the primary remote's URL as the provider reads it, where Azure DevOps' `az` reports none
+(`forge/ado:pr-url`, `forge/ado:issue-url`). `underway::rows` gives the issue's own `url` and the change's as
+`pr.url`, and every row of `kit flow issues` has `url`, null where nothing gives one. So no page's shape is written in
+jq: `reference::page` is dropped from this task, and a release's and a run's `url` stay as the providers give them.
+What is left here is the reference.
+
 **Files:**
 
 - Create: `kit/modules/jq/reference.jq`, `tests/jq/reference.test`
-- Modify: `kit/modules/jq/{forge,workspace,underway,backlog}.jq`, `kit/modules/bash/forge.sh:288-291,329-389`,
-  `kit/modules/bash/{workspace,across}.sh`, `kit/bin/kit-flow:95-106`, `kit/bin/kit-workspace:53-54,63`,
-  `docs/architecture.md`, `tests/jq/*.test`, `tests/forge-conformance.bats`, `tests/workspace.bats`
+- Modify: `kit/modules/jq/{forge,workspace,underway,backlog}.jq`,
+  `kit/modules/bash/forge.sh:1003-1032,1085-1152`, `kit/modules/bash/{workspace,across}.sh`,
+  `kit/bin/kit-flow:75-95`, `kit/bin/kit-workspace:31-32,45`, `docs/architecture.md`,
+  `tests/jq/*.test`, `tests/forge-conformance.bats`, `tests/workspace.bats`
 
 **Interfaces:**
 
 - Produces:
   - `reference::of($place; $sigil; $key)`: the three joined; null when the place or the key is null or empty.
-  - `reference::page($forge; $place; $kind; $key)`: `https://<place>/`, then GitHub's `issues/`, `pull/`, or
-    `releases/tag/`, or GitLab's `-/issues/`, `-/merge_requests/`, or `-/releases/`, for an `issue`, a `change`, or a
-    `release`, then the key; null for another forge, or a place that is a path.
-  - `forge::referenced($kind; $forge; $place)` adds `reference` and `url` to a document: a `change` by its `ref`; an
-    `issue`, and each of a change's `closes`, by `#` and its number, at the place's host and its own `organization`
-    and `repository`; a `release` by its tag; a `run` by `:run/` and its `id`, its `url` kept.
+  - `forge::referenced($kind; $forge; $place)` adds `reference` to a document, and leaves its `url` as the provider
+    gave it: a `change` by its `ref`; an `issue`, and each of a change's `closes`, by `#` and its number, at the
+    place's host and its own `organization` and `repository`; a `release` by its tag; a `run` by `:run/` and its `id`.
   - `forge:place` prints the primary's member. `forge:documents <call>` pipes `forge:call <call>` through
-    `forge::referenced`; it replaces `forge:call` at `forge.sh` lines 333, 362, and 386, and in `forge:releases`
-    and `forge:runs`. `underway::rows` keeps the issue's fields, and its `pr` gains `ref`, `reference`, and `url`;
-    `backlog::unclaimed` matches a closed issue by `reference`, by `number` where either has none.
+    `forge::referenced`; it replaces `forge:call` in `forge:snapshot` and `forge:snapshot-take` (`forge.sh` lines
+    1085 to 1152), and in `forge:releases` and `forge:runs` (lines 1031 and 1032).
+    `underway::rows` keeps the issue's fields, and its `pr` gains `ref` and `reference`; `backlog::unclaimed` matches
+    a closed issue by `reference`, by `number` where either has none.
   - `workspace:place` prints `workspaces:member-of <desk>`, else the desk's path; each stage's function in
-    `workspace.jq` takes it last. A row has `reference`, as the table gives its stage, and no `key`; `row` (line 32)
-    goes, and a link to a row is its reference: a worktree's `branch`, its upstream's where it has one.
+    `workspace.jq` takes it last. A row has `reference`, as the table gives its stage, and no `key`; `row` (line
+    32) goes, and a link to a row is its reference: a worktree's `branch`, its upstream's where it has one.
 
+- [x] **Step 0: The page, test first** (#352). `tests/jq/forge.test`, `underway.test`, and `issues.test` hold `url`
+  on a change, on each issue it closes, on an issue, and on an issue's row with its change's as `pr.url`;
+  `tests/forge-conformance.bats:668` holds GitHub and GitLab to what their tools report, another
+  repository's page for an issue there, and `tests/forge-ado.bats:291,345` hold Azure DevOps to the
+  remote's URL; `tests/flow.bats` holds kittui's fixtures and catalog to the keys kit prints.
 - [ ] **Step 1: Write the failing tests.** `reference.test`: `of("gitlab.com/g/s/r"; "!"; 3)` is
   `"gitlab.com/g/s/r!3"`, and null for an empty place or a null key. `forge.test`: change `#3` at `github.com/o/r`,
-  closing number 9 of organization `other`, repository `repo`, has `reference` `github.com/o/r#3`, `url`
-  `https://github.com/o/r/pull/3`, and `closes[0].reference` `github.com/other/repo#9`; `backlog.test`: issue
+  closing number 9 of organization `other`, repository `repo`, has `reference` `github.com/o/r#3`, and
+  `closes[0].reference` `github.com/other/repo#9`; `backlog.test`: issue
   `github.com/o/r#9` stays when a change closes that one; `underway.test`: a change `!3` gives `pr.ref` `!3`.
-  `workspace.test` and `tests/workspace.bats:69-118` expect `reference` for `key` and for `row:`; after `git init`,
-  `main`'s is `$(pwd -P)@refs/heads/main`. `tests/forge-conformance.bats:260,421,525,561` assert each `.reference`,
-  and delete the new fields before they compare documents. And in `tests/workspace.bats`:
+  `workspace.test` and `tests/workspace.bats:77-126` expect `reference` for `key` and for `row:`; after
+  `git init`, `main`'s is `$(pwd -P)@refs/heads/main`. `tests/forge-conformance.bats:540,751,925,1792`
+  assert each `.reference`, and delete the new field before they compare documents. And in `tests/workspace.bats`:
 
 ```bash
 @test "every row of kit workspace carries its full reference, and a link to a row is that row's reference" {
@@ -139,16 +153,23 @@ for what only this machine holds, a path; an artifact is `sha256:<64 hex>`. `…
 
 - [ ] **Step 2: Run** `tests/jq.bats tests/forge-conformance.bats tests/workspace.bats`. Expected: they fail.
 - [ ] **Step 3: Write the functions above,** `### References` in `docs/architecture.md`, and the two headers.
-- [ ] **Step 4: Run** them with `tests/{flow,backlog,underway,changes,builds,releases,across}.bats`. Expected: pass.
+- [ ] **Step 4: Run** them with `tests/{flow,issues-backlog,issues-underway,changes,builds,releases,across}.bats`.
+  Expected: pass.
 - [ ] **Step 5: Commit**, subject `#135 kit: every row of kit flow and kit workspace carries its full reference`.
 
 ### Task 2: kittui keys and links rows by kit's references
 
+The page is built, with #352: an issue's row and a change's open the `url` kit printed, an issue underway its
+change's `pr.url`, Copy Links copies the issue's own, and a row kit gave no page leads nowhere. `Model.originOf` and
+`Origin`'s `issue`, `pull`, `gitlab`, and `infix` are gone, and `TestTheURLsFollowTheHost` with them. What is left
+here is the key.
+
 **Files:**
 
 - Create: `projects/tui/internal/reference/reference.go`, `reference_test.go`
-- Modify: in `projects/tui/internal/flow/`, `rows.go:18-199,496-525,551-649,843-975`, `workspace.go:17-94`,
-  `origin.go:46-95`, `flow.go:125,211`, their tests, and the stages' fixtures under `testdata/`
+- Modify: in `projects/tui/internal/flow/`, `rows.go:17-163,435-455,479-624,641-776`,
+  `workspace.go:19-98`, `origin.go:10-44`, `flow.go:169,260`, their tests, and the stages'
+  fixtures under `testdata/`
 
 **Interfaces:**
 
@@ -160,18 +181,22 @@ for what only this machine holds, a path; an artifact is `sha256:<64 hex>`. `…
     pull request too. A text that starts with `/` is a `Checkout`, unless it holds `@refs/`, split at the first,
     ends in `@` and 40 hex, or holds `:remote/` or `:run/`.
   - `func (m Model) keyed(member, reference, key string) string`: the reference, else `m.keyOf(member, key)`. Every
-    stage keys its rows by it; underway by the issue's reference, a space, and the change's.
-  - A page is kit's `url`, or none: `originOf`, `pullKey`, `Origin`'s `issue`, `release`, `pull`, `gitlab`, and
-    `infix`, `Model.origin`, and `underway.PR.Source` go; `Options.Origin` stays, for the 📚 menu's fallback.
+    stage keys its rows by it; an issue underway by the issue's reference, a space, and the change's.
+  - `pullKey`, `Model.origin`, and `closer.Source` go once a row is keyed by its reference; `Options.Origin` stays,
+    for the 📚 menu's fallback.
   - `func (m Model) workspaceLink(link string) string`: `http://` or `https://`, as it is; a reference,
     `jumpTo("workspace/<stage>", link)`, the stage by its kind; else nothing. `here` links a worktree by its path.
 
+- [x] **Step 0: kittui opens kit's page, test first** (#352). `pages_test.go`: an issue's title and its pull
+  request's state lead to the pages kit printed, a GitLab subgroup's and an Azure DevOps repository's among them, with
+  origin another place; a row with no `url` leads nowhere; Copy Links copies the issue's page for an issue underway.
+  The fixtures `issues.json` and `changes.json` gain `url`, `pr.url`, and each closed issue's `url`.
 - [ ] **Step 1: Write the failing tests.** `TestParse` is a table of Part 1's rows, each with its kind, place, and
-  key, then the two lines below; the third's texts do not parse. The fixtures gain `reference` and `url` for
+  key, then the two lines below; the third's texts do not parse. The fixtures gain `reference` for
   `github.com/empowerite/kit`, in Task 1's shape. `TestRowsAreKeyedByKitsReferences`: after `loaded(t, options())`,
-  `backlog` holds a row keyed `…#45`, `underway` `…#1 …#2`, `changes` `…#2`, `builds` `…:run/41309409501`, and
-  `releases` `…@refs/tags/release/0.2.0`; `backlogRows` of issue 7 of member `github.com/o/r`, with no reference,
-  is keyed `github.com/o/r #7`, and its title links nowhere; an underway row links its change to `jumpTo("changes",
+  `issues` holds a row keyed `…#45` and one `…#1 …#2`, `changes` `…#2`, `builds` `…:run/41309409501`, and
+  `releases` `…@refs/tags/release/0.2.0`; an issue's row of number 7 of member `github.com/o/r`, with no reference,
+  is keyed `github.com/o/r #7`; an underway row links its change to `jumpTo("changes",
   "gitlab.com/g/s/r!3")`, its `pr.reference`. `workspaceLink` gives `workspace/branches` of
   `github.com/o/r@refs/remotes/origin/main`, `workspace/worktrees` of `/src/r`, and nothing of `row:tags/v1`.
 
@@ -182,7 +207,7 @@ for what only this machine holds, a path; an artifact is `sha256:<64 hex>`. `…
 ```
 
 - [ ] **Step 2: Run** `go test ./internal/reference/ ./internal/flow/`. Expected: no build, `Parse` undefined.
-- [ ] **Step 3: Write the package and the changes above;** `TestTheURLsFollowTheHost` goes with what it tests.
+- [ ] **Step 3: Write the package and the changes above.**
 - [ ] **Step 4: Run** `go test -cover ./...` and `tests/tui.bats`. Expected: pass, 98.0% or more, no golden rewritten.
 - [ ] **Step 5: Commit**, subject `#135 kittui: a row is keyed by kit's reference and opens kit's page`.
 

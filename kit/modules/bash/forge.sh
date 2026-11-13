@@ -108,11 +108,15 @@
 #                                 runner, or as the open one on the branch checked out
 #   pr-closing-issues <n>         one line per issue the pull request closes: "<number> <state> <owner/name>"
 #   open-prs                      one JSON object per open pull request, the documents kit flow draws, and kit
-#                                 changes' reviews and checks: modules/jq/forge.jq's header names their fields
+#                                 changes' reviews and checks: modules/jq/forge.jq's header names their fields; url
+#                                 is the change's page, and each issue it closes says its own, as the provider's
+#                                 tool reports it or as the provider reads the primary remote's URL, never built
+#                                 by a caller
 #   open-issues                   one JSON object per open issue, oldest first, the documents the issues stage draws:
 #                                 each says its milestone and its iteration, a title or null, as the forge has them
-#                                 (since 5); the seam adds its swimlane, and answers each of the three from a stand-in
-#                                 where the repository chose one, as below
+#                                 (since 5), and url, its page, given as open-prs gives a change's; the seam adds its
+#                                 swimlane, and answers each of the three from a stand-in where the repository chose
+#                                 one, as below
 #   releases                      one JSON object per release, newest first, the documents the releases stage draws:
 #                                 {version, tag, name, kind, latest, at, age, url, notes, assets}; kind is release,
 #                                 pre-release, or draft; url its page; notes its text, empty for none; and assets each

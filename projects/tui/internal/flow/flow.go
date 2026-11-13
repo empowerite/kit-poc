@@ -40,8 +40,8 @@ import (
 )
 
 // Options is how the screen opens: the app it is, as apps.go defines it; the stages in the picture's order; the stage
-// it opens on, maximized, when one is named; origin, when known, for the URLs and for the workspace menu until kit says
-// the workspace; whether the fetch is skipped; the filters issues and changes take; whether each stage's
+// it opens on, maximized, when one is named; origin, when known, for the workspace menu and the repository here until
+// kit says the workspace; whether the fetch is skipped; the filters issues and changes take; whether each stage's
 // first read is fresh; and whether every stage's headers are hidden, as a test of the rows alone asks.
 type Options struct {
 	App       shell.Screen

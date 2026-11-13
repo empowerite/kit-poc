@@ -37,9 +37,11 @@ JSON
                        {"number": 7, "assignees": {"nodes": [{"login": "bob"}]}}]},
   "pullRequests": {"nodes": [
  {"number": 3, "title": "Fix the thing", "isDraft": true, "headRefName": "7-fix-the-thing",
+  "url": "https://github.com/empowerite/example/pull/3",
   "createdAt": "2026-10-01T09:00:00Z", "mergeStateStatus": "CLEAN", "reviewDecision": null,
   "author": {"login": "ada"},
   "closingIssuesReferences": {"nodes": [{"number": 7, "title": "Fix the thing", "createdAt": "2026-09-20T09:00:00Z",
+                                         "url": "https://github.com/empowerite/example/issues/7",
                                          "repository": {"nameWithOwner": "empowerite/example"}}]},
   "reviewThreads": {"nodes": []},
   "commits": {"nodes": [{"commit": {"statusCheckRollup": null}}]}},
@@ -105,9 +107,13 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
   [ "$(jq -c 'map([.number, .status, .pr.number, .here])' <<<"$output")" \
     = '[[7,"underway",3,true],[7,"underway",5,false],[11,"underway",5,false]]' ]
   [ "$(jq -c '.[0] | keys_unsorted' <<<"$output")" = '["number","ref","tracker","title","assignees","labels","age","source",'\
-'"organization","repository","milestone","iteration","swimlane","status","branch","pr","here","local","worktree"]' ]
+'"organization","repository","milestone","iteration","swimlane","status","branch","pr","here","local","worktree",'\
+'"url"]' ]
   [ "$(jq -c '.[0].pr' <<<"$output")" = '{"number":3,"source":"github","title":"Fix the thing","author":"ada",'\
-'"state":"draft","branch":"7-fix-the-thing","fork":null,"pushed":null}' ]
+'"state":"draft","branch":"7-fix-the-thing","fork":null,"pushed":null,'\
+'"url":"https://github.com/empowerite/example/pull/3"}' ]
+  # the issue's page is its own, as GitHub gave it under the pull request that closes it; one GitHub gave none has none
+  [ "$(jq -c 'map(.url)' <<<"$output")" = '["https://github.com/empowerite/example/issues/7",null,null]' ]
   [ "$(jq -c 'map(.local)' <<<"$output")" = '[false,false,false]' ]
   [ "$(jq -c '[.[0].assignees, .[1].worktree, (.[0].age | type)]' <<<"$output")" = '[["bob"],null,"number"]' ]
   [ "$(jq -r '.[0].worktree' <<<"$output")" -ef worktrees/7-fix-the-thing ]

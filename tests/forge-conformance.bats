@@ -89,9 +89,11 @@ JSON
   "issues": {"nodes": [{"number": 7, "assignees": {"nodes": [{"login": "bob"}]}}]},
   "pullRequests": {"nodes": [{
   "number": 3, "title": "Fix the thing", "body": "Closes #7", "isDraft": false, "headRefName": "7-fix-the-thing",
+  "url": "https://github.com/empowerite/example/pull/3",
   "createdAt": "2026-10-01T09:00:00Z", "mergeStateStatus": "CLEAN", "reviewDecision": null,
   "author": {"login": "ada"}, "labels": {"nodes": [{"name": "kind=fix", "color": "0E8A16"}]},
   "closingIssuesReferences": {"nodes": [{"number": 7, "title": "Fix the thing", "createdAt": "2026-09-20T09:00:00Z",
+                                         "url": "https://github.com/empowerite/example/issues/7",
                                          "repository": {"nameWithOwner": "empowerite/example"},
                                          "labels": {"nodes": [{"name": "bug", "color": "D73A4A"}]}}]},
   "reviewRequests": {"totalCount": 1, "nodes": [{"requestedReviewer": {"login": "bob"}}]},
@@ -179,6 +181,7 @@ world-gitlab() {
   fixture issue-url.txt <<<'https://gitlab.com/empowerite/example/-/issues/7'
   fixture mr.json <<'JSON'
 {"iid": 3, "title": "Fix the thing", "draft": false, "source_branch": "7-fix-the-thing",
+ "web_url": "https://gitlab.com/empowerite/example/-/merge_requests/3",
  "created_at": "2026-10-01T09:00:00.000Z", "author": {"username": "ada"}, "has_conflicts": false,
  "detailed_merge_status": "mergeable", "description": "Closes #7", "source_project_id": 1, "target_project_id": 1,
  "head_pipeline": {"id": 11, "project_id": 1, "status": "success"}, "labels": ["kind=fix"],
@@ -207,6 +210,7 @@ JSON
 JSON
   fixture closes.json <<'JSON'
 [{"iid": 7, "title": "Fix the thing", "state": "opened", "references": {"full": "empowerite/example#7"},
+  "web_url": "https://gitlab.com/empowerite/example/-/issues/7",
   "created_at": "2026-09-20T09:00:00.000Z", "assignees": [{"username": "bob"}], "labels": ["bug"]}]
 JSON
   fixture labels.json <<<'[{"name": "bug", "color": "#D73A4A"}, {"name": "kind=fix", "color": "#0E8A16"}]'
@@ -232,9 +236,9 @@ JSON
 [{"iid": 7, "title": "Fix the thing", "assignees": [{"username": "bob"}], "created_at": "2026-09-20T09:00:00.000Z",
   "labels": [{"id": 4, "name": "bug", "color": "#D73A4A", "text_color": "#FFFFFF"}],
   "milestone": {"id": 12, "iid": 2, "title": "v0.1"}, "iteration": {"id": 4, "title": "Sprint 2"},
-  "references": {"full": "empowerite/example#7"}},
+  "references": {"full": "empowerite/example#7"}, "web_url": "https://gitlab.com/empowerite/example/-/issues/7"},
  {"iid": 9, "title": "Other thing", "assignees": [], "created_at": "2026-09-25T09:00:00.500Z",
-  "references": {"full": "empowerite/example#9"}}]
+  "references": {"full": "empowerite/example#9"}, "web_url": "https://gitlab.com/empowerite/example/-/issues/9"}]
 JSON
   route glab 'issue update 7 --assignee +ada' '!0'
   route glab "api ${p}/issues?state=opened&per_page=100&order_by=created_at&sort=asc&with_labels_details=true*" \
@@ -556,7 +560,8 @@ here() {
     run call open-prs
     [ "$status" -eq 0 ]
     [ "$(jq --compact-output --sort-keys \
-      'del(.age, .createdAt, .ref, .source) | .closes |= map(del(.age, .source, .organization, .repository))' \
+      'del(.age, .createdAt, .ref, .source, .url)
+       | .closes |= map(del(.age, .source, .organization, .repository, .url))' \
       <<<"$output")" = "$(jq --compact-output --sort-keys . <<<"${expected}")" ]
     [ "$(jq '.closes[0].age > 0' <<<"$output")" = true ]
     # the change names the forge it is on
@@ -660,6 +665,42 @@ here() {
   [ "$(call open-prs | jq --raw-output .ref)" = "!3" ]
 }
 
+@test "every provider gives the page of each open issue, each open change, and each issue a change closes, as its tool reports it" {
+  local -A change=([github]=pull/3 [gitlab]=-/merge_requests/3) issues=([github]=issues [gitlab]=-/issues)
+  local forge page
+  for forge in github gitlab
+  do
+    world "${forge}"
+    page=https://${forge}.com/empowerite/example
+    run call open-prs
+    [ "$status" -eq 0 ]
+    [ "$(jq --raw-output '.url, .closes[].url' <<<"$output")" \
+      = "${page}/${change[${forge}]}"$'\n'"${page}/${issues[${forge}]}/7" ]
+    run call open-issues
+    [ "$status" -eq 0 ]
+    [ "$(jq --raw-output .url <<<"$output")" = "${page}/${issues[${forge}]}/7"$'\n'"${page}/${issues[${forge}]}/9" ]
+  done
+  # the page is the forge's to say, never built from the remote: an issue of another repository that a change closes
+  # leads to that repository, and a forge that gives one no page gives kit none
+  world github
+  jq '.data.repository.pullRequests.nodes[0].closingIssuesReferences.nodes
+        = [{number: 9, title: "Nine", url: "https://github.com/other/repo/issues/9",
+            repository: {nameWithOwner: "other/repo"}}, {number: 8, title: "Eight"}]' \
+    "${FAKE_DIR}/open-prs.json" > "${FAKE_DIR}/far.json" && mv "${FAKE_DIR}/far.json" "${FAKE_DIR}/open-prs.json"
+  run fresh-call open-prs
+  [ "$status" -eq 0 ]
+  [ "$(jq --compact-output '.closes | map(.url)' <<<"$output")" = '["https://github.com/other/repo/issues/9",null]' ]
+  # GitHub is asked for the page of the pull request and of each issue it closes, the first ten and the rest
+  grep --quiet 'number title body url isDraft' "${FAKE_DIR}/gh.calls"
+  grep --quiet 'number title createdAt url repository { nameWithOwner }' "${FAKE_DIR}/gh.calls"
+  world gitlab
+  jq '.[0].web_url = "https://gitlab.com/other/group/repo/-/issues/7"' "${FAKE_DIR}/closes.json" \
+    > "${FAKE_DIR}/far.json" && mv "${FAKE_DIR}/far.json" "${FAKE_DIR}/closes.json"
+  run fresh-call open-prs
+  [ "$status" -eq 0 ]
+  [ "$(jq --raw-output '.closes[].url' <<<"$output")" = https://gitlab.com/other/group/repo/-/issues/7 ]
+}
+
 @test "GitLab makes the branch for an issue as its issue page would, and a self-hosted GitLab is the setting" {
   world gitlab
   run call link-branch 7 main
@@ -717,7 +758,8 @@ here() {
     world "${forge}"
     run call open-issues
     [ "$status" -eq 0 ]
-    [ "$(jq --compact-output --sort-keys --slurp 'map(del(.age, .createdAt, .source, .organization, .repository))' \
+    [ "$(jq --compact-output --sort-keys --slurp \
+      'map(del(.age, .createdAt, .source, .organization, .repository, .url))' \
       <<<"$output")" = "$(jq --compact-output --sort-keys . <<<"${expected}")" ]
     # each issue names the tracker that holds it, the forge's own, and where in it the issue is
     [ "$(jq --raw-output --slurp 'map(.source) | unique | join(" ")' <<<"$output")" = "${forge}" ]
@@ -1923,7 +1965,7 @@ SH
   [ "$(jq --compact-output '[.labels, .closes[0].labels] | map(map(.name))' <<<"$output")" = '[["kind=fix"],["bug"]]' ]
   grep --quiet 'issues(states: OPEN, first: 100, filterBy: {assignee: "\*"}' "${FAKE_DIR}/gh.calls"
   grep --quiet 'closingIssuesReferences(first: 10) { pageInfo { hasNextPage endCursor } nodes {$' "${FAKE_DIR}/gh.calls"
-  grep --quiet 'number title createdAt repository { nameWithOwner } labels(first: 20) { nodes { name color } }' \
+  grep --quiet 'number title createdAt url repository { nameWithOwner } labels(first: 20) { nodes { name color } }' \
     "${FAKE_DIR}/gh.calls"
   [ "$(grep --count 'assignees(first: 10)' "${FAKE_DIR}/gh.calls")" -eq 1 ]
 }

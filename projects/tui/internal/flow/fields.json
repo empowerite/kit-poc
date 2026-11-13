@@ -42,7 +42,7 @@
       "summary": "What is open, who has it, and where the work on it stands",
       "takes": ["owner", "fresh", "cached", "workspace"], "record": ".[]",
       "key": ".organization?, .repository?, .tracker?, .number, .pr.number?",
-      "empty": "no open issue", "carries": ["createdAt", "worktree"],
+      "empty": "no open issue", "carries": ["createdAt", "url", "worktree"],
       "fields": [
         {"id": "id", "label": "id", "type": "ref", "path": ".ref", "sort": true, "renderings": ["text"],
          "placement": "column"},
@@ -115,7 +115,8 @@
       "stage": "changes", "command": ["flow", "changes", "--json"], "staged": true, "forge": true,
       "summary": "Open pull requests, and what stands between each and its merge",
       "takes": ["owner", "fresh", "cached", "workspace"], "record": ".[]", "key": ".number",
-      "empty": "no open pull request", "carries": ["closes", "createdAt", "fork", "named", "pushed", "reviewers", "runs"],
+      "empty": "no open pull request",
+      "carries": ["closes", "createdAt", "fork", "named", "pushed", "reviewers", "runs", "url"],
       "fields": [
         {"id": "change", "label": "change", "type": "ref", "path": ".ref, .number", "sort": true, "glyph": "🔀",
          "renderings": ["glyph+text", "text"], "placement": "column"},

@@ -324,11 +324,13 @@ forge/ado:noun() { printf '!\tpull request\n'; }
 # items a query finds and says nothing of the rest, so the query is read a page at a time, by id: each read asks for
 # the work items whose id is above the last one read, in the order of their ids, and a read that answers 1000 is
 # followed by the next. A page that holds an id it was not asked for fails the read. forge.jq's ado_issues puts the
-# work items oldest first.
+# work items oldest first. The query gives no address, so each work item's is as forge/ado:issue-url prints it, under
+# the project's.
 forge/ado:open-issues() {
-  local page pages='' seen project repo
+  local page pages='' seen project repo item
   local -i after=0 count=0 total=0
   IFS=$'\t' read -r _ project repo < <(forge/ado:place) || return 1
+  item=$(forge/ado:issue-url '') || return 1
   while :
   do
     forge/ado:ask page 'the work items' boards query --project "${project}" --wiql \
@@ -346,17 +348,22 @@ forge/ado:open-issues() {
     (( count >= 1000 )) || break
   done
   forge/ado:fold 'the work items' "${pages}" --slurp --compact-output --argjson now "$(date +%s)" \
-    --arg path "${project}/${repo}" 'import "forge" as forge; add | forge::ado_issues($now; $path)'
+    --arg path "${project}/${repo}" --arg item "${item}" \
+    'import "forge" as forge; add | forge::ado_issues($now; $path) | .url = "\($item)\(.number)"'
 }
 
 # forge/ado:open-prs prints one JSON object per open pull request: the document kit flow renders, which
 # modules/jq/forge.jq folds the answers into. The list names each pull request's reviewers and their votes. Azure
 # DevOps needs three reads per pull request beside the list: its policy evaluations, its threads, and the work items
-# linked to it. Any read that fails fails the call, which then prints none of the pull requests.
+# linked to it. Any read that fails fails the call, which then prints none of the pull requests. az gives no page, so
+# a pull request's is as forge/ado:pr-url prints it, under the repository's, and a work item's as forge/ado:issue-url
+# does, under the project's.
 forge/ado:open-prs() {
-  local list project repo id policies threads closes doc docs=''
+  local list project repo id policies threads closes page item doc docs=''
   local -a ids
   IFS=$'\t' read -r _ project repo < <(forge/ado:place) || return 1
+  page=$(forge/ado:pr-url '') || return 1
+  item=$(forge/ado:issue-url '') || return 1
   forge/ado:prs list 'the pull requests' active || return 1
   list:read ids forge/ado:fold 'the pull requests' "${list}" --raw-output 'sort_by(.pullRequestId) | .[].pullRequestId' \
     || return 1
@@ -371,9 +378,10 @@ forge/ado:open-prs() {
     forge/ado:ask closes "the work items pull request !${id} links" repos pr work-item list --id "${id}" || return 1
     doc=$(forge/ado:fold "pull request !${id}" "${list}" --compact-output --argjson id "${id}" \
       --argjson now "$(date +%s)" --argjson policies "${policies}" --argjson threads "${threads}" \
-      --argjson closes "${closes:-[]}" --arg path "${project}/${repo}" \
+      --argjson closes "${closes:-[]}" --arg path "${project}/${repo}" --arg page "${page}" --arg item "${item}" \
       'import "forge" as forge; .[] | select(.pullRequestId == $id)
-       | forge::ado_pr($now; $policies; $threads; $closes; $path)') || return 1
+       | forge::ado_pr($now; $policies; $threads; $closes; $path)
+       | .url = "\($page)\(.number)" | .closes |= map(.url = "\($item)\(.number)")') || return 1
     docs+=${doc}$'\n'
   done
   printf '%s' "${docs}"

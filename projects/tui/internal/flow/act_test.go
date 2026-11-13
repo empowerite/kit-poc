@@ -424,7 +424,7 @@ func TestCopyLinksCopiesEachIssueAsMarkdown(t *testing.T) {
 	if m = next.(Model); cmd == nil || !strings.Contains(ansi.Strip(lines(m)[len(lines(m))-1]), "copied 2 links") {
 		t.Errorf("copy links: %q", lines(m)[len(lines(m))-1])
 	}
-	// an issue with no page, where the screen knows no origin, is its reference and title alone
+	// an issue kit printed no page for is its reference and title alone
 	m = New(runner(t), Options{Stages: []string{"issues"}, NoPresets: true, Clock: &testkit.Clock{}})
 	m = drive(m, tea.WindowSizeMsg{Width: 120, Height: 24},
 		answer("issues", `[{"number": 7, "title": "seven"}]`))

@@ -423,33 +423,33 @@ func (m Model) inHere() []string {
 
 // issueTitle gives a member's issue's title, by what its row's key names it by, as named gives it, as issues read it,
 // or nothing; it asks only on issues, whose actions are the only ones that name issues.
-func (m Model) issueTitle(member, ref string) (title string) {
+func (m Model) issueTitle(member, ref string) string { return m.issueNamed(member, ref).Title }
+
+// issueNamed gives a member's issue, by what its row's key names it by, as named gives it, as issues read it: the last
+// of its rows, where an issue underway has one for each pull request that closes it; or an issue of no title and no
+// page, where issues hold none of that name.
+func (m Model) issueNamed(member, ref string) (found issue) {
 	for _, i := range of[issue](*m.find(issuesStage)) {
 		if i.Member == member && m.named(i) == ref {
-			title = i.Title
+			found = i
 		}
 	}
-	return title
+	return found
 }
 
-// links gives the selected issues as Markdown, one a line: a link to each issue's page, its reference and title the
-// link's text, or the text alone for an issue with no page.
+// links gives the selected issues as Markdown, one a line: a link to each issue's page, the one kit printed for the
+// issue, never its pull request's, its reference and title the link's text, or the text alone for an issue kit
+// printed no page for.
 func (m Model) links() string {
 	var out []string
 	for _, r := range m.selectedRows() {
 		member, ref := refOf(r.Key)
-		text := ref + " " + m.issueTitle(member, ref)
-		page := ""
-		for _, c := range r.Cells {
-			if strings.Contains(c.Link, "://") {
-				page = c.Link
-				break
-			}
-		}
-		if page == "" {
+		i := m.issueNamed(member, ref)
+		text := ref + " " + i.Title
+		if i.URL == "" {
 			out = append(out, "- "+text)
 		} else {
-			out = append(out, fmt.Sprintf("- [%s](%s)", text, page))
+			out = append(out, fmt.Sprintf("- [%s](%s)", text, i.URL))
 		}
 	}
 	return strings.Join(out, "\n")

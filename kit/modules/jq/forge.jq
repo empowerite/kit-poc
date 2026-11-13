@@ -5,6 +5,8 @@
 #
 #   number, ref, branch, title, author, createdAt
 #   source      the forge the change is on: github, gitlab, or ado
+#   url         the change's page on the forge, as the provider gives it: what its tool reports, or the primary
+#               remote's URL as the provider reads it; null where the forge gives none
 #   fork        the owner of the repository the change's branch lives in, when that is not the base repository: a
 #               login on GitHub, a namespace's path on GitLab; null for a branch in the base repository, or a fork
 #               whose owner the forge does not name
@@ -15,8 +17,9 @@
 #   checks      {state, passed, total, failing, took}
 #   unresolved  the number of unresolved review threads
 #   labels      [{name, color}] of the labels on it, as labels gives them
-#   closes      [{number, title, assignees, labels, age, source}] of the issues it closes, the assignees as logins,
-#               so a change's issues are drawn as the issues stage draws an issue without a second call to the forge
+#   closes      [{number, title, assignees, labels, age, source, url}] of the issues it closes, the assignees as
+#               logins, and url each issue's own page, another repository's for an issue there, so a change's issues
+#               are drawn as the issues stage draws an issue without a second call to the forge
 #   named       the references a closing keyword names in its body, as named reads them: AB#4521 of Closes AB#4521,
 #               how a change closes an issue of a tracker the forge does not link by itself
 #   reviewers   [{login, state, at}] of the people and teams asked to review it, or who did: state is requested while
@@ -122,22 +125,24 @@ def named:
   [(. // "") | scan("(?i)(?:^|[^a-z0-9])(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):? +([^\\s,;()]*[0-9]+)") | .[0]]
   | reduce .[] as $ref ([]; if index([$ref]) then . else . + [$ref] end);
 
-# document($now) reads {number, ref, source, branch, fork, title, author, createdAt, pushed, draft, conflicted,
-# approval, runs, unresolved, labels, closes, reviewers, body} and gives the document, the body as named reads it. pushed is {at, by}, or null, and comes
-# out with its age in place of at. labels are the forge's, as labels reads them. Each of closes is {number, title,
-# assignees, labels, createdAt, source, organization, repository}, and comes out with its age; an issue an older answer
-# gives without a time has a null age, one without a source, an organization, or a repository a null one, and one
-# without labels none. reviewers are as reviewers reads them, none where the answer names none; each run comes out with
+# document($now) reads {number, ref, source, url, branch, fork, title, author, createdAt, pushed, draft, conflicted,
+# approval, runs, unresolved, labels, closes, reviewers, body} and gives the document, the body as named reads it.
+# pushed is {at, by}, or null, and comes out with its age in place of at. labels are the forge's, as labels reads them.
+# Each of closes is {number, title, assignees, labels, createdAt, source, url, organization, repository}, and comes out
+# with its age; an issue an older answer gives without a time has a null age, one without a source, a page, an
+# organization, or a repository a null one, and one without labels none. The change's own page is null where the
+# answer gives none. reviewers are as reviewers reads them, none where the answer names none; each run comes out with
 # at in seconds since the epoch, null where it was empty, its workflow and event null where it has none, and without
 # since.
 def document($now):
   (.runs | checks($now)) as $checks
-  | { number, ref, source: (.source // null), branch, fork: (.fork // null), title, author, createdAt,
+  | { number, ref, source: (.source // null), url: (.url // null), branch, fork: (.fork // null), title, author,
+      createdAt,
       age: ($now - (.createdAt | epoch)),
       pushed: (if .pushed == null then null else {age: ($now - (.pushed.at | epoch)), by: (.pushed.by // null)} end),
       state: (. + {checks: $checks} | state), checks: $checks, unresolved, labels: (.labels | labels),
       closes: [.closes[] | { number, title, assignees: (.assignees // []), labels: (.labels | labels),
-                             source: (.source // null),
+                             source: (.source // null), url: (.url // null),
                              organization: (.organization // null), repository: (.repository // null),
                              age: (if .createdAt == null then null else $now - (.createdAt | epoch) end) }],
       named: (.body | named),
@@ -170,14 +175,15 @@ def github_runs:
 # reviewer's latest review that approves or asks for changes, which a comment after it leaves standing, as GitHub's
 # latestOpinionatedReviews gives them, a dismissed review standing as a comment; then each other reviewer's latest
 # review, as latestReviews gives them: a comment, or one of those where the answer holds no opinionated reviews; a
-# pending review, which only its author sees, is none.
+# pending review, which only its author sees, is none. Its page, and that of each issue it closes, is the url the
+# answer gives.
 def github_prs($now):
   .data.repository as $repository
   | ([$repository.issues.nodes[]? | {key: "\(.number)", value: [.assignees.nodes[]?.login]}] | from_entries)
     as $assigned
   | $repository.pullRequests.nodes[]
-  | { number, ref: "#\(.number)", source: "github", branch: .headRefName, title, author: (.author.login // ""),
-      createdAt, body,
+  | { number, ref: "#\(.number)", source: "github", url, branch: .headRefName, title,
+      author: (.author.login // ""), createdAt, body,
       fork: (if .isCrossRepository then .headRepositoryOwner.login // null else null end),
       pushed: (.commits.nodes[0].commit // {}
                | if .committedDate == null then null else {at: .committedDate, by: .author.user.login} end),
@@ -197,7 +203,7 @@ def github_prs($now):
                                        // "commented"),
                                at: (.submittedAt // null) }))),
       closes: [.closingIssuesReferences.nodes[]
-               | { number, title, createdAt, source: "github", labels: [.labels.nodes[]?],
+               | { number, title, createdAt, source: "github", url, labels: [.labels.nodes[]?],
                    assignees: (if .repository.nameWithOwner == $repository.nameWithOwner
                                then $assigned["\(.number)"] // [] else [] end) }
                  + place(.repository.nameWithOwner)] }
@@ -283,9 +289,9 @@ def gitlab_pipeline_jobs:
 # gives its document. GitLab names a label without its color here, which colored then gives it.
 # GitLab tells no push's time without a further call, so pushed is the head pipeline's: when it was created, and who
 # started it; null when the branch has no pipeline. Its reviewers are those who approved it, at the time each did, then
-# each reviewer it names without an approval, asked.
+# each reviewer it names without an approval, asked. Its page, and that of each issue it closes, is GitLab's web_url.
 def gitlab_pr($now; $jobs; $discussions; $closes; $fork; $approvals):
-  { number: .iid, ref: "!\(.iid)", source: "gitlab", branch: .source_branch, title,
+  { number: .iid, ref: "!\(.iid)", source: "gitlab", url: .web_url, branch: .source_branch, title,
     author: (.author.username // ""), createdAt: .created_at, body: .description, draft, conflicted: .has_conflicts,
     fork: $fork,
     pushed: (.head_pipeline // {}
@@ -296,17 +302,18 @@ def gitlab_pr($now; $jobs; $discussions; $closes; $fork; $approvals):
     reviewers: ([$approvals.approved_by[]? | {login: .user.username, state: "approved", at: (.approved_at // null)}]
                 + [.reviewers[]? | {login: .username, state: "requested", at: null}]),
     closes: [$closes[] | { number: .iid, title, assignees: [.assignees[]?.username], labels, createdAt: .created_at,
-                           source: "gitlab" } + place(gitlab_path)] }
+                           source: "gitlab", url: .web_url } + place(gitlab_path)] }
   | document($now);
 
-# issue($now; $source; $path) reads {number, title, assignees, labels, createdAt, milestone, iteration}, the assignees
-# as logins, the milestone and the iteration each a title or null, and gives the issue document kit flow issues draws:
-# those, the labels as labels reads them, ref, age in seconds, source, the tracker that holds it: the code forge's own,
-# github or gitlab, for now; and the organization and the repository it is in, as place reads $path.
+# issue($now; $source; $path) reads {number, title, assignees, labels, createdAt, milestone, iteration, url}, the
+# assignees as logins, the milestone and the iteration each a title or null, and gives the issue document kit flow
+# issues draws: those, the labels as labels reads them, ref, age in seconds, source, the tracker that holds it: the code
+# forge's own, github or gitlab, for now; url, its page, null where it is given none; and the organization and the
+# repository it is in, as place reads $path.
 def issue($now; $source; $path):
   { number, ref: "#\(.number)", title, assignees, labels: (.labels | labels), createdAt,
     milestone: (.milestone // null), iteration: (.iteration // null),
-    age: ($now - (.createdAt | epoch)), source: $source }
+    age: ($now - (.createdAt | epoch)), source: $source, url: (.url // null) }
   + place($path);
 
 # stood_in($choice) reads an issue document and gives the value a stand-in for one of its fields chooses: with
@@ -331,10 +338,10 @@ def issue_fields($choices; $lacks):
 
 # github_issues($now) reads gh issue list's JSON, the answer to forge/github:open-issues, and gives one document per
 # open issue, oldest first. Each issue's iteration is the one forge/github:open-issues puts beside it, from the projects
-# it is in, as gh issue list does not say it.
+# it is in, as gh issue list does not say it. Its page is the url gh gives.
 def github_issues($now):
   sort_by(.createdAt, .number)[] | github_path as $path
-  | {number, title, assignees: [.assignees[].login], labels, createdAt, milestone: .milestone.title?, iteration}
+  | {number, title, assignees: [.assignees[].login], labels, createdAt, milestone: .milestone.title?, iteration, url}
   | issue($now; "github"; $path);
 
 # github_issue_iterations reads the pages of GitHub's GraphQL answer to the open issues' project items, each a page of
@@ -349,10 +356,10 @@ def github_issue_iterations:
 
 # gitlab_issues($now) reads GitLab's issues, the answer to forge/gitlab:open-issues, and gives the same documents. The
 # answer gives each label's details, its color among them, and each issue's milestone and iteration; an iteration of a
-# cadence with no title is named by its dates, as gitlab_iterations names it.
+# cadence with no title is named by its dates, as gitlab_iterations names it. Its page is GitLab's web_url.
 def gitlab_issues($now):
   sort_by(.created_at, .iid)[] | gitlab_path as $path
-  | {number: .iid, title, assignees: [.assignees[].username], labels, createdAt: .created_at,
+  | {number: .iid, title, assignees: [.assignees[].username], labels, createdAt: .created_at, url: .web_url,
      milestone: .milestone.title?,
      iteration: (.iteration | if . == null then null else .title // "\(.start_date) to \(.due_date)" end)}
   | issue($now; "gitlab"; $path);
@@ -491,9 +498,9 @@ def ado_iteration:
   (.fields["System.IterationPath"] // "") | split("\\") | if length > 1 then .[-1] else null end;
 
 # ado_issues($now; $path) reads the work items of an Azure Boards query, the answer to forge/ado:open-issues, and gives
-# one issue document per work item, oldest first, with no milestone, which Azure Boards has none of. $path is the
-# repository's, project/repository, where place reads the project as the organization, as forge/ado:repo names its
-# owner.
+# one issue document per work item, oldest first, with no milestone, which Azure Boards has none of, and no page, which
+# the query does not give: its caller adds it. $path is the repository's, project/repository, where place reads the
+# project as the organization, as forge/ado:repo names its owner.
 def ado_issues($now; $path):
   sort_by(.fields["System.CreatedDate"], .id)[]
   | {number: .id, title: .fields["System.Title"], assignees: ado_assignees, labels: ado_tags,
@@ -548,7 +555,8 @@ def ado_reviewers:
 
 # ado_pr($now; $policies; $threads; $closes; $path) reads a pull request, its policy evaluations, its threads, and the
 # work items linked to it, and gives its document. Azure DevOps tells no push's time without a further call, so pushed
-# is null. A pull request from a fork names the fork's repository as its owner.
+# is null. A pull request from a fork names the fork's repository as its owner. az gives no page for it, or for a work
+# item, so its caller adds each.
 def ado_pr($now; $policies; $threads; $closes; $path):
   { number: .pullRequestId, ref: "!\(.pullRequestId)", source: "ado",
     branch: (.sourceRefName | ltrimstr("refs/heads/")), title, author: (.createdBy.uniqueName // ""),

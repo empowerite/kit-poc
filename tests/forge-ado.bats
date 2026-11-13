@@ -304,9 +304,13 @@ added='"milestones","bots","attestations","code-scanning","dependabot","secret-s
   run call open-prs
   [ "$status" -eq 0 ]
   [ "$(jq --compact-output --sort-keys \
-    'del(.age, .createdAt, .ref, .source) | .closes |= map(del(.age, .source, .organization, .repository))' \
+    'del(.age, .createdAt, .ref, .source, .url)
+     | .closes |= map(del(.age, .source, .organization, .repository, .url))' \
     <<<"$output")" = "$(jq --compact-output --sort-keys . <<<"${expected}")" ]
   [ "$(jq --raw-output '"\(.ref) \(.source)"' <<<"$output")" = '!3 ado' ]
+  # the pull request's page is under the repository's, and a work item's under the project's, as the remote names them
+  [ "$(jq --raw-output '.url, .closes[].url' <<<"$output")" \
+    = $'https://dev.azure.com/acme/empowerite/_git/example/pullrequest/3\nhttps://dev.azure.com/acme/empowerite/_workitems/edit/7' ]
   [ "$(jq --raw-output '[.closes[] | "\(.source) \(.organization)/\(.repository)"] | join(" ")' <<<"$output")" \
     = 'ado empowerite/example' ]
   # a draft is drawn as one, and a blocking review policy that has not approved blocks the merge
@@ -345,10 +349,14 @@ added='"milestones","bots","attestations","code-scanning","dependabot","secret-s
   expected+='"milestone":null,"iteration":null,"swimlane":null}]'
   run call open-issues
   [ "$status" -eq 0 ]
-  [ "$(jq --compact-output --sort-keys --slurp 'map(del(.age, .createdAt, .source, .organization, .repository))' \
+  [ "$(jq --compact-output --sort-keys --slurp \
+    'map(del(.age, .createdAt, .source, .organization, .repository, .url))' \
     <<<"$output")" = "$(jq --compact-output --sort-keys . <<<"${expected}")" ]
   [ "$(jq --raw-output --slurp 'map("\(.source) \(.organization)/\(.repository)") | unique | join(" ")' <<<"$output")" \
     = 'ado empowerite/example' ]
+  # each work item's page is under the project's, as the remote names it
+  [ "$(jq --raw-output .url <<<"$output")" \
+    = $'https://dev.azure.com/acme/empowerite/_workitems/edit/7\nhttps://dev.azure.com/acme/empowerite/_workitems/edit/9' ]
 }
 
 @test "a project past 1000 open work items is read whole, a page of 1000 at a time by id, and 10000 of them fail" {

@@ -22,6 +22,7 @@
     "here": null,
     "local": null,
     "worktree": null,
+    "url": "https://github.com/empowerite/jig/issues/7",
     "createdAt": "2026-10-02T00:00:00Z"
   },
   {
@@ -62,11 +63,13 @@
       "pushed": {
         "age": 3600,
         "by": "jeffrey-aguilera"
-      }
+      },
+      "url": "https://github.com/empowerite/kit/pull/2"
     },
     "here": true,
     "local": false,
-    "worktree": "/home/kit/worktrees/1-the-first-release-v0-1-0"
+    "worktree": "/home/kit/worktrees/1-the-first-release-v0-1-0",
+    "url": "https://github.com/empowerite/kit/issues/1"
   },
   {
     "number": 8,
@@ -95,11 +98,13 @@
       "pushed": {
         "age": 90000,
         "by": "cy"
-      }
+      },
+      "url": "https://github.com/empowerite/kit/pull/4"
     },
     "here": false,
     "local": false,
-    "worktree": null
+    "worktree": null,
+    "url": "https://github.com/empowerite/kit/issues/8"
   },
   {
     "number": 8,
@@ -128,11 +133,13 @@
       "pushed": {
         "age": 7200,
         "by": "ada"
-      }
+      },
+      "url": "https://github.com/empowerite/kit/pull/11"
     },
     "here": false,
     "local": true,
-    "worktree": null
+    "worktree": null,
+    "url": "https://github.com/empowerite/kit/issues/8"
   },
   {
     "number": 46,
@@ -161,6 +168,7 @@
     "here": null,
     "local": null,
     "worktree": null,
+    "url": "https://github.com/empowerite/kit/issues/46",
     "createdAt": "2026-11-09T00:00:00Z"
   },
   {
@@ -189,11 +197,13 @@
       "state": "comments:open",
       "branch": "31-commit-submit-land",
       "fork": null,
-      "pushed": null
+      "pushed": null,
+      "url": "https://github.com/empowerite/kit/pull/12"
     },
     "here": false,
     "local": false,
-    "worktree": null
+    "worktree": null,
+    "url": "https://github.com/empowerite/kit/issues/31"
   },
   {
     "number": 45,
@@ -228,6 +238,7 @@
     "here": null,
     "local": null,
     "worktree": null,
+    "url": "https://github.com/empowerite/kit/issues/45",
     "createdAt": "2026-11-10T22:00:00Z"
   }
 ]

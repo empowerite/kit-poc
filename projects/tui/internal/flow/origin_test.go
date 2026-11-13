@@ -1,4 +1,4 @@
-// Origin is read from git's remote URL in each of its shapes, and gives the URLs the rows open to.
+// Origin is read from git's remote URL in each of its shapes.
 package flow
 
 import (
@@ -21,33 +21,6 @@ func TestParseRemote(t *testing.T) {
 		if got := parseRemote(url); got != want {
 			t.Errorf("parseRemote(%q) = %+v, want %+v", url, got, want)
 		}
-	}
-}
-
-func TestTheURLsFollowTheHost(t *testing.T) {
-	hub := Origin{Host: "github.com", Repo: "empowerite/kit"}
-	lab := Origin{Host: "gitlab.com", Repo: "group/kit"}
-	if got := hub.issue(45, ""); got != "https://github.com/empowerite/kit/issues/45" {
-		t.Errorf("GitHub issue: %q", got)
-	}
-	if got := lab.issue(45, ""); got != "https://gitlab.com/group/kit/-/issues/45" {
-		t.Errorf("GitLab issue: %q", got)
-	}
-	if got := hub.pull(2, ""); got != "https://github.com/empowerite/kit/pull/2" {
-		t.Errorf("GitHub pull request: %q", got)
-	}
-	if got := lab.pull(2, ""); got != "https://gitlab.com/group/kit/-/merge_requests/2" {
-		t.Errorf("GitLab merge request: %q", got)
-	}
-	// what kit printed wins, and an unknown origin gives nothing
-	if got := hub.issue(1, "https://example.com/1"); got != "https://example.com/1" {
-		t.Errorf("a given URL: %q", got)
-	}
-	if got := (Origin{}).issue(1, ""); got != "" {
-		t.Errorf("no origin: %q", got)
-	}
-	if got := (Origin{}).pull(2, ""); got != "" {
-		t.Errorf("no origin: %q", got)
 	}
 }
 
