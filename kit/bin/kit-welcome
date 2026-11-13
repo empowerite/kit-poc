@@ -21,8 +21,9 @@
 # kit: kit tutorials applications.
 #
 # Steps 2 and 3 hold checks. On a terminal, it opens kittui's welcome screen, on the first step with a failed check.
-# Each failed check there offers its fix: now runs it, later moves on. Without a terminal, or with --text, it prints
-# each step's page with its checks under it, then a list of what is left. It runs nothing.
+# Each failed check there shows its fix: c, or a click on its ⧉, copies it, and r, or a click on its ▶️, has kit run
+# it and check again, where kit runs the fix. Without a terminal, or with --text, it prints each step's page with
+# its checks under it, then a list of what is left. It runs nothing.
 #
 # On a terminal, setup also judges the terminal kit runs in: kit asks it what it does, reads its settings where it
 # knows the terminal, and names each setting that makes kittui slower or worse. A terminal's fixes are the person's to
