@@ -125,12 +125,13 @@ func (m Model) Init() tea.Cmd {
 // group given is kept as the last used first, and a repository given by its folder first among the recent. A
 // repository kit says by another way, as the one kittui starts in, is kept first among the recent too, unless it is
 // already, so the workspace menu offers it again once another is switched to; kit is asked again for what it then
-// keeps. A recent kit could not keep leaves the workspace as kit said it.
+// keeps. A recent kit could not keep leaves the workspace as kit said it. none names no workspace, so it is no group
+// to keep.
 func (m Model) ask(given string) tea.Cmd {
 	r, gen := m.runner, m.asked
 	return func() tea.Msg {
 		ctx := context.Background()
-		if given != "" && (!strings.ContainsAny(given, "/:") || strings.HasPrefix(given, "/")) {
+		if given != "" && given != "none" && (!strings.ContainsAny(given, "/:") || strings.HasPrefix(given, "/")) {
 			if err := r.UseWorkspace(ctx, given); err != nil {
 				return workspaceMsg{gen: gen, err: err}
 			}

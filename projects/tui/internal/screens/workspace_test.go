@@ -234,6 +234,18 @@ func TestARefusedPickKeepsTheWorkspaceAndSaysKitsLine(t *testing.T) {
 	}
 }
 
+// kit --workspace=none names no workspace, which kit says as kind none: it is no group to keep as the last used, which
+// kit refuses, so the workspace is asked and the menu starts with no refusal.
+func TestNoWorkspaceIsNoGroupToKeep(t *testing.T) {
+	m, record, _ := workspacedOver(t, "none", map[string]string{"none.json": `{"kind":"none","name":null,"member":null,` +
+		`"checkout":null,"why":"given","members":[],"groups":[],"favorites":[]}`})
+	got, _ := os.ReadFile(record)
+	books := m.made[shell.Welcome].(welcome.Model).Books()
+	if m.workspace.Kind != "none" || strings.Contains(string(got), "use none") || books.Refusal != "" {
+		t.Errorf("--workspace=none: %+v, calls %q, refusal %q", m.workspace, got, books.Refusal)
+	}
+}
+
 func TestAGroupKitWillNotKeepIsNotSwitchedTo(t *testing.T) {
 	m, record, _ := workspaced(t, map[string]string{"current.json": repoJSON, "w.json": groupJSON})
 	t.Setenv("FAKE_KIT_REFUSE", "workspaces")
