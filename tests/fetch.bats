@@ -98,3 +98,20 @@ ci-step() {
   [ ! -e "${RUNNER_TEMP}/kit/bin/kit" ]
   [ ! -s "${GITHUB_PATH}" ]
 }
+
+@test "release:fetch refuses a tarball when the published digest is empty and no sha tool can compute one" {
+  real=$(shasum -a 256 "${FAKE_RELEASES}/kit-9.9.9.tar.gz" | cut -d ' ' -f 1)
+  : > "${FAKE_RELEASES}/kit-9.9.9.tar.gz.sha256"
+  printf '#!/bin/sh\nexit 1\n' > "${repo}.bin/sha256sum"
+  cp "${repo}.bin/sha256sum" "${repo}.bin/shasum"
+  chmod +x "${repo}.bin/sha256sum" "${repo}.bin/shasum"
+  run kit-bash 'release:fetch 9.9.9'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"publishes no sha256 digest"* ]]
+  [ ! -e "${XDG_CACHE_HOME}/kit/kit-9.9.9" ]
+  printf '%s\n' "${real}" > "${FAKE_RELEASES}/kit-9.9.9.tar.gz.sha256"
+  run kit-bash 'release:fetch 9.9.9'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"neither sha256sum nor shasum gave its digest"* ]]
+  [ ! -e "${XDG_CACHE_HOME}/kit/kit-9.9.9" ]
+}

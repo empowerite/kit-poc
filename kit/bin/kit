@@ -362,6 +362,14 @@ digest() {
   fi
 }
 
+# is_digest <word> succeeds when the word is a sha256 digest: 64 lower-case hexadecimal characters.
+is_digest() {
+  [ "${#1}" -eq 64 ] || return 1
+  case $1 in
+    (*[!0-9a-f]*) return 1 ;;
+  esac
+}
+
 # is_version <word> succeeds when the word has a version's shape: three numbers joined by dots, then, for a
 # pre-release, a - and letters, digits, and dots. It starts no process.
 is_version() {
@@ -411,6 +419,19 @@ fetch() {
   fi
   fetch_published=$(cut -d ' ' -f 1 "${fetch_fresh}/kit.tar.gz.sha256")
   fetch_have=$(digest "${fetch_fresh}/kit.tar.gz")
+  if ! is_digest "${fetch_published}"
+  then
+    rm -rf "${fetch_fresh}"
+    refuse "kit $1 publishes no sha256 digest beside its tarball, so it is not trusted; set KIT_VERSION to the path" \
+      "of a copy of it"
+    return 1
+  fi
+  if ! is_digest "${fetch_have}"
+  then
+    rm -rf "${fetch_fresh}"
+    refuse "kit $1's tarball cannot be checked: neither sha256sum nor shasum gave its digest"
+    return 1
+  fi
   if [ "${fetch_have}" != "${fetch_published}" ]
   then
     rm -rf "${fetch_fresh}"

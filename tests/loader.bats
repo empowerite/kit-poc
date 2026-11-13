@@ -225,6 +225,26 @@ publish() {
   [ "$(wc -l < "${FAKE_RELEASES}/curl.calls")" -eq 2 ]
 }
 
+@test "a downloaded release is refused when the published digest is empty and no sha tool can compute one" {
+  publish 9.9.5
+  real=$(shasum -a 256 "${FAKE_RELEASES}/kit-9.9.5.tar.gz" | cut -d ' ' -f 1)
+  : > "${FAKE_RELEASES}/kit-9.9.5.tar.gz.sha256"
+  printf '#!/bin/sh\nexit 1\n' > "${BATS_TEST_TMPDIR}/bin/sha256sum"
+  cp "${BATS_TEST_TMPDIR}/bin/sha256sum" "${BATS_TEST_TMPDIR}/bin/shasum"
+  chmod +x "${BATS_TEST_TMPDIR}/bin/sha256sum" "${BATS_TEST_TMPDIR}/bin/shasum"
+  printf 'version: 9.9.5\n' > kit.yml
+  run "${kit}" version
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"publishes no sha256 digest"* ]]
+  [ ! -e "${cache}/kit-9.9.5" ]
+  printf '%s\n' "${real}" \
+    > "${FAKE_RELEASES}/kit-9.9.5.tar.gz.sha256"
+  run "${kit}" version
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"neither sha256sum nor shasum gave its digest"* ]]
+  [ ! -e "${cache}/kit-9.9.5" ]
+}
+
 @test "a downloaded release whose bytes have another digest is refused and not cached, and so is one with no digest" {
   publish 9.9.5
   printf 'x' >> "${FAKE_RELEASES}/kit-9.9.5.tar.gz"

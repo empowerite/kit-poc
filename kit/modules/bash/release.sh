@@ -106,7 +106,7 @@ release:target() {
 #
 #   1. the kit's cache, where bin/kit, the loader, keeps every release it runs
 #   2. the release's public tarball, downloaded with curl beside the .sha256 the release publishes, and unpacked into
-#      the cache only when its bytes have that digest; a release that publishes no digest is refused
+#      the cache only when its bytes have that digest; a release that publishes no digest, or none that is a sha256, is refused
 #
 # No toolchain is asked: a toolchain installs the loader, and the loader keeps the releases.
 # The version comes from a manifest, so it must have a version's shape before it is used in a path.
@@ -140,6 +140,18 @@ release:fetch() {
   fi
   published=$(cut -d ' ' -f 1 "${fresh}/kit.tar.gz.sha256")
   have=$(file:digest < "${fresh}/kit.tar.gz")
+  if [[ ! "${published}" =~ ^[0-9a-f]{64}$ ]]
+  then
+    rm -rf "${fresh}"
+    error "kit ${version} publishes no sha256 digest beside its tarball, so it is not trusted; set KIT_BASE to a copy of it"
+    return 1
+  fi
+  if [[ ! "${have}" =~ ^[0-9a-f]{64}$ ]]
+  then
+    rm -rf "${fresh}"
+    error "kit ${version}'s tarball cannot be checked: neither sha256sum nor shasum gave its digest"
+    return 1
+  fi
   if [[ "${have}" != "${published}" ]]
   then
     rm -rf "${fresh}"
