@@ -34,6 +34,19 @@ holds one, such as `node@22`.
 | `update` | `brew upgrade` of the `Brewfile`'s outdated formulae |
 | `--outdated` | `brew outdated --json=v2`, for the `Brewfile`'s formulae |
 
+## Installing kit with brew
+
+`brew install empowerite/tap/kit` installs kit, and brew installs the system role's tools it needs with it:
+
+- **bash**, since macOS ships 3.2 and kit needs 4.4 or later.
+- **jq** and **yq**.
+
+It does not depend on **git**. Homebrew cannot be installed without git, and macOS supplies one with the Xcode
+command line tools, so a machine that has brew has git. If that git is older than the 2.31 kit needs, or you want a
+newer one, run `brew install git`; `kit welcome` says which.
+
+Installing kit trusts nothing. Trust is a clone's, given by `kit trust`; see [install.md](../install.md#trust).
+
 ## brew fills in
 
 A `Brewfile` often lists what comes before the tool manager: a newer bash, mise itself, direnv. So brew never
