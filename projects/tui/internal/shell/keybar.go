@@ -243,9 +243,11 @@ func MenuKeys() Segment {
 }
 
 // ScreenKeys gives the segment of a screen, the first on every path: = drops the app's menu down, / gives the search
-// the keyboard, and ? or F1 shows the legend, then the screen's own keys.
+// the keyboard, and ? or F1 shows the legend, then the screen's own keys, and last ⌃Q, which quits, so every screen
+// says how to leave.
 func ScreenKeys(own ...Binding) Segment {
-	return Segment{Bindings: append([]Binding{Bind("=", "menu"), Bind("/", "search"), Bind("?", "legend", "?", "f1")}, own...)}
+	keys := append([]Binding{Bind("=", "menu"), Bind("/", "search"), Bind("?", "legend", "?", "f1")}, own...)
+	return Segment{Bindings: append(keys, Bind("⌃Q", "quit", Quit))}
 }
 
 // SearchKeys gives the segment of the search while it has focus, as SearchKey takes its keys on every screen: ⏎ gives

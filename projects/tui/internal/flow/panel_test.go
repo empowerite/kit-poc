@@ -19,9 +19,9 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/testkit"
 )
 
-// searchKeys is the keys bar while the search has the keyboard: esc or enter leaves it, then the search's own, which
-// hides every key of the screen's and the bar's it types.
-const searchKeys = "⏎ rows type to search"
+// searchKeys is the keys bar while the search has the keyboard: the screen's ⌃Q, which a search never types; esc or
+// enter leaves it, then the search's own, which hides every key of the screen's and the bar's it types.
+const searchKeys = "⌃Q quit │ ⏎ rows type to search"
 
 // menuKeys is the keys bar while a menu is open.
 var menuKeys = shell.Path{shell.MenuKeys()}.String()

@@ -19,7 +19,7 @@ looks like this:
       ·────·────·──────────────                          ← rule
     ▸ #45   2h  🎫 kit flow is the…                      ← rows
     ▸ #46   2d  🎫 A noun lists…
- = menu - workspace / search ? legend │ ⇥·⇧⇥ tab         ← status bar
+ = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ← status bar
 ```
 
 ## The parts
@@ -39,7 +39,7 @@ looks like this:
 - `/`  [search](kittui:tutorials/search)
 - `?`  [the legend](kittui:tutorials/legend)
 - `esc`  back out one step. It never quits.
-- `⌃Q`  quit
+- `⌃Q`  quit. `q` quits too while the [tab bar](kittui:tutorials/tab-bar) has the keyboard.
 
 Every action also works with a plain click.
 

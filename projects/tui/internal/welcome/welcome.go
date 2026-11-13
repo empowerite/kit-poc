@@ -20,9 +20,10 @@
 // which up and down then scroll, and up at the top gives it back; a click on a check's line puts the cursor there. On
 // a step's last row, down, page down, and end scroll on to the rest of its page, and up brings the rows back. The
 // mouse wheel scrolls the pane under it, or the step's table, the keyboard and the cursor left where they are. Esc gives
-// the bar the keyboard back. Ctrl-c quits with 130 from anywhere, and ctrl-q quits with 0; esc never
-// quits. The screen opens on the introduction while the checks run, and stays there when they answer. A step with
-// failed checks counts them in red on the bar, which every step shows.
+// the bar the keyboard back. Ctrl-c quits with 130 from anywhere, and ctrl-q quits with 0, as q does while the bar
+// has the keyboard, which kittui's root asks OnBar; esc never quits. The screen opens on the introduction while the
+// checks run, and stays there when they answer. A step with failed checks counts them in red on the bar, which every
+// step shows.
 package welcome
 
 import (

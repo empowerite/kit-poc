@@ -75,7 +75,7 @@ func TestATutorialInTheKitOpensHereAndEscGoesBack(t *testing.T) {
 		!strings.Contains(got, "📚 kit's applications") {
 		t.Errorf("the line over the page: %q", got)
 	}
-	if keys := m.keys().String(); keys != "= menu / search ? legend │ esc cards ↑↓ scroll ⇞⇟ page" {
+	if keys := m.keys().String(); keys != "= menu / search ? legend ⌃Q quit │ esc cards ↑↓ scroll ⇞⇟ page" {
 		t.Errorf("keys %q", keys)
 	}
 	if m = drive(m, down, down); m.read.offset != 2 {

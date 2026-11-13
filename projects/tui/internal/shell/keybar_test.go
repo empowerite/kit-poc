@@ -5,6 +5,7 @@ package shell
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -17,17 +18,33 @@ import (
 // rows is a control under the screen with its own keys, as a stage's rows are.
 var rows = Segment{Bindings: []Binding{Bind("↑↓", "move", "up", "down"), Bind("␣", "select", "space")}}
 
-// A screen with a workspace menu names - after =, in the title's order, then the search and its own keys.
+// A screen with a workspace menu names - after =, in the title's order, then the search, its own keys, and the key
+// that quits.
 func TestAWorkspaceScreenNamesMinusAfterEquals(t *testing.T) {
 	if got := ansi.Strip(Path{WorkspaceScreenKeys()}.Line(80)); got !=
-		" = menu - workspace / search ? legend" {
+		" = menu - workspace / search ? legend ⌃Q quit" {
 		t.Errorf("the bar: %q", got)
+	}
+}
+
+// Every screen's segment ends on the key that quits, after the screen's own keys, and names it wherever the keyboard
+// is but under a control that takes every press: a search that types hides =, /, and ?, never ⌃Q.
+func TestEveryScreenNamesTheKeyThatQuits(t *testing.T) {
+	if got := (Path{ScreenKeys(BackKeys())}).String(); got != "= menu / search ? legend ⌫ back ⌃Q quit" {
+		t.Errorf("the screen's keys: %q", got)
+	}
+	if got := (Path{ScreenKeys(), SearchKeys("rows", "", false)}).String(); got != "⌃Q quit │ ⏎ rows type to search" {
+		t.Errorf("under a search: %q", got)
+	}
+	quit := ScreenKeys().Bindings[3]
+	if !slices.Equal(quit.Presses, []string{Quit}) {
+		t.Errorf("the presses that quit: %v", quit.Presses)
 	}
 }
 
 func TestEachControlsKeysStandBetweenRules(t *testing.T) {
 	path := Path{ScreenKeys(), {}, rows}
-	if got := ansi.Strip(path.Line(80)); got != " = menu / search ? legend │ ↑↓ move ␣ select" {
+	if got := ansi.Strip(path.Line(80)); got != " = menu / search ? legend ⌃Q quit │ ↑↓ move ␣ select" {
 		t.Errorf("the bar: %q", got)
 	}
 	// the keys where the keyboard is are bright, and the screen's dim
@@ -42,8 +59,8 @@ func TestEachControlsKeysStandBetweenRules(t *testing.T) {
 func TestTheRightEndStandsAfterTheKeysWhereBothFit(t *testing.T) {
 	path := Path{ScreenKeys(), {}, rows}
 	keys := ansi.Strip(path.Line(80))
-	got := ansi.Strip(path.LineWith(60, "🐙 4871/5000"))
-	if !strings.HasPrefix(got, keys) || !strings.HasSuffix(got, "🐙 4871/5000") || ansi.StringWidth(got) != 59 {
+	got := ansi.Strip(path.LineWith(68, "🐙 4871/5000"))
+	if !strings.HasPrefix(got, keys) || !strings.HasSuffix(got, "🐙 4871/5000") || ansi.StringWidth(got) != 67 {
 		t.Errorf("the right end: %q, %d cells", got, ansi.StringWidth(got))
 	}
 	if got := ansi.Strip(path.LineWith(ansi.StringWidth(keys)+12, "🐙 4871/5000")); got != keys {
@@ -61,11 +78,11 @@ func TestADeeperControlHidesTheKeysItTakes(t *testing.T) {
 		want string
 	}{
 		{"a press it names", Path{ScreenKeys(), {Bindings: []Binding{Bind("=", "equals")}}},
-			"/ search ? legend │ = equals"},
+			"/ search ? legend ⌃Q quit │ = equals"},
 		{"a press it takes unnamed", Path{ScreenKeys(), {Takes: []string{"/"}, Bindings: []Binding{Bind("x", "ex")}}},
-			"= menu ? legend │ x ex"},
+			"= menu ? legend ⌃Q quit │ x ex"},
 		{"what types", Path{ScreenKeys(Bind("esc", "quit")), SearchKeys("rows", "co", true)},
-			"⏎ rows type to search ⌃U clear ⌃R recent"},
+			"⌃Q quit │ ⏎ rows type to search ⌃U clear ⌃R recent"},
 		{"every press", Path{ScreenKeys(Bind("1-9", "jump", Digits...)), MenuKeys()},
 			"esc close ↑↓ move ⏎ choose"},
 		{"every press but those let through", Path{ScreenKeys(Bind("1-9", "jump", Digits...)),
@@ -87,12 +104,13 @@ func TestTooNarrowTheBarKeepsTheScreensKeysAndDropsTheControlsBetween(t *testing
 		width int
 		want  string
 	}{
-		{80, " = menu / search ? legend │ ←→ tab │ ↑↓ move ␣ select"},
-		{53, " = menu / search ? legend │ ←→ tab │ ↑↓ move ␣ select"},
-		{52, " = menu / search ? legend │ … │ ↑↓ move ␣ select"},
-		{48, " = menu / search ? legend │ … │ ↑↓ move ␣ select"},
-		{47, " = menu / search ? legend │ … │ ↑↓ move ␣ sele…"},
-		{32, " = menu / search ? legend │ … │…"},
+		{80, " = menu / search ? legend ⌃Q quit │ ←→ tab │ ↑↓ move ␣ select"},
+		{61, " = menu / search ? legend ⌃Q quit │ ←→ tab │ ↑↓ move ␣ select"},
+		{60, " = menu / search ? legend ⌃Q quit │ … │ ↑↓ move ␣ select"},
+		{56, " = menu / search ? legend ⌃Q quit │ … │ ↑↓ move ␣ select"},
+		{55, " = menu / search ? legend ⌃Q quit │ … │ ↑↓ move ␣ sele…"},
+		{40, " = menu / search ? legend ⌃Q quit │ … │…"},
+		{39, " … │ ←→ tab │ ↑↓ move ␣ select"},
 		{29, " … │ ↑↓ move ␣ select"},
 		{19, " … │ ↑↓ move ␣ sel…"},
 		{1, ""},

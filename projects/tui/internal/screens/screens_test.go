@@ -419,3 +419,38 @@ func TestThePaletteOpenedOnAVerbLoadsItsPageUnderTheRoot(t *testing.T) {
 	}
 	m.Close()
 }
+
+// q quits, as ⌃Q does, while the tab bar has the keyboard, in an app and in the guide: not under an open menu, in the
+// search, where it is typed, or in the pane; not under a dialog of the root's; and not on a screen with no tab bar.
+// Each case drives a root of its own, as a copy of a root shares its screens with the root it is copied from.
+func TestQQuitsWhileTheTabBarHasTheKeyboard(t *testing.T) {
+	quits := func(on shell.Screen, msgs ...tea.Msg) bool {
+		m, _ := testkit.Drive(help(t), nil, shell.SwitchMsg{Screen: on})
+		_, out := testkit.Drive(m, nil, append(msgs, typed("q")...)...)
+		m.Close()
+		return slices.ContainsFunc(out, func(msg tea.Msg) bool { _, quit := msg.(tea.QuitMsg); return quit })
+	}
+	if quits(shell.Help) || quits(shell.Help, testkit.Press("down")) {
+		t.Error("q quit the palette, which has no tab bar")
+	}
+	if !quits(shell.Issues) {
+		t.Error("q on an app's tab bar did not quit")
+	}
+	if !quits(shell.Welcome) {
+		t.Error("q on the guide's tab bar did not quit")
+	}
+	for name, before := range map[string][]tea.Msg{
+		"the app's menu": typed("="),
+		"the search":     typed("/"),
+		"the pane":       {testkit.Press("down")},
+		"the settings":   {shell.SwitchMsg{Screen: shell.SettingsScreen}},
+	} {
+		if quits(shell.Welcome, before...) {
+			t.Errorf("q quit under %s", name)
+		}
+	}
+	// back on the tab bar, q quits again
+	if !quits(shell.Welcome, testkit.Press("down"), testkit.Press("esc")) {
+		t.Error("q did not quit once esc gave the tab bar the keyboard back")
+	}
+}

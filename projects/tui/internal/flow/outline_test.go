@@ -94,12 +94,12 @@ func TestTheOutlineOpensClosesAndStepsAlongItsTree(t *testing.T) {
 		t.Errorf("option-left a third time left the heading open: %d rows", len(m.rows(0)))
 	}
 	// ⌥ with an arrow is named only where the terminal said it tells it apart, as the kitty keyboard protocol does
-	if last := lines(m)[len(lines(m))-1]; strings.Contains(last, "← hide") || strings.Contains(last, "⌥←→") {
-		t.Errorf("the keys on the heading over the groups, the terminal silent: %q", last)
+	if keys := m.keys().String(); strings.Contains(keys, "← hide") || strings.Contains(keys, "⌥←→") {
+		t.Errorf("the keys on the heading over the groups, the terminal silent: %q", keys)
 	}
 	m = drive(m, tea.KeyboardEnhancementsMsg{Flags: ansi.KittyDisambiguateEscapeCodes})
-	if last := lines(m)[len(lines(m))-1]; strings.Contains(last, "← hide") || !strings.Contains(last, "⌥←→ a level") {
-		t.Errorf("the keys on the heading over the groups, the protocol answered: %q", last)
+	if keys := m.keys().String(); strings.Contains(keys, "← hide") || !strings.Contains(keys, "⌥←→ a level") {
+		t.Errorf("the keys on the heading over the groups, the protocol answered: %q", keys)
 	}
 	if m = drive(m, optioned(tea.KeyRight)); func() bool { s, a, r := levels(); return s != s0 || a != a0 || r != 0 }() {
 		s, a, r := levels()

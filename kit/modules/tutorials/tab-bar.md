@@ -30,6 +30,7 @@ Each [app](kittui:welcome/terms/application) has its own tabs: one [stage](kittu
 - `⇥` `⇧⇥`  next and previous tab
 - `↓`  down to the [control line](kittui:tutorials/control-line)
 - `:`  the tab menu
+- `q`  quit, as `⌃Q` does anywhere. `q` quits only while the tab bar has the keyboard.
 
 ## The tab menu
 

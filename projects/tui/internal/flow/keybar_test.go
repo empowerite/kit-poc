@@ -1,6 +1,6 @@
 // Every key the keys bar names does something where the keyboard is: the bar is made from the path to the keyboard,
-// and a key it names that changes nothing on the screen, its styles too, as the line under a menu's keyboard, is a key
-// it should not have named.
+// and a key it names that changes nothing on the screen, its styles too, as the line under a menu's keyboard, and
+// does not quit, is a key it should not have named.
 package flow
 
 import (
@@ -75,7 +75,8 @@ func TestEveryKeyTheBarNamesDoesSomething(t *testing.T) {
 					for _, p := range b.Presses {
 						// a model of its own for each press, as a copy shares its stages with the one it is copied from
 						fresh := loaded(t, o, c.msgs...)
-						if drive(fresh, testkit.Press(p)).View().Content != before {
+						after, out := testkit.Drive(fresh, faded, testkit.Press(p))
+						if after.View().Content != before || slices.Contains(out, tea.Quit()) {
 							acts = true
 							break
 						}

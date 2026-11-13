@@ -7,13 +7,13 @@ order: 15
 ---
 
 ```text
- = menu - workspace / search ? legend │ ⇥·⇧⇥ tab ↓ groups 1-6 jump : tab menu
+ = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ groups 1-6 jump : tab menu
 ```
 
 ## Keys
 
 - It names only the keys that work **right now**. [The legend](kittui:tutorials/legend) names the glyphs.
-- Left of the first `│`: the screen's keys. They work everywhere on it.
+- Left of the first `│`: the screen's keys. They work everywhere on it. The last is `⌃Q quit`, the way out.
 - Right of it: the keys of the part you are in, the [tabs](kittui:tutorials/tab-bar), the
   [rows](kittui:tutorials/rows), a menu.
 - `⇥·⇧⇥ tab`  two keys that do one thing, separated by `·`

@@ -206,6 +206,11 @@ func (m Model) keys() shell.Path {
 	return path
 }
 
+// OnBar says whether the steps' bar has the keyboard: it is the last control on the path to the keyboard, which the
+// keys bar is drawn from, so no menu or layer of the step's table is open, and the keyboard is not in the search or
+// in the pane. kittui's root takes q there as ⌃Q, which quits.
+func (m Model) OnBar() bool { return len(m.keys()) == 2 }
+
 // paneKeys gives the segment of the pane while it has the keyboard: esc gives the bar the keyboard, named by the step
 // it has selected; up and down move between the rows, or scroll a page with none, a page at a time too, and home and
 // end to the first and the last, unnamed until a test shows the keys arrive in Terminal.app and iTerm; and on a

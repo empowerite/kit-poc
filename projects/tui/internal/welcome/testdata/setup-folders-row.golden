@@ -27,4 +27,4 @@
             cd /code/b && kit toolchains use mise
 ↓⁸
 
- = menu - workspace / search ? legend │ 1-5 jump : tab menu │ esc tabs ↑↓ move ⇞⇟ page [] group ← hide c copy r run
+ = menu - workspace / search ? legend ⌃Q quit │ … │ esc tabs ↑↓ move ⇞⇟ page [] group ← hide c copy r run

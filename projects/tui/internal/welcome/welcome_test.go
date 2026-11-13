@@ -355,6 +355,30 @@ func TestEscGivesTheBarTheKeyboardAndNeverQuits(t *testing.T) {
 	}
 }
 
+// The steps' bar has the keyboard until a menu, the search, or the pane takes it, which is where kittui's root takes
+// q as ⌃Q; esc from the pane gives the bar the keyboard back.
+func TestTheBarHasTheKeyboardUntilAnotherControlTakesIt(t *testing.T) {
+	if m, _ := loaded(t); !m.OnBar() {
+		t.Fatalf("the guide just loaded: the bar does not have the keyboard:\n%s", ansi.Strip(m.View().Content))
+	}
+	// a guide of its own for each case, as a copy shares what it keeps with the one it is copied from
+	for name, msgs := range map[string][]tea.Msg{
+		"the app's menu":       {typed('=')},
+		"the tab's menu":       {typed(':')},
+		"the search":           {typed('/')},
+		"the pane":             {down},
+		"a step's table":       {stepKey(chains), down},
+		"a layer of the table": {stepKey(4), down, enter},
+	} {
+		if m, _ := loaded(t, msgs...); m.OnBar() {
+			t.Errorf("under %s, the bar still has the keyboard:\n%s", name, ansi.Strip(m.View().Content))
+		}
+	}
+	if m, _ := loaded(t, down, esc); !m.OnBar() {
+		t.Errorf("after esc from the pane:\n%s", ansi.Strip(m.View().Content))
+	}
+}
+
 // ctrl-q quits; esc with a modifier, which a terminal with its default settings sends as esc, does not.
 func TestCtrlQQuitsAndNoEscDoes(t *testing.T) {
 	m, _ := loaded(t)

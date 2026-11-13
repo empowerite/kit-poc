@@ -21,4 +21,4 @@
    When a check fails, the line under it gives the command that fixes it, or
 ↓¹⁰
 
- = menu - workspace / search ? legend │ ⇥·⇧⇥ tab ↓ checks 1-5 jump : tab menu
+ = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ checks 1-5 jump : ta…

@@ -27,4 +27,4 @@
             cd /code/b && kit toolchains use mise
 ↓⁸
 
- = menu - workspace / search ? legend │ ⇥·⇧⇥ tab ↓ folders 1-5 jump : tab menu
+ = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ folders 1-5 jump : tab menu

@@ -3,7 +3,8 @@
 // shown, and loads what it draws then, so kit help reads nothing of kit flow's until the picture is asked for; and each
 // is kept as it was left while another is shown, nothing loaded again. What a screen started goes on while it is
 // hidden: its answers reach it, not the screen shown. Keys, clicks, and the terminal's size reach the screen shown, and
-// a screen shown again is told the size the terminal has now.
+// a screen shown again is told the size the terminal has now. A q reaches a screen whose tab bar has the keyboard as
+// ⌃Q, the key that quits on every screen and that every screen's keys bar names.
 //
 // The root reads the workspace from kit once kittui starts, and tells every screen made, as it tells the settings. A
 // screen's workspace menu asks for another; the root asks kit for it, keeping a group as the last used, and tells every
@@ -321,7 +322,9 @@ func (m Model) workspaceMsg() shell.WorkspaceMsg {
 
 // Update takes a message: a screen's ask for another, shown in its place, with no crumb from the app's menu, else with
 // a crumb back, as crumb.go says, or for a row of another, which is shown with a crumb back and then given the ask; a
-// key or a click the screen shown says goes back to its crumb, while no dialog is open; or for the Settings dialog, or
+// key or a click the screen shown says goes back to its crumb, while no dialog is open; q, which the screen shown is
+// given as ⌃Q, so it quits, while it says its tab bar has the keyboard and no dialog is open; or for the Settings
+// dialog, or
 // the Open Repository… dialog, opened over it, and a walk's clones for the Open Repository… dialog;
 // an answer to what a screen started, for that screen; while a dialog is open, a key or a click for it, which closes
 // it outside it, a paste for the Open Repository… dialog, which types it, and for the Settings dialog nowhere, a turn
@@ -389,6 +392,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			was := m.settings
 			m.dialog, m.settings = m.dialog.Key(msg, m.settings)
 			return m.changed(was)
+		}
+		if s, ok := m.made[m.here].(interface{ OnBar() bool }); ok && msg.String() == "q" && s.OnBar() {
+			// the screen quits as it does on ⌃Q
+			return m.deliver(m.here, tea.KeyPressMsg{Code: 'q', Mod: tea.ModCtrl})
 		}
 	case tea.PasteMsg:
 		if m.opener.Open {

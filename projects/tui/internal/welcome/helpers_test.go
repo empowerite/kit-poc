@@ -158,13 +158,13 @@ func calls(t *testing.T, path string) []string {
 // in a page. jump names the number keys of the known steps.
 var (
 	jump       = "1-" + strconv.Itoa(len(known)) + " jump"
-	stepKeys   = "= menu - workspace / search ? legend │ ⇥·⇧⇥ tab ↓ checks " + jump + " : tab menu"
-	pageKeys   = "= menu - workspace / search ? legend │ ⇥·⇧⇥ tab ↓ page " + jump + " : tab menu"
-	paneKeys   = "= menu - workspace / search ? legend │ " + jump + " : tab menu │ esc tabs ↑↓ move ⇞⇟ page"
+	stepKeys   = "= menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ checks " + jump + " : tab menu"
+	pageKeys   = "= menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ page " + jump + " : tab menu"
+	paneKeys   = "= menu - workspace / search ? legend ⌃Q quit │ " + jump + " : tab menu │ esc tabs ↑↓ move ⇞⇟ page"
 	rowKeys    = paneKeys
 	choiceKeys = paneKeys + " c copy r run"
 	showKeys   = paneKeys + " c copy"
-	scrollKeys = "= menu - workspace / search ? legend │ " + jump + " : tab menu │ esc tabs ↑↓ scroll ⇞⇟ page"
+	scrollKeys = "= menu - workspace / search ? legend ⌃Q quit │ " + jump + " : tab menu │ esc tabs ↑↓ scroll ⇞⇟ page"
 )
 
 // stepKey gives the press of a step's number, which selects it from anywhere: 1 for the first.

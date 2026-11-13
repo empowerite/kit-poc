@@ -668,7 +668,7 @@ func fit(keys string, room int) string {
 // The keys bar on the bar, over the legend there, and in the rows, on a row that opens, closed and open: the screen's
 // keys, the stages' bar's, then the rows', each control's between rules; ? and F1 show the legend from anywhere.
 const (
-	screenKeys = "= menu - workspace / search ? legend │ "
+	screenKeys = "= menu - workspace / search ? legend ⌃Q quit │ "
 	barKeys    = screenKeys + "⇥·⇧⇥ tab ↓ groups 1-5 jump : tab menu"
 	inRows     = screenKeys + "1-5 jump : tab menu │ esc tabs ↑↓ move ␣·⇧↑↓ select ⌃A all"
 	opens      = inRows + " → show"
