@@ -10,7 +10,7 @@ func (m *Model) paste(text string) {
 	switch layered := m.listed() && m.sheet.Layered(); {
 	case m.prompt.open:
 		m.prompt = m.prompt.paste(text)
-	case m.group.Open || m.appMenu.Open || m.books.Open:
+	case m.group.Open || m.appMenu.Open || m.books.Open || m.recent.Open:
 	case m.search.Focused && !layered:
 		m.search.Query += text
 		m.sheet.Search(m.search.Query)

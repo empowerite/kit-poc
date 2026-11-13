@@ -14,7 +14,8 @@
 // menu closed: n, r, a, o, c, x, f, d, and enter, which switches to the group under the cursor. = or a click on the =
 // drops the app's menu down, and - or a click on the workspace menu after the screen's name drops it down, as on every
 // screen; / or a click on the search at the right gives the search the keyboard, which narrows the rows to what is
-// typed. A paste is typed where a key would be, as paste.go says. The mouse wheel scrolls the rows, the cursor left
+// typed, and is remembered when it gives the rows the keyboard; ctrl-r, or a click on the search's recall glyph, drops
+// the searches remembered down, as on every screen. A paste is typed where a key would be, as paste.go says. The mouse wheel scrolls the rows, the cursor left
 // where it is, but not under an open menu or dialog. Ctrl-c quits with 130, and ctrl-q with 0.
 //
 // While the screen draws no table, with no group yet, before kit answers, or under kit's refusal, the table takes no
@@ -128,6 +129,7 @@ type Model struct {
 	legend   legend.Legend // the legend, which F1 and ? show and hide, and the corner it stands in
 	prompt   prompt
 	search   shell.Search // the search, every screen's, which narrows the rows to its text
+	recent   shell.Recent // the searches remembered, every screen's, and their dropdown
 	note     shell.Notice
 	settings shell.Settings
 
@@ -141,6 +143,7 @@ func Open(r kit.Runner) Model {
 		loading: true}
 	m.ctx, m.cancel = context.WithCancel(context.Background())
 	m.sheet.EnterRows()
+	m.recent = shell.Recent{Path: shell.RecentFile()}.Loaded()
 	return m
 }
 
@@ -219,7 +222,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.click(msg)
 	case tea.MouseWheelMsg:
 		// the wheel scrolls the rows, as on every table, but not under an open menu or dialog
-		if !m.appMenu.Open && !m.books.Open && !m.prompt.open {
+		if !m.appMenu.Open && !m.books.Open && !m.recent.Open && !m.prompt.open {
 			m.sheet.Wheel(msg)
 		}
 	}
@@ -545,16 +548,29 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		var picked string
 		m.books, picked = m.books.Key(k)
 		return m, shell.Pick(picked)
+	case m.recent.Open:
+		var query string
+		if m.recent, query = m.recent.Key(k); query != "" {
+			m.typed(query)
+		}
+		return m, nil
 	case m.listed() && m.sheet.Layered():
 		m.sheet.Key(k)
 		return m, nil
 	case m.search.Focused:
 		s, did := m.search.Key(k)
+		if did == shell.Recalled {
+			m.recent = m.recent.Opened()
+			return m, nil
+		}
 		if did != shell.NotSearch {
 			m.search = s
 			m.sheet.Search(s.Query)
-			if did == shell.Left && m.listed() {
-				m.sheet.FocusRows()
+			if did == shell.Left {
+				m.recent = m.recent.Remember(s.Query)
+				if m.listed() {
+					m.sheet.FocusRows()
+				}
 			}
 			return m, nil
 		}
@@ -617,6 +633,12 @@ func (m Model) click(c tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 		var picked string
 		m.books, picked = m.books.Click(c.X, c.Y, m.booksAt(), m.width)
 		return m, shell.Pick(picked)
+	case m.recent.Open:
+		var query string
+		if m.recent, query = m.recent.Click(c.X, c.Y, m.recallAt(), m.width); query != "" {
+			m.typed(query)
+		}
+		return m, nil
 	case m.legend.Open && m.legend.Click(c.X, c.Y, m.legendSpec()):
 		return m, nil
 	case shell.OnApp(c.X, c.Y, appLabel):
@@ -624,6 +646,9 @@ func (m Model) click(c tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case m.books.On(c.X, c.Y, m.booksAt()):
 		m.books = m.books.Opened()
+		return m, nil
+	case c.Y == shell.Top && m.recalls() && c.X == m.recallAt():
+		m.recent = m.recent.Opened()
 		return m, nil
 	case c.Y == shell.Top && c.X >= m.menuBar().SearchAt(m.width):
 		m.search.Focused = true
@@ -641,8 +666,20 @@ func (m Model) click(c tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 // Manage… led here.
 func (m Model) menuBar() shell.MenuBar {
 	return shell.MenuBar{Screen: appLabel, Open: m.appMenu.Open, Workspace: m.books.Label(), Crumb: m.appMenu.Crumb,
-		Search: shell.SearchLine(m.search.Query, m.search.Focused && !m.appMenu.Open)}
+		Search: shell.RecallLine(m.search.Query, m.search.Focused && !m.appMenu.Open, len(m.recent.Items) > 0)}
 }
+
+// typed puts a remembered search in the search, which narrows the rows to it.
+func (m *Model) typed(query string) {
+	m.search.Query = query
+	m.sheet.Search(query)
+}
+
+// recalls says whether the search, with the keyboard, offers searches to recall.
+func (m Model) recalls() bool { return m.search.Focused && len(m.recent.Items) > 0 }
+
+// recallAt gives the screen column of the search's Recall glyph.
+func (m Model) recallAt() int { return shell.RecallAt(m.menuBar().SearchAt(m.width)) }
 
 // booksAt gives the column the menu bar's workspace menu starts at.
 func (m Model) booksAt() int { return m.menuBar().WorkspaceAt() }
@@ -653,7 +690,7 @@ func (m Model) keys() shell.Path {
 	switch {
 	case m.prompt.open:
 		return shell.Path{m.prompt.keys()}
-	case m.appMenu.Open || m.books.Open:
+	case m.appMenu.Open || m.books.Open || m.recent.Open:
 		return shell.Path{shell.MenuKeys()}
 	}
 	if seg, layer := m.sheet.Keys(); layer && m.listed() {
@@ -667,7 +704,7 @@ func (m Model) keys() shell.Path {
 	path := shell.Path{shell.WorkspaceScreenKeys(shell.CrumbOf(m.appMenu.Crumb, own...)...)}
 	switch seg, _ := m.sheet.Keys(); {
 	case m.search.Focused:
-		search := shell.SearchKeys("workspaces", m.search.Query, false)
+		search := shell.SearchKeys("workspaces", m.search.Query, len(m.recent.Items) > 0)
 		search.Owns = true
 		path = append(path, search)
 	case m.listed() && m.sheet.Focused():
@@ -688,6 +725,7 @@ func (m Model) View() tea.View {
 		box, l, top := m.groupBox()
 		lines = shell.Over(lines, box, top, l)
 	}
+	lines = m.recent.Overlay(lines, m.recallAt(), m.width)
 	lines = m.books.Overlay(lines, m.booksAt(), m.width)
 	lines = m.prompt.overlay(lines, m.width)
 	return shell.View(lines, m.height, m.bottom())
