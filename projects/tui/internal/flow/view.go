@@ -1,6 +1,6 @@
-// The picture drawn: the title, the stages' tab bar, and the selected stage's rows in a pane that scrolls, beside its
-// panel and legend when ? shows them, and the keys under them all. Widths are terminal cells, so a two-cell glyph never pushes a row past
-// the edge.
+// The picture drawn: the title, the stages' tab bar, and the selected stage's rows in a pane that scrolls, the legend
+// floating over them when ? shows it, and the keys under them all. Widths are terminal cells, so a two-cell glyph never
+// pushes a row past the edge.
 package flow
 
 import (

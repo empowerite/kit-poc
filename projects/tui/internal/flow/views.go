@@ -1,15 +1,16 @@
 // Named views: a stage's panel as it is set, each field's placement, sort, filter, and rendering, and whether it folds,
 // kept under a name as a preset. Every stage with columns has its own views, the presets the field catalog gives it,
-// which never change: Default, the stage as it opens, and Compact, the few columns that say what a row is. The person
-// saves others, per stage, in a file of their own, presets.json under ~/.config/kit/, so their views follow them to
-// every repository; one they named as a stage's own was named before the stage had it, and stays theirs. The preset
-// line, the rule under the stage's header, ends in the name of the view the table is set as and ▼, the name struck through
-// once the table differs from every view; enter, or a click on it, drops down what can be done with views, then the views to
-// choose from. Save keeps the panel under the person's view it was set to; Save As… takes a name typed in the
-// selector's place, the person's view the line was set to typed already, and enter saves the panel under it, a view of
-// the person's own overwritten, a stage's own refused, and no name refused; Rename… takes a new name for the person's
-// view, as Save As… takes one, and Delete drops it, the stage back to Default. A stage's own views are never saved
-// over, renamed, or deleted: those lines stay, dim, while the line names one.
+// which never change: the first is the stage as it opens, Default where the catalog names none, and the others, as
+// Backlog or Compact, the catalog names. The person saves others, per stage, in a file of their own, presets.json under
+// ~/.config/kit/, so their views follow them to every repository; one they named as a stage's own was named before the
+// stage had it, and stays theirs. The preset line, at the right end of the control line, ends in the name of the view
+// the table is set as and ▼, the name struck through once the table differs from every view; enter, or a click on it,
+// drops down Save, Save As…, and the presets dialog, then the views to choose from. Save keeps the panel under the
+// person's view it was set to; Save As… takes a name typed in the selector's place, the person's view the line was set
+// to typed already, and enter saves the panel under it, a view of the person's own overwritten, a stage's own refused,
+// and no name refused. The presets dialog is where a view is renamed or deleted: Rename… takes a new name for the
+// person's view, as Save As… takes one, and Delete drops it, the stage back to its first view. A stage's own views are
+// never saved over, renamed, or deleted.
 package flow
 
 import (

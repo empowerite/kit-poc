@@ -11,10 +11,11 @@
 // always on the screen's top right, gives the search the keyboard. A click on a linked glyph, as an issue's before its
 // title, opens its page in the browser, and one on a glyph that names a row of another stage, as an issue's pull
 // request, selects that stage with the row under the cursor. The rows take the screen's width. Maximize, in the tab's
-// menu, gives the rows the bar's lines but one, the tab named in the title, and Restore puts the bar back. Esc goes
-// back one level: from the search, then from the rows to the bar. Ctrl-c quits with 130 from anywhere, and ctrl-q quits
-// with 0; esc never quits. A stage's command has two minutes; past them it is a refusal, and quitting kills the
-// commands still running.
+// menu, gives the rows the bar's lines but one, the tab named in the title, and Restore puts the bar back; f in the
+// rows opens the columns dialog. Esc goes back one level: it closes the legend, gives the rows the keyboard from the
+// search, clears a search typed, and then goes from the rows to the bar. Ctrl-c quits with 130 from anywhere, and
+// ctrl-q quits with 0; esc never quits. A stage's command has two minutes; past them it is a refusal, and quitting
+// kills the commands still running.
 package flow
 
 import (
