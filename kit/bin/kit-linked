@@ -51,6 +51,8 @@ guard:arguments linked "$@" || exit $?
 # The tools that answer come from no directory of the checkout, which the branch being judged fills.
 policy:judging-path linked || exit 1
 
+# shellcheck disable=SC2154  # syntax_operands is set by guard:arguments
+set -- ${syntax_operands[@]+"${syntax_operands[@]}"}
 if (( $# > 0 )) && [[ ! "$1" =~ ^[0-9]+$ ]]
 then
   error "'$1' is not a number; run: kit help linked"

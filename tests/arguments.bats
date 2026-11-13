@@ -155,6 +155,30 @@ setup() {
   [ "$output" = $'0 a\nb' ]
 }
 
+@test "a verb that reads its words itself reads them without the --, as kit context does" {
+  "${kit_root}/bin/kit" install >/dev/null 2>&1
+  printf '# Mine\n' > README.md && git add README.md
+  run "${kit_root}/bin/kit" kinds README.md
+  local plain=$output
+  run "${kit_root}/bin/kit" kinds -- README.md
+  [ "$output" = "${plain}" ]
+  run "${kit_root}/bin/kit" kinds --json -- README.md
+  [ "$(jq -r .path <<<"$output")" = README.md ]
+  run "${kit_root}/bin/kit" usage version
+  local usage=$output
+  run "${kit_root}/bin/kit" usage -- version
+  [ "$output" = "${usage}" ]
+  run "${kit_root}/bin/kit" help --text version
+  local page=$output
+  run "${kit_root}/bin/kit" help --text -- version
+  [ "$output" = "${page}" ]
+  run "${kit_root}/bin/kit" linked -- x
+  [[ "$output" == *"'x' is not a number"* ]]
+  run "${kit_root}/bin/kit" completion -- zsh
+  [ "$status" -eq 0 ]
+  [[ "$output" == "#compdef kit"* ]]
+}
+
 @test "a wildcard option may be empty, -- never reaches a verb as a path, and a missing jq is refused with its package manager's remedy" {
   run kit-bash 'syntax:match new file x --purpose=; echo "$? [${syntax_options[--purpose]}]"'
   [ "$output" = "0 []" ]

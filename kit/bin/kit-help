@@ -34,17 +34,10 @@ guard:arguments help "$@" || exit $?
 
 # --text is a flag among the names; the names alone are what is shown.
 text=false
-names=()
-for word in "$@"
-do
-  if [[ "${word}" == --text ]]
-  then
-    text=true
-  else
-    names+=("${word}")
-  fi
-done
-set -- ${names[@]+"${names[@]}"}
+# shellcheck disable=SC2154  # syntax_options and syntax_operands are set by guard:arguments
+[[ -z "${syntax_options[--text]+x}" ]] || text=true
+# shellcheck disable=SC2154
+set -- ${syntax_operands[@]+"${syntax_operands[@]}"}
 
 # Every name is judged first, so a name that matches nothing is refused before anything is printed. A name is a verb's,
 # the start of one, or a group's, in that order, so a verb named as a group is, as help, wins.

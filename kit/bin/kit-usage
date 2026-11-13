@@ -21,7 +21,8 @@ use help
 
 guard:arguments usage "$@" || exit $?
 
-verbs=("$@")
+# shellcheck disable=SC2154  # syntax_operands is set by guard:arguments
+verbs=("${syntax_operands[@]}")
 (( ${#verbs[@]} )) || readarray -t verbs < <(help:verbs)
 for verb in "${verbs[@]}"
 do

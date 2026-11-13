@@ -37,13 +37,9 @@ materialize:hydrate
 
 json=false
 words=() names=() paths=()
-for arg in "$@"
-do
-  case "${arg}" in
-    (--json) json=true ;;
-    (*) words+=("${arg}")
-  esac
-done
+# shellcheck disable=SC2154  # syntax_operands and syntax_options are set by guard:arguments
+words=("${syntax_operands[@]}")
+[[ -z "${syntax_options[--json]+x}" ]] || json=true
 context:load || exit 1
 
 # A word shaped like a kind's name that names a defined kind filters the listing; any other word is a path. A
