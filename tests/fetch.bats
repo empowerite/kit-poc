@@ -82,7 +82,8 @@ ci-step() {
 
 @test "the delivered CI job puts the pinned release on PATH only after its bytes match the published digest" {
   printf 'version: 9.9.9\n' > kit.yml
-  export RUNNER_TEMP="${repo}/runner" GITHUB_PATH="${repo}/github-path"
+  # a runner sets BASE_SHA from the event, empty where it names no pull request
+  export RUNNER_TEMP="${repo}/runner" GITHUB_PATH="${repo}/github-path" BASE_SHA=
   mkdir "${RUNNER_TEMP}" && : > "${GITHUB_PATH}"
   # no kit on PATH: the step must download one
   run env PATH="${repo}.bin:/usr/bin:/bin" bash -c "$(ci-step)"
