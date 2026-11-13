@@ -13,16 +13,17 @@ Each `.cursor/rules/kit-<kind>.mdc` is a short rule with the frontmatter Cursor 
   through a package of its own.
 - `alwaysApply: false`, so the rule attaches by its globs
 
-The body does not repeat the rule. It tells the agent to read `@.kit/rules/<kind>.md` and follow it, as
-`kit context` tells Claude Code. So one rule text under `.kit/rules/` governs every harness, and a mirror cannot
-drift from it. A mirror says less than `kit context`: a rule that governs a file by its content, such as a bash
-script with no suffix, cannot be a glob. The body names `kit context <path>` for those.
+The body does not repeat the rule. It is one sentence: before you change a file, run `kit context <path>` and read
+every file it prints, among them `@.kit/rules/<kind>.md`. `kit context` also prints the style and the embedded rules,
+and finds the rule of a file that a glob cannot match, such as a bash script with no suffix. So one rule text under
+`.kit/rules/` governs every harness, and a mirror cannot drift from it. The rule for POSIX shell has no paths, so its
+rule has an empty `globs:` line and Cursor offers it by its description.
 
 The package also merges `mcpServers.kit` into `.cursor/mcp.json`, with `type: stdio`: the kit's MCP server,
 `kit serve`; see [docs/serve.md](../../serve.md). Cursor asks before it runs each of the server's tools unless the
 person allows it.
 
-`.cursor/rules/` otherwise belongs to the repository. The package places only its seven files, `kit check` holds them
+`.cursor/rules/` otherwise belongs to the repository. The package places only its eight files, `kit check` holds them
 to the release, and `kit packages remove agents/cursor` takes them out. Cursor does not offer a deny list that a
 repository can commit, so nothing in Cursor refuses the git commands `.kit/1st.md` forbids. The pre-commit hook only
 lints. CI refuses a pull request that breaks the policy, and binds only when a ruleset requires its check.

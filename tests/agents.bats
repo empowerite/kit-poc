@@ -54,6 +54,7 @@ claude-prefixes() {
     grep --quiet --line-regexp --fixed-strings "${globs% }" ".cursor/rules/kit-${kind}.mdc"
     grep --quiet --line-regexp "alwaysApply: false" ".cursor/rules/kit-${kind}.mdc"
     grep --quiet --fixed-strings "@.kit/rules/${kind}.md" ".cursor/rules/kit-${kind}.mdc"
+    grep --quiet --fixed-strings 'run `kit context <path>` and read every file it prints' ".cursor/rules/kit-${kind}.mdc"
     grep --quiet --fixed-strings "  .cursor/rules/kit-${kind}.mdc" .kit/manifest
   done
   [ "$(ls .cursor/rules | wc -l | tr -d ' ')" = "$(kinds | wc -l | tr -d ' ')" ]
@@ -68,14 +69,22 @@ claude-prefixes() {
   local kind
   for kind in $(kinds)
   do
+    # a kind with no paths has nothing for applyTo to match, so it has no file
+    if [ -z "$(rule-paths "${kind}")" ]
+    then
+      [ ! -e ".github/instructions/kit-${kind}.instructions.md" ]
+      continue
+    fi
     [ -f ".github/instructions/kit-${kind}.instructions.md" ]
     [ "$(head -n 1 ".github/instructions/kit-${kind}.instructions.md")" = "---" ]
     grep --quiet --line-regexp --fixed-strings "applyTo: \"$(rule-paths "${kind}")\"" \
       ".github/instructions/kit-${kind}.instructions.md"
     grep --quiet --fixed-strings ".kit/rules/${kind}.md" ".github/instructions/kit-${kind}.instructions.md"
+    grep --quiet --fixed-strings 'run `kit context <path>` and read every file it prints' \
+      ".github/instructions/kit-${kind}.instructions.md"
     grep --quiet --fixed-strings "  .github/instructions/kit-${kind}.instructions.md" .kit/manifest
   done
-  [ "$(ls .github/instructions | wc -l | tr -d ' ')" = "$(kinds | wc -l | tr -d ' ')" ]
+  [ "$(ls .github/instructions | wc -l | tr -d ' ')" = "7" ]
 }
 
 @test "agents/gemini merges the context file names and the deny list into .gemini/settings.json, keeps the repository's entries, and remove takes the kit's out" {
