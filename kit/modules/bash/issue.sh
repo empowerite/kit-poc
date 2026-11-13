@@ -729,7 +729,7 @@ issue:link-in-body() {
 # require_signing setting is true, it fails before writing anything if git has no signing key configured.
 issue:start() {
   local n primary title default_branch main_root desk desk_branch branch wt stash="" pr created sigil noun new_title=''
-  local remote sweep=''
+  local remote sweep='' url
   local -a refs=()
   if [[ "${1:-}" == --sweep || "${1:-}" == --no-sweep ]]
   then
@@ -836,8 +836,13 @@ issue:start() {
 
   IFS=$'\t' read -r sigil noun < <(forge:noun) || return 1
   ok "Draft ${noun} ${sigil}${pr} on ${branch}, primary ${primary}${2:+, secondaries: ${*:2}}"
+  # The change is open and the work is made: an address the forge will not give is no reason to fail the verb.
+  if url=$(forge:pr-url "${pr}" 2>/dev/null) && [[ -n "${url}" ]]
+  then info "its address, where its report goes: ${url}"
+  fi
   ok "Worktree ready: ${wt}"
   step "cd '${wt}'    # do all work there; this checkout stays on ${desk_branch}"
+  step "next: kit commit and kit submit there; when the work is done, kit gate, then kit ready"
 }
 
 # ----------------------------------------------------------------------------------------------------------------------

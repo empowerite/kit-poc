@@ -10,6 +10,8 @@
 # the push setting in kit.yml, as a fork's origin, else the primary: the primary setting, else origin. With nothing
 # to push, it says so.
 #
+# It says the address of the branch's change, where its report goes, and what comes next, kit gate and kit ready.
+#
 # It commits nothing. What is staged stays staged, and is no part of the push: kit commit makes the commits, and kit
 # submit shares them. In a worktree several people or agents share, the index may hold another's work.
 #
@@ -44,6 +46,7 @@ guard:arguments submit "$@" || exit $?
 
 guard:require tool:git tool:jq
 commit:submit
+commit:say-change "$(git symbolic-ref --quiet --short HEAD)"
 leases:mirror "$(git symbolic-ref --quiet --short HEAD)"
 
 # ----------------------------------------------------------------------------------------------------------------------

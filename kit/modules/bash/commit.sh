@@ -871,6 +871,17 @@ commit:submit() {
   ok "pushed ${branch} to ${remote}: ${ahead} commit(s)"
 }
 
+# commit:say-change <branch> says the address of the branch's open change, where its report goes, and what comes next.
+# It says nothing when the branch has no open change, or the forge will not answer: the push is made, and that is no
+# reason to fail it.
+commit:say-change() {
+  local pr url
+  pr=$(forge:pr-for-branch "$1" 2>/dev/null) || return 0
+  [[ -n "${pr}" ]] || return 0
+  url=$(forge:pr-url "${pr}" 2>/dev/null) || return 0
+  info "the change, where its report goes: ${url}; when the work is done, kit gate, then kit ready"
+}
+
 # commit:push-refused <branch> <remote> <git-output> says why the push to the remote did not happen, with the remedy,
 # and git's own words as the detail.
 commit:push-refused() {

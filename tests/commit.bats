@@ -376,6 +376,18 @@ forge-world() {
     'issue edit 9 --add-assignee ada' '!0' > "${FAKE_DIR}/gh.routes"
 }
 
+@test "kit submit says the address of the branch's change, and what comes next" {
+  forge-world
+  printf '{"url": "https://github.com/empowerite/example"}\n' > "${FAKE_DIR}/repo.json"
+  printf '%s\t%s\n' 'repo view --json url*' repo.json >> "${FAKE_DIR}/gh.routes"
+  printf 'x\n' > x && git add x
+  kit commit --message='x: a file' >/dev/null 2>&1
+  run kit submit
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"pushed 7-fix-the-thing"* ]]
+  [[ "$output" == *"the change, where its report goes: https://github.com/empowerite/example/pull/3; when the work is done, kit gate, then kit ready"* ]]
+}
+
 @test "kit commit for another issue closes it in the branch's change, and assigns the caller when no one is" {
   forge-world
   printf 'x\n' > x && git add x

@@ -493,6 +493,8 @@ SHIM
   [ "$status" -eq 0 ]
   [[ "$output" == *"Making 7-fix-the-thing for #7 from origin/main"* ]]
   [[ "$output" == *"Draft pull request #3 on 7-fix-the-thing"* ]]
+  [[ "$output" == *"its address, where its report goes: "*"/pull/3"* ]]
+  [[ "$output" == *"next: kit commit and kit submit there; when the work is done, kit gate, then kit ready"* ]]
   # the forge links no branch on upstream, so the change's body is what says it closes the issue
   run ! grep -q '^issue develop' "${FAKE_DIR}/gh.calls"
   run grep -A1 '^pr edit 3 --body' "${FAKE_DIR}/gh.calls"

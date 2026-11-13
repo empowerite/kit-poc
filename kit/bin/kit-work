@@ -13,7 +13,8 @@
 #   - a start commit
 #   - a draft pull request, so the team sees the work at once, its body closing every issue named: Closes #7
 #
-# Every issue it starts is assigned to the caller, whose worktree it is.
+# Every issue it starts is assigned to the caller, whose worktree it is. It ends with the draft's address, where the
+# report is written, and the next steps: kit commit and kit submit in the worktree, then kit gate and kit ready.
 #
 # The branch goes to the push remote: the push setting in kit.yml, as a fork's origin, else the primary, the primary
 # setting, else origin. kit work fetches from it, looks the branch up on it, makes a new branch there from its default
