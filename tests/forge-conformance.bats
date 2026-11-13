@@ -425,6 +425,19 @@ named-afresh() {
   [ "$(named)" = ' ' ]
 }
 
+@test "GitHub's provider sends a repository's owner and name as strings, which --field would type as numbers for 2048" {
+  world github
+  for call in open-prs open-issues merged-prs deployments bots 'pr-closing-issues 3' iterations
+  do
+    # shellcheck disable=SC2086  # a call and its arguments, split on purpose
+    run --separate-stderr call ${call}
+    [ "$status" -eq 0 ] || { echo "${call}: ${stderr}"; false; }
+  done
+  grep --quiet -- '--raw-field owner=' "${FAKE_DIR}/gh.calls"
+  ! grep --extended-regexp -- '--field (owner|name)=' "${FAKE_DIR}/gh.calls"
+  ! grep --extended-regexp -- '--field (owner|name)="' "${kit_root}/modules/bash/forge/github.sh"
+}
+
 @test "the GitHub provider runs gh in one place, forge/github:gh, so no call can leave the repository unnamed" {
   # what is left of the provider without its comments, its remedies, run: gh …, and the names of its temporary files
   run bash -c 'grep --invert-match --extended-regexp "^[[:space:]]*#" "$1" \

@@ -181,7 +181,7 @@ forge/github:bots() {
     createdAt author { __typename login url }
     latestReviews(first: 20) { totalCount nodes { submittedAt author { __typename login url } } }
   }'
-  forge/github:ask answer 'the bots' api graphql --field owner="${repo%%/*}" --field name="${repo#*/}" \
+  forge/github:ask answer 'the bots' api graphql --raw-field owner="${repo%%/*}" --raw-field name="${repo#*/}" \
     --raw-field query="${query}" || return 1
   forge/github:fold 'the bots' "${answer}" --exit-status '.data.repository | objects' >/dev/null || return 1
   forge/github:fold 'the bots' "${answer}" --compact-output 'import "forge" as forge; forge::github_bots'
@@ -263,7 +263,7 @@ forge/github:deployments() {
       } }
     }
   }'
-  forge/github:ask answer 'the deployments' api graphql --field owner="${repo%%/*}" --field name="${repo#*/}" \
+  forge/github:ask answer 'the deployments' api graphql --raw-field owner="${repo%%/*}" --raw-field name="${repo#*/}" \
     --raw-field query="${query}" || return 1
   forge/github:fold 'the deployments' "${answer}" --exit-status '.data.repository.deployments.nodes | arrays' \
     >/dev/null || return 1
@@ -389,7 +389,7 @@ forge/github:iterations() {
     }
   }'
   file:temp said gh || return 1
-  if ! answer=$(forge/github:gh api graphql --field owner="${repo%%/*}" --field name="${repo#*/}" \
+  if ! answer=$(forge/github:gh api graphql --raw-field owner="${repo%%/*}" --raw-field name="${repo#*/}" \
     --raw-field query="${query}" 2>"${said}")
   then
     out=${answer}$'\n'$(<"${said}")
@@ -546,8 +546,8 @@ forge/github:merged-prs() {
       }
     }
   }'
-  forge/github:ask answer 'the merged pull requests' api graphql --field owner="${repo%%/*}" \
-    --field name="${repo#*/}" --raw-field query="${query}" || return 1
+  forge/github:ask answer 'the merged pull requests' api graphql --raw-field owner="${repo%%/*}" \
+    --raw-field name="${repo#*/}" --raw-field query="${query}" || return 1
   forge/github:fold 'the merged pull requests' "${answer}" --exit-status \
     '.data.repository.pullRequests.nodes | arrays' >/dev/null || return 1
   forge/github:fold 'the merged pull requests' "${answer}" --compact-output \
@@ -650,8 +650,8 @@ forge/github:open-prs() {
   file:temp said gh || return 1
   while :
   do
-    if ! forge/github:ask page 'the pull requests' api graphql --field owner="${repo%%/*}" --field name="${repo#*/}" \
-      "${after[@]}" --raw-field query="${query//@team@/${team}}" 2>"${said}"
+    if ! forge/github:ask page 'the pull requests' api graphql --raw-field owner="${repo%%/*}" \
+      --raw-field name="${repo#*/}" "${after[@]}" --raw-field query="${query//@team@/${team}}" 2>"${said}"
     then
       if [[ -n "${team}" ]] && forge/github:teamless "${forge_github_said:-}"
       then
@@ -751,7 +751,7 @@ forge/github:pr-closing-issues() {
   }'
   while [[ "${more}" == true ]]
   do
-    forge/github:ask page "pull request #$1" api graphql --field owner="${repo%%/*}" --field name="${repo#*/}" \
+    forge/github:ask page "pull request #$1" api graphql --raw-field owner="${repo%%/*}" --raw-field name="${repo#*/}" \
       --field number="$1" "${after[@]}" --raw-field query="${query}" || return 1
     all=$(forge/github:fold "pull request #$1" "${all}"$'\n'"${page}" --slurp --compact-output \
       '.[0] + (.[1].data.repository.pullRequest // error("no such pull request")).closingIssuesReferences.nodes') \
@@ -1231,16 +1231,16 @@ forge/github:controls() {
   }'
   file:temp controls_said gh || return 1
   # A login without read:org is refused a team's slug, and is asked once more without it: those teams go unnamed.
-  if ! forge/github:ask controls_answer 'the rulesets' api graphql --field owner="${controls_repo%%/*}" \
-    --field name="${controls_repo#*/}" --raw-field query="${controls_query//@team@/${team}}" 2>"${controls_said}"
+  if ! forge/github:ask controls_answer 'the rulesets' api graphql --raw-field owner="${controls_repo%%/*}" \
+    --raw-field name="${controls_repo#*/}" --raw-field query="${controls_query//@team@/${team}}" 2>"${controls_said}"
   then
     if ! forge/github:teamless "${forge_github_said:-}"
     then
       cat "${controls_said}" >&2
       return 1
     fi
-    forge/github:ask controls_answer 'the rulesets' api graphql --field owner="${controls_repo%%/*}" \
-      --field name="${controls_repo#*/}" --raw-field query="${controls_query//@team@/}" || return 1
+    forge/github:ask controls_answer 'the rulesets' api graphql --raw-field owner="${controls_repo%%/*}" \
+      --raw-field name="${controls_repo#*/}" --raw-field query="${controls_query//@team@/}" || return 1
   fi
   forge/github:fold 'the rulesets' "${controls_answer}" --exit-status '.data.repository.rulesets.nodes | arrays' \
     >/dev/null || return 1
@@ -1296,8 +1296,8 @@ forge/github:rest-of-closes() {
   }'
   while [[ "${more}" == true ]]
   do
-    forge/github:ask page "the rest of the issues #${number} closes" api graphql --field owner="${repo%%/*}" \
-      --field name="${repo#*/}" --field pr="${number}" --raw-field after="${cursor}" --raw-field query="${query}" \
+    forge/github:ask page "the rest of the issues #${number} closes" api graphql --raw-field owner="${repo%%/*}" \
+      --raw-field name="${repo#*/}" --field pr="${number}" --raw-field after="${cursor}" --raw-field query="${query}" \
       || return 1
     all=$(forge/github:fold "the rest of the issues #${number} closes" "${all}"$'\n'"${page}" --slurp \
       --compact-output '.[0] + .[1].data.repository.pullRequest.closingIssuesReferences.nodes') || return 1
@@ -1342,7 +1342,7 @@ forge/github:rest-of-pr() {
   fi
   while [[ "${more}" == true ]]
   do
-    forge/github:ask page "${what}" api graphql --field owner="${repo%%/*}" --field name="${repo#*/}" \
+    forge/github:ask page "${what}" api graphql --raw-field owner="${repo%%/*}" --raw-field name="${repo#*/}" \
       --field pr="${number}" --raw-field after="${cursor}" --raw-field query="${query}" || return 1
     if [[ "${list}" == checks ]]
     then
