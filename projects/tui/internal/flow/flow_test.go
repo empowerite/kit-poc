@@ -1162,7 +1162,14 @@ func everyLineFits(t *testing.T, width int, legend bool) {
 	}
 	for i := range five {
 		if i > 0 {
+			if legend {
+				// the first esc closes the legend, shown again once the next stage is selected
+				m = drive(m, esc)
+			}
 			m = drive(m, esc, tab)
+			if legend {
+				m = drive(m, press('?'))
+			}
 		}
 		if m.stage != i {
 			t.Fatalf("at %d, legend %v: on stage %d, not %s's", width, legend, m.stage, five[i])

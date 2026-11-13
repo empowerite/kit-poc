@@ -59,9 +59,15 @@ func (m Model) parts(last int) []legend.Part {
 	for _, e := range legends[name] {
 		out = append(out, legend.Part{Glyphs: []string{e.glyph}, Meaning: e.meaning, Mark: marks[name][e.glyph], On: headings})
 	}
-	if name == "changes" {
+	if name == "changes" || name == "issues" {
+		// a change's state is the glyph of its row, and of the row of the issue it closes, which the pull request's
+		// page is behind only on a change's
+		mark := ""
+		if name == "changes" {
+			mark = ToPage
+		}
 		for _, e := range states {
-			out = append(out, legend.Part{Glyphs: []string{e.glyph}, Meaning: e.meaning, Mark: ToPage, On: headings})
+			out = append(out, legend.Part{Glyphs: []string{e.glyph}, Meaning: e.meaning, Mark: mark, On: headings})
 		}
 	}
 	return out

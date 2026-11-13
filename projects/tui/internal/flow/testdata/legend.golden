@@ -6,19 +6,19 @@
 
   ▾ source · organization · repository ▾ 7            📇 Fields  All Issues ▼
     ·────────·──────────────·─────────────
-  ▾ github · empowerite 7
-
-      ╭─ issues legend ─────────────────────────────────────────────── ↖ ↗ ↙ ↘ ╮
-      │ =  kit menu                                ▾  open: click to close     │
-    ▾ │ -  workspace menu                          📇 fields dialog            │
-      │ 🔎 search: / or click                      ▼  presets menu, not a sort │
-    ▾ │ 1  tab: click to select; bold is selected  ·  sortable: click to sort  │
-      │ 🎫 issues stage                            ▸  closed: click to open    │
-      │    issue 🔗                                ×  list: click to flatten   │
-      │ :  tab menu                                💤 backlog                  │
-      │ 🔀 changes stage                           🛫 underway                 │
-      │    pull request †                          🌿 branch or worktree †     │
+  ▾ gi╭─ issues legend ─────────────────────────────────────────────── ↖ ↗ ↙ ↘ ╮
+      │ =  kit menu                                ▼  presets menu, not a sort │
+      │ -  workspace menu                          ·  sortable: click to sort  │
+      │ 🔎 search: / or click                      ▸  closed: click to open    │
+    ▾ │ 1  tab: click to select; bold is selected  ×  list: click to flatten   │
+      │ 🎫 issues stage                            💤 backlog                  │
+    ▾ │    issue 🔗                                🛫 underway                 │
+      │ :  tab menu                                🏁 ready                    │
+      │ 🔀 changes stage                           🌿 branch or worktree †     │
+      │    pull request †                          🔥 failing:gate             │
       │ 🏭 builds stage                            👤 assignees or author      │
-      │ 🛬 incoming stage                          🌱 local branch             │
+      │ 🛬 incoming stage                          🔨 draft                    │
+      │ ▾  open: click to close                    🌱 local branch             │
+      │ 📇 fields dialog                           💬 comments:open            │
       ╰────────────────────────────────────────────────────────────────────────╯
  = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ groups 1-5 jump : ta…

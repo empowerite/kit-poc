@@ -540,6 +540,25 @@ func arrowOf(c legend.Corner) int {
 	return slices.Index([]legend.Corner{legend.TopLeft, legend.TopRight, legend.BottomLeft, legend.BottomRight}, c)
 }
 
+// The legend names the state glyphs on Issues, which draws them beside each issue's change, and esc closes it.
+func TestTheIssuesLegendNamesTheStatesAndEscClosesIt(t *testing.T) {
+	m := loaded(t, options(), tea.WindowSizeMsg{Width: 120, Height: 50})
+	m = drive(m, press('?'))
+	if !m.legend.Open {
+		t.Fatal("? did not show the legend")
+	}
+	text := view(m)
+	// the legend names the glyphs the screen draws: issues' fixture has a change ready, failing, a draft, and with comments
+	for _, e := range []entry{{"🏁", "ready"}, {"🔥", "failing:gate"}, {"🔨", "draft"}, {"💬", "comments:open"}} {
+		if !strings.Contains(text, e.glyph+" "+e.meaning) {
+			t.Errorf("the issues legend does not name %s %s:\n%s", e.glyph, e.meaning, text)
+		}
+	}
+	if m = drive(m, esc); m.legend.Open {
+		t.Error("esc left the legend open")
+	}
+}
+
 // f in the rows opens the columns dialog, as it does on the preset line; the Fields button on the control line names
 // it, so the keys bar, which has no room to spare, does not.
 func TestFInTheRowsOpensTheColumnsDialog(t *testing.T) {

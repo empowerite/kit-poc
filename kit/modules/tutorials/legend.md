@@ -18,11 +18,11 @@ order: 16
 
 ## Using it
 
-- `?` or `F1`  show or hide it
+- `?` or `F1`  show or hide it. `esc` hides it too.
 - It names **only** the glyphs on the screen now, from the top left down.
 - "click to …" marks a glyph you can click.
 - `↖` `↗` `↙` `↘`  click one to move it to that corner.
-- It takes no other key, so the rows under it keep working.
+- `Home` `End` `⇞` `⇟`  move it to a corner. Every other key goes to the rows under it, so they keep working.
 
 ## A sort, and a menu
 

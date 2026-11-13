@@ -204,7 +204,7 @@ A table has three kinds of preset:
   draws.
 - Otherwise the band under the cursor follows the terminal's background, which kittui asks for as it starts: dark grey
   on a dark one, light grey on a light one, and reverse video until the terminal answers, or where it never does.
-- `esc` goes back one step and never quits: on a tab it clears a search, then leaves the rows.
+- `esc` goes back one step and never quits: on a tab it closes the legend, then clears a search, then leaves the rows.
   `⌃Q` quits with 0, and `⌃C` quits with 130.
 - A menu line that cannot act now stays in the menu, dim.
 - A screen never writes its own key hints. It gives the path from the screen to the control that has the keyboard,
