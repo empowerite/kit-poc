@@ -83,18 +83,18 @@ func TestMaximizeGivesTheRowsTheTitleLinesAndTwoMore(t *testing.T) {
 // The title names the tab: its number, its name, the stale dot while it is stale, a space, and its count.
 func TestMaximizeTitleNamesTheTabAndItsCount(t *testing.T) {
 	m := maximize(t, loaded(t, viewing("")))
-	want := "  " + shell.App + " kit flow · " + shell.Workspaces + " empowerite/kit · 1 issues 7 " + tabs.Menu
+	want := "  " + shell.App + " kit flow · " + shell.Workspaces + " empowerite/kit · ➊ issues 7 " + tabs.Menu
 	if got := lines(m)[0]; got != want {
 		t.Errorf("the title:\n%q\nwant\n%q", got, want)
 	}
 	// the tab's number and name in its color, the name as the bar draws it
 	mark, _ := style.In(stageColors["issues"])
 	if first := strings.Split(m.View().Content, "\n")[0]; !strings.Contains(first, mark("issues")) ||
-		!strings.Contains(first, mark("1")) {
+		!strings.Contains(first, mark("➊")) {
 		t.Errorf("the tab's name is not in its color: %q", strings.Split(m.View().Content, "\n")[0])
 	}
 	// a number selects a tab, still maximized, and the title names it
-	if m = drive(m, press('2')); !m.maximized || !strings.HasSuffix(lines(m)[0], " · 2 changes 3 "+tabs.Menu) {
+	if m = drive(m, press('2')); !m.maximized || !strings.HasSuffix(lines(m)[0], " · ➋ changes 3 "+tabs.Menu) {
 		t.Errorf("after 2, the title: %q", lines(m)[0])
 	}
 	// the search stays at its right

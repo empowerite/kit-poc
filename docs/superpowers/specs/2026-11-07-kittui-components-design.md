@@ -174,7 +174,7 @@ used in the code today that differs is in the last column, to be renamed as the 
 | | a message that goes away on its own | notice | notice, done |
 | | a message that stays until esc | alert | notice, not done |
 | between | everything else | view | pane, screen |
-| view | `1 🎫 backlog 3 :` | tab bar, tab number, tab menu | same |
+| view | `➊ 🎫 backlog 3 :` | tab bar, tab number, tab menu | same |
 | | `◃` and `▹`, on the tab bar and on a header wider than the view | scroll arrows | triangles |
 | | `▾ source ▾ 3 … Default ▼` | control line | same |
 | | `▾ source ▾ 3` | group path | heading over the groups |

@@ -441,9 +441,9 @@ func TestANumberOrAClickSelectsAStepFromAnywhere(t *testing.T) {
 	if m = drive(m, tea.KeyPressMsg{Code: tea.KeyKp1}); m.step != introduction {
 		t.Errorf("keypad 1: step %d", m.step)
 	}
-	x := testkit.Column(strings.Split(view(m), "\n")[1], '2')
+	x := testkit.Column(strings.Split(view(m), "\n")[1], '➁')
 	if m = drive(m, testkit.Click(x, 1)); m.step != chains {
-		t.Errorf("a click on 2: step %d\n%s", m.step, view(m))
+		t.Errorf("a click on ➁: step %d\n%s", m.step, view(m))
 	}
 	if m.View().MouseMode != tea.MouseModeCellMotion {
 		t.Error("the mouse is off")

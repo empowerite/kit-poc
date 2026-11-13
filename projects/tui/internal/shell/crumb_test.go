@@ -11,10 +11,10 @@ import (
 // name of the place it goes back to; a click on it is found where it is drawn, as much of it as shows, and what the
 // view stands on is found where it was.
 func TestTheCrumbStandsLastOnTheTitleLine(t *testing.T) {
-	b := MenuBar{Screen: "kit repositories", Workspace: "- o/r", On: "2 remotes 1 :", Crumb: "changes",
+	b := MenuBar{Screen: "kit repositories", Workspace: "- o/r", On: "➋ remotes 1 :", Crumb: "changes",
 		Search: SearchLine("", false)}
 	line := ansi.Strip(b.Line(90))
-	if !strings.HasPrefix(line, "  "+App+" kit repositories · - o/r · 2 remotes 1 : · "+Back+" changes  ") {
+	if !strings.HasPrefix(line, "  "+App+" kit repositories · - o/r · ➋ remotes 1 : · "+Back+" changes  ") {
 		t.Errorf("the title at 90: %q", line)
 	}
 	from, until, whole := b.CrumbSpan(90)
@@ -25,7 +25,7 @@ func TestTheCrumbStandsLastOnTheTitleLine(t *testing.T) {
 		b.OnCrumb(from-1, Top, 90) || b.OnCrumb(from, Top+1, 90) {
 		t.Error("a click on the crumb is not found where it is drawn")
 	}
-	if on, _, _ := b.OnSpan(90); ansi.Strip(ansi.Cut(b.Line(90), on, on+1)) != "2" {
+	if on, _, _ := b.OnSpan(90); ansi.Strip(ansi.Cut(b.Line(90), on, on+1)) != "➋" {
 		t.Errorf("what the view stands on moved, to %d", on)
 	}
 	// not maximized, it follows the workspace menu

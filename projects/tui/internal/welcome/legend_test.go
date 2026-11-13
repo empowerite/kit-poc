@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/empowerite/kit/projects/tui/internal/legend"
+	"github.com/empowerite/kit/projects/tui/internal/tabs"
 	"github.com/empowerite/kit/projects/tui/internal/testkit"
 )
 
@@ -38,7 +39,8 @@ func TestEveryStepHasALegendOfWhatItDraws(t *testing.T) {
 			frame = append(frame, ansi.Strip(l))
 		}
 		for g := range testkit.Glyphs(strings.Join(frame, "\n")) {
-			if !strings.Contains(shown, g) {
+			// the tabs' numbers are one line, the first of each kind
+			if !strings.Contains(shown, g) && !isMarker(g) {
 				t.Errorf("%s draws %s, which its legend lacks:\n%s", name, g, shown)
 			}
 		}
@@ -79,4 +81,14 @@ func TestTheSearchTakesAQuestionMark(t *testing.T) {
 	if m.legend.Open || m.search().Query != "?" {
 		t.Errorf("? in the search: legend %v, query %q", m.legend.Open, m.search().Query)
 	}
+}
+
+// isMarker says whether a glyph is one of the tab bar's numbers.
+func isMarker(g string) bool {
+	for i := range 10 {
+		if g == tabs.Marker(i, false) || g == tabs.Marker(i, true) {
+			return true
+		}
+	}
+	return false
 }

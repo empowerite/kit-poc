@@ -1,5 +1,5 @@
   = kit flow · - empowerite/kit                                      🔎 /search
-  1╶───────────────╴2╶────────────────╮3╶───────────────╮4╶──────────────────╮5╶
+  ➀╶───────────────╴➋╶────────────────╮➂╶───────────────╮➃╶──────────────────╮➄╶
     🎫 issues  7    │ 🔀 changes  3 : │  🏭 builds  4   │  🛬 incoming  7    │ ▹
   ──────────────────╯                 ╰─────────────────╰────────────────────╰──
   Changes — Open pull requests, and what stands between each and its merge
@@ -14,19 +14,19 @@
     ▸ 🔀 #3   A spike on …  ada     🔨     90m  🏃      💬 2 …          3-a-sp…
     ▸ 🔀 #4   Lint every …  bob     🔥     25h  ❌                      4-lint…
 
-      ╭─ changes legend ────────────────────────────────────────────── ↖ ↗ ↙ ↘ ╮
-      │ =  kit menu                                ▼  presets menu, not a sort │
-      │ -  workspace menu                          ·  sortable: click to sort  │
-      │ 🔎 search: / or click                      ▸  closed: click to open    │
-      │ 1  tab: click to select; bold is selected  ×  list: click to flatten   │
-      │ 🎫 issues stage                            🏁 ready 🔗                 │
-      │ 🔀 changes stage                           ✅ passed                   │
-      │    pull request 🔗                         🔨 draft 🔗                 │
-      │ :  tab menu                                🏃 running                  │
-      │ 🏭 builds stage                            💬 unresolved threads       │
-      │ 🛬 incoming stage                             comments:open 🔗         │
-      │ ▹  more tabs: click to scroll              🔥 failing:gate 🔗          │
-      │ ▾  open: click to close                    ❌ failed                   │
-      │ 📇 fields dialog                                                       │
-      ╰────────────────────────────────────────────────────────────────────────╯
+                  ╭─ changes legend ────────────────────────────────── ↖ ↗ ↙ ↘ ╮
+                  │ =  kit menu                    📇 fields dialog            │
+                  │ -  workspace menu              ▼  presets menu, not a sort │
+                  │ 🔎 search: / or click          ·  sortable: click to sort  │
+                  │ ➀  tab: click to select        ▸  closed: click to open    │
+                  │ ➋  selected tab                ×  list: click to flatten   │
+                  │ 🎫 issues stage                🏁 ready 🔗                 │
+                  │ 🔀 changes stage               ✅ passed                   │
+                  │    pull request 🔗             🔨 draft 🔗                 │
+                  │ :  tab menu                    🏃 running                  │
+                  │ 🏭 builds stage                💬 unresolved threads       │
+                  │ 🛬 incoming stage                 comments:open 🔗         │
+                  │ ▹  more tabs: click to scroll  🔥 failing:gate 🔗          │
+                  │ ▾  open: click to close        ❌ failed                   │
+                  ╰────────────────────────────────────────────────────────────╯
  = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ groups 1-5 jump : ta…
