@@ -77,6 +77,13 @@ SH
   [ "$(printf '%s\n' "${output}" | yq -o json -I 0 '.tutorials')" = '[{"id":"screens","file":"tutorials/screens.md","title":"The screens","summary":"What each screen shows.","glyph":"🧭","audience":["newcomer","ui"],"order":5},{"id":"beta","path":"beta/","title":"Beta","summary":"The first one.","glyph":"🅱","audience":["maintainer"],"order":10}]' ]
 }
 
+@test "a shipped page whose id an online page has is refused, naming both files" {
+  catalogue duplicate-id
+  [ "$status" -eq 1 ]
+  [ "$output" = "" ]
+  [[ "${stderr}" == *"duplicate-id/shipped/beta.md: the id 'beta' is already listed by "*"duplicate-id/src/content/beta/index.mdx"* ]]
+}
+
 @test "a page that ships with the kit needs a glyph" {
   catalogue no-shipped-glyph
   [ "$status" -eq 1 ]
