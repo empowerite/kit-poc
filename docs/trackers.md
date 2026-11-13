@@ -90,7 +90,7 @@ that matches no declared tracker is refused, and the error lists the known prefi
 
 | Provider | Tool | Fields | Closed when the state is |
 | --- | --- | --- | --- |
-| `forge` | the code forge's own, through `kit/modules/bash/forge.sh` | none; on Azure DevOps, `forge_settings.ado` gives `type`, `closed_state`, and `removed_state` | the code forge's closed state |
+| `forge` | the code forge's own, through `kit/modules/bash/forge.sh` | none; on Azure DevOps, `forge_settings.ado` gives `type`, `closed_state`, `removed_state`, and `team` | the code forge's closed state |
 | `ado` | `az` with the `azure-devops` extension | `organization`, `project`, `type` (default `Task`), `closed_state` (default `Closed`, and `Done` where the type has no `Closed`), `removed_state` (default `Removed`) | Closed, Done, Removed, or the state either setting names |
 | `web` | none: kit opens its pages | `new`, the page a new issue is filed at, `{title}` standing for the title; `url`, an issue's page, `{id}` standing for its number | never read |
 

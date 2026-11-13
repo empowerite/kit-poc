@@ -346,6 +346,16 @@ tree-digest() {
   [ -f .kit/packages/python/package.yml ]
 }
 
+@test "the schema describes every forge_settings.ado key a provider reads" {
+  local key
+  for key in $(grep --no-filename --only-matching 'forge:setting ado [a-z_]*' "${kit_checkout}"/modules/bash/forge/*.sh \
+    "${kit_checkout}"/modules/bash/tracker/*.sh | cut -d' ' -f3 | sort -u)
+  do
+    jq --exit-status --arg key "${key}" '.properties.forge_settings.properties.ado.properties | has($key)' \
+      "${kit_checkout}/packages/kit/files/repo/.kit/kit.schema.json" >/dev/null
+  done
+}
+
 @test "the settings file is held to its schema: an unknown key, status for flow, and a non-boolean require_signing are refused" {
   mkdir .kit && printf 'forgery: github\n' > kit.yml
   run "${kit_checkout}/bin/kit" install

@@ -168,6 +168,10 @@
               "type": "string",
               "description": "The type of a new work item. Default: Task."
             },
+            "team": {
+              "type": "string",
+              "description": "The team whose sprints kit issues iterations reads. Default: the project's default team."
+            },
             "closed_state": {
               "type": "string",
               "description": "The state a work item closed as completed is set to. Default: Closed, and Done for a work item type that has no Closed, as in the Basic and Scrum processes."
