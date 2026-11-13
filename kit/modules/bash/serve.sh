@@ -102,7 +102,8 @@ declare -gra serve_open_world=(flow assign close gather leases settle unassign w
 
 # The annotations of the tools that do not read only. check, lint, toolchains, and tools run what the repository's
 # files name; each workflow tool changes something. A destructive one closes issues, takes people off them, or
-# releases a lease; an idempotent one called again with the same arguments changes nothing more.
+# releases a lease; an idempotent one called again with the same arguments changes nothing more. gather and, with a
+# title, work create an issue each time, work makes a start commit each time, and leases moves a lease's expiry.
 declare -grA serve_acts=(
   [check]='{"readOnlyHint": false, "destructiveHint": false, "idempotentHint": true}'
   [lint]='{"readOnlyHint": false, "destructiveHint": false, "idempotentHint": true}'
@@ -114,7 +115,7 @@ declare -grA serve_acts=(
   [leases]='{"readOnlyHint": false, "destructiveHint": true, "idempotentHint": false}'
   [settle]='{"readOnlyHint": false, "destructiveHint": true, "idempotentHint": true}'
   [unassign]='{"readOnlyHint": false, "destructiveHint": true, "idempotentHint": true}'
-  [work]='{"readOnlyHint": false, "destructiveHint": false, "idempotentHint": true}'
+  [work]='{"readOnlyHint": false, "destructiveHint": false, "idempotentHint": false}'
 )
 
 # The tools offered as a listing only. Each word would act, or reach the network, so a tool does not offer it: a line

@@ -191,6 +191,9 @@ call() {
     == ["check", "lint", "toolchains", "tools", "assign", "close", "gather", "leases", "settle", "unassign", "work"]'
   answer 1 | jq --exit-status '[.result.tools[] | select(.annotations.destructiveHint) | .name]
     == ["close", "leases", "settle", "unassign"]'
+  # a call sent again does more: gather and, with a title, work create an issue each time, and leases moves an expiry
+  answer 1 | jq --exit-status '[.result.tools[] | select(.annotations.idempotentHint == false) | .name]
+    == ["gather", "leases", "work"]'
   answer 1 | jq --exit-status '[.result.tools[] | select(.name | IN("assign", "close", "gather", "leases", "settle",
     "unassign", "work")) | .annotations.openWorldHint] | length == 7 and all'
   answer 1 | jq --exit-status '.result.tools[] | select(.name == "close") | .inputSchema.properties
