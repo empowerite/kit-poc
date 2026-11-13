@@ -8,12 +8,13 @@
 # reference, #7 or AB#4521, with its status:
 #
 #   - underway: an open pull request closes it, whoever opened it. The row names the pull request, and where its work
-#     is. An issue two pull requests close has a row for each. The forge closes none of another tracker's on a merge,
-#     so kit stands in: a pull request closes one when its branch starts with the issue's key, ab4521-, or a closing
-#     keyword in its body names it, Closes AB#4521, and one a pull request merged last names is closed, and left out,
-#     whether or not its tracker closed it. One no pull request closes is underway too while a branch is named for it,
-#     its key and a dash, as kit work names one: the desk's, or the primary remote's as of the last fetch. Its row names
-#     the branch, and no pull request.
+#     is. An issue two pull requests close has a row for each. A pull request closes the issue of a number where that
+#     issue is: one of another repository is a row of its own, and the issue of that number here stays as it was. The
+#     forge closes none of another tracker's on a merge, so kit stands in: a pull request closes one when its branch
+#     starts with the issue's key, ab4521-, or a closing keyword in its body names it, Closes AB#4521, and one a pull
+#     request merged last names is closed, and left out, whether or not its tracker closed it. One no pull request
+#     closes is underway too while a branch is named for it, its key and a dash, as kit work names one: the desk's, or
+#     the primary remote's as of the last fetch. Its row names the branch, and no pull request.
 #   - backlog: no open pull request closes it, and no branch is named for it. It is for the next kit work <N>.
 #
 # The rows come from forge:open-issues and forge:open-prs, the call the changes stage makes, and the stages of one load

@@ -6,3 +6,10 @@
 import "changes" as changes; [.[] | changes::concerning([2, 7, 9])] | map(.number)
 [{"number": 1, "closes": [{"number": 7}]}, {"number": 2, "closes": [{"number": 8}]}, {"number": 3}, {"number": 4, "closes": [{"number": 5}]}]
 [1,2]
+
+
+# A change closes an issue named when the issue is where the change is: one that closes number 7 of another repository
+# is dropped, and one that says no place of its own, or whose issue says none, is kept, as before either said one.
+import "changes" as changes; [.[] | changes::concerning([7])] | map(.number)
+[{"number": 1, "source": "github", "organization": "o", "repository": "here", "closes": [{"number": 7, "source": "github", "organization": "o", "repository": "other"}]}, {"number": 2, "source": "github", "organization": "o", "repository": "here", "closes": [{"number": 7, "source": "github", "organization": "o", "repository": "here"}]}, {"number": 3, "closes": [{"number": 7, "source": "github", "organization": "o", "repository": "other"}]}, {"number": 4, "source": "github", "organization": "o", "repository": "here", "closes": [{"number": 7}]}]
+[2,3,4]

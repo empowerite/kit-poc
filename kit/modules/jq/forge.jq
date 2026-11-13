@@ -5,6 +5,9 @@
 #
 #   number, ref, branch, title, author, createdAt
 #   source      the forge the change is on: github, gitlab, or ado
+#   organization, repository
+#               where the change is, as its forge names its repository and place splits it, so an issue it closes is
+#               told from one of the same number in another repository; left out where the answer names none
 #   url         the change's page on the forge, as the provider gives it: what its tool reports, or the primary
 #               remote's URL as the provider reads it; null where the forge gives none
 #   fork        the owner of the repository the change's branch lives in, when that is not the base repository: a
@@ -54,6 +57,13 @@ def from($here):
   if type == "object" then . as $row | . + ($here | with_entries(select(.key as $k | $row | has($k) | not)))
   else . end;
 
+# at($where) says whether a row, an issue or a change, is where $where is: each of its source, its organization, and
+# its repository is $where's, compared only where both name one, so a row that names no place, as an older answer
+# gives one, is anywhere. Both are as one forge names them, so no letter's case differs.
+def at($where):
+  . as $row
+  | all("source", "organization", "repository"; $row[.] == null or $where[.] == null or $row[.] == $where[.]);
+
 # hex reads a color as a forge writes it, with or without a #, in either case, and gives it as #rrggbb in lower case;
 # null for none.
 def hex: if (. // "") == "" then null else "#" + (ascii_downcase | ltrimstr("#")) end;
@@ -74,9 +84,9 @@ def colored($colors):
 # github_path reads a GitHub issue's url and gives its repository's owner/name, or null without one.
 def github_path: (.url // "") | capture("^https?://[^/]+/(?<path>[^/]+/[^/]+)/issues/").path // null;
 
-# gitlab_path reads a GitLab issue's full reference, group/…/project#7, and gives its project's path, or null without
-# one.
-def gitlab_path: (.references.full // "") | sub("#[0-9]+$"; "") | if . == "" then null else . end;
+# gitlab_path reads a GitLab issue's or merge request's full reference, group/…/project#7 or group/…/project!3, and
+# gives its project's path, or null without one.
+def gitlab_path: (.references.full // "") | sub("[#!][0-9]+$"; "") | if . == "" then null else . end;
 
 # checks($now) reads runs, [{name, workflow, event, verdict, at, since, took}], and gives {state, passed, total,
 # failing, took}. A run's verdict is pending, passed, or failed. A check is the runs of one name in one workflow for
@@ -127,13 +137,14 @@ def named:
 
 # document($now) reads {number, ref, source, url, branch, fork, title, author, createdAt, pushed, draft, conflicted,
 # approval, runs, unresolved, labels, closes, reviewers, body} and gives the document, the body as named reads it.
-# pushed is {at, by}, or null, and comes out with its age in place of at. labels are the forge's, as labels reads them.
-# Each of closes is {number, title, assignees, labels, createdAt, source, url, organization, repository}, and comes out
-# with its age; an issue an older answer gives without a time has a null age, one without a source, a page, an
-# organization, or a repository a null one, and one without labels none. The change's own page is null where the
-# answer gives none. reviewers are as reviewers reads them, none where the answer names none; each run comes out with
-# at in seconds since the epoch, null where it was empty, its workflow and event null where it has none, and without
-# since.
+# pushed is {at, by}, or null, and comes out with its age in place of at. labels are the forge's, as labels reads
+# them. Each of closes is {number, title, assignees, labels, createdAt, source, url, organization, repository}, and
+# comes out with its age; an issue an older answer gives without a time has a null age, one without a source, a page,
+# an organization, or a repository a null one, and one without labels none. The change's own page is null where the
+# answer gives none, and its organization and repository, where the forge says it is, are left out where the answer
+# names no repository, so from gives it those of the repository kit read it in. reviewers are as reviewers reads them,
+# none where the answer names none; each run comes out with at in seconds since the epoch, null where it was empty,
+# its workflow and event null where it has none, and without since.
 def document($now):
   (.runs | checks($now)) as $checks
   | { number, ref, source: (.source // null), url: (.url // null), branch, fork: (.fork // null), title, author,
@@ -148,7 +159,8 @@ def document($now):
       named: (.body | named),
       reviewers: (.author as $author | .reviewers // [] | reviewers($author)),
       runs: [.runs[] | { name, workflow: (.workflow // null), event: (.event // null), verdict,
-                         at: (if (.at // "") == "" then null else .at | epoch end), took }] };
+                         at: (if (.at // "") == "" then null else .at | epoch end), took }] }
+    + (if (.repository // null) == null then {} else {organization: (.organization // null), repository} end);
 
 # github_runs reads a commit's status check contexts, CheckRun and StatusContext alike, and gives its runs. GitHub
 # names a check run by its job alone, so a run says the workflow its check suite is of and the event that started it;
@@ -176,7 +188,7 @@ def github_runs:
 # latestOpinionatedReviews gives them, a dismissed review standing as a comment; then each other reviewer's latest
 # review, as latestReviews gives them: a comment, or one of those where the answer holds no opinionated reviews; a
 # pending review, which only its author sees, is none. Its page, and that of each issue it closes, is the url the
-# answer gives.
+# answer gives, and where it is the repository's nameWithOwner.
 def github_prs($now):
   .data.repository as $repository
   | ([$repository.issues.nodes[]? | {key: "\(.number)", value: [.assignees.nodes[]?.login]}] | from_entries)
@@ -207,6 +219,7 @@ def github_prs($now):
                    assignees: (if .repository.nameWithOwner == $repository.nameWithOwner
                                then $assigned["\(.number)"] // [] else [] end) }
                  + place(.repository.nameWithOwner)] }
+    + place($repository.nameWithOwner)
   | document($now);
 
 # github_partial reads the answer to forge/github:open-prs's GraphQL query and gives a line for each list the answer
@@ -289,7 +302,8 @@ def gitlab_pipeline_jobs:
 # gives its document. GitLab names a label without its color here, which colored then gives it.
 # GitLab tells no push's time without a further call, so pushed is the head pipeline's: when it was created, and who
 # started it; null when the branch has no pipeline. Its reviewers are those who approved it, at the time each did, then
-# each reviewer it names without an approval, asked. Its page, and that of each issue it closes, is GitLab's web_url.
+# each reviewer it names without an approval, asked. Its page, and that of each issue it closes, is GitLab's web_url,
+# and where it is its full reference's project.
 def gitlab_pr($now; $jobs; $discussions; $closes; $fork; $approvals):
   { number: .iid, ref: "!\(.iid)", source: "gitlab", url: .web_url, branch: .source_branch, title,
     author: (.author.username // ""), createdAt: .created_at, body: .description, draft, conflicted: .has_conflicts,
@@ -303,6 +317,7 @@ def gitlab_pr($now; $jobs; $discussions; $closes; $fork; $approvals):
                 + [.reviewers[]? | {login: .username, state: "requested", at: null}]),
     closes: [$closes[] | { number: .iid, title, assignees: [.assignees[]?.username], labels, createdAt: .created_at,
                            source: "gitlab", url: .web_url } + place(gitlab_path)] }
+    + place(gitlab_path)
   | document($now);
 
 # issue($now; $source; $path) reads {number, title, assignees, labels, createdAt, milestone, iteration, url}, the
@@ -566,6 +581,7 @@ def ado_pr($now; $policies; $threads; $closes; $path):
     runs: ado_runs($policies), unresolved: ado_unresolved($threads),
     closes: [$closes[] | { number: .id, title: .fields["System.Title"], assignees: ado_assignees, labels: ado_tags,
                            createdAt: .fields["System.CreatedDate"], source: "ado" } + place($path)] }
+    + place($path)
   | document($now);
 
 # ado_pr_state reads a pull request and gives its state in GitHub's words: completed is MERGED, abandoned is CLOSED, and

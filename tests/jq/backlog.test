@@ -12,3 +12,10 @@ import "backlog" as backlog; backlog::unclaimed([{"closes": [{"number": 7}]}]; [
 import "backlog" as backlog; [backlog::unclaimed([]; []; ["ada"]; false), backlog::unclaimed([]; []; ["ada"]; true)] | map(map(.number))
 [{"number": 1, "assignees": ["ada"]}, {"number": 2, "assignees": ["bob"]}, {"number": 3, "assignees": []}]
 [[1],[2,3]]
+
+# An issue a change closes is one where the closed issue is: a change that closes number 5 of another repository leaves
+# number 5 here in the backlog, and one that closes number 5 here takes it out. A closed issue that names no place, as
+# an older answer gives one, is taken for the one here.
+import "backlog" as backlog; [backlog::unclaimed([{"closes": [{"number": 5, "source": "github", "organization": "o", "repository": "other"}]}]; []; []; false), backlog::unclaimed([{"closes": [{"number": 5, "source": "github", "organization": "o", "repository": "here"}]}]; []; []; false), backlog::unclaimed([{"closes": [{"number": 5}]}]; []; []; false)] | map(map(.number))
+[{"number": 5, "assignees": [], "source": "github", "organization": "o", "repository": "here"}, {"number": 6, "assignees": [], "source": "github", "organization": "o", "repository": "here"}]
+[[5,6],[6],[6]]

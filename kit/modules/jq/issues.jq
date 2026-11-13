@@ -5,6 +5,7 @@
 # see: modules/bash/issues.sh, modules/jq/backlog.jq, modules/jq/underway.jq
 
 import "backlog" as backlog;
+import "forge" as forge;
 import "underway" as underway;
 
 # names($issue) reads a change, open or merged, and says whether it names $issue, one of a tracker the forge does not
@@ -29,7 +30,9 @@ def started($started; $worktrees; $branches):
 # rows($changes; $heads; $worktrees; $branches; $merged) reads the open issues, as an array of forge.jq's issue
 # documents, and gives every one a row. An issue of the forge's own, one without a key, is underway in a row for each
 # change in $changes that closes it, as underway.jq gives it, with the change's branch as its branch, and the issue's
-# milestone, iteration, and swimlane as the open issue of its number has them. One of another tracker, which holds its
+# milestone, iteration, and swimlane as the open issue of its number where it is has them, as forge.jq's at says: an
+# issue of another repository, which a change here closes, takes none from the issue of its number here, and its
+# organization and repository tell the two apart. One of another tracker, which holds its
 # key, as ab4521, is underway in a row for each change that names it, as names says: the forge closes it on no merge,
 # so kit does, and one a change in $merged names is done, and has no row, whether or not its tracker closed it. An issue
 # no change closes or names is underway when a branch is named for it, its key and a dash, as 9-other or ab4521-fix:
@@ -44,12 +47,12 @@ def started($started; $worktrees; $branches):
 def rows($changes; $heads; $worktrees; $branches; $merged):
   map(select(.key == null)) as $forge
   | (map(select(.key != null) | . as $issue | select(any($merged[]; names($issue)) | not))) as $others
-  | ($forge | map({key: (.number | tostring), value: .}) | from_entries) as $open
+  | ($forge | group_by(.number) | map({key: (.[0].number | tostring), value: .}) | from_entries) as $open
   | ([$branches[] | select($worktrees[.] != null)] + [$branches[] | select($worktrees[.] == null)] + $heads)
     as $started
   | ($forge | backlog::unclaimed($changes; []; []; false) | map(started($started; $worktrees; $branches)))
     + ($changes | underway::rows($worktrees; $branches)
-       | map(($open[.number | tostring] // {}) as $issue
+       | map(. as $row | (first(($open[.number | tostring] // [])[] | select(forge::at($row))) // {}) as $issue
              | . + {ref: ($issue.ref // null), tracker: ($issue.tracker // null),
                     milestone: ($issue.milestone // null), iteration: ($issue.iteration // null),
                     swimlane: ($issue.swimlane // null), status: "underway", branch: .pr.branch}))

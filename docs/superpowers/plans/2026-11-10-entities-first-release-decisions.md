@@ -3,7 +3,8 @@
 **Status, 2026-11-12:** The review of 2026-11-12 read this plan against commit `0e76266c`, where it found none of the
 5 tasks built. [The review's page](../reviews/2026-11-12-review-plans.md) has each task's evidence. Since then #352
 built the page, Step 0 of Tasks 1 and 2: kit prints the page of each issue and change of a forge, and kittui opens it
-and builds none. No reference is built, and no task is whole.
+and builds none; and #370 matched an issue a change closes by where it is, which Review Focus 2 asks. No reference is
+built, and no task is whole.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -99,14 +100,17 @@ open change, and of each issue a change closes, as `url`: what its tool reports,
 (`forge/ado:pr-url`, `forge/ado:issue-url`). `underway::rows` gives the issue's own `url` and the change's as
 `pr.url`, and every row of `kit flow issues` has `url`, null where nothing gives one. So no page's shape is written in
 jq: `reference::page` is dropped from this task, and a release's and a run's `url` stay as the providers give them.
+With #370, an issue a change closes is matched by where it is, its source, organization, and repository, beside its
+number, and a change says where it is as its forge names its repository: Review Focus 2 holds, and needs no
+reference. A row of an issue of another repository is still `#9` by its `ref`; the reference is what will name it.
 What is left here is the reference.
 
 **Files:**
 
 - Create: `kit/modules/jq/reference.jq`, `tests/jq/reference.test`
 - Modify: `kit/modules/jq/{forge,workspace,underway,backlog}.jq`,
-  `kit/modules/bash/forge.sh:1003-1032,1085-1152`, `kit/modules/bash/{workspace,across}.sh`,
-  `kit/bin/kit-flow:75-95`, `kit/bin/kit-workspace:31-32,45`, `docs/architecture.md`,
+  `kit/modules/bash/forge.sh:1009-1038,1091-1158`, `kit/modules/bash/{workspace,across}.sh`,
+  `kit/bin/kit-flow:77-97`, `kit/bin/kit-workspace:34-35,51`, `docs/architecture.md`,
   `tests/jq/*.test`, `tests/forge-conformance.bats`, `tests/workspace.bats`
 
 **Interfaces:**
@@ -118,25 +122,26 @@ What is left here is the reference.
     place's host and its own `organization` and `repository`; a `release` by its tag; a `run` by `:run/` and its `id`.
   - `forge:place` prints the primary's member. `forge:documents <call>` pipes `forge:call <call>` through
     `forge::referenced`; it replaces `forge:call` in `forge:snapshot` and `forge:snapshot-take` (`forge.sh` lines
-    1085 to 1152), and in `forge:releases` and `forge:runs` (lines 1031 and 1032).
-    `underway::rows` keeps the issue's fields, and its `pr` gains `ref` and `reference`; `backlog::unclaimed` matches
-    a closed issue by `reference`, by `number` where either has none.
+    1091 to 1158), and in `forge:releases` and `forge:runs` (lines 1037 and 1038).
+    `underway::rows` keeps the issue's fields, and its `pr` gains `ref` and `reference`; `backlog::unclaimed` keeps
+    its match by place, as `forge::at` says.
   - `workspace:place` prints `workspaces:member-of <desk>`, else the desk's path; each stage's function in
     `workspace.jq` takes it last. A row has `reference`, as the table gives its stage, and no `key`; `row` (line
     32) goes, and a link to a row is its reference: a worktree's `branch`, its upstream's where it has one.
 
 - [x] **Step 0: The page, test first** (#352). `tests/jq/forge.test`, `underway.test`, and `issues.test` hold `url`
   on a change, on each issue it closes, on an issue, and on an issue's row with its change's as `pr.url`;
-  `tests/forge-conformance.bats:668` holds GitHub and GitLab to what their tools report, another
-  repository's page for an issue there, and `tests/forge-ado.bats:291,345` hold Azure DevOps to the
-  remote's URL; `tests/flow.bats` holds kittui's fixtures and catalog to the keys kit prints.
+  `tests/forge-conformance.bats:713` holds GitHub and GitLab to what their tools report, another
+  repository's page for an issue there, and `tests/forge-ado.bats:348,404` hold Azure DevOps to the
+  remote's URL; `tests/flow.bats` holds kittui's fixtures and catalog to the keys kit prints. With #370,
+  `backlog.test`, `issues.test`, `changes.test`, and `tests/issues-underway.bats` hold that a change that closes
+  another repository's issue leaves the issue of that number here.
 - [ ] **Step 1: Write the failing tests.** `reference.test`: `of("gitlab.com/g/s/r"; "!"; 3)` is
   `"gitlab.com/g/s/r!3"`, and null for an empty place or a null key. `forge.test`: change `#3` at `github.com/o/r`,
   closing number 9 of organization `other`, repository `repo`, has `reference` `github.com/o/r#3`, and
-  `closes[0].reference` `github.com/other/repo#9`; `backlog.test`: issue
-  `github.com/o/r#9` stays when a change closes that one; `underway.test`: a change `!3` gives `pr.ref` `!3`.
+  `closes[0].reference` `github.com/other/repo#9`; `underway.test`: a change `!3` gives `pr.ref` `!3`.
   `workspace.test` and `tests/workspace.bats:77-126` expect `reference` for `key` and for `row:`; after
-  `git init`, `main`'s is `$(pwd -P)@refs/heads/main`. `tests/forge-conformance.bats:540,751,925,1792`
+  `git init`, `main`'s is `$(pwd -P)@refs/heads/main`. `tests/forge-conformance.bats:584,798,972,1839`
   assert each `.reference`, and delete the new field before they compare documents. And in `tests/workspace.bats`:
 
 ```bash
@@ -161,14 +166,15 @@ What is left here is the reference.
 
 The page is built, with #352: an issue's row and a change's open the `url` kit printed, an issue underway its
 change's `pr.url`, Copy Links copies the issue's own, and a row kit gave no page leads nowhere. `Model.originOf` and
-`Origin`'s `issue`, `pull`, `gitlab`, and `infix` are gone, and `TestTheURLsFollowTheHost` with them. What is left
-here is the key.
+`Origin`'s `issue`, `pull`, `gitlab`, and `infix` are gone, and `TestTheURLsFollowTheHost` with them. kittui still
+tells an issue of another repository by comparing its path with the workspace's or origin's (`elsewhere`, `pathHere`),
+since kit does not mark one: the reference will, and the comparison goes with this task. What is left here is the key.
 
 **Files:**
 
 - Create: `projects/tui/internal/reference/reference.go`, `reference_test.go`
 - Modify: in `projects/tui/internal/flow/`, `rows.go:17-163,435-455,479-624,641-776`,
-  `workspace.go:19-98`, `origin.go:10-44`, `flow.go:169,260`, their tests, and the stages'
+  `workspace.go:19-98`, `origin.go:10-44`, `flow.go:172,264`, their tests, and the stages'
   fixtures under `testdata/`
 
 **Interfaces:**

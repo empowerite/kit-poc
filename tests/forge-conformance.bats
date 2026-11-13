@@ -182,6 +182,7 @@ world-gitlab() {
   fixture mr.json <<'JSON'
 {"iid": 3, "title": "Fix the thing", "draft": false, "source_branch": "7-fix-the-thing",
  "web_url": "https://gitlab.com/empowerite/example/-/merge_requests/3",
+ "references": {"full": "empowerite/example!3"},
  "created_at": "2026-10-01T09:00:00.000Z", "author": {"username": "ada"}, "has_conflicts": false,
  "detailed_merge_status": "mergeable", "description": "Closes #7", "source_project_id": 1, "target_project_id": 1,
  "head_pipeline": {"id": 11, "project_id": 1, "status": "success"}, "labels": ["kind=fix"],
@@ -603,12 +604,13 @@ here() {
     run call open-prs
     [ "$status" -eq 0 ]
     [ "$(jq --compact-output --sort-keys \
-      'del(.age, .createdAt, .ref, .source, .url)
+      'del(.age, .createdAt, .ref, .source, .url, .organization, .repository)
        | .closes |= map(del(.age, .source, .organization, .repository, .url))' \
       <<<"$output")" = "$(jq --compact-output --sort-keys . <<<"${expected}")" ]
     [ "$(jq '.closes[0].age > 0' <<<"$output")" = true ]
-    # the change names the forge it is on
-    [ "$(jq --raw-output .source <<<"$output")" = "${forge}" ]
+    # the change names the forge it is on, and where on it, as the forge names its repository
+    [ "$(jq --raw-output '"\(.source) \(.organization)/\(.repository)"' <<<"$output")" \
+      = "${forge} empowerite/example" ]
     # each issue a change closes names the tracker that holds it, the forge's own, and where in it the issue is
     [ "$(jq --raw-output '[.closes[].source] | unique | join(" ")' <<<"$output")" = "${forge}" ]
     [ "$(jq --raw-output '[.closes[] | "\(.organization)/\(.repository)"] | unique | join(" ")' <<<"$output")" \
@@ -733,6 +735,8 @@ here() {
   run fresh-call open-prs
   [ "$status" -eq 0 ]
   [ "$(jq --compact-output '.closes | map(.url)' <<<"$output")" = '["https://github.com/other/repo/issues/9",null]' ]
+  # the issue of another repository says where it is, so it is never taken for the issue of its number here
+  [ "$(jq --compact-output '.closes | map(.repository)' <<<"$output")" = '["repo",null]' ]
   # GitHub is asked for the page of the pull request and of each issue it closes, the first ten and the rest
   grep --quiet 'number title body url isDraft' "${FAKE_DIR}/gh.calls"
   grep --quiet 'number title createdAt url repository { nameWithOwner }' "${FAKE_DIR}/gh.calls"

@@ -361,10 +361,12 @@ added+='"bot-accounts","merge-closing"'
   run call open-prs
   [ "$status" -eq 0 ]
   [ "$(jq --compact-output --sort-keys \
-    'del(.age, .createdAt, .ref, .source, .url)
+    'del(.age, .createdAt, .ref, .source, .url, .organization, .repository)
      | .closes |= map(del(.age, .source, .organization, .repository, .url))' \
     <<<"$output")" = "$(jq --compact-output --sort-keys . <<<"${expected}")" ]
-  [ "$(jq --raw-output '"\(.ref) \(.source)"' <<<"$output")" = '!3 ado' ]
+  # the pull request says where it is, the project and the repository, as the work items it links do
+  [ "$(jq --raw-output '"\(.ref) \(.source) \(.organization)/\(.repository)"' <<<"$output")" \
+    = '!3 ado empowerite/example' ]
   # the pull request's page is under the repository's, and a work item's under the project's, as the remote names them
   [ "$(jq --raw-output '.url, .closes[].url' <<<"$output")" \
     = $'https://dev.azure.com/acme/empowerite/_git/example/pullrequest/3\nhttps://dev.azure.com/acme/empowerite/_workitems/edit/7' ]

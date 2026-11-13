@@ -15,7 +15,7 @@ use forge flow workspaces
 
 # changes:documents [--all | [--mine] [--others] [--owner=<login>…]] [<number>…] prints the open changes the flags
 # choose as one JSON array, oldest first, each with the issues it closes under closes. The owner flags combine as
-# flow:filter says. Numbers given keep only the changes numbered so, or that close an issue numbered so. In a
+# flow:filter says. Numbers given keep only the changes numbered so, or that close an issue numbered so here. In a
 # worktree it is the change its branch holds, and the owner flags change nothing. It returns 2 on a word that is not
 # a number.
 changes:documents() {

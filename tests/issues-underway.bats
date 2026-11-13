@@ -235,6 +235,32 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
   [ "$output" = "[]" ]
 }
 
+@test "a pull request that closes another repository's issue leaves the issue of that number here, and lists both" {
+  # each open issue says where it is, as gh gives its url, and pull request 5 closes #11 of other/place, not #11 here
+  jq 'map(.url = "https://github.com/empowerite/example/issues/\(.number)")' "${FAKE_DIR}/issues.json" \
+    > "${FAKE_DIR}/placed.json" && mv "${FAKE_DIR}/placed.json" "${FAKE_DIR}/issues.json"
+  jq '.data.repository.pullRequests.nodes[1].closingIssuesReferences.nodes
+        = [{number: 11, title: "Their eleven", createdAt: "2026-09-10T09:00:00Z",
+            url: "https://github.com/other/place/issues/11", repository: {nameWithOwner: "other/place"}}]' \
+    "${FAKE_DIR}/open-prs.json" > "${FAKE_DIR}/far.json" && mv "${FAKE_DIR}/far.json" "${FAKE_DIR}/open-prs.json"
+  forge-forget
+  run kit flow issues --json
+  [ "$status" -eq 0 ]
+  # #11 here is no longer closed by pull request 5: it is underway on the branch named for it, with no pull request
+  [ "$(jq -c 'map([.ref, .title, .pr.number, .repository, .milestone])' <<<"$output")" \
+    = '[["#11","Their eleven",5,"place",null],["#7","Fix the thing",3,"example","v0.1"],'\
+'["#11","Third thing",null,"example",null]]' ]
+  [ "$(jq -r '.[0].url' <<<"$output")" = https://github.com/other/place/issues/11 ]
+  run kit flow issues
+  [ "$status" -eq 0 ]
+  [[ "${lines[0]}" == "#11  "*"🔀 #5 🏁 ready  "*"🎫 Their eleven" ]]
+  [[ "${lines[2]}" == "#11  "*"🎫 Third thing" ]]
+  # the pull request closes no #11 of this repository, so kit flow changes 11 lists none, and 7 still lists #3
+  run kit flow changes 11 --json
+  [ "$output" = "[]" ]
+  [ "$(kit flow changes 7 --json | jq -c 'map(.number)')" = '[3]' ]
+}
+
 @test "a narrow terminal clips the title and keeps every other cell whole" {
   COLUMNS=60 run kit flow issues
   [ "$status" -eq 0 ]
