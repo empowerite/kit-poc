@@ -6,11 +6,16 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/colorprofile"
+
+	"github.com/empowerite/kit/projects/tui/internal/style"
 )
 
 // A sheet's lines are drawn once for what it shows: a turn of the wheel, and drawing the pane, reuse them. Moving the
-// cursor, selecting a row, opening one, or saying anew which rows can be, draws them anew.
+// cursor, selecting a row, opening one, saying anew which rows can be, or a terminal said to draw no color, which the
+// band under the cursor is drawn for, draws them anew.
 func TestASheetsLinesAreDrawnOnceForWhatItShows(t *testing.T) {
+	t.Cleanup(func() { style.Profile(colorprofile.TrueColor) })
 	s := fruity()
 	first := s.Lines()
 	_ = s.View()
@@ -28,6 +33,7 @@ func TestASheetsLinesAreDrawnOnceForWhatItShows(t *testing.T) {
 		{"moving onto kale", func() { pressed(&s, "end", "up") }},
 		{"opening kale", func() { pressed(&s, "right") }},
 		{"saying anew which rows can be selected", func() { s.SetPicks(func(string) bool { return true }) }},
+		{"a terminal said to draw no color", func() { style.Profile(colorprofile.ASCII) }},
 	} {
 		before := s.Lines()
 		change.do()

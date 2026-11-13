@@ -388,13 +388,13 @@ func (m Model) allLines(i int) []table.Line {
 }
 
 // drawnFor says what a stage's lines are drawn for, beyond what its rows were built for: the rows themselves, the row
-// under the cursor, the columns scrolled past, the rows and headings open, and the rows selected. Lines drawn for the
-// same are the same, so allLines draws them once and every key, click, and drawing after reuses them, however many
-// lines an open row has.
+// under the cursor, the columns scrolled past, the rows and headings open, the rows selected, and the look the styles
+// draw them in, as style.Look names it. Lines drawn for the same are the same, so allLines draws them once and every
+// key, click, and drawing after reuses them, however many lines an open row has.
 func (m Model) drawnFor(i int, rows []row, chosen int) string {
 	s := m.stages[i]
 	var b strings.Builder
-	fmt.Fprintf(&b, "%p %d %d %d %d", &rows[0], len(rows), chosen, m.gridWidth(i), s.Shift)
+	fmt.Fprintf(&b, "%p %d %d %d %d %q", &rows[0], len(rows), chosen, m.gridWidth(i), s.Shift, style.Look())
 	for _, k := range slices.Sorted(maps.Keys(s.Open)) {
 		fmt.Fprintf(&b, "\x00o%s=%t", k, s.Open[k])
 	}

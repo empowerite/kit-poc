@@ -1,12 +1,15 @@
 // Package style is kit tui's look: one accent color, the chosen and dim styles, the glyphs the spec fixes, and the keys
-// bar every screen ends with. NO_COLOR
-// strips the colors where the program writes, and bold and underline stay, so a chosen name still stands out.
+// bar every screen ends with. NO_COLOR strips the colors where the program writes. Bold, underline, and reverse video
+// stay, so a chosen name still stands out, and so does what the keyboard is on: the line under it in a menu or a
+// dialog is reverse video in every terminal, and the band under the cursor is reverse video once Profile is told the
+// terminal has no color.
 package style
 
 import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -44,9 +47,18 @@ var (
 	text    = lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	literal = lipgloss.NewStyle().Foreground(lipgloss.Color("5"))
 	band    = lipgloss.NewStyle().Background(lipgloss.Color("236"))
-	// on the menu's own bright cyan, black: 16 is the 256-color cube's black, which no theme remaps as it may 0
-	selected = lipgloss.NewStyle().Background(lipgloss.Color("14")).Foreground(lipgloss.Color("16"))
+	// on the menu's own bright cyan, black: 16 is the 256-color cube's black, which no theme remaps as it may 0. It
+	// is reverse video with the two colors swapped, which a terminal of colors draws the same, black on cyan, and a
+	// terminal of none still draws reversed
+	selected = lipgloss.NewStyle().Reverse(true).Foreground(lipgloss.Color("14")).Background(lipgloss.Color("16"))
 )
+
+// colorless is whether the terminal draws no color, as Profile was told; until it is told, the terminal draws colors.
+var colorless bool
+
+// Profile tells the styles the colors the terminal draws, as the program reports them at its start. With none, as
+// under NO_COLOR, Band draws reverse video, since the background it draws otherwise is never sent.
+func Profile(p colorprofile.Profile) { colorless = p <= colorprofile.ASCII }
 
 // Mark draws what is selected on a line of stages: bold, in the accent color.
 func Mark(s string) string { return mark.Render(s) }
@@ -76,7 +88,7 @@ func MenuIn(color string) (edge, under func(string) string) {
 	if color == "" {
 		return Menu, Selected
 	}
-	e, u := menu.Foreground(lipgloss.Color(color)), selected.Background(lipgloss.Color(color))
+	e, u := menu.Foreground(lipgloss.Color(color)), selected.Foreground(lipgloss.Color(color))
 	return func(s string) string { return e.Render(s) }, func(s string) string { return u.Render(ansi.Strip(s)) }
 }
 
@@ -85,7 +97,7 @@ func MenuIn(color string) (edge, under func(string) string) {
 func MenuHereIn(color string) func(string) string {
 	u := selected.Bold(true)
 	if color != "" {
-		u = u.Background(lipgloss.Color(color))
+		u = u.Foreground(lipgloss.Color(color))
 	}
 	return func(s string) string { return u.Render(ansi.Strip(s)) }
 }
@@ -123,7 +135,8 @@ func Off(s string) string { return off.Render(s) }
 func Label(s string) string { return label.Render(s) }
 
 // Selected draws the line under the keyboard in a menu or a dialog: on the color of the box and its title, Menu's, in
-// black, which reads on it, the line's own styles dropped, so none of them breaks the bar.
+// black, which reads on it, the line's own styles dropped, so none of them breaks the bar. A terminal of no color
+// draws it in reverse video.
 func Selected(s string) string { return selected.Render(ansi.Strip(s)) }
 
 // Cursor draws the name under the cursor in a row of toggles: inverse.
@@ -132,14 +145,29 @@ func Cursor(s string) string { return cursor.Render(s) }
 // Refusal draws the line a verb would print about an answer.
 func Refusal(s string) string { return refusal.Render(s) }
 
-// bandOpen and bandEnd are what open and end the band, rendered once, as Band draws every line of an open row.
-var bandOpen, bandEnd, _ = strings.Cut(band.Render("x"), "x")
+// bandOpen and bandEnd are what open and end the band, rendered once, as Band draws every line of an open row, and
+// reverseOpen is what opens it on a terminal of no color.
+var (
+	bandOpen, bandEnd, _ = strings.Cut(band.Render("x"), "x")
+	reverseOpen, _, _    = strings.Cut(cursor.Render("x"), "x")
+)
 
 // Band draws a line on a faint background, as the row under the cursor is drawn, to the width: the line's own styles
-// stay, and the band is opened again after each of them ends, so it runs the whole line.
+// stay, and the band is opened again after each of them ends, so it runs the whole line. On a terminal of no color,
+// as Profile was told, the band is reverse video.
 func Band(line string, width int) string {
+	open := Look()
 	line += strings.Repeat(" ", max(0, width-ansi.StringWidth(line)))
-	return bandOpen + strings.ReplaceAll(line, "\x1b[m", "\x1b[m"+bandOpen) + bandEnd
+	return open + strings.ReplaceAll(line, "\x1b[m", "\x1b[m"+open) + bandEnd
+}
+
+// Look names what the styles draw for the terminal Profile was told of, by the escape that opens the band. A screen
+// that keeps the lines it drew keeps them for one look, and draws them again once the look is another.
+func Look() string {
+	if colorless {
+		return reverseOpen
+	}
+	return bandOpen
 }
 
 // BarKey draws a key on the keys bar: bold, and in the accent color too in the control the keyboard is in, so the

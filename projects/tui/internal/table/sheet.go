@@ -369,14 +369,15 @@ type drawnLines struct {
 
 // drawnKey says what a sheet's lines are drawn for: the rows themselves, held, so their memory is never another's;
 // the row under the cursor; the drawing's widths, scroll, and color; whether rows can be selected, which SetPicks,
-// the only way to change what can be, says anew; and the names, the rows open, and the rows selected, written out.
+// the only way to change what can be, says anew; the names, the rows open, and the rows selected, written out; and
+// the look the styles drew them in, as style.Look names it.
 type drawnKey struct {
 	first                      *grid.Row
 	n, chosen                  int
 	width, shift, pane, indent int
 	color                      string
 	picks                      bool
-	names, open, picked        string
+	names, open, picked, look  string
 }
 
 // drawnFor gives the key of the lines the drawing draws of the rows, the one at chosen under the cursor.
@@ -392,7 +393,7 @@ func drawnFor(d Drawing, rows []grid.Row, chosen int, picks bool) drawnKey {
 	}
 	return drawnKey{first: &rows[0], n: len(rows), chosen: chosen, width: d.Width, shift: d.Shift, pane: d.Pane,
 		indent: d.Indent, color: d.Color, picks: picks, names: strings.Join(d.Names, "\x00"), open: open.String(),
-		picked: picked.String()}
+		picked: picked.String(), look: style.Look()}
 }
 
 // Header gives the header's lines and its rule, and whether the header, closed, hides names; none while no row shows.

@@ -256,7 +256,7 @@ func TestABoxInAGroupsColorSaysWhatTheMenusOwnDoes(t *testing.T) {
 	}
 	edge, under := style.MenuIn("75")
 	if at != left || len(blue) != len(own) || blue[0] != edge(ansi.Strip(blue[0])) ||
-		!strings.Contains(blue[3], "48;5;75") || blue[3] == own[3] || under("x") == style.Selected("x") || strings.Contains(strings.Join(blue, ""), style.Menu("│")) {
+		!strings.Contains(blue[3], "7;38;5;75;48;5;16") || blue[3] == own[3] || under("x") == style.Selected("x") || strings.Contains(strings.Join(blue, ""), style.Menu("│")) {
 		t.Errorf("the box in 75, at %d:\n%q", at, blue)
 	}
 	for k := range own {

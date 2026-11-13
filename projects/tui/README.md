@@ -247,7 +247,8 @@ the terminal, since they are the person's own: a fix the welcome guide runs, and
     grid.DirectionMark gives it to the rule, the columns dialog, the card and the legend, never a full-size ▲ or ▼; the
     card's lines carry ¹ and ₁ alone, ⁿ and ₙ where other things order the rows. The line under the keyboard in a menu
     or a dialog stands on the menu's bright cyan, in black, and a dialog's keys are the keys bar's alone, except in
-    the dialog an action asks in, whose two buttons name ⏎ and esc. A column's
+    the dialog an action asks in, whose two buttons name ⏎ and esc. With `NO_COLOR`, that line is in reverse video,
+    and so are the stop under the keyboard in a control line and the row under the cursor. A column's
     sort mark stands on the rule under the first cell of its name, wherever the name aligns. A dim · there says the
     column can sort and does not; a column that cannot sort has the rule alone.
     A list has its mark under that first cell, what a click on it does: ×, dim, while a row holds all its values, which
@@ -383,7 +384,8 @@ the terminal, since they are the person's own: a fix the welcome guide runs, and
   it keeps the screen's keys and drops the controls between them and the one with the keyboard, then clips that one's
   end.
 - `internal/style/` is the look: one accent color, the glyphs, the keys bar's styles, and the pill a label or an
-  audience is drawn as, its text on its color between half circles. It honors `NO_COLOR`.
+  audience is drawn as, its text on its color between half circles. It honors `NO_COLOR`: the colors go, and what
+  the keyboard is on is drawn in reverse video. `internal/screens/` tells it the colors the terminal draws.
 - `internal/testkit/` holds what the tests share, the test's clock among them. Only tests import it.
 
 ## Testing

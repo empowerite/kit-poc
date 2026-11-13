@@ -237,9 +237,14 @@ func PresetLine(h Host, focused bool) string {
 
 // SelectorPill draws the preset line's selector: the preset's name, struck through and italic once the table has
 // changed from it, as a terminal has no bolder strikethrough, and Presets, bold black on back, between half circles
-// in back.
+// in back. On SelectorFocus it is reverse video with the two colors swapped, as the line under the keyboard in a menu
+// is, so a terminal of no color still draws the selector that has the keyboard reversed.
 func SelectorPill(name, back string, changed bool) string {
 	text := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("0")).Background(lipgloss.Color(back))
+	if back == SelectorFocus {
+		text = lipgloss.NewStyle().Bold(true).Reverse(true).Foreground(lipgloss.Color(back)).
+			Background(lipgloss.Color("0"))
+	}
 	return style.PillEnd(style.PillLeft, back) + text.Strikethrough(changed).Italic(changed).Render(name) +
 		text.Render(" "+Presets) + style.PillEnd(style.PillRight, back)
 }

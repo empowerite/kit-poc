@@ -341,7 +341,8 @@ func (m Model) workspaceMsg() shell.WorkspaceMsg {
 // an answer to what a screen started, for that screen; while a dialog is open, a key or a click for it, which closes
 // it outside it, a paste for the Open Repository… dialog, which types it, and for the Settings dialog nowhere, a turn
 // of the wheel for the Open Repository… dialog's list, and any other mouse event nowhere;
-// and anything else for the screen shown, the terminal's size as the screen has it.
+// and anything else for the screen shown, the terminal's size as the screen has it. The colors the terminal draws, as
+// the program says them at its start, are told to the styles, so a terminal of none still shows where the keyboard is.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case shell.SwitchMsg:
@@ -390,6 +391,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.deliver(m.here, m.sized())
 	case tea.KeyboardEnhancementsMsg:
 		m.keyboard = &msg
+	case tea.ColorProfileMsg:
+		style.Profile(msg.Profile)
 	case tea.KeyPressMsg:
 		m.refusal = ""
 		if s, ok := m.crumbHere(); ok && !m.opener.Open && !m.dialog.Open && s.Backs(msg) {

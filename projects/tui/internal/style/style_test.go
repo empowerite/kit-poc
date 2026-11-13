@@ -2,10 +2,12 @@
 package style
 
 import (
+	"bytes"
 	"slices"
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -30,11 +32,62 @@ func TestEveryStyleDrawsItsTextWholeAndInItsOwnWay(t *testing.T) {
 }
 
 // The line under the keyboard in a menu or a dialog drops its own styles, so a dim glyph in it leaves no hole in the
-// bar, and stands on the menu's bright cyan, 14, in black, 16.
+// bar, and stands on the menu's bright cyan, 14, in black, 16: reverse video, 7, with the cyan as the text's color and
+// the black as its ground, which a terminal of colors draws as black on cyan.
 func TestTheLineSelectedInAMenuStandsOnTheMenusColor(t *testing.T) {
 	got := Selected(Off("⦾") + " off")
-	if got != "\x1b[38;5;16;106m⦾ off\x1b[m" {
+	if got != "\x1b[7;96;48;5;16m⦾ off\x1b[m" {
 		t.Errorf("selected: %q", got)
+	}
+}
+
+// uncolored gives a text as a terminal of no color is sent it, as under NO_COLOR: the program writes through the
+// terminal's profile, which drops the colors and keeps the rest.
+func uncolored(t *testing.T, text string) string {
+	t.Helper()
+	var b bytes.Buffer
+	if _, err := (&colorprofile.Writer{Forward: &b, Profile: colorprofile.ASCII}).Write([]byte(text)); err != nil {
+		t.Fatal(err)
+	}
+	return b.String()
+}
+
+// A terminal of no color is sent the line under the keyboard in reverse video, in a menu's own color or a group's,
+// bold too on the line of where the menu is, though it is told nothing of the terminal.
+func TestTheLineSelectedIsReverseVideoWithNoColor(t *testing.T) {
+	_, under := MenuIn("114")
+	for name, c := range map[string]struct{ got, want string }{
+		"Selected":        {Selected(Off("⦾") + " off"), "\x1b[7m⦾ off\x1b[m"},
+		"MenuIn":          {under("Save"), "\x1b[7mSave\x1b[m"},
+		"MenuHereIn":      {MenuHereIn("")("Flow"), "\x1b[1;7mFlow\x1b[m"},
+		"MenuHereIn(114)": {MenuHereIn("114")("Flow"), "\x1b[1;7mFlow\x1b[m"},
+	} {
+		if got := uncolored(t, c.got); got != c.want {
+			t.Errorf("%s with no color: %q, want %q", name, got, c.want)
+		}
+	}
+}
+
+// Told the terminal has no color, as under NO_COLOR or with TERM=dumb, the band is reverse video, opened again after
+// each style in the line ends, and the look is another; told it has colors again, the band is the faint background.
+func TestTheBandIsReverseVideoOnATerminalOfNoColor(t *testing.T) {
+	t.Cleanup(func() { Profile(colorprofile.TrueColor) })
+	line := "#45 " + Off("2h") + " title"
+	faint, look := Band(line, 20), Look()
+	for _, p := range []colorprofile.Profile{colorprofile.ASCII, colorprofile.NoTTY} {
+		Profile(p)
+		got := Band(line, 20)
+		if got != "\x1b[7m#45 \x1b[2m2h\x1b[m\x1b[7m title        \x1b[m" || uncolored(t, got) != got {
+			t.Errorf("the band at %s: %q", p, got)
+		}
+		if Look() == look {
+			t.Errorf("the look at %s is the look with colors: %q", p, look)
+		}
+	}
+	for _, p := range []colorprofile.Profile{colorprofile.ANSI, colorprofile.ANSI256, colorprofile.TrueColor} {
+		if Profile(p); Band(line, 20) != faint || Look() != look {
+			t.Errorf("the band at %s: %q", p, Band(line, 20))
+		}
 	}
 }
 
@@ -116,7 +169,7 @@ func TestInDrawsAGroupsColor(t *testing.T) {
 
 func TestTheMenusLineForWhereItIsIsTheBarBold(t *testing.T) {
 	if MenuHereIn("")("x") == Selected("x") || ansi.Strip(MenuHereIn("")("\x1b[1mx\x1b[0m")) != "x" ||
-		!strings.Contains(MenuHereIn("114")("x"), "48;5;114") {
+		!strings.Contains(MenuHereIn("114")("x"), "7;38;5;114;48;5;16") {
 		t.Errorf("here: %q, colored %q", MenuHereIn("")("x"), MenuHereIn("114")("x"))
 	}
 }
