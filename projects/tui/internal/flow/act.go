@@ -45,7 +45,8 @@ const issuesStage = "issues"
 
 // actions gives the issues' actions, in the tab's menu's order, on issues, the Packages app's on its stage, as
 // packages.go says, and none elsewhere: New… first, which files an issue and needs none selected, then those on the
-// issues it acts on, there with none to act on too, dim, so the menu shows what a row makes possible.
+// issues it acts on, there with none to act on too, dim, so the menu shows what a row makes possible; Add to Pull
+// Request… only where the app has the changes tab, never in Issues, whose menu has no such line to show dim.
 func (m Model) actions() []shell.Item {
 	if m.onPackages() {
 		return packageActions()
@@ -53,7 +54,7 @@ func (m Model) actions() []shell.Item {
 	if len(m.stages) == 0 || m.stages[m.stage].name != issuesStage {
 		return nil
 	}
-	return []shell.Item{
+	items := []shell.Item{
 		{Glyph: Write, Name: "New…", Keys: "N"},
 		{Glyph: Sprout, Name: "Start Local Work for Each"},
 		{Glyph: Branch, Name: "Start Local Work Together…"},
@@ -66,6 +67,11 @@ func (m Model) actions() []shell.Item {
 		{Glyph: Twin, Name: "Close as Duplicate of…"},
 		{Glyph: ToPage, Name: "Copy Links"},
 	}
+	if m.find("changes") == nil {
+		// the pull requests to add to are those the changes tab read: an app without it never has one
+		items = slices.DeleteFunc(items, func(i shell.Item) bool { return i.Name == "Add to Pull Request…" })
+	}
+	return items
 }
 
 // ask is what an action asks before kit runs, in the one dialog every action that writes shares: a title, which says

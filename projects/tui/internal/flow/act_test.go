@@ -529,7 +529,7 @@ func overMembers(t *testing.T) (Model, string, string, string) {
 	ws := group
 	ws.Members = []kit.WorkspaceMember{{Repository: "github.com/o/a", Checkout: a},
 		{Repository: "github.com/o/b", Checkout: b}}
-	m := over(t, "issues")
+	m := over(t, "issues", "changes")
 	m = drive(m, shell.WorkspaceMsg{Workspace: ws}, answer("issues", twoMembers),
 		tea.WindowSizeMsg{Width: 120, Height: 40})
 	return m, dirs, a, b
@@ -701,5 +701,21 @@ func TestAMemberWhoseCheckoutKitHasNotSaidIsNotActedOn(t *testing.T) {
 	}
 	if !strings.Contains(m.note.Text, "where github.com/o/a is checked out") {
 		t.Errorf("the note of New…: %q", m.note.Text)
+	}
+}
+
+// Add to Pull Request… adds an issue to a pull request that the changes tab read, so an app with no changes tab,
+// Issues, never has one to add to: its menu leaves the line out, where Flow's keeps it, dim until the caller has one.
+func TestAnAppWithNoChangesTabLeavesAddToPullRequestOut(t *testing.T) {
+	i := drive(appOf(t, shell.Issues, tea.WindowSizeMsg{Width: 160, Height: 30}), press(':'))
+	if k := item(i, "Add to Pull Request…"); k >= 0 {
+		t.Errorf("the Issues app offers Add to Pull Request… at %d", k)
+	}
+	if k := item(i, "Assign to Me"); k < 0 {
+		t.Error("the Issues app lost its other actions")
+	}
+	m, _ := selecting(t)
+	if k := item(drive(m, press(':')), "Add to Pull Request…"); k < 0 {
+		t.Error("Flow lost Add to Pull Request…")
 	}
 }
