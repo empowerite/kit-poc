@@ -184,6 +184,13 @@ def github_runs:
           took: (if .startedAt != null and .completedAt != null
                  then (.completedAt | epoch) - (.startedAt | epoch) else null end) });
 
+# github_bot reads an actor, as GitHub's GraphQL gives one, and gives its login if it is a bot, as the REST API and a
+# pull request's page name it, dependabot[bot], else nothing: a Bot, whose GraphQL login is dependabot, or a login that
+# ends [bot].
+def github_bot:
+  select(. != null and (.__typename == "Bot" or (.login // "" | endswith("[bot]"))))
+  | if .login | endswith("[bot]") then .login else .login + "[bot]" end;
+
 # github_prs($now) reads the answer to forge/github:open-prs's GraphQL query and gives one document per pull request.
 # GitHub tells no push's time without a further call, so pushed is the head commit's: when it was committed, and the
 # login of its author, or null when the author's email belongs to no account. A closed issue's assignees are those
@@ -194,14 +201,15 @@ def github_runs:
 # latestOpinionatedReviews gives them, a dismissed review standing as a comment; then each other reviewer's latest
 # review, as latestReviews gives them: a comment, or one of those where the answer holds no opinionated reviews; a
 # pending review, which only its author sees, is none. Its page, and that of each issue it closes, is the url the
-# answer gives, and where it is the repository's nameWithOwner.
+# answer gives, and where it is the repository's nameWithOwner. Its author is its login, a bot's as github_bot names it,
+# and an issue it links that is closed is none it closes.
 def github_prs($now):
   .data.repository as $repository
   | ([$repository.issues.nodes[]? | {key: "\(.number)", value: [.assignees.nodes[]?.login]}] | from_entries)
     as $assigned
   | $repository.pullRequests.nodes[]
   | { number, ref: "#\(.number)", source: "github", url, branch: .headRefName, title,
-      author: (.author.login // ""), createdAt, body,
+      author: ((.author | github_bot) // .author.login // ""), createdAt, body,
       fork: (if .isCrossRepository then .headRepositoryOwner.login // null else null end),
       pushed: (.commits.nodes[0].commit // {}
                | if .committedDate == null then null else {at: .committedDate, by: .author.user.login} end),
@@ -220,7 +228,7 @@ def github_prs($now):
                                state: ({APPROVED: "approved", CHANGES_REQUESTED: "changes"}[.state]
                                        // "commented"),
                                at: (.submittedAt // null) }))),
-      closes: [.closingIssuesReferences.nodes[]
+      closes: [.closingIssuesReferences.nodes[] | select((.state // "OPEN") == "OPEN")
                | { number, title, createdAt, source: "github", url, labels: [.labels.nodes[]?],
                    assignees: (if .repository.nameWithOwner == $repository.nameWithOwner
                                then $assigned["\(.number)"] // [] else [] end) }
@@ -309,7 +317,8 @@ def gitlab_pipeline_jobs:
 
 # gitlab_pr($now; $jobs; $discussions; $closes; $fork; $approvals) reads a merge request, with its pipeline's jobs,
 # its discussions, the issues it closes, the owner of the fork its branch lives in, or null, and its approvals, and
-# gives its document. GitLab names a label without its color here, which colored then gives it.
+# gives its document, those of the issues it closes that are open. GitLab names a label without its color here, which
+# colored then gives it.
 # GitLab tells no push's time without a further call, so pushed is the head pipeline's: when it was created, and who
 # started it; null when the branch has no pipeline. Its reviewers are those who approved it, at the time each did, then
 # each reviewer it names without an approval, asked. Its page, and that of each issue it closes, is GitLab's web_url,
@@ -325,8 +334,9 @@ def gitlab_pr($now; $jobs; $discussions; $closes; $fork; $approvals):
     unresolved: ([$discussions[] | select(any(.notes[]?; .resolvable and (.resolved | not)))] | length),
     reviewers: ([$approvals.approved_by[]? | {login: .user.username, state: "approved", at: (.approved_at // null)}]
                 + [.reviewers[]? | {login: .username, state: "requested", at: null}]),
-    closes: [$closes[] | { number: .iid, title, assignees: [.assignees[]?.username], labels, createdAt: .created_at,
-                           source: "gitlab", url: .web_url } + place(gitlab_path)] }
+    closes: [$closes[] | select((.state // "opened") == "opened")
+             | { number: .iid, title, assignees: [.assignees[]?.username], labels, createdAt: .created_at,
+                 source: "gitlab", url: .web_url } + place(gitlab_path)] }
     + place(gitlab_path)
   | document($now);
 
@@ -974,13 +984,6 @@ def github_teams($members; $limit):
             url: (.value.html_url // null),
             cut: ($team != null and ($team.members.totalCount // 0) > ($team.members.nodes // [] | length)) })
   | cut_teams($limit);
-
-# github_bot reads an actor, as GitHub's GraphQL gives one, and gives its login if it is a bot, as the REST API and a
-# pull request's page name it, dependabot[bot], else nothing: a Bot, whose GraphQL login is dependabot, or a login that
-# ends [bot].
-def github_bot:
-  select(. != null and (.__typename == "Bot" or (.login // "" | endswith("[bot]"))))
-  | if .login | endswith("[bot]") then .login else .login + "[bot]" end;
 
 # github_bots reads the answer to forge/github:bots's GraphQL query and gives one document per bot that acted among
 # those commits, changes, and reviews: {login, acted, last, url}, acted what it did, in the order commit, change,

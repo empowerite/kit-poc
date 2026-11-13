@@ -103,6 +103,17 @@ import "forge" as forge; forge::gitlab_build_jobs
 [{"name": "a", "status": "success", "started_at": "1970-01-12T13:45:00Z", "finished_at": "1970-01-12T13:46:40Z"}, {"name": "b", "status": "failed", "failure_reason": "script_failure", "started_at": null, "finished_at": null}, {"name": "c", "status": "running", "started_at": "1970-01-12T13:45:00Z", "finished_at": null}]
 [{"name":"a","state":"passed","took":100,"step":null},{"name":"b","state":"failed","took":null,"step":"script_failure"},{"name":"c","state":"running","took":null,"step":null}]
 
+# A change's author is its login, and a bot's the name the REST API and the change's page give it, dependabot[bot],
+# where GraphQL says dependabot and its type Bot.
+import "forge" as forge; [forge::github_prs(1000000) | .author]
+{"data": {"repository": {"nameWithOwner": "o/r", "pullRequests": {"nodes": [{"number": 3, "title": "a", "createdAt": "1970-01-12T13:30:00Z", "author": {"__typename": "Bot", "login": "dependabot"}, "closingIssuesReferences": {"nodes": []}, "commits": {"nodes": []}}, {"number": 4, "title": "b", "createdAt": "1970-01-12T13:30:00Z", "author": {"__typename": "User", "login": "ada"}, "closingIssuesReferences": {"nodes": []}, "commits": {"nodes": []}}, {"number": 5, "title": "c", "createdAt": "1970-01-12T13:30:00Z", "author": null, "closingIssuesReferences": {"nodes": []}, "commits": {"nodes": []}}]}}}}
+["dependabot[bot]","ada",""]
+
+# An issue a change links that is closed is no issue the change closes, on either forge.
+import "forge" as forge; [(.github | forge::github_prs(1000000) | .closes | map(.number)), (.gitlab | forge::gitlab_pr(1000000; []; []; .closes; null; {}) | .closes | map(.number))]
+{"github": {"data": {"repository": {"nameWithOwner": "o/r", "pullRequests": {"nodes": [{"number": 3, "title": "a", "createdAt": "1970-01-12T13:30:00Z", "closingIssuesReferences": {"nodes": [{"number": 7, "state": "OPEN", "title": "x", "createdAt": "1970-01-12T13:30:00Z", "repository": {"nameWithOwner": "o/r"}}, {"number": 8, "state": "CLOSED", "title": "y", "createdAt": "1970-01-12T13:30:00Z", "repository": {"nameWithOwner": "o/r"}}]}, "commits": {"nodes": []}}]}}}}, "gitlab": {"iid": 3, "title": "a", "created_at": "1970-01-12T13:30:00Z", "closes": [{"iid": 7, "state": "opened", "title": "x", "created_at": "1970-01-12T13:30:00Z"}, {"iid": 8, "state": "closed", "title": "y", "created_at": "1970-01-12T13:30:00Z"}]}}
+[[7],[7]]
+
 # A GitLab pipeline that waits for a callback is running, not cancelled.
 import "forge" as forge; map(forge::gitlab_build_state)
 [{"status": "waiting_for_callback"}, {"status": "canceled"}]

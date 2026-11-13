@@ -51,7 +51,7 @@ Rate limits on Server are off unless its administrator turns them on.
 | Author | `gh api "repos/{owner}/{repo}/pulls/${n}" --jq .user.login` (raw API); `gh pr view --json author` names a bot `app/dependabot`, not `dependabot[bot]` |
 | State and merge commit | `gh pr view "${n}" --json state,mergeCommit --jq '"\(.state)\t\(.mergeCommit.oid // "")"'` |
 | Change on a branch | `gh pr list --head "${branch}" --state all --json number,state,headRefOid --jq '.[0]'`; `--state open` for the open one |
-| Closing issues | `gh pr view "${n}" --json closingIssuesReferences`; kit pages `closingIssuesReferences(first: 100, after: $after)` with `gh api graphql`, as `gh` reads at most 100 |
+| Closing issues | `gh pr view "${n}" --json closingIssuesReferences`; kit pages `closingIssuesReferences(first: 100, after: $after)` with `gh api graphql`, as `gh` reads at most 100, and draws the open ones |
 | Review threads | `gh api graphql` on `pullRequest(number: $n) { reviewThreads(first: 100) { nodes { isResolved } } }` (raw API) |
 | Checks rollup | `gh pr checks "${n}" --json name,state,bucket,startedAt,completedAt`, or `gh pr view "${n}" --json statusCheckRollup` |
 | Open changes | `gh api graphql` on `repository.pullRequests(states: OPEN, first: 100)` with threads, checks, closing issues, and reviewers (raw API), 18 points a page; `gh pr list --state open --json "${fields}" --limit "${limit}"` for fewer fields |

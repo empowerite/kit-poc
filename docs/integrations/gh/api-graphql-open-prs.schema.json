@@ -128,8 +128,12 @@
         },
         "author": {
           "type": ["object", "null"],
-          "description": "Actor, null for a deleted account",
+          "description": "Actor, null for a deleted account; kit draws a Bot's login as the REST API spells it, dependabot[bot]",
           "properties": {
+            "__typename": {
+              "type": "string",
+              "enum": ["User", "Bot", "Organization", "Mannequin", "EnterpriseUserAccount"]
+            },
             "login": {
               "type": "string"
             }
@@ -358,10 +362,14 @@
     },
     "ClosingIssue": {
       "type": "object",
-      "description": "Issue",
+      "description": "Issue; kit draws the open ones",
       "properties": {
         "number": {
           "type": "integer"
+        },
+        "state": {
+          "type": "string",
+          "enum": ["OPEN", "CLOSED"]
         },
         "title": {
           "type": "string"

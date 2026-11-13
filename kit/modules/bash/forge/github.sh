@@ -624,11 +624,11 @@ forge/github:open-prs() {
         pageInfo { hasNextPage endCursor }
         nodes {
           number title body url isDraft headRefName createdAt mergeStateStatus reviewDecision isCrossRepository
-          author { login }
+          author { __typename login }
           headRepositoryOwner { login }
           labels(first: 20) { nodes { name color } }
           closingIssuesReferences(first: 10) { pageInfo { hasNextPage endCursor } nodes {
-            number title createdAt url repository { nameWithOwner } labels(first: 20) { nodes { name color } }
+            number state title createdAt url repository { nameWithOwner } labels(first: 20) { nodes { name color } }
           } }
           reviewRequests(first: 20) { totalCount nodes { requestedReviewer {
             ... on User { login } @team@... on Bot { login } ... on Mannequin { login }
@@ -1321,7 +1321,7 @@ forge/github:rest-of-closes() {
     repository(owner: $owner, name: $name) {
       pullRequest(number: $pr) {
         closingIssuesReferences(first: 100, after: $after) { pageInfo { hasNextPage endCursor } nodes {
-          number title createdAt url repository { nameWithOwner } labels(first: 20) { nodes { name color } }
+          number state title createdAt url repository { nameWithOwner } labels(first: 20) { nodes { name color } }
         } }
       }
     }

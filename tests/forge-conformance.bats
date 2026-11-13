@@ -716,6 +716,7 @@ here() {
       = '["cy","dee",true]' ] || { echo "${forge}: ${output}"; return 1; }
   done
   grep --quiet 'isCrossRepository' "${FAKE_DIR}/gh.calls"
+  grep --quiet 'author { __typename login }' "${FAKE_DIR}/gh.calls"
   grep --quiet 'headRepositoryOwner { login }' "${FAKE_DIR}/gh.calls"
   grep --quiet 'committedDate author { user { login } }' "${FAKE_DIR}/gh.calls"
   [ "$(grep --count '^api projects/99$' "${FAKE_DIR}/glab.calls")" -eq 1 ]
@@ -808,7 +809,7 @@ here() {
   [ "$(jq --compact-output '.closes | map(.repository)' <<<"$output")" = '["repo",null]' ]
   # GitHub is asked for the page of the pull request and of each issue it closes, the first ten and the rest
   grep --quiet 'number title body url isDraft' "${FAKE_DIR}/gh.calls"
-  grep --quiet 'number title createdAt url repository { nameWithOwner }' "${FAKE_DIR}/gh.calls"
+  grep --quiet 'number state title createdAt url repository { nameWithOwner }' "${FAKE_DIR}/gh.calls"
   world gitlab
   jq '.[0].web_url = "https://gitlab.com/other/group/repo/-/issues/7"' "${FAKE_DIR}/closes.json" \
     > "${FAKE_DIR}/far.json" && mv "${FAKE_DIR}/far.json" "${FAKE_DIR}/closes.json"
@@ -2169,7 +2170,7 @@ SH
   [ "$(jq --compact-output '[.labels, .closes[0].labels] | map(map(.name))' <<<"$output")" = '[["kind=fix"],["bug"]]' ]
   grep --quiet 'issues(states: OPEN, first: 100, filterBy: {assignee: "\*"}' "${FAKE_DIR}/gh.calls"
   grep --quiet 'closingIssuesReferences(first: 10) { pageInfo { hasNextPage endCursor } nodes {$' "${FAKE_DIR}/gh.calls"
-  grep --quiet 'number title createdAt url repository { nameWithOwner } labels(first: 20) { nodes { name color } }' \
+  grep --quiet 'number state title createdAt url repository { nameWithOwner } labels(first: 20) { nodes { name color } }' \
     "${FAKE_DIR}/gh.calls"
   [ "$(grep --count 'assignees(first: 10)' "${FAKE_DIR}/gh.calls")" -eq 1 ]
 }
