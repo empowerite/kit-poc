@@ -20,9 +20,11 @@
 #   checks      {state, passed, total, failing, took}
 #   unresolved  the number of unresolved review threads
 #   labels      [{name, color}] of the labels on it, as labels gives them
-#   closes      [{number, title, assignees, labels, age, source, url}] of the issues it closes, the assignees as
-#               logins, and url each issue's own page, another repository's for an issue there, so a change's issues
-#               are drawn as the issues stage draws an issue without a second call to the forge
+#   closes      [{number, ref, title, assignees, labels, age, source, url}] of the issues it closes, the assignees
+#               as logins, and url each issue's own page, another repository's for an issue there, so a change's issues
+#               are drawn as the issues stage draws an issue without a second call to the forge; ref is #7 for an
+#               issue in the change's repository, and its organization, repository, and #7, other/place#7, for one in
+#               another's, so no row is taken for the issue of its number here
 #   named       the references a closing keyword names in its body, as named reads them: AB#4521 of Closes AB#4521,
 #               how a change closes an issue of a tracker the forge does not link by itself
 #   reviewers   [{login, state, at}] of the people and teams asked to review it, or who did: state is requested while
@@ -139,20 +141,24 @@ def named:
 # approval, runs, unresolved, labels, closes, reviewers, body} and gives the document, the body as named reads it.
 # pushed is {at, by}, or null, and comes out with its age in place of at. labels are the forge's, as labels reads
 # them. Each of closes is {number, title, assignees, labels, createdAt, source, url, organization, repository}, and
-# comes out with its age; an issue an older answer gives without a time has a null age, one without a source, a page,
+# comes out with its age and its ref, #7 where the change's own place, as at says, is the issue's, else the issue's
+# organization, repository, and #7; an issue an older answer gives without a time has a null age, one without a source, a page,
 # an organization, or a repository a null one, and one without labels none. The change's own page is null where the
 # answer gives none, and its organization and repository, where the forge says it is, are left out where the answer
 # names no repository, so from gives it those of the repository kit read it in. reviewers are as reviewers reads them,
 # none where the answer names none; each run comes out with at in seconds since the epoch, null where it was empty,
 # its workflow and event null where it has none, and without since.
 def document($now):
-  (.runs | checks($now)) as $checks
+  . as $change
+  | (.runs | checks($now)) as $checks
   | { number, ref, source: (.source // null), url: (.url // null), branch, fork: (.fork // null), title, author,
       createdAt,
       age: ($now - (.createdAt | epoch)),
       pushed: (if .pushed == null then null else {age: ($now - (.pushed.at | epoch)), by: (.pushed.by // null)} end),
       state: (. + {checks: $checks} | state), checks: $checks, unresolved, labels: (.labels | labels),
-      closes: [.closes[] | { number, title, assignees: (.assignees // []), labels: (.labels | labels),
+      closes: [.closes[] | { number, ref: (if at($change) or .organization == null or .repository == null then "#\(.number)"
+                                           else "\(.organization)/\(.repository)#\(.number)" end),
+                             title, assignees: (.assignees // []), labels: (.labels | labels),
                              source: (.source // null), url: (.url // null),
                              organization: (.organization // null), repository: (.repository // null),
                              age: (if .createdAt == null then null else $now - (.createdAt | epoch) end) }],

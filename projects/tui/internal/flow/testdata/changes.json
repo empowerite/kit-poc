@@ -19,6 +19,7 @@
     "closes": [
       {
         "number": 1,
+        "ref": "#1",
         "title": "The first release, v0.1.0",
         "assignees": [
           "jeffrey-aguilera"
@@ -100,6 +101,7 @@
     "closes": [
       {
         "number": 8,
+        "ref": "#8",
         "title": "Lint the modules",
         "assignees": [],
         "age": 200000,
@@ -111,6 +113,7 @@
       },
       {
         "number": 9,
+        "ref": "#9",
         "title": "Lint the bins",
         "assignees": [
           "bob"

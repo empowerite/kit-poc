@@ -667,7 +667,7 @@ func (m Model) changeRows(s stage) []record {
 			r.Detail = append(r.Detail, span(line))
 		}
 		for _, i := range p.Closes {
-			r.Detail = append(r.Detail, []cell{number("#" + strconv.Itoa(i.Number)), owners(i.Assignees),
+			r.Detail = append(r.Detail, []cell{number(reference(i)), owners(i.Assignees),
 				text(InFlight + " in flight"), dimNumber(ageOf(i.Age)), fill(Issue + " " + i.Title)})
 		}
 		if len(p.Closes) == 0 {

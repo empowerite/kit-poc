@@ -641,7 +641,7 @@ here() {
   expected='{"number":3,"branch":"7-fix-the-thing","fork":null,"title":"Fix the thing","author":"ada","pushed":null,'
   expected+='"state":"comments:open","checks":{"state":"SUCCESS","passed":2,"total":2,"failing":"","took":50},'
   expected+='"unresolved":1,"labels":[{"name":"kind=fix","color":"#0e8a16"}],'
-  expected+='"closes":[{"number":7,"title":"Fix the thing","assignees":["bob"],'
+  expected+='"closes":[{"number":7,"ref":"#7","title":"Fix the thing","assignees":["bob"],'
   expected+='"labels":[{"name":"bug","color":"#d73a4a"}]}],'
   # the references a closing keyword names in its body, as a tracker the forge does not link reads them
   expected+='"named":["#7"],'

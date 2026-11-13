@@ -259,6 +259,11 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
   run kit flow changes 11 --json
   [ "$output" = "[]" ]
   [ "$(kit flow changes 7 --json | jq -c 'map(.number)')" = '[3]' ]
+  # the issue it closes in another repository is named by it in the change's rows, and one here is #7
+  run kit flow changes --json
+  [ "$(jq -c 'map(.closes | map(.ref))' <<<"$output")" = '[["#7"],["other/place#11"]]' ]
+  run kit flow changes
+  [[ "$output" == *"other/place#11"* ]]
 }
 
 @test "a narrow terminal clips the title and keeps every other cell whole" {

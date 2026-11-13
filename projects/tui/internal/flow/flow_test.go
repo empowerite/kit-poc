@@ -939,6 +939,20 @@ func setRows(t *testing.T, m *Model, rows ...map[string]any) {
 	*m = drive(*m, reanswer(*m, "incoming", string(data)))
 }
 
+// An issue a pull request closes in another repository is named as kit names it, with its repository's path before the
+// number, so its row is never taken for the issue of that number here; one kit gives no reference is its number.
+func TestAChangeNamesTheIssueItClosesAsKitDoes(t *testing.T) {
+	m := flat(t, options(), tea.WindowSizeMsg{Width: 160, Height: 24}, tab, down, down, toggle)
+	s := m.find("changes")
+	closes := &of[pull](*s)[0].Closes[0]
+	for ref, want := range map[string]string{"other/place#5": "other/place#5", "#5": "#5", "": "#1"} {
+		closes.Ref = ref
+		if got := m.changeRows(*s)[0].Detail[0][0].Values[0]; got != want {
+			t.Errorf("a closed issue whose reference is %q is drawn %q, not %q", ref, got, want)
+		}
+	}
+}
+
 func TestChangesCarryTheirChecksThreadsAndIssues(t *testing.T) {
 	// a change's row is wide: at 80 columns its right end is clipped, so the screen is wider here
 	m := flat(t, options(), tea.WindowSizeMsg{Width: 160, Height: 24}, tab, down, down, toggle)
