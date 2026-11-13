@@ -366,9 +366,9 @@ named-afresh() {
   run --separate-stderr call pr-create 7-fix-the-thing main "Fix the thing"
   [ "$status" -eq 0 ]
   [ "$(named)" = 'github.com github.com/ada/example' ]
-  # gh repo view takes no repository from GH_REPO, only as its argument
-  grep --quiet '^repo view github.com/ada/example --json nameWithOwner' "${FAKE_DIR}/gh.calls"
-  grep --quiet '^repo view github.com/ada/example --json url' "${FAKE_DIR}/gh.calls"
+  # the repository's name and page come from the URL, which asks gh, and GitHub, nothing
+  run grep '^repo view' "${FAKE_DIR}/gh.calls"
+  [ "$status" -eq 1 ]
   # the primary is kit.yml's, where it names one
   printf 'primary: upstream\n' > kit.yml
   named-afresh github.com/empowerite/example
@@ -916,6 +916,23 @@ JSON
   [ "$status" -eq 1 ]
   [ -z "$output" ]
   [[ "$stderr" == *"run: cd "*" && gh auth status (the issues' iterations could not be read)"* ]]
+  # a token that is forbidden the projects, as a fine-grained or installation token may be, has no iterations either
+  forge-forget
+  fixture gh-forbidden.txt <<<'gh: Resource not accessible by personal access token (FORBIDDEN)'
+  GITHUB_ISSUE_ITERATIONS='!1 gh-forbidden.txt' world github
+  run --separate-stderr call open-issues
+  [ "$status" -eq 0 ]
+  [ -z "$stderr" ]
+  # an issue in more projects than the 5 read, or with more field values than the 20, is not read as having none
+  forge-forget
+  fixture gh-cut.json <<'JSON'
+{"data": {"repository": {"issues": {"pageInfo": {"hasNextPage": false}, "nodes": [
+  {"number": 7, "projectItems": {"totalCount": 6, "nodes": [{"fieldValues": {"totalCount": 1, "nodes": [{}]}}]}}]}}}}
+JSON
+  GITHUB_ISSUE_ITERATIONS=gh-cut.json world github
+  run --separate-stderr call open-issues
+  [ "$status" -eq 1 ]
+  [[ "$stderr" == *"at most 5 projects and 20 field values of an issue"* ]]
 }
 
 @test "every provider reaches its tool with color forced off, so a desk's CLICOLOR_FORCE cannot color its data" {
@@ -2170,7 +2187,7 @@ SH
     run --separate-stderr call open-prs
     [ "$status" -eq 1 ]
     [ -z "$output" ]
-    [ "$stderr" = "❌ kit reads at most 20 review requests and 20 reviews of a change (${what} could not be read)" ]
+    [ "$stderr" = "❌ kit reads at most 20 review requests and 20 reviews of a change, and #3 has more (${what} could not be read)" ]
   done
 }
 
@@ -2232,7 +2249,7 @@ SH
   fixture limits.json <<<"{\"resources\": {\"core\": {\"remaining\": 4990, \"reset\": ${reset}},
     \"graphql\": {\"remaining\": 0, \"reset\": ${reset}}}}"
   printf 'api rate_limit*\tlimits.json\n' > "${FAKE_DIR}/routes.first"
-  printf 'api graphql*\t!1 limited.txt\nissue list*\t!1 limited.txt\n' >> "${FAKE_DIR}/routes.first"
+  printf 'api graphql*\t!1 limited.txt\nissue list*\t!1 limited.txt\nrepo view*\t!1 limited.txt\n' >> "${FAKE_DIR}/routes.first"
   cat "${FAKE_DIR}/routes.first" "${FAKE_DIR}/gh.routes" > "${FAKE_DIR}/routes.all"
   mv "${FAKE_DIR}/routes.all" "${FAKE_DIR}/gh.routes"
   run call open-prs
@@ -3060,3 +3077,83 @@ JSON
 }
 
 # ----------------------------------------------------------------------------------------------------------------------
+
+@test "a scanner's mark that GitHub's rate limit stops fails with the limit named, and keeps no verdict" {
+  local verdicts
+  printf 'HTTP/2.0 403 Forbidden\r\n\r\n{"message":"API rate limit exceeded for user ID 1."}\n' > "${FAKE_DIR}/code-limit.txt"
+  printf 'HTTP/2.0 200 OK\r\nETag: W/"x"\r\n\r\n[]\n' > "${FAKE_DIR}/other-200.txt"
+  world github
+  route gh 'api rate_limit' '!1'
+  route gh 'api --include repos/{owner}/{repo}/code-scanning/alerts?sort=updated&direction=desc&per_page=1' \
+    '!1 >code-limit.txt'
+  route gh 'api --include*' other-200.txt
+  run --separate-stderr call marks
+  [[ "${stderr}" == *'rate limit'* ]] || { echo "${status} ${stderr}"; return 1; }
+  [[ "${stderr}" != *'gh auth status'* ]]
+  verdicts=$(dirname "$(snapshot github open-prs)")
+  run compgen -G "${verdicts}/marks-*.verdict"
+  [ "$status" -ne 0 ]
+}
+
+@test "the primary's repository is read from its URL, so a spent rate limit is never told as a wrong checkout" {
+  world github
+  route gh 'repo view*' '!1'
+  : > "${FAKE_DIR}/gh.calls"
+  run call repo
+  [ "$output" = empowerite/example ]
+  run call repo-url
+  [ "$output" = https://github.com/empowerite/example ]
+  ! grep --quiet '^repo view' "${FAKE_DIR}/gh.calls"
+}
+
+@test "a pull request from a fork whose branch has this branch's name is not this branch's" {
+  world github
+  fixture pr-open.json <<<'[{"number": 9, "isCrossRepository": true}, {"number": 3, "isCrossRepository": false}]'
+  run call pr-for-branch 7-fix-the-thing
+  [ "$output" = 3 ]
+  fixture pr-open.json <<<'[{"number": 9, "isCrossRepository": true}]'
+  run call pr-for-branch 7-fix-the-thing
+  [ -z "$output" ]
+  fixture open-heads.json <<<'[{"headRefName": "7-from-a-fork", "isCrossRepository": true}]'
+  run call branch-for-issue 7
+  [ -z "$output" ]
+}
+
+@test "a GitHub repository with Issues turned off answers 3 to its open issues, as the contract says, and says nothing" {
+  fixture gh-off.txt <<<"the 'empowerite/example' repository has disabled issues"
+  world github
+  { printf 'issue list --state open*\t!1 gh-off.txt\n'; cat "${FAKE_DIR}/gh.routes"; } > "${FAKE_DIR}/routes.all"
+  mv "${FAKE_DIR}/routes.all" "${FAKE_DIR}/gh.routes"
+  run --separate-stderr call open-issues
+  [ "$status" -eq 3 ] || { echo "${status} ${stderr}"; return 1; }
+  [ -z "$output$stderr" ]
+}
+
+@test "a lock whose process number a live process has is taken over once the wait runs out, and the read is kept" {
+  local dir
+  world github
+  dir=$(bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge && forge:snapshots')
+  mkdir -p "${dir}"
+  # the number of a process that is alive, as a dead holder's may be once another process has it
+  ln -s "$$" "${dir}/open-prs.lock"
+  : > "${FAKE_DIR}/gh.calls"
+  run bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge && forge_snapshot_wait=2 && forge:open-prs'
+  [ "$status" -eq 0 ]
+  [ "$(jq --raw-output .ref <<<"$output")" = "#3" ]
+  [ -f "${dir}/open-prs.json" ]
+  [ ! -e "${dir}/open-prs.lock" ]
+  run call open-prs
+  [ "$(reads github)" -eq 1 ]
+}
+
+@test "a change made while another process reads leaves no snapshot of the read that began before it" {
+  local dir
+  world github
+  dir=$(bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge && forge:snapshots')
+  mkdir -p "${dir}"
+  # the read has begun when the change drops the snapshots: the answer it then writes is of before the change
+  run bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge
+    forge:call() { forge:forget; printf "{}\n"; }
+    forge:snapshot-take open-prs "$0"' "${dir}/open-prs.json"
+  [ ! -e "${dir}/open-prs.json" ]
+}

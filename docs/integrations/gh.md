@@ -375,17 +375,17 @@ with an example the gate validates against it.
 
 | Schema | The command as kit runs it |
 | --- | --- |
-| [api-graphql-iterations.schema.json](gh/api-graphql-iterations.schema.json) | `gh api graphql --field owner=${owner} --field name=${name} --raw-field query=${query}` |
-| [api-graphql-deployments.schema.json](gh/api-graphql-deployments.schema.json) | `gh api graphql --field owner=${owner} --field name=${name} --raw-field query=${query}` |
-| [api-graphql-bots.schema.json](gh/api-graphql-bots.schema.json) | `gh api graphql --field owner=${owner} --field name=${name} --raw-field query=${query}` |
+| [api-graphql-iterations.schema.json](gh/api-graphql-iterations.schema.json) | `gh api graphql --raw-field owner=${owner} --raw-field name=${name} --raw-field query=${query}` |
+| [api-graphql-deployments.schema.json](gh/api-graphql-deployments.schema.json) | `gh api graphql --raw-field owner=${owner} --raw-field name=${name} --raw-field query=${query}` |
+| [api-graphql-bots.schema.json](gh/api-graphql-bots.schema.json) | `gh api graphql --raw-field owner=${owner} --raw-field name=${name} --raw-field query=${query}` |
 | [api-graphql-team-members.schema.json](gh/api-graphql-team-members.schema.json) | `gh api graphql --raw-field org=${owner} --raw-field t0=${slug}… --raw-field query=${query}` |
-| [api-graphql-rulesets.schema.json](gh/api-graphql-rulesets.schema.json) | `gh api graphql --field owner=${owner} --field name=${name} --raw-field query=${query}` |
-| [api-graphql-merged-prs.schema.json](gh/api-graphql-merged-prs.schema.json) | `gh api graphql --field owner=${owner} --field name=${name} --raw-field query=${query}` |
-| [api-graphql-more-checks.schema.json](gh/api-graphql-more-checks.schema.json) | `gh api graphql --field owner=${owner} --field name=${name} --field pr=${number} --raw-field after=${cursor} --raw-field query=${query}` |
-| [api-graphql-more-closing-issues.schema.json](gh/api-graphql-more-closing-issues.schema.json) | `gh api graphql --field owner=${owner} --field name=${name} --field pr=${number} --raw-field after=${cursor} --raw-field query=${query}` |
-| [api-graphql-more-review-threads.schema.json](gh/api-graphql-more-review-threads.schema.json) | `gh api graphql --field owner=${owner} --field name=${name} --field pr=${number} --raw-field after=${cursor} --raw-field query=${query}` |
-| [api-graphql-open-prs.schema.json](gh/api-graphql-open-prs.schema.json) | `gh api graphql --field owner=${owner} --field name=${name} --raw-field after=${cursor} --raw-field query=${query}` |
-| [api-graphql-pr-closing-issues.schema.json](gh/api-graphql-pr-closing-issues.schema.json) | `gh api graphql --field owner=${owner} --field name=${name} --field number=${number} --raw-field after=${cursor} --raw-field query=${query}` |
+| [api-graphql-rulesets.schema.json](gh/api-graphql-rulesets.schema.json) | `gh api graphql --raw-field owner=${owner} --raw-field name=${name} --raw-field query=${query}` |
+| [api-graphql-merged-prs.schema.json](gh/api-graphql-merged-prs.schema.json) | `gh api graphql --raw-field owner=${owner} --raw-field name=${name} --raw-field query=${query}` |
+| [api-graphql-more-checks.schema.json](gh/api-graphql-more-checks.schema.json) | `gh api graphql --raw-field owner=${owner} --raw-field name=${name} --field pr=${number} --raw-field after=${cursor} --raw-field query=${query}` |
+| [api-graphql-more-closing-issues.schema.json](gh/api-graphql-more-closing-issues.schema.json) | `gh api graphql --raw-field owner=${owner} --raw-field name=${name} --field pr=${number} --raw-field after=${cursor} --raw-field query=${query}` |
+| [api-graphql-more-review-threads.schema.json](gh/api-graphql-more-review-threads.schema.json) | `gh api graphql --raw-field owner=${owner} --raw-field name=${name} --field pr=${number} --raw-field after=${cursor} --raw-field query=${query}` |
+| [api-graphql-open-prs.schema.json](gh/api-graphql-open-prs.schema.json) | `gh api graphql --raw-field owner=${owner} --raw-field name=${name} --raw-field after=${cursor} --raw-field query=${query}` |
+| [api-graphql-pr-closing-issues.schema.json](gh/api-graphql-pr-closing-issues.schema.json) | `gh api graphql --raw-field owner=${owner} --raw-field name=${name} --field number=${number} --raw-field after=${cursor} --raw-field query=${query}` |
 | [api-rate-limit.schema.json](gh/api-rate-limit.schema.json) | `gh api rate_limit` |
 | [api-repos-actions-artifacts.schema.json](gh/api-repos-actions-artifacts.schema.json) | `gh api repos/{owner}/{repo}/actions/artifacts?per_page=100` |
 | [api-repos-attestations.schema.json](gh/api-repos-attestations.schema.json) | `gh api --paginate --slurp repos/{owner}/{repo}/attestations/${digest}?per_page=100` |

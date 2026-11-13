@@ -116,6 +116,14 @@ provider() {
   [ "$(jq -r '.features["closing-issues"]' <<<"$output")" = stand-in ]
 }
 
+@test "the body's closing issues of a forge with no issues ask the tracker that claims #, and say so when none does" {
+  STAND_INS='      closing-issues: body' provider 3 issues closing-issues
+  run --separate-stderr call pr-closing-issues 5
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+  [[ "$stderr" == *'has no issues of its own; claim "#" for another tracker under trackers in kit.yml'* ]]
+}
+
 @test "a timer stands in for marks: every stage of the forge is stale once its span is past" {
   STAND_INS='      marks: {every: 60}' provider 3 marks
   printf 'flow: [releases, builds]\n' >> kit.yml

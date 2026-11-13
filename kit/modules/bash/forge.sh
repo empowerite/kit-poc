@@ -39,7 +39,7 @@
 # It is used for a minute after the read that made it began: long enough for a load's stages, and for the ones a
 # fetch moves to load again, and short enough that a person reading the picture sees the forge as it is. The first
 # process to miss takes the lock, a symbolic link that names its process, and reads; the others wait for its
-# snapshot. A lock whose process is gone is taken over. forge:fresh makes a process read afresh, and a call that
+# snapshot. A lock whose process is gone, or that has outlasted the wait, is taken over. forge:fresh makes a process read afresh, and a call that
 # changes an issue or a change drops the snapshot.
 #
 # Every provider implements the calls below, and each call holds to one contract: it answers, answers none, fails, or
@@ -1002,7 +1002,8 @@ forge:pr-here() {
   printf '%s\n' "${number}"
 }
 # forge:pr-closing-issues <n> prints the issues the change closes, as the forge says, or, with the closing-issues stand-in,
-# as its body says: each issue of the forge's own a closing keyword names, with its state, as the repository's.
+# as its body says: each issue a closing keyword names, with its state, as the tracker that claims # says it: the
+# forge's own, or, where the forge has no issues, the tracker kit.yml names for it. A state no tracker gives fails.
 forge:pr-closing-issues() {
   local choice body repo numbers number state
   forge:stand-ins >/dev/null || return 1
@@ -1012,6 +1013,7 @@ forge:pr-closing-issues() {
     forge:call pr-closing-issues "$@"
     return
   fi
+  use tracker
   body=$(forge:pr-body "$1") || return 1
   repo=$(forge:call repo) || return 1
   numbers=$(grep --only-matching --ignore-case --extended-regexp '(close[sd]?|fix(e[sd])?|resolve[sd]?):? #[0-9]+' \
@@ -1019,7 +1021,7 @@ forge:pr-closing-issues() {
     || numbers=''  # grep's exit 1 is a body that names no issue of the forge's own
   for number in ${numbers}
   do
-    state=$(forge:issue-state "${number}") || return 1
+    state=$(tracker:of "#${number}" state) || return 1
     printf '%s %s %s\n' "${number}" "${state}" "${repo}"
   done
 }
@@ -1120,18 +1122,21 @@ forge:snapshots() {
   printf '%s/kit/forge/%s-%s\n' "${common}" "${provider}" "$(printf '%s' "${url}" | cksum | cut -d ' ' -f 1)"
 }
 
-# forge:forget drops this repository's snapshots.
+# forge:forget drops this repository's snapshots, and notes when, so a read that began before the change and ends after
+# it keeps no snapshot: forge:snapshot-take compares the two, in microseconds.
 forge:forget() {
   local dir
   dir=$(forge:snapshots) || return 0
   rm -f "${dir}"/*.json
+  { mkdir -p "${dir}" && printf '%s\n' "${EPOCHREALTIME//[^0-9]/}" > "${dir}/forgotten"; } 2>/dev/null \
+    || true  # a note that cannot be kept costs only a snapshot of a read that began before the change
 }
 
 # forge:snapshot <call> prints the call's answer from the snapshot when one is recent enough, and otherwise reads it,
 # as the file header says, and keeps the answer as the new snapshot. Its first line is the second the read began.
 # Where there is no place for a snapshot, it reads. A read that fails keeps nothing, and the next process reads again.
 forge:snapshot() {
-  local call=$1 dir file lock floor holder waited=0 feature=${forge_feature_of[$1]:-}
+  local call=$1 dir file lock floor holder status waited=0 took_over='' feature=${forge_feature_of[$1]:-}
   # A call the forge lacks is answered so before any snapshot is looked for, as forge:call answers it.
   if [[ -n "${feature}" ]]
   then
@@ -1153,8 +1158,9 @@ forge:snapshot() {
     then
       file:at-exit forge:unlock "${lock}" "${BASHPID}"
       forge:snapshot-read "${file}" "${floor}" || forge:snapshot-take "${call}" "${file}" || {
+        status=$?
         forge:unlock "${lock}" "${BASHPID}"
-        return 1
+        return "${status}"
       }
       forge:unlock "${lock}" "${BASHPID}"
       return 0
@@ -1169,6 +1175,14 @@ forge:snapshot() {
     fi
     if (( waited >= forge_snapshot_wait ))
     then
+      # A process of the same user may have the number of one that died holding the lock, so a lock that outlasts the
+      # wait is taken over, once, and the read is kept as a snapshot; the next turn of a lock that is taken again reads.
+      if [[ -z "${took_over}" ]] && holder=$(readlink "${lock}" 2>/dev/null)
+      then
+        took_over=1
+        forge:unlock "${lock}" "${holder}"
+        continue
+      fi
       forge:call "${call}"
       return
     fi
@@ -1191,11 +1205,17 @@ forge:snapshot-read() {
 # forge:snapshot-take <call> <file> reads the call's answer from the forge, prints it, and keeps it in <file>, under
 # the second the read began.
 forge:snapshot-take() {
-  local taken answer
-  taken=$(date +%s)
-  answer=$(forge:call "$1") || return 1
-  # A snapshot that cannot be kept costs only the next read, which asks the forge again.
-  file:replace "$2" printf '%s\n' "${taken}" ${answer:+"${answer}"} || true
+  local taken answer began forgotten='' status=0
+  taken=$(date +%s) began=${EPOCHREALTIME//[^0-9]/}
+  answer=$(forge:call "$1") || status=$?
+  (( status == 0 )) || return "${status}"
+  # A change that dropped the snapshots after this read began leaves them dropped: the answer is of before it.
+  [[ ! -f "${2%/*}/forgotten" ]] || forgotten=$(<"${2%/*}/forgotten")
+  if [[ ! "${forgotten}" =~ ^[0-9]+$ ]] || (( forgotten <= began ))
+  then
+    # A snapshot that cannot be kept costs only the next read, which asks the forge again.
+    file:replace "$2" printf '%s\n' "${taken}" ${answer:+"${answer}"} || true
+  fi
   [[ -z "${answer}" ]] || printf '%s\n' "${answer}"
 }
 

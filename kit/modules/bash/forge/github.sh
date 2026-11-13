@@ -191,11 +191,11 @@ forge/github:bots() {
 # a duplicate <N>-<slug>-1 branch.
 forge/github:branch-for-issue() {
   local heads
-  forge/github:ask heads 'the open pull requests' pr list --state open --json headRefName \
+  forge/github:ask heads 'the open pull requests' pr list --state open --json headRefName,isCrossRepository \
     --limit "${forge_list_limit}" || return 1
   forge:whole 'the open pull requests' "$(jq length <<<"${heads}")" || return 1
   forge/github:fold 'the open pull requests' "${heads}" --raw-output --arg n "$1" \
-    '[.[] | select(.headRefName | startswith("\($n)-"))] | .[0].headRefName // empty'
+    '[.[] | select((.isCrossRepository | not) and (.headRefName | startswith("\($n)-")))] | .[0].headRefName // empty'
 }
 
 # forge/github:bypasses prints one document per bypass of the default branch's controls, as the seam's header says:
@@ -571,10 +571,13 @@ forge/github:noun() { printf '#\tpull request\n'; }
 # answers with issues alone, never pull requests, and reads every page up to its --limit; each issue's iteration is
 # forge/github:issue-iterations', which gh issue list does not say.
 forge/github:open-issues() {
-  local answer iterations
+  local answer iterations status forge_github_off='has disabled issues'
+  # a repository with Issues turned off has none to list, which the contract answers with 3
   forge/github:ask answer 'the issues' issue list --state open --limit "${forge_list_limit}" \
     --json number,title,assignees,labels,createdAt,url,milestone \
-    || return 1
+    || { status=$?; return "${status}"; }
+  forge_github_off=''
+
   forge:whole 'the issues' "$(jq length <<<"${answer}")" || return 1
   iterations=$(forge/github:issue-iterations) || return 1
   forge/github:fold 'the issues' "${answer}" --compact-output --argjson now "$(date +%s)" \
@@ -608,7 +611,7 @@ forge/github:open-issues() {
 # pull request with more than 100 review threads, or more than 100 checks on its head commit, has the rest of that
 # list read by forge/github:rest-of-pr, 100 a request, as the issues it closes are read by forge/github:rest-of-closes.
 forge/github:open-prs() {
-  local repo query answer='' page number cursor rest list head row said team='... on Team { slug } '
+  local repo query answer='' page number cursor rest list head row said cut team='... on Team { slug } '
   local -a after=() rests=()
   repo=$(forge/github:repo) || return 1
   query='query($owner: String!, $name: String!, $after: String) {
@@ -677,12 +680,16 @@ forge/github:open-prs() {
   # An answer with no pull requests to read, as one with no repository, is no cap reached: it could not be read.
   forge/github:fold 'the pull requests' "${answer}" --exit-status '.data.repository.pullRequests.nodes | arrays' \
     >/dev/null || return 1
-  jq --exit-status 'all(.data.repository.pullRequests.nodes[]?;
-      (.reviewRequests.totalCount // 0) <= (.reviewRequests.nodes // [] | length)
-      and (.latestOpinionatedReviews.totalCount // 0) <= (.latestOpinionatedReviews.nodes // [] | length)
-      and (.latestReviews.totalCount // 0) <= (.latestReviews.nodes // [] | length))' <<<"${answer}" >/dev/null \
-    || { error "kit reads at most 20 review requests and 20 reviews of a change (the pull requests could not be read)"
-         return 1; }
+  cut=$(jq --raw-output '[.data.repository.pullRequests.nodes[]?
+      | select(((.reviewRequests.totalCount // 0) <= (.reviewRequests.nodes // [] | length)
+        and (.latestOpinionatedReviews.totalCount // 0) <= (.latestOpinionatedReviews.nodes // [] | length)
+        and (.latestReviews.totalCount // 0) <= (.latestReviews.nodes // [] | length)) | not)
+      | "#\(.number)"] | join(", ")' <<<"${answer}") || return 1
+  if [[ -n "${cut}" ]]
+  then
+    error "kit reads at most 20 review requests and 20 reviews of a change, and ${cut} has more (the pull requests could not be read)"
+    return 1
+  fi
   list:read rests forge/github:fold 'the pull requests' "${answer}" --raw-output \
     'import "forge" as forge; forge::github_partial' || return 1
   for row in "${rests[@]}"
@@ -880,21 +887,32 @@ forge/github:releases() {
     'import "forge" as forge; forge::github_releases($now)'
 }
 
-# forge/github:repo prints the primary's repository as GitHub names it, <owner>/<name>. gh repo view takes no
-# repository from GH_REPO, so it is given the one forge/github:place prints, and none where that prints none.
+# forge/github:repo prints the primary's repository, <owner>/<name>, as its URL names it, which asks GitHub nothing, so
+# a spent rate limit or a lost network is never told as a wrong checkout. Where the URL names no host, a path on this
+# machine or no remote, it is gh that says, as gh repo view does for the repository it finds.
 forge/github:repo() {
   local place
   place=$(forge/github:place) || return 1
-  forge/github:gh repo view ${place:+"${place}"} --json nameWithOwner --jq .nameWithOwner 2>/dev/null \
-    || { error "run: gh repo view${place:+ ${place}} (this checkout does not resolve to a GitHub repository)"; return 1; }
+  if [[ -n "${place}" ]]
+  then
+    printf '%s\n' "${place#*/}"
+    return 0
+  fi
+  forge/github:gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null \
+    || { error "run: gh repo view (this checkout does not resolve to a GitHub repository)"; return 1; }
 }
 
 # forge/github:repo-url prints the page of the primary's repository, read as forge/github:repo reads its name.
 forge/github:repo-url() {
   local place
   place=$(forge/github:place) || return 1
-  forge/github:gh repo view ${place:+"${place}"} --json url --jq .url 2>/dev/null \
-    || { error "run: gh repo view${place:+ ${place}} (this checkout does not resolve to a GitHub repository)"; return 1; }
+  if [[ -n "${place}" ]]
+  then
+    printf 'https://%s\n' "${place}"
+    return 0
+  fi
+  forge/github:gh repo view --json url --jq .url 2>/dev/null \
+    || { error "run: gh repo view (this checkout does not resolve to a GitHub repository)"; return 1; }
 }
 
 # forge/github:require fails when gh is missing or not authenticated. It makes a real API call, because
@@ -1027,7 +1045,7 @@ forge/github:issue-iterations() {
   query='query($owner: String!, $name: String!, $after: String) {
     repository(owner: $owner, name: $name) {
       issues(states: OPEN, first: 100, after: $after) { pageInfo { hasNextPage endCursor } nodes {
-        number projectItems(first: 5) { nodes { fieldValues(first: 20) { nodes {
+        number projectItems(first: 5) { totalCount nodes { fieldValues(first: 20) { totalCount nodes {
           ... on ProjectV2ItemFieldIterationValue { title }
         } } } }
       } }
@@ -1040,7 +1058,9 @@ forge/github:issue-iterations() {
       --raw-field query="${query}" 2>"${said}")
     then
       out=${page}$'\n'$(<"${said}")
-      if [[ "${out,,}" == *insufficient_scopes* || "${out,,}" == *'required scopes'* ]]
+      # a token without the scope, or a fine-grained or installation token without Projects, has no iterations to read
+      if [[ "${out,,}" == *insufficient_scopes* || "${out,,}" == *'required scopes'* || "${out,,}" == *forbidden* \
+        || "${out,,}" == *'resource not accessible'* ]]
       then
         printf '{}\n'
         return 0
@@ -1050,6 +1070,11 @@ forge/github:issue-iterations() {
       return 1
     fi
     forge:json "${page}" || { error "run: gh auth status (the issues' iterations could not be read)"; return 1; }
+    jq --exit-status 'all(.data.repository.issues.nodes[]?; (.projectItems.totalCount // 0) <= (.projectItems.nodes | length)
+        and all(.projectItems.nodes[]?; (.fieldValues.totalCount // 0) <= (.fieldValues.nodes | length)))' \
+      <<<"${page}" >/dev/null \
+      || { error "kit reads at most 5 projects and 20 field values of an issue (the issues' iterations could not be read)"
+           return 1; }
     pages+=${page}$'\n'
     more=$(jq --raw-output '.data.repository.issues.pageInfo.hasNextPage // false' <<<"${page}")
     after=(--raw-field after="$(jq --raw-output '.data.repository.issues.pageInfo.endCursor // ""' <<<"${page}")")
@@ -1059,10 +1084,12 @@ forge/github:issue-iterations() {
 }
 
 # forge/github:on-branch <what> <branch> <state> <field> prints the field of the newest pull request on the branch,
-# among those open or all, or nothing when there is none.
+# among those open or all, or nothing when there is none. gh filters on the branch's name alone, so a pull request
+# from a fork's branch of that name is left out.
 forge/github:on-branch() {
   local found
-  forge/github:ask found "$1" pr list --head "$2" --state "$3" --json "$4" --jq ".[0].$4 // empty" || return 1
+  forge/github:ask found "$1" pr list --head "$2" --state "$3" --json "$4,isCrossRepository" \
+    --jq "map(select(.isCrossRepository | not)) | .[0].$4 // empty" || return 1
   [[ -z "${found}" ]] || printf '%s\n' "${found}"
 }
 
@@ -1079,6 +1106,11 @@ forge/github:mark() {
   # the status line decides, below
   answer=$(forge/github:gh api --include "${header[@]}" "${path}" 2>/dev/null) || true
   status=$(sed -n '1s@^HTTP/[0-9.]* \([0-9]*\).*@\1@p' <<<"${answer}")
+  # A rate limit answers 403 or 429 too, and is no refusal of the caller, so it fails the read and keeps no verdict.
+  if [[ "${status}" == 403 || "${status}" == 429 ]] && forge/github:limited "${what}" "${answer}"
+  then
+    return 1
+  fi
   case "${status}" in
     (304) printf '%s\n' "${etag}" ;;
     (200)
@@ -1419,7 +1451,8 @@ forge/github:gh() {
 # forge/github:ask <name> <what> <gh argument>… runs gh and puts what it printed in the variable <name>. When gh
 # fails, it keeps what gh said in forge_github_said, and says why, as forge/github:limited or forge/github:scoped
 # does, or else names gh auth status, for <what>, and returns 1. An answer gh is not asked to filter with --jq must be
-# JSON, or the read fails; gh parses the one it filters itself.
+# JSON, or the read fails; gh parses the one it filters itself. A caller that sets forge_github_off, a phrase, has gh's
+# failure that says it, in any case, mean the repository has the feature off: ask then says nothing and returns 3.
 forge/github:ask() {
   local ask_into=$1 ask_what=$2 ask_said ask_out ask_arg ask_filtered=false forge_github_place
   shift 2
@@ -1428,6 +1461,7 @@ forge/github:ask() {
   if ! ask_out=$(forge/github:gh "$@" 2>"${ask_said}")
   then
     forge_github_said=$(<"${ask_said}")
+    [[ -z "${forge_github_off:-}" || "${forge_github_said,,}" != *"${forge_github_off}"* ]] || return 3
     forge/github:limited "${ask_what}" "${ask_out}"$'\n'"$(<"${ask_said}")" \
       || forge/github:scoped "${ask_what}" "$(<"${ask_said}")" \
       || error "run: gh auth status (${ask_what} could not be read)"
