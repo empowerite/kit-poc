@@ -4,8 +4,9 @@
 # shellcheck disable=SC2154  # kit_jq is set by modules/bash/1st.sh
 #
 # A workspace is what kit looks at: one repository, or a named group of them. A group is personal, kept in
-# workspaces.yml under XDG_CONFIG_HOME, else ~/.config, in kit/; only kit reads and writes it. What kit keeps for
-# itself, as the last group used, is under XDG_CACHE_HOME, else ~/.cache, in kit/workspaces/.
+# workspaces.yml under XDG_CONFIG_HOME, else ~/.config, in kit/. kit reads and writes it, and it may be edited by hand:
+# workspaces:check judges what is written, and kit keeps the comments when it edits the file. What kit keeps for
+# itself, such as the last group used, is under XDG_CACHE_HOME, else ~/.cache, in kit/workspaces/.
 #
 # A member is a repository named by its host and its whole path, github.com/empowerite/edge or gitlab.com/group/sub/
 # repo, never by a folder. A checkout is a desk under one of the file's roots, at most four levels down, and it belongs
