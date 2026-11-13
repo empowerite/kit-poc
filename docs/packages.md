@@ -268,7 +268,8 @@ which writes it with the answers `kit.yml` holds.
 ## Settings
 
 `kit.yml` belongs to the repository. The kit writes three keys in it, `version`, `packages`, and `excludes`,
-which declare the pinned release and the active packages, and reads the rest.
+which declare the pinned release and the active packages. `kit tools update` also rewrites the `version:` line of a
+tool under `tools:`. The kit reads the rest.
 
 - Its schema is [kit.schema.json](../kit/packages/kit/files/repo/.kit/kit.schema.json), which the kit package
   delivers as `.kit/kit.schema.json`.

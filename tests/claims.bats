@@ -416,6 +416,13 @@ EOF
   }
 }
 
+@test "the schema's flow stages are the five the picture draws, and its description counts them" {
+  local schema="${kit_root}/packages/kit/files/repo/.kit/kit.schema.json"
+  [ "$(jq --compact-output '.properties.flow.items.enum | sort' "${schema}")" = '["builds","changes","incoming","issues","releases"]' ]
+  [[ "$(jq --raw-output '.properties.flow.description' "${schema}")" == *'Default: all five, in that order.' ]]
+  [[ "$(jq --raw-output '.properties.flow.description' "${schema}")" != *desk* ]]
+}
+
 @test "a path a page names from the root, or from kit/, is there" {
   local found
   cd "${root}"
