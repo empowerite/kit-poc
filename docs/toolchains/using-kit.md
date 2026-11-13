@@ -109,7 +109,8 @@ Each download is found on the pull path, the artifact sources kit searches in or
 installs none, and kit says so, naming the download and what each source said.
 
 A source whose download has another hash than the one `tools.lock` pins is named and passed by, and the next one is
-asked, as is one that cannot be reached; when none has the pinned bytes, nothing is installed. A source's credentials
+asked, as is one that cannot be reached; when none has the pinned bytes, nothing is installed. A download kept in the
+cache is hashed again before it is used, and removed and fetched again when its bytes are other. A source's credentials
 come from netrc, or from `KIT_SOURCE_TOKEN_<NAME>`, the source's name upper-cased with each dash as `_`, sent as a
 bearer token; never from YAML. A tool is unpacked apart and moved into place only once its `bin` is there.
 

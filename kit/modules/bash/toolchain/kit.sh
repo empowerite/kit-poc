@@ -456,19 +456,41 @@ toolchain/kit:kept-as() {
   esac
 }
 
+# toolchain/kit:holds <file> <hash> succeeds when the file's bytes have the hash, as the hash's own form reads them: a
+# sha256:, or a bare sha256, as a lock before artifacts held it, an h1: for a module's zip, a sha512- for an npm tarball.
+toolchain/kit:holds() {
+  local have
+  case "$2" in
+    (h1:*) have=$(sources:call goproxy hash "$1") || return 1 ;;
+    (sha512-*) have=$(sources:call npm hash "$1") || return 1 ;;
+    (sha256:*) have="sha256:$(file:digest "$1")" ;;
+    (*) have=$(file:digest "$1") ;;
+  esac
+  [[ "${have}" == "$2" ]]
+}
+
 # toolchain/kit:fetch <name> <coordinate> [<hash>] [<path>] keeps the download of the coordinate in the cache, named by
 # its hash, and prints the hash. It is found on the pull path, <path> as sources:path prints it. With a hash, a
-# download already kept is not fetched again, and a source with other bytes is passed by.
+# download already kept is hashed again and not fetched again when it holds, and removed when its bytes are other, and a
+# source with other bytes is passed by. A download is written beside its place in the cache and renamed into it, so
+# the cache never holds a file that is part of one.
 toolchain/kit:fetch() {
-  local name=$1 coordinate=$2 want=${3:-} path=${4:-} cache have download artifact
+  local name=$1 coordinate=$2 want=${3:-} path=${4:-} cache have download artifact kept
   cache=$(toolchain/kit:cache)
   if [[ -n "${want}" && -f "${cache}/$(toolchain/kit:kept-as "${want}")" ]]
   then
-    printf '%s\n' "${want}"
-    return 0
+    if toolchain/kit:holds "${cache}/$(toolchain/kit:kept-as "${want}")" "${want}"
+    then
+      printf '%s\n' "${want}"
+      return 0
+    fi
+    warn "${name}: the download kept in the cache does not have the hash the lock pins; it is removed and fetched again"
+    rm -f "${cache}/$(toolchain/kit:kept-as "${want}")"
   fi
   [[ -n "${path}" ]] || path=$(sources:path) || return 1
-  file:temp download "${name}" || return 1
+  mkdir -p "${cache}" || return 1
+  download=$(mktemp "${cache}/.${name}.XXXXXX") || return 1
+  file:at-exit rm -f "${download}"
   artifact=$(sources:artifact "${coordinate}")
   step "${name}: downloading ${artifact#file:}"
   if ! have=$(sources:find "${coordinate}" "${want}" "${download}" "${path}")
@@ -481,7 +503,8 @@ toolchain/kit:fetch() {
     error "${name}: ${artifact#file:} could not be downloaded; nothing was installed"
     return 1
   fi
-  mkdir -p "${cache}" && mv -f "${download}" "${cache}/$(toolchain/kit:kept-as "${have}")" || return 1
+  kept="${cache}/$(toolchain/kit:kept-as "${have}")"
+  mv -f "${download}" "${kept}" || return 1
   printf '%s\n' "${have}"
 }
 
@@ -498,8 +521,10 @@ toolchain/kit:place() {
   fi
   hash=$(toolchain/kit:fetch "${name}" "${coordinate}" "${hash}" "${path}") || return 1
   kept="$(toolchain/kit:cache)/$(toolchain/kit:kept-as "${hash}")"
-  file:scratch stage || return 1
-  mkdir -p "${stage}/tree"
+  mkdir -p "$(toolchain/kit:root)" || return 1
+  stage=$(mktemp -d "$(toolchain/kit:root)/.${name}.XXXXXX") || return 1
+  file:at-exit rm -rf "${stage}"
+  mkdir "${stage}/tree"
   if ! toolchain/kit:unpack "${kept}" "${artifact}" "${stage}/tree" "${name}"
   then
     error "${name}: ${artifact#file:} could not be unpacked"
@@ -517,8 +542,8 @@ toolchain/kit:place() {
       "${name} in kit.yml"
     return 1
   fi
-  printf '%s\n' "${hash}" > "${stage}/tree/.kit-sha256"
   mkdir -p "$(dirname "${dir}")" && rm -rf "${dir}" && mv "${stage}/tree" "${dir}" || return 1
+  printf '%s\n' "${hash}" > "${dir}/.kit-sha256" || return 1
   step "${name}: ${version} installed"
 }
 

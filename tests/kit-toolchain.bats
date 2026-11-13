@@ -338,3 +338,17 @@ YAML
 }
 
 # ----------------------------------------------------------------------------------------------------------------------
+
+@test "a download kept in the cache is hashed again, and other bytes there are removed and fetched again" {
+  "${kit_root}/bin/kit" tools install --toolchain=kit >/dev/null 2>&1
+  hash=$(awk -F '\t' -v p="${platform}" '$1 == "alpha" && $3 == p { print $6 }' tools.lock)
+  kept="${XDG_CACHE_HOME}/kit/downloads/${hash#sha256:}"
+  [ -f "${kept}" ]
+  printf '#!/bin/sh\necho TAMPERED\n' > "${kept}"
+  rm -rf "${KIT_HOME}/.kit/tools/alpha"
+  run "${kit_root}/bin/kit" tools install --toolchain=kit
+  [ "$status" -eq 0 ]
+  [ "$(PATH="$("${kit_root}/bin/kit" tools path --toolchain=kit | paste -s -d ':' -):${PATH}" alpha)" \
+    = "alpha 1.0.0 ${platform}" ]
+  [ "sha256:$(shasum -a 256 "${kept}" | cut -d ' ' -f 1)" = "${hash}" ]
+}

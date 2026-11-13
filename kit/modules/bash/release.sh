@@ -111,7 +111,7 @@ release:target() {
 # No toolchain is asked: a toolchain installs the loader, and the loader keeps the releases.
 # The version comes from a manifest, so it must have a version's shape before it is used in a path.
 release:fetch() {
-  local version=$1 cache fresh tarball published have
+  local version=$1 cache fresh tarball published have stage
   if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]
   then
     error "'${version}' is not a kit version"
@@ -158,16 +158,19 @@ release:fetch() {
     error "kit ${version}'s tarball has digest ${have}, not the ${published} its release publishes; it is not unpacked"
     return 1
   fi
-  mkdir "${fresh}/tree"
-  if ! tar --extract --gzip --file "${fresh}/kit.tar.gz" --directory "${fresh}/tree" --strip-components 1 2>/dev/null
+  # The tree is unpacked beside its place and renamed into it, so the cache never holds half a release; one that
+  # another process kept first stays, since mv would move this one into it.
+  mkdir -p "$(dirname "${cache}")" || return 1
+  stage=$(mktemp -d "$(dirname "${cache}")/.kit-${version}.XXXXXX") || return 1
+  if ! tar --extract --gzip --file "${fresh}/kit.tar.gz" --directory "${stage}" --strip-components 1 2>/dev/null
   then
-    rm -rf "${fresh}"
+    rm -rf "${fresh}" "${stage}"
     error "kit ${version}'s tarball could not be unpacked; set KIT_BASE to a copy of it"
     return 1
   fi
-  mkdir -p "$(dirname "${cache}")"
-  mv "${fresh}/tree" "${cache}"
-  rm -rf "${fresh}"
+  chmod 755 "${stage}"
+  [[ -x "${cache}/bin/kit" ]] || mv "${stage}" "${cache}" || return 1
+  rm -rf "${fresh}" "${stage}"
   printf '%s\n' "${cache}"
 }
 
