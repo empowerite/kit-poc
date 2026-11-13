@@ -3,8 +3,9 @@
 A template is a file of one kind with holes in it, attached to the rule or the style for that kind. `kit new file`
 fills the holes to make a new file, and `kit lint` checks that every existing file still has the shape of one of
 its templates. A style package delivers the templates for its kind; without that package, a kind has no style
-templates. The kit package delivers five of its own, `.kit/templates/bash/<seam>-provider`, which the bash rule
-lists: they hold a seam's providers to its calls in every repository.
+templates. The kit package delivers eight of its own under `.kit/templates/bash/`, which the bash rule lists: seven
+`<seam>-provider` templates, which hold a seam's providers to its calls in every repository, and `verb`, which holds
+a verb of kit's own source.
 
 ```sh
 kit new file "${path}" --purpose="${purpose}"
@@ -37,6 +38,7 @@ templates:
 | workflows | `workflow` | | |
 | gitignore | `file` | | |
 | gitignore | `region` | `.gitignore` | a file the kit made of its region alone |
+| bash (the rule) | `verb` | `kit/bin/kit-*` | a verb's header, in the kit's own source; see below |
 | bash (the rule) | `dependencies-provider`, `forge-provider`, `policy-provider`, `sources-provider`, `targets-provider`, `toolchain-provider`, `tracker-provider` | `**/<seam>/*.sh` | a seam's provider; see below |
 
 JSON style has no template. A JSON file has no comments and no fixed opening, so there is no shape to check.

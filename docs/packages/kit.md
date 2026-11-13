@@ -13,8 +13,8 @@ it out. It delivers:
   the terms. A house package replaces a page by placing one of the same name, such as `5-terms.md`, or adds one.
 - `.kit/kinds/<kind>.yml`, one file per kind, each with the kind's `name:`: the paths and first lines that make a
   file of that kind, and the kinds found inside its files, such as the bash in a justfile.
-- `.kit/rules/<kind>.md`, a rule file for each kind that has one: bash, gitignore, jq, json, just, markdown, and
-  workflows. `any`, `text`, and `yaml` have none of their own; `kit context` prints the rules of every kind a file
+- `.kit/rules/<kind>.md`, a rule file for each kind that has one: bash, gitignore, jq, json, just, markdown, sh,
+  and workflows. `any`, `text`, and `yaml` have none of their own; `kit context` prints the rules of every kind a file
   is of. A rule says what the work must do to be trusted. Its frontmatter names the kind it governs, and the linter
   and checks `kit lint` runs over its files.
 - `.kit/kit.schema.json`, the schema of the repository's `kit.yml`.
@@ -26,10 +26,11 @@ it out. It delivers:
 The region starts at a `kit:generate` directive, and `kit generate` fills it through `kit region`. The rest of
 `.gitignore` belongs to the repository.
 
-The kit package does not deliver any style. How a file looks, and the templates that hold its shape, come from the style
-packages a repository takes; see [style.md](style.md). The one exception is the five provider templates the bash
-rule lists, `.kit/templates/bash/<seam>-provider`. They hold a seam's provider to its seam's calls in every
-repository, whatever style it takes.
+The kit package does not deliver any style. How a file looks, and the templates that hold its shape, come from the
+style packages a repository takes; see [style.md](style.md). The one exception is the eight templates the bash rule
+lists: the seven `.kit/templates/bash/<seam>-provider` templates, which hold a seam's provider to its seam's calls
+in every repository, whatever style it takes, and `.kit/templates/bash/verb`, which holds a verb of kit's own
+source.
 
 Agents and people find the rules through `kit context`, described in [docs/context.md](../context.md).
 
