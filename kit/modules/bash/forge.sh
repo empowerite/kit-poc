@@ -57,7 +57,9 @@
 #   - A list is whole or the call fails: the call reads every page, and a list that reaches forge_list_limit items
 #     fails, saying "kit reads at most 10000".
 #
-# A call that changes the forge returns 0 when the change is made, 1 when it is not, and 3 when the forge lacks it.
+# A call that changes the forge returns 0 when the change is made, 1 when it is not, and 3 when the forge lacks it. It
+# prints nothing on stdout, and when it returns 1 it says one ❌ line on stderr, the remedy and then what could not be
+# done and why, as the tool said it, without a token or a response's whole body.
 #
 #   require                       the provider's own tool is present and authenticated
 #   repo                          the repository as owner/name

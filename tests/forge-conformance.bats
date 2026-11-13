@@ -1014,6 +1014,41 @@ JSON
 '"dismissed":{"critical":0,"high":1,"medium":0,"low":0,"info":0,"unknown":0}}' ]
 }
 
+@test "GitHub's writes that print nothing say why they failed, once, and print no token and no response body" {
+  world github
+  fixture refused.txt <<'TXT'
+GraphQL: Could not resolve to an Issue with the number of 7. (repository.issue)
+{"message": "Resource not accessible by personal access token", "documentation_url": "https://docs.github.com/rest"}
+TXT
+  fixture leaked.txt <<<'HTTP 401: Bad credentials (token ghp_0123456789abcdefghijklmnopqrstuvwxyz0123 was refused)'
+  fixture long.txt <<<"$(printf 'z%.0s' $(seq 1 600))"
+  local -a writes=('issue-assign 7 ada' 'issue-unassign 7 bob' 'issue-close 7 completed' 'issue-comment 7 hello'
+    'issue-add-sub 7 9' 'pr-ready 3' 'pr-set-title 3 New' 'pr-label-add 3 bug' 'pr-label-remove 3 bug' 'pr-set-body 3 Body')
+  local write
+  for write in "${writes[@]}"
+  do
+    : > "${FAKE_DIR}/gh.routes"
+    route gh '*' '!1 refused.txt'
+    # shellcheck disable=SC2086  # the call and its arguments are words
+    run --separate-stderr call ${write}
+    [ "$status" -eq 1 ] || { echo "${write}: ${status}"; false; }
+    [ -z "$output" ] || { echo "${write}: ${output}"; false; }
+    [ "$(wc -l <<<"${stderr}")" -eq 1 ] || { echo "${write}: ${stderr}"; false; }
+    [[ "${stderr}" == '❌ run: '*'gh auth status ('*' failed: Resource not accessible by personal access token)' ]] \
+      || { echo "${write}: ${stderr}"; false; }
+  done
+  # a token gh repeats is taken out, and a line that is not a message is cut short
+  : > "${FAKE_DIR}/gh.routes"
+  route gh '*' '!1 leaked.txt'
+  run --separate-stderr call issue-comment 7 hello
+  [[ "${stderr}" == *'(token <token> was refused)'* ]]
+  [[ "${stderr}" != *ghp_* ]]
+  : > "${FAKE_DIR}/gh.routes"
+  route gh '*' '!1 long.txt'
+  run --separate-stderr call pr-ready 3
+  [ "$(grep --only-matching z <<<"${stderr#*gh auth status}" | wc -l)" -eq 200 ]
+}
+
 @test "GitLab reads the environments a mark is made from when they are larger than a command line may be" {
   world gitlab
   local p='projects/empowerite%2Fexample' big

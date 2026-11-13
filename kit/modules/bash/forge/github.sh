@@ -306,11 +306,11 @@ forge/github:environments() {
 
 # forge/github:issue-add-sub makes the second issue a sub-issue of the first, as the issue page's Relationships do.
 forge/github:issue-add-sub() {
-  forge/github:gh issue edit "$1" --add-sub-issue "$2" >/dev/null 2>&1
+  forge/github:write "putting #$2 under #$1" issue edit "$1" --add-sub-issue "$2"
 }
 
 forge/github:issue-assign() {
-  forge/github:gh issue edit "$1" --add-assignee "$2" >/dev/null 2>&1
+  forge/github:write "assigning #$1 to $2" issue edit "$1" --add-assignee "$2"
 }
 
 forge/github:issue-assignees() {
@@ -332,11 +332,11 @@ forge/github:issue-body() {
 forge/github:issue-close() {
   local -a how=(--reason "${2//-/ }")
   [[ "$2" != duplicate ]] || how+=(--duplicate-of "$3")
-  forge/github:gh issue close "$1" "${how[@]}" >/dev/null 2>&1
+  forge/github:write "closing #$1" issue close "$1" "${how[@]}"
 }
 
 forge/github:issue-comment() {
-  forge/github:gh issue comment "$1" --body "$2" >/dev/null 2>&1
+  forge/github:write "commenting on #$1" issue comment "$1" --body "$2"
 }
 
 # The place is read first, so the line of a URL that names no repository is said, where gh's own words are hidden.
@@ -365,7 +365,7 @@ forge/github:issue-title() {
 }
 
 forge/github:issue-unassign() {
-  forge/github:gh issue edit "$1" --remove-assignee "$2" >/dev/null 2>&1
+  forge/github:write "unassigning $2 from #$1" issue edit "$1" --remove-assignee "$2"
 }
 
 # forge/github:iterations prints one document per iteration, by start, as the seam's header says: those of the iteration
@@ -815,11 +815,11 @@ forge/github:pr-here() {
 }
 
 forge/github:pr-label-add() {
-  forge/github:gh pr edit "$1" --add-label "$2" >/dev/null 2>&1
+  forge/github:write "putting the label ${2} on pull request #$1" pr edit "$1" --add-label "$2"
 }
 
 forge/github:pr-label-remove() {
-  forge/github:gh pr edit "$1" --remove-label "$2" >/dev/null 2>&1
+  forge/github:write "taking the label ${2} off pull request #$1" pr edit "$1" --remove-label "$2"
 }
 
 forge/github:pr-last-for-branch() {
@@ -827,15 +827,15 @@ forge/github:pr-last-for-branch() {
 }
 
 forge/github:pr-ready() {
-  forge/github:gh pr ready "$1" >/dev/null 2>&1
+  forge/github:write "marking pull request #$1 ready for review" pr ready "$1"
 }
 
 forge/github:pr-set-body() {
-  forge/github:gh pr edit "$1" --body "$2" >/dev/null
+  forge/github:write "setting the body of pull request #$1" pr edit "$1" --body "$2"
 }
 
 forge/github:pr-set-title() {
-  forge/github:gh pr edit "$1" --title "$2" >/dev/null 2>&1
+  forge/github:write "setting the title of pull request #$1" pr edit "$1" --title "$2"
 }
 
 forge/github:pr-state() {
@@ -1443,6 +1443,36 @@ forge/github:ask() {
     return 1
   fi
   printf -v "${ask_into}" '%s' "${ask_out}"
+}
+
+# forge/github:write <what> <gh argument>… runs gh for a call that changes GitHub and prints nothing, <what> naming the
+# change in the words of "could not be done". When gh fails it says why, once, as the file header's contract has a call
+# say: one ❌ line, with the remedy, <what>, and the last line gh said, which forge/github:said keeps short and free of a
+# token; it returns 1.
+forge/github:write() {
+  local write_what=$1 write_said write_line forge_github_place
+  shift
+  forge_github_place=$(forge/github:place) || return 1
+  file:temp write_said gh || return 1
+  forge/github:gh "$@" >/dev/null 2>"${write_said}" && return 0
+  write_line=$(forge/github:said "${write_said}")
+  error "run: gh auth status (${write_what} failed${write_line:+: ${write_line}})"
+  return 1
+}
+
+# forge/github:said <file> prints the last line gh said in the file, for a message that is one line: a token is taken
+# out of it, a response's JSON body is the message it holds, and it is cut at 200 characters, so what GitHub answered
+# in full is never printed. A file with nothing in it prints nothing.
+forge/github:said() {
+  local line
+  line=$(sed -e '/^[[:space:]]*$/d' "$1" | tail -n 1)
+  if [[ "${line}" == '{'* ]]
+  then
+    line=$(jq --raw-output '.message // empty' <<<"${line}" 2>/dev/null || true)  # a body that is no JSON says nothing
+  fi
+  line=$(sed -E 's/(gh[pousr]_|github_pat_)[A-Za-z0-9_]+/<token>/g;
+    s/([Tt]oken|[Bb]earer|[Aa]uthorization:?)[[:space:]]+[A-Za-z0-9._~+\/=-]{8,}/\1 <token>/g' <<<"${line}")
+  printf '%s\n' "${line:0:200}"
 }
 
 # forge/github:refused <name> <what> <said> <line> <gh argument>… is forge/github:ask for a list, an array, that
