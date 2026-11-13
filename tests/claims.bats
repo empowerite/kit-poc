@@ -453,6 +453,12 @@ EOF
   [ "${#bad[@]}" -eq 0 ] || { printf '%s\n' "${bad[@]}"; return 1; }
 }
 
+@test "CONTRIBUTING's setup trusts the clone before direnv allow, which runs kit and would otherwise be refused" {
+  local setup
+  setup=$(awk '/^## Setup/ {on = 1} /^## The workflow/ {on = 0} on' "${root}/CONTRIBUTING.md")
+  [[ "${setup}" == *"kit/bin/kit trust"*"direnv allow"* ]]
+}
+
 @test "a count a page gives of what the code holds is the count, and a list it gives is the list, in its order" {
   local found
   facts > "${BATS_TEST_TMPDIR}/facts.json"
