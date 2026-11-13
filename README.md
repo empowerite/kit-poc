@@ -363,8 +363,9 @@ each copy of the site is one directory of it:
 
 `bin/tutorials site` names the copy a ref builds, at the address `kit tutorials` opens. The build runs with a token
 that only reads, and `bin/tutorials publish` then replaces the copy's directory in one commit and pushes it.
-`bin/tutorials publish` refuses to run anywhere but the CI runner, so only the workflow publishes the site. A
-pre-release's copy is removed once its tag is deleted. Pages is turned on once, in the repository's settings; see
+`bin/tutorials publish` refuses to run anywhere but the CI runner, so only the workflow publishes the site.
+`bin/tutorials answers` then asks the copy's address, and the run fails when it does not answer. A pre-release's
+copy is removed once its tag is deleted. Pages is turned on once, in the repository's settings; see
 [Publishing](projects/tutorials/README.md#publishing).
 
 The branch ruleset is managed in [empowerite/infrastructure](https://github.com/empowerite/infrastructure).

@@ -60,14 +60,16 @@ The workflow has two jobs:
    ref builds is the one that ref's kit opens. The build runs npm's packages, so the job's token only reads.
 2. `publish` is handed `dist/`, and runs `bin/tutorials publish`, which replaces the copy's directory in one commit
    and pushes it. Every other copy stays as it is. The copy for `main` also gives the branch its `404.html`. A push
-   that is refused, as when another copy landed first, is tried again on the branch as it then stands.
+   that is refused, as when another copy landed first, is tried again on the branch as it then stands. Then
+   `bin/tutorials answers` asks the copy's address until it answers, for five minutes at most. A copy that Pages
+   does not serve fails the run, so a release whose tutorials are a dead link is never a green run.
 
 A pre-release's copy goes with its tag. When a branch is deleted, the retire workflow deletes the pre-releases that
 were made from it, and `bin/tutorials retire` then removes the copy of each pre-release whose tag is gone.
 `bin/tutorials retire --dry-run` says what it would remove, and changes nothing.
 
-Pages is turned on once, by an owner of the repository. Until then the branch holds the copies and no address
-answers:
+Pages is turned on once, by an owner of the repository. Until then the branch holds the copies, no address
+answers, and each run fails at its last step, `answers`:
 
 1. Push a branch that holds the workflow, then start its first run: merge to `main`, or tag a pre-release with
    `kit release`. When the run ends, `git ls-remote origin gh-pages` shows the branch.
@@ -78,14 +80,14 @@ answers:
    gh api --method POST repos/empowerite/kit/pages -f 'source[branch]=gh-pages' -f 'source[path]=/'
    ```
 
-3. Check that the site answers. Once `main` has published, this prints 200, and for an address under it that is no
-   page it prints 404:
+3. Check that the site answers, with the address of a copy that is published. This asks until the address answers,
+   and writes nothing:
 
    ```bash
-   curl --silent --output /dev/null --write-out '%{http_code}\n' https://empowerite.github.io/kit/tutorials/main/
+   bin/tutorials answers https://empowerite.github.io/kit/tutorials/main/
    ```
 
-   Then `kit tutorials --text` prints links that open.
+   Then run the failed run again, `gh run rerun <run> --failed`, and `kit tutorials --text` prints links that open.
 
 ## Content
 

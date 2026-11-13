@@ -41,7 +41,7 @@ here by area and number: Serve 8 is item 8 under its Serve heading.
 ## Global Constraints
 
 - kit commit only, never kit submit or push; every subject starts with `#86`, the issue for this plan. Tasks 4 and 5
-  are issue #345's, and their subjects start with it.
+  are issue #345's, and Task 5a is issue #363's, and their subjects start with those.
 - `export PATH=$PWD/kit/bin:$PATH` before `kit commit`.
 - Peers share the worktree: stage named paths only, guard that the index holds only them, never leave anything staged.
 - Everything under `kit/` is written for a consumer, and a path in it is written from `kit/`: `modules/bash/x.sh`.
@@ -201,7 +201,7 @@ expect(screen.getByText(/To upgrade, install kit 0\.4\.9 or later, then run/)).t
 
 ## Task 4: `bin/tutorials` gains `site`, `publish`, and `retire`
 
-**Files:** Modify `bin/tutorials:2-55,147-353`, `tests/tutorials-catalogue.bats:2-5,13,23-46,162-349`, and
+**Files:** Modify `bin/tutorials:2-62,154-389`, `tests/tutorials-catalogue.bats:2-5,13,23-46,181-373`, and
 `README.md`, the `bin/` row of § Maintaining.
 
 **Interfaces:** Consumes `tutorials:line` and `tutorials:site` (Task 1). Produces:
@@ -246,7 +246,7 @@ expect(screen.getByText(/To upgrade, install kit 0\.4\.9 or later, then run/)).t
 
 ## Task 4a: `bin/tutorials catalogue` refuses a page it cannot place
 
-**Files:** Modify `bin/tutorials:27-32,77-105,121-129`, and `tests/tutorials-catalogue.bats`.
+**Files:** Modify `bin/tutorials:32-35,84-112,128-136`, and `tests/tutorials-catalogue.bats`.
 
 - [ ] **Step 1: Write the failing test.** `broken <page> <text>` runs `catalogue` over a copy of the `ok` fixture
   with that one more page, its text written by `printf '%b'`.
@@ -262,9 +262,9 @@ broken 'My Page/index.mdx' '---\ntitle: G\ntop: true\nsummary: s\nglyph: g\naudi
 ```
 
 - [ ] **Step 2: Run `tests/tutorials-catalogue.bats`.** Expected: it fails, the page skipped and the status 0.
-- [ ] **Step 3: Write it.** In `row`, the first two refusals stand before line 83's `"skip"`, and the id's is held
-  to `^[a-z0-9][a-z0-9-]*$` where the loop names the id, at lines 124 to 128. The header's list of refusals, at
-  lines 27 to 32, names the three.
+- [ ] **Step 3: Write it.** In `row`, the first two refusals stand before line 90's `"skip"`, and the id's is held
+  to `^[a-z0-9][a-z0-9-]*$` where the loop names the id, at lines 131 to 135. The header's list of refusals, at
+  lines 32 to 35, names the three.
 - [ ] **Step 4: Run it again**, then `kit lint bin/tutorials` and `kit generate --check kit/modules/tutorials.yml`.
   Expected: all pass.
 - [ ] **Step 5: Commit** the two files, subject `#86 tutorials: the catalogue refuses a page it cannot place`.
@@ -300,7 +300,26 @@ broken 'My Page/index.mdx' '---\ntitle: G\ntop: true\nsummary: s\nglyph: g\naudi
 Nothing in either workflow file runs before the branch is pushed, since this one starts only from `main` or a
 `release/*` tag. Unexercised until then: the kit toolchain's node on the runner, the artifact between the jobs,
 `gh auth setup-git` with the job's token, the push to `gh-pages`, Pages' own build, and the served addresses. The
-checklist is their test.
+checklist is their test, and Task 5a's step asks the address in every run.
+
+## Task 5a: The run asks the address it published
+
+**Files:** Modify `bin/tutorials:4,16-18,53-55,155-156,283,331-358`, `tests/tutorials-catalogue.bats:48-65,375-407`,
+`.github/workflows/tutorials.yml`, `README.md`, in § Release, and `projects/tutorials/README.md`, in Publishing.
+
+**Interfaces:** Produces `bin/tutorials answers <url>`, which asks an address with curl until it answers 200,
+`TUTORIALS_TRIES` times at most, 30 by default, `TUTORIALS_PAUSE` seconds apart, 10 by default. It exits 0 when the
+address answers, 1 when it never does, with who turns Pages on and where that is written, and 2 for what is not one
+web address. It writes nothing, so it runs at a desk too.
+
+- [x] **Step 1: Write the failing test**, "answers asks an address until it answers 200, and fails, with the remedy,
+  when it never does", over `answering <code>…`, a curl first on `PATH` that answers each call with the next status.
+  The workflow's test holds the new step: the last of `publish`, on `site`'s `url`.
+- [x] **Step 2: Run `tests/tutorials-catalogue.bats`.** Expected: the two fail, `answers` with the usage.
+- [x] **Step 3: Write it**, and the step `answers` after `publish`, whose job has 20 minutes.
+- [x] **Step 4: Run it again**, then `kit lint` over the three files. Expected: all pass.
+- [x] **Step 5: Commit**, subject `#363 tutorials: the run that publishes a copy asks its address, and fails when
+  Pages does not serve it`.
 
 ## Task 6: kittui's screen says what happened, and takes the keys a list takes
 
@@ -385,9 +404,10 @@ and never walks; a tour of kittui, the other candidate, needs screenshots this p
    workflow and also publishes that pre-release. After `gh run watch`, `git ls-remote origin gh-pages` shows the
    branch.
 2. Turn Pages on: `gh api --method POST repos/empowerite/kit/pages -f 'source[branch]=gh-pages' -f 'source[path]=/'`.
-3. Check: `gh api repos/empowerite/kit/pages --jq .status` prints `built`; `curl --silent --output /dev/null
-   --write-out '%{http_code}\n' https://empowerite.github.io/kit/tutorials/main/` prints 200; an address under it that
-   is no page prints 404, with "No such page" in its body; and `kit tutorials --text` prints links that open.
+3. Check: `gh api repos/empowerite/kit/pages --jq .status` prints `built`; `bin/tutorials answers` with the address
+   of a published copy, as `https://empowerite.github.io/kit/tutorials/main/`, ends with 0; an address under it that
+   is no page answers 404, with "No such page" in its body; `gh run rerun <run> --failed` turns the first run green;
+   and `kit tutorials --text` prints links that open.
 4. Record the Pages source in `empowerite/infrastructure`, `terraform/projects/kit`, which manages this repository.
 5. For decision 1 (c) alone: a CNAME record, `kit.empowerite.dev` to `empowerite.github.io`, in infrastructure; `gh
    api --method PUT repos/empowerite/kit/pages -f cname=kit.empowerite.dev`; `tutorials:site` and the tests' `site`

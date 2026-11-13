@@ -3,7 +3,7 @@
 # ----------------------------------------------------------------------------------------------------------------------
 # The catalogue's tests run bin/tutorials catalogue over a fixture project. The site's tests publish to a bare
 # repository under the test's directory, with a fake gh first on PATH, and say they are on a runner, the only place
-# publish and retire run. No test reaches a forge.
+# publish and retire run; an address is asked of a fake curl. No test reaches a forge or the network.
 
 bats_require_minimum_version 1.5.0
 
@@ -44,6 +44,25 @@ built() {
 # online <path> prints a file of the published branch, and listed <arguments>… is git ls-tree there.
 online() { git --git-dir="${TUTORIALS_PAGES}" show "gh-pages:$1"; }
 listed() { git --git-dir="${TUTORIALS_PAGES}" ls-tree "$@"; }
+
+# answering <code>… puts a curl first on PATH that answers each call in turn with the next HTTP status, and every later
+# call with the last; 000 is no answer at all, where curl fails. It records each address asked in ${FAKES}/curl.calls.
+answering() {
+  export FAKES="${BATS_TEST_TMPDIR}/fakes"
+  mkdir -p "${FAKES}"
+  rm -f "${FAKES}/curl.calls"
+  printf '%s\n' "$@" > "${FAKES}/codes"
+  cat > "${FAKES}/curl" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "${@: -1}" >> "${FAKES}/curl.calls"
+code=$(sed -n "$(wc -l < "${FAKES}/curl.calls" | tr -d ' ')p" "${FAKES}/codes")
+[[ -n "${code}" ]] || code=$(tail -n 1 "${FAKES}/codes")
+printf '%s' "${code}"
+[[ "${code}" != 000 ]] || exit 7
+SH
+  chmod +x "${FAKES}/curl"
+  [[ ":${PATH}:" == *":${FAKES}:"* ]] || export PATH="${FAKES}:${PATH}"
+}
 
 @test "the catalogue lists the top-level tutorials in order" {
   catalogue ok
@@ -227,6 +246,11 @@ listed() { git --git-dir="${TUTORIALS_PAGES}" ls-tree "$@"; }
     = '${{ needs.build.outputs.directory }}' ]
   [ "$(yq '.jobs.publish.steps[] | select(.name == "publish") | .run' "${workflow}")" \
     = 'bin/tutorials publish "${DIRECTORY}" "${RUNNER_TEMP}/site"' ]
+  # and the run then asks the address site named, so a copy Pages does not serve fails it
+  [ "$(yq '.jobs.build.outputs.url' "${workflow}")" = '${{ steps.site.outputs.url }}' ]
+  [ "$(yq '.jobs.publish.steps[-1].name' "${workflow}")" = answers ]
+  [ "$(yq -o json -I 0 '.jobs.publish.steps[-1].env' "${workflow}")" = '{"URL":"${{ needs.build.outputs.url }}"}' ]
+  [ "$(yq '.jobs.publish.steps[-1].run' "${workflow}")" = 'bin/tutorials answers "${URL}"' ]
   # what the build uploads is what publish is given
   [ "$(yq '.jobs.build.steps[] | select(.name == "upload") | .with.path' "${workflow}")" = projects/tutorials/dist/ ]
   [ "$(yq '.jobs.publish.steps[] | select(.name == "download") | .with.path' "${workflow}")" \
@@ -346,4 +370,38 @@ listed() { git --git-dir="${TUTORIALS_PAGES}" ls-tree "$@"; }
   [[ "$output" == *"did not answer for its tags; nothing is retired"* ]]
   run "${repo_root}/bin/tutorials" retire --nonesuch
   [ "$status" -eq 2 ]
+}
+
+@test "answers asks an address until it answers 200, and fails, with the remedy, when it never does" {
+  answering 200
+  run "${repo_root}/bin/tutorials" answers "${site}/main/"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"${site}/main/ answers"* ]]
+  [ "$(cat "${FAKES}/curl.calls")" = "${site}/main/" ]
+  # Pages takes a while to serve a branch it was just pushed: an address that is not there yet is asked again
+  answering 404 000 200
+  TUTORIALS_PAUSE=0 run "${repo_root}/bin/tutorials" answers "${site}/0.1/"
+  [ "$status" -eq 0 ]
+  [ "$(wc -l < "${FAKES}/curl.calls" | tr -d ' ')" -eq 3 ]
+  # one that never answers fails after the last try, and says who turns Pages on and where that is written
+  answering 404
+  export GITHUB_STEP_SUMMARY="${BATS_TEST_TMPDIR}/summary"
+  TUTORIALS_PAUSE=0 TUTORIALS_TRIES=4 run --separate-stderr "${repo_root}/bin/tutorials" answers "${site}/0.1/"
+  [ "$status" -eq 1 ]
+  [ "$(wc -l < "${FAKES}/curl.calls" | tr -d ' ')" -eq 4 ]
+  [[ "$stderr" == *"${site}/0.1/ did not answer 200 in 4 tries; its last answer was 404"* ]]
+  [[ "$stderr" == *"an owner of the repository turns Pages on once"*"projects/tutorials/README.md"* ]]
+  grep --quiet --fixed-strings "### ❌ ${site}/0.1/ did not answer 200 in 4 tries" "${GITHUB_STEP_SUMMARY}"
+  answering 000
+  TUTORIALS_PAUSE=0 TUTORIALS_TRIES=2 run --separate-stderr "${repo_root}/bin/tutorials" answers "${site}/0.1/"
+  [ "$status" -eq 1 ]
+  [[ "$stderr" == *"did not answer 200 in 2 tries; it gave no answer at all"* ]]
+  # an address is a web address, and one alone
+  local words
+  for words in '' 'ftp://example.test/' "${site}/main/ ${site}/0.1/" 'tutorials/main'
+  do
+    # shellcheck disable=SC2086  # the words of one command
+    run "${repo_root}/bin/tutorials" answers ${words}
+    [ "$status" -eq 2 ]
+  done
 }

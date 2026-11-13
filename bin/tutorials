@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tutorials - writes the catalogue of the tutorials, and publishes the copies of their site to the gh-pages branch
 # ----------------------------------------------------------------------------------------------------------------------
-# bin/tutorials catalogue | site <ref> | publish <directory> <dist> | retire [--dry-run]
+# bin/tutorials catalogue | site <ref> | publish <directory> <dist> | answers <url> | retire [--dry-run]
 #
 # The tutorials' site and their catalogue are this repository's, so this is its command, not one of the kit's verbs.
 #
@@ -13,6 +13,9 @@
 #                               ref is main or a release tag, release/<version>; any other is refused.
 #   publish <directory> <dist>  replaces <directory> of the gh-pages branch with the built site <dist>, in one
 #                               commit, and pushes it. Only a runner publishes, from the tutorials workflow.
+#   answers <url>               asks an address until it answers 200, and fails when it never does. The tutorials
+#                               workflow runs it after publish, on the copy's address, so a copy that Pages does
+#                               not serve fails the run that published it. It writes nothing, and runs anywhere.
 #   retire [--dry-run]          removes the copy of each pre-release whose tag is gone, in one commit, and pushes
 #                               it. Only a runner retires; with --dry-run it says what it would remove, anywhere.
 #
@@ -46,6 +49,10 @@
 # 404.html to the root, the page Pages serves for an address with no file. A build that changes nothing commits
 # nothing. A push the repository refuses, as when another copy landed first, starts again from the branch as it then
 # stands, five times at most. git pushes, with the credentials `gh auth setup-git` gives it for the runner's token.
+#
+# answers asks with curl, following a redirect, 30 times at most, 10 seconds apart, since Pages takes a while to
+# serve a branch it was just pushed. TUTORIALS_TRIES and TUTORIALS_PAUSE replace the two numbers; the tests set the
+# pause to 0.
 #
 # TUTORIALS_PAGES names the repository whose gh-pages branch is written, origin's by default; the tests point it at a
 # repository of their own. A <dist> that is not absolute is read from the repository's root.
@@ -145,7 +152,8 @@ catalogue() {
 }
 
 usage() {
-  echo "usage: bin/tutorials catalogue | site <ref> | publish <directory> <dist> | retire [--dry-run]" >&2
+  echo "usage: bin/tutorials catalogue | site <ref> | publish <directory> <dist> | answers <url> |" \
+    "retire [--dry-run]" >&2
 }
 
 # site <ref> prints the copy of the site a ref builds: its line, its directory on the branch, its base path, and its
@@ -272,7 +280,7 @@ case "${verb}" in
     catalogue
     exit 0
     ;;
-  (site | publish | retire) ;;
+  (site | publish | answers | retire) ;;
   (*) usage; exit 2
 esac
 shift
@@ -319,6 +327,34 @@ case "${verb}" in
       ok "${directory} is as published: the build changed nothing"
       summary "✅ ${directory} is as published: the build changed nothing."
     fi
+    ;;
+  (answers)
+    (( $# == 1 )) || { usage; exit 2; }
+    url=$1
+    [[ "${url}" =~ ^https?://[^[:space:]]+$ ]] || { usage; exit 2; }
+    guard:require tool:curl || exit 1
+    tries=${TUTORIALS_TRIES:-30}
+    answer=''
+    for (( try = 1; try <= tries; try++ ))
+    do
+      # curl prints 000 where nothing answered, and fails
+      answer=$(curl --silent --location --output /dev/null --write-out '%{http_code}' --max-time 10 "${url}") || true
+      [[ "${answer}" != 200 ]] || break
+      (( try == tries )) || sleep "${TUTORIALS_PAUSE:-10}"
+    done
+    if [[ "${answer}" != 200 ]]
+    then
+      said="its last answer was ${answer}"
+      [[ "${answer}" =~ ^[1-9][0-9]*$ ]] || said='it gave no answer at all'
+      error "${url} did not answer 200 in ${tries} tries; ${said}. Where the copy is on the gh-pages branch, Pages" \
+        "does not serve it: an owner of the repository turns Pages on once, as projects/tutorials/README.md says" \
+        "under Publishing"
+      summary "### ❌ ${url} did not answer 200 in ${tries} tries; ${said}." \
+        'An owner of the repository turns Pages on once: see Publishing in projects/tutorials/README.md.'
+      exit 1
+    fi
+    ok "${url} answers"
+    summary "✅ ${url} answers."
     ;;
   (retire)
     (( $# <= 1 )) || { usage; exit 2; }

@@ -15,6 +15,9 @@
 #                           packages, so its job has a token that only reads.
 #   bin/tutorials publish   replaces the copy's directory on gh-pages in one commit, and pushes it. Its job alone
 #                           writes, and runs none of npm's packages: it is handed the build as an artifact.
+#   bin/tutorials answers   asks the copy's address until it answers. A copy that Pages does not serve, as before
+#                           an owner has turned Pages on, fails the run here, where a pre-release finds it before
+#                           the release.
 #
 # A newer push to the same ref replaces an older run. Two refs at once both land, since bin/tutorials publish tries a
 # refused push again, on the branch as it then stands. The site is published here and nowhere else: bin/tutorials
@@ -46,14 +49,15 @@ jobs:
       contents: read
     outputs:
       directory: ${{ steps.site.outputs.directory }}
+      url: ${{ steps.site.outputs.url }}
     steps:
       - name: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
 
-      # kit runs nothing in a clone until it is trusted, and a runner has no one to ask, so the job trusts the checkout
-      # it made, with the checkout's own kit.
+      # kit runs nothing in a clone until it is trusted, and a runner has no one to ask, so the job trusts the
+      # checkout it made, with the checkout's own kit.
       - name: trust
         run: kit/bin/kit trust --yes "${GITHUB_WORKSPACE}"
 
@@ -96,7 +100,7 @@ jobs:
   publish:
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
@@ -117,5 +121,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           DIRECTORY: ${{ needs.build.outputs.directory }}
         run: bin/tutorials publish "${DIRECTORY}" "${RUNNER_TEMP}/site"
+
+      - name: answers
+        env:
+          URL: ${{ needs.build.outputs.url }}
+        run: bin/tutorials answers "${URL}"
 
 # ----------------------------------------------------------------------------------------------------------------------
