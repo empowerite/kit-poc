@@ -131,6 +131,18 @@ gone() { git push --quiet origin --delete "$1"; }
   [ -z "$(git -C worktrees/7-fix-the-thing status --porcelain)" ]
 }
 
+@test "kit tidy warns of a remote it cannot fetch, naming it, and sweeps on with what it has" {
+  world
+  git remote add fork "${work}/missing/fork.git"
+  worktree-on 7-fix-the-thing && gone 7-fix-the-thing
+  change-on 7-fix-the-thing MERGED
+  run "${kit_root}/bin/kit" tidy
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"could not fetch fork, so its branches are judged as they were last fetched; run: "*"git fetch fork"* ]]
+  [[ "$output" == *"deleting 7-fix-the-thing"* ]]
+  run ! git show-ref --verify --quiet refs/heads/7-fix-the-thing
+}
+
 @test "in a fork, kit tidy fetches every remote, the primary first, so a branch the fork dropped is deleted" {
   world
   git init --quiet --bare --initial-branch=main ../upstream.git

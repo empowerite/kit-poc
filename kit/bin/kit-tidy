@@ -12,7 +12,8 @@
 #   - it has no pull request, and its issue is closed
 #   - it is detached, clean, and at a commit the default branch already has
 #
-# kit tidy fetches every remote first, with --prune, and also prunes git's worktree records. It never touches:
+# kit tidy fetches every remote first, with --prune, and also prunes git's worktree records. A remote it cannot fetch
+# is named in a warning, and its branches are judged as they were last fetched. It never touches:
 #
 #   - the default branch
 #   - a branch checked out in a live worktree

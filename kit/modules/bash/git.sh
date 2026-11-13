@@ -313,7 +313,9 @@ git:tidy() {
       step "would run: git fetch --prune ${remote}"
     else
       step "git fetch --prune ${remote}"
-      git fetch --quiet --prune --end-of-options "${remote}"
+      git fetch --quiet --prune --end-of-options "${remote}" \
+        || warn "could not fetch ${remote}, so its branches are judged as they were last fetched; run: git fetch" \
+          "${remote}"
     fi
   done <<<"${remotes}"
 
