@@ -120,6 +120,7 @@ func faded(msg tea.Msg) bool {
 // as a Nerd Font draws them; kittui draws them plain until its settings ask for them, which the root's tests hold.
 func TestMain(m *testing.M) {
 	fades = 0
+	source.Waits = &testkit.Clock{}
 	style.Rounded(true)
 	os.Exit(testkit.Main(m))
 }

@@ -1,6 +1,7 @@
 // A poll is a read that the screen asks for when it likes, and that asks again by itself a while after each answer.
-// Its answer stands until the next. A read that fails keeps the last answer and goes on asking; the first to fail
-// before any answered stops the asking, until the screen resets it, as Refresh All does.
+// Its answer stands until the next. A read that fails keeps the last answer and goes on asking, each wait twice the one
+// before while reads go on failing, up to eight times the while, and the first to fail before any answered does so too,
+// so a forge that was slow at the start is read again; the screen resets the waits, as Refresh All does.
 package source
 
 import (
@@ -18,7 +19,7 @@ type Poll[T any] struct {
 	every  time.Duration
 	read   func(context.Context) (T, error)
 	asking bool
-	off    bool
+	failed int // the reads that failed one after another
 	serial int
 }
 
@@ -58,15 +59,25 @@ func NewPoll[T any](name string, every time.Duration, read func(context.Context)
 // Asking says whether a read is under way.
 func (p Poll[T]) Asking() bool { return p.asking }
 
-// Off says whether the first read failed, so the poll asks again only once it is reset.
-func (p Poll[T]) Off() bool { return p.off }
+// Reset has a poll that failed wait its while again, not the longer one.
+func (p *Poll[T]) Reset() { p.failed = 0 }
 
-// Reset has a poll that stopped asking ask again.
-func (p *Poll[T]) Reset() { p.off = false }
+// wait gives how long the poll waits after an answer: its while, doubled for each read that failed before it, up to
+// eight times.
+func (p Poll[T]) wait() time.Duration { return p.every << min(max(p.failed-1, 0), 3) }
 
-// Ask gives the read, unless one is under way, or the poll is off; nil then.
+// Ask gives the read, unless one is under way, or the first read failed and the poll waits to try again, until it is
+// reset; nil then.
 func (p *Poll[T]) Ask(env Env) tea.Cmd {
-	if p.asking || p.off {
+	if p.failed > 0 && !p.Got {
+		return nil
+	}
+	return p.ask(env)
+}
+
+// ask gives the read, unless one is under way; nil then.
+func (p *Poll[T]) ask(env Env) tea.Cmd {
+	if p.asking {
 		return nil
 	}
 	p.asking = true
@@ -80,8 +91,8 @@ func (p *Poll[T]) Ask(env Env) tea.Cmd {
 }
 
 // Take takes a message that may be the poll's, and says what it did: an answer is kept, or, failed, the one before
-// it, and the poll waits its while to ask again, unless it failed before any answered, which turns it off; a while
-// that passed asks again, unless an answer came since the one it waited from.
+// it, and the poll waits to ask again, a failed read as before any answered; a while that passed asks again, unless
+// an answer came since the one it waited from.
 func (p *Poll[T]) Take(env Env, msg tea.Msg) (tea.Cmd, Took) {
 	switch msg := msg.(type) {
 	case answer[T]:
@@ -90,17 +101,14 @@ func (p *Poll[T]) Take(env Env, msg tea.Msg) (tea.Cmd, Took) {
 		}
 		p.asking = false
 		took := Answered
-		switch {
-		case msg.err == nil:
-			p.Value, p.Got = msg.value, true
-		case !p.Got:
-			p.off = true
-			return nil, Failed
-		default:
+		if msg.err == nil {
+			p.Value, p.Got, p.failed = msg.value, true, 0
+		} else {
+			p.failed++
 			took = Failed
 		}
 		p.serial++
-		return env.after(p.every, tick{p.name, p.serial}), took
+		return env.after(p.wait(), tick{p.name, p.serial}), took
 	case tick:
 		if msg.name != p.name {
 			return nil, NotMine
@@ -108,7 +116,7 @@ func (p *Poll[T]) Take(env Env, msg tea.Msg) (tea.Cmd, Took) {
 		if msg.serial != p.serial {
 			return nil, Ticked
 		}
-		return p.Ask(env), Ticked
+		return p.ask(env), Ticked
 	}
 	return nil, NotMine
 }

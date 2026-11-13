@@ -66,8 +66,8 @@ func TestTheKeysBarEndsWithEachForgesLimit(t *testing.T) {
 	if !strings.HasSuffix(strings.TrimRight(last, " "), GitHub+" 4871/5000") || strings.Contains(last, GitLab) {
 		t.Errorf("the keys bar: %q", last)
 	}
-	if m.quota.Asking() || m.quota.Off() || len(m.quota.Value) != 2 || len(clockOf(m).Timers()) == 0 {
-		t.Fatalf("after the read: asking %v, off %v, %d limits, waits %v", m.quota.Asking(), m.quota.Off(),
+	if m.quota.Asking() || len(m.quota.Value) != 2 || len(clockOf(m).Timers()) == 0 {
+		t.Fatalf("after the read: asking %v, %d limits, waits %v", m.quota.Asking(),
 			len(m.quota.Value), clockOf(m).Timers())
 	}
 	// the minute's wait reads them again
@@ -81,8 +81,8 @@ func TestAKitThatCannotReadTheLimitsIsAskedAgainOnRefreshAll(t *testing.T) {
 	record := filepath.Join(t.TempDir(), "calls")
 	t.Setenv("FAKE_FLOW_CALLS", record)
 	m := loaded(t, options(), tea.WindowSizeMsg{Width: 160, Height: 24})
-	if !m.quota.Off() || m.quota.Asking() || m.quota.Got || strings.Contains(lines(m)[len(lines(m))-1], GitHub+" ") {
-		t.Fatalf("without the limits: off %v, asking %v, %v", m.quota.Off(), m.quota.Asking(), m.quota.Value)
+	if len(clockOf(m).Timers()) == 0 || m.quota.Asking() || m.quota.Got || strings.Contains(lines(m)[len(lines(m))-1], GitHub+" ") {
+		t.Fatalf("without the limits: waits %v, asking %v, %v", clockOf(m).Timers(), m.quota.Asking(), m.quota.Value)
 	}
 	if next, _ := m.Update(source.Answer[[]byte]{Name: "builds"}); next.(Model).quota.Asking() {
 		t.Error("a load asks again, after kit could not read them")

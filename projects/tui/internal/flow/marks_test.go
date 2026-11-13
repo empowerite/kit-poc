@@ -35,8 +35,8 @@ func TestAStageWhoseMarkMovesSinceItLoadedIsStaleUntilItLoadsAgain(t *testing.T)
 	if s := m.find("issues"); s.src.Mark() != "b1" || s.src.Stale {
 		t.Fatalf("after the load, issues' mark %q, stale %v", s.src.Mark(), s.src.Stale)
 	}
-	if len(clockOf(m).Timers()) == 0 || m.marks.Asking() || m.marks.Off() {
-		t.Errorf("after the read: waits %v, asking %v, off %v", clockOf(m).Timers(), m.marks.Asking(), m.marks.Off())
+	if len(clockOf(m).Timers()) == 0 || m.marks.Asking() {
+		t.Errorf("after the read: waits %v, asking %v", clockOf(m).Timers(), m.marks.Asking())
 	}
 	// the minute's read: issues' mark moved, changes' did not, builds' is gone, releases never had one
 	write(`{"issues": "b2", "changes": "c1", "releases": null}`)
@@ -80,13 +80,13 @@ func TestAStageThatLoadedTakesTheNextMarkAsItsOwn(t *testing.T) {
 	}
 }
 
-// A kit that cannot read the marks makes nothing stale, and is asked again only on Refresh All.
+// A kit that cannot read the marks makes nothing stale, and waits to be asked again, and is asked at once on Refresh All.
 func TestAKitThatCannotReadTheMarksIsAskedAgainOnRefreshAll(t *testing.T) {
 	record := filepath.Join(t.TempDir(), "calls")
 	t.Setenv("FAKE_FLOW_CALLS", record)
 	m := loaded(t, options(), tea.WindowSizeMsg{Width: 160, Height: 24})
-	if !m.marks.Off() || m.marks.Asking() || m.marks.Got {
-		t.Fatalf("without the marks: off %v, asking %v, read %v", m.marks.Off(), m.marks.Asking(), m.marks.Got)
+	if len(clockOf(m).Timers()) == 0 || m.marks.Asking() || m.marks.Got {
+		t.Fatalf("without the marks: waits %v, asking %v, read %v", clockOf(m).Timers(), m.marks.Asking(), m.marks.Got)
 	}
 	asked := func() int {
 		got, _ := os.ReadFile(record)

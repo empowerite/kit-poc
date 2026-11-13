@@ -1,6 +1,6 @@
 // A poll keeps its answer and asks again a while after each; a failure keeps the last answer, and one before any
-// answered stops it until it is reset; a while that passed asks again only when it is the latest; and the program's
-// clock is a tea.Tick.
+// answered is asked again after a wait that grows until it is reset; a while that passed asks again only when it is
+// the latest; and the program's clock is a tea.Tick.
 package source
 
 import (
@@ -48,7 +48,7 @@ func TestAPollKeepsItsAnswerAndAsksAgainAWhileAfter(t *testing.T) {
 	if again == nil || took != Ticked {
 		t.Fatalf("the while: %v %v", again != nil, took)
 	}
-	if _, took := p.Take(env, again()); took != Failed || p.Value != "one" || p.Off() || len(clock.Timers()) != 1 {
+	if _, took := p.Take(env, again()); took != Failed || p.Value != "one" || len(clock.Timers()) != 1 {
 		t.Errorf("a failure after an answer: %v %+v, %d timers", took, p, len(clock.Timers()))
 	}
 	stale := clock.Fire()[0]
@@ -68,21 +68,40 @@ func TestAPollKeepsItsAnswerAndAsksAgainAWhileAfter(t *testing.T) {
 	}
 }
 
-func TestAPollWhoseFirstReadFailsStopsUntilReset(t *testing.T) {
+// A poll whose first read fails waits and asks again, each wait twice the one before up to eight times the while, and
+// is back to its while after an answer or a reset.
+func TestAPollWhoseFirstReadFailsAsksAgainAfterAGrowingWait(t *testing.T) {
 	clock := &testkit.Clock{}
 	env := Env{Ctx: context.Background(), Limit: time.Second, Clock: clock}
-	read, _ := reads("", "one")
+	read, _ := reads("", "", "", "", "", "", "", "one", "")
 	p := NewPoll("p", time.Minute, read)
-	cmd, took := p.Take(env, p.Ask(env)())
-	if cmd != nil || took != Failed || !p.Off() || p.Got || len(clock.Timers()) != 0 {
-		t.Fatalf("the first failure: %v %v %+v", cmd != nil, took, p)
+	ask := p.Ask(env)
+	for _, want := range []time.Duration{1, 2, 4, 8, 8} {
+		_, took := p.Take(env, ask())
+		timers := clock.Timers()
+		if took != Failed || p.Got || len(timers) != 1 || timers[0].After != want*time.Minute {
+			t.Fatalf("a failure: %v %+v, waits %+v", took, p, timers)
+		}
+		var ticked Took
+		if ask, ticked = p.Take(env, clock.Fire()[0]); ask == nil || ticked != Ticked {
+			t.Fatalf("the while: %v %v", ask != nil, ticked)
+		}
+	}
+	p.Take(env, ask())
+	clock.Fire()
+	p.Reset()
+	if _, took := p.Take(env, p.Ask(env)()); took != Failed || clock.Timers()[0].After != time.Minute {
+		t.Errorf("after a reset: %v %+v", took, clock.Timers())
 	}
 	if p.Ask(env) != nil {
-		t.Error("an off poll asked")
+		t.Error("a screen asked a poll that waits to try again")
 	}
-	p.Reset()
-	if _, took := p.Take(env, p.Ask(env)()); took != Answered || p.Value != "one" {
-		t.Errorf("after a reset: %v %+v", took, p)
+	ask, _ = p.Take(env, clock.Fire()[0])
+	if _, took := p.Take(env, ask()); took != Answered || p.Value != "one" || !p.Got {
+		t.Errorf("an answer: %v %+v", took, p)
+	}
+	if _, took := p.Take(env, p.Ask(env)()); took != Failed || clock.Timers()[0].After != time.Minute {
+		t.Errorf("a failure after an answer: %v %+v", took, clock.Timers())
 	}
 }
 
