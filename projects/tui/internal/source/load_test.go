@@ -106,3 +106,37 @@ func TestTheMarksSayWhenWhatALoadShowsHasChanged(t *testing.T) {
 		t.Errorf("after it was read again: mark %q, stale %v", l.Mark(), l.Stale)
 	}
 }
+
+// A read started again ends the first read too, which runs in a context of its own: a refresh over a slow first read
+// does not leave two reads of the same remotes at once.
+func TestAReadStartedAgainEndsTheFirstRead(t *testing.T) {
+	started := make(chan struct{}, 3)
+	read := func(ctx context.Context, _ bool) (string, error) {
+		started <- struct{}{}
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		case <-time.After(5 * time.Second):
+			return "late", nil
+		}
+	}
+	l := NewLoad("l", read, nil)
+	answers := make(chan Answer[string], 3)
+	run := func(cmd func() any) { go func() { answers <- cmd().(Answer[string]) }() }
+	run(func() any { return l.Read(env(), false)() })
+	<-started
+	run(func() any { return l.Again(env(), false)() })
+	if a := <-answers; !errors.Is(a.Err, context.Canceled) || a.Gen != 0 {
+		t.Errorf("the first read: %+v", a)
+	}
+	<-started
+	run(func() any { return l.Again(env(), false)() })
+	if a := <-answers; !errors.Is(a.Err, context.Canceled) || a.Gen != 1 {
+		t.Errorf("the second read: %+v", a)
+	}
+	<-started
+	l.stop()
+	if a := <-answers; !errors.Is(a.Err, context.Canceled) || a.Gen != 2 {
+		t.Errorf("the third read: %+v", a)
+	}
+}

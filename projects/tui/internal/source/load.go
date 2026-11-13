@@ -22,12 +22,16 @@ type Load[T any] struct {
 	read    func(ctx context.Context, fresh bool) (T, error)
 	kept    func(ctx context.Context) (T, error)
 	gen     int                // the latest read's: an answer from an earlier one is dropped
-	ctx     context.Context    // the latest read's, inside the screen's; nil for the first, which has the screen's
+	ctx     context.Context    // the latest read's, inside the screen's; nil for the first, which has one of its own
 	stop    context.CancelFunc // ends the latest read, when another starts
+	first   *first             // the first read's, which Read makes and Again ends
 	mark    string             // the mark the load took after it last answered
 	remark  bool               // whether it answered since the last read of the marks, so it takes the next as its own
 	out     bool               // whether the latest read has not answered yet
 }
+
+// first holds what ends the first read, which a copy of the load that starts it shares with the one that starts the next.
+type first struct{ stop context.CancelFunc }
 
 // Answer is what a load's read brought: the load's name, which no other source of its screen has; the answer, or why
 // there is none; the read it answers, from 0, the first; and whether it is the copy kit kept.
@@ -43,7 +47,7 @@ type Answer[T any] struct {
 // between reads; kept gives what kit kept of its last answer, or is nil where kit keeps none.
 func NewLoad[T any](name string, read func(context.Context, bool) (T, error),
 	kept func(context.Context) (T, error)) Load[T] {
-	return Load[T]{Loading: true, out: true, name: name, read: read, kept: kept}
+	return Load[T]{Loading: true, out: true, name: name, read: read, kept: kept, first: &first{}}
 }
 
 // Name gives the load's name.
@@ -61,10 +65,15 @@ func (l Load[T]) Mark() string { return l.mark }
 // Read gives the latest read, afresh or not, within the env's limit.
 func (l Load[T]) Read(env Env, fresh bool) tea.Cmd {
 	name, read, ctx, gen := l.name, l.read, env.Ctx, l.gen
+	var stop context.CancelFunc = func() {}
 	if l.ctx != nil {
 		ctx = l.ctx
+	} else {
+		ctx, l.first.stop = context.WithCancel(ctx)
+		stop = l.first.stop
 	}
 	return func() tea.Msg {
+		defer stop()
 		ctx, cancel := env.within(ctx)
 		defer cancel()
 		value, err := read(ctx, fresh)
@@ -91,6 +100,9 @@ func (l Load[T]) Kept(env Env) tea.Cmd {
 func (l *Load[T]) Again(env Env, fresh bool) tea.Cmd {
 	if l.stop != nil {
 		l.stop()
+	}
+	if l.first.stop != nil {
+		l.first.stop()
 	}
 	l.ctx, l.stop = context.WithCancel(env.Ctx)
 	l.gen++
