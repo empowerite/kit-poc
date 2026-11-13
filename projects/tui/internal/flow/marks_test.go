@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -147,5 +148,27 @@ func TestAStageWhoseMarkIsNullIsNeitherStaleNorLoadedAgain(t *testing.T) {
 	write(`{"issues": "nullable", "changes": "c2"}`)
 	if err := exec.Command(runner(t).Kit, "flow", "--marks").Run(); err != nil {
 		t.Errorf("a mark holding null: %v", err)
+	}
+}
+
+// A watched stage whose reload failed is read again when the marks move after kit answers: a refusal does not end
+// Watch, and the rows that load clear it.
+func TestAWatchedStageWhoseReloadFailedLoadsAgainWhenItsMarkMoves(t *testing.T) {
+	write := marking(t, `{"issues": "b1"}`)
+	m := loaded(t, options(), tea.WindowSizeMsg{Width: 160, Height: 24})
+	m.find("issues").src.Watch = true
+	t.Setenv("FAKE_FLOW_REFUSE", "issues")
+	write(`{"issues": "b2"}`)
+	m = drive(m, clockOf(m).Fire()...)
+	if m.find("issues").refusal == "" {
+		t.Fatal("the reload of a moved mark was not refused")
+	}
+	t.Setenv("FAKE_FLOW_REFUSE", "")
+	for _, mark := range []string{"b2", "b3", "b4"} {
+		write(`{"issues": "` + mark + `"}`)
+		m = drive(m, clockOf(m).Fire()...)
+	}
+	if s := m.find("issues"); s.refusal != "" || s.src.Loading || len(m.rows(slices.IndexFunc(m.stages, func(s stage) bool { return s.name == "issues" }))) == 0 {
+		t.Errorf("issues after the marks moved again: refusal %q, loading %v", s.refusal, s.src.Loading)
 	}
 }

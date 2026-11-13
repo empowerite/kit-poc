@@ -1122,6 +1122,7 @@ func (m *Model) take(msg source.Answer[[]byte]) {
 		under = rows[s.Cursor].Key
 	}
 	err := msg.Err
+	s.refusal = ""
 	if err == nil {
 		err = s.decode(msg.Value, m.runner.Group != "")
 	}

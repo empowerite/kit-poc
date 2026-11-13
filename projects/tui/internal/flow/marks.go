@@ -30,7 +30,7 @@ func (m *Model) tookMarks(wait tea.Cmd, took source.Took) tea.Cmd {
 	for i := range m.stages {
 		s := &m.stages[i]
 		mark, ok := m.marks.Value[s.name]
-		if ok && mark != "" && s.refusal == "" && s.src.Marked(mark) {
+		if ok && mark != "" && s.src.Marked(mark) {
 			// a stage watched loads again, its rows and its dot staying until the new ones come; the load it starts
 			// supersedes one already under way, so a mark that moves twice loads it twice at most
 			cmds = append(cmds, m.rewatch(s.name))
