@@ -5,7 +5,7 @@
 //
 // With Rounded on, the ends are the half circles a Nerd Font gives, as a powerline prompt rounds its segments, and
 // the = or : between a key and a value is dropped for the round edge where the two colors meet. Rounded is off until
-// the person asks for it, since a font without those glyphs draws boxes in their place.
+// the person asks for it, or kit finds a Nerd Font, since a font without those glyphs draws boxes in their place.
 package style
 
 import (

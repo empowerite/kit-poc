@@ -254,7 +254,7 @@ stdout, and stderr. Without one it exits 2 and names the command that prints tex
 | `internal/fix/` | the copy and run buttons of a line that names a command |
 | `internal/markdown/` | a markdown page drawn as text |
 | `internal/pane/` | text fitted into a space: clipped, wrapped, padded, or scrolled |
-| `internal/style/` | the look: the colors, the glyphs, reverse video under `NO_COLOR`, and the pill a label is drawn as, ending in half circles unless Rounded labels is off |
+| `internal/style/` | the look: the colors, the glyphs, reverse video under `NO_COLOR`, and the pill a label is drawn as, ending in half circles where a Nerd Font is found, or Rounded labels is on |
 | `internal/kit/` | runs the `kit` CLI for every other package |
 | `internal/source/` | a screen's reads of kit: loads, polls, and the clock they wait on |
 | `internal/transcript/` | writes the command line kittui ran into the scrollback |

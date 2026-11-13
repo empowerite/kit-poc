@@ -275,3 +275,24 @@ func TestAKeyThatSaysNothingIsDrawnAlone(t *testing.T) {
 		t.Errorf("drawn: %q", got)
 	}
 }
+
+// Labels end in half circles where the person chose them, else where kit found a Nerd Font, which it says in KIT_NERD_FONT.
+func TestLabelsRoundWhereThePersonChoseElseWhereANerdFontWasFound(t *testing.T) {
+	yes, no := true, false
+	for _, c := range []struct {
+		env    string
+		chosen *bool
+		want   bool
+	}{{"", nil, false}, {"0", nil, false}, {"1", nil, true}, {"0", &yes, true}, {"1", &no, false}} {
+		t.Setenv(NerdFont, c.env)
+		if got := (Settings{Rounded: c.chosen}).Rounds(); got != c.want {
+			t.Errorf("%s=%q, chosen %v: rounded %v, want %v", NerdFont, c.env, c.chosen, got, c.want)
+		}
+	}
+	// a file that never chose keeps no roundedLabels, so a font found later is followed
+	path := filepath.Join(t.TempDir(), "kittui.json")
+	LoadSettings(path).Save()
+	if data, _ := os.ReadFile(path); strings.Contains(string(data), "roundedLabels") {
+		t.Errorf("the file keeps a choice nobody made: %s", data)
+	}
+}

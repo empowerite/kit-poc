@@ -43,10 +43,20 @@ def measured_badly($probe):
   elif $probe == "color" then .color == "fewer"
   else false end;
 
+# font_note($font) gives the heading's note on the labels, as a list of one, empty where kit did not look for a font: $font
+# is terminal:font's object, {nerd, name, from}. A Nerd Font present, labels start rounded; else square, and the note
+# says where to turn the half circles on.
+def font_note($font):
+  if $font == null then []
+  elif $font.nerd
+  then ["labels start rounded: \(if $font.from == "terminal" then "its font, " else "" end)\($font.name) is a Nerd Font"
+        + (if $font.from == "installed" then ", installed" else "" end)]
+  else ["labels start square: no Nerd Font found; Settings \u2192 Rounded labels turns the half circles on"] end;
+
 # checks($d; $key; $read; $bad; $probes; $kept) gives the checks of the terminal $key of the table $d: its heading,
 # then each finding, then each probe, each {id, ok, line, fix, more}. $read is the reader's object, {unreadable} where
 # it could not read, or null for a terminal kit has no reader for; $bad, each finding's answer by its id; $probes,
-# what the terminal answered, or null where kit did not ask; $kept, the ids kept, each after @ and its profile where
+# what the terminal answered, its font among it, or null where kit did not ask; $kept, the ids kept, each after @ and its profile where
 # the reader gave one.
 def checks($d; $key; $read; $bad; $probes; $kept):
   $d.terminals[$key] as $t
@@ -85,7 +95,8 @@ def checks($d; $key; $read; $bad; $probes; $kept):
        then .line += ", and it does not measure by grapheme" else . end
      | kept(.)] as $noted
   | ([$noted[] | .note // empty]
-     + (if $probes.answered == false then ["it did not answer kit's questions"] else [] end)) as $notes
+     + (if $probes.answered == false then ["it did not answer kit's questions"] else [] end)
+     + (font_note($probes.font // null))) as $notes
   | [$noted[] | del(.note)] as $answers
   | ($findings + $answers) as $body
   | {id: "terminal-\($key)", ok: true,

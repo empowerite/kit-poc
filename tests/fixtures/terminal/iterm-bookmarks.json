@@ -29,5 +29,7 @@
     "Guid": "GUID-3",
     "Is Dynamic Profile": true,
     "Dynamic Profile Parent Name": "Work (copy)"
-  }
+  },
+  {"Name": "Fonted", "Guid": "GUID-4", "Normal Font": "MesloLGS-NF-Regular 13", "Use Non-ASCII Font": true,
+   "Non Ascii Font": "Monaco 12"}
 ]

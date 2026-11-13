@@ -17,17 +17,20 @@ kittui needs these from the terminal it runs in:
 
 ## The font
 
-Any font that draws emoji works, and a Nerd Font, or any font with the powerline glyphs U+E0B6 and U+E0B4, draws kittui
-whole. A label, such as `priority=high` or `bug`, and the preset selector on a table's control line end in half
-circles:
+Any font that draws emoji works. A label, such as `priority=high` or `bug`, and the preset selector on a table's control
+line are drawn one of two ways. With a Nerd Font, or any font with the powerline glyphs U+E0B6 and U+E0B4, they end in
+half circles:
 
 ```text
  priority  high   bug   All Issues ▼
 ```
 
-kit cannot tell which glyphs a font has. In a font without them, the ends are boxes or gaps: open the app menu with
-`=`, choose Settings…, and turn off Rounded labels. A label is then a block of its color, padded a cell on each side.
-kittui keeps the choice in its settings file.
+Without one, each is a block of its color, padded a cell on each side. kit cannot ask a terminal whether its font has
+the glyphs, so it looks for a Nerd Font: in the terminal's own font setting where it can read that, else among the fonts
+installed ([terminals.md](terminals.md#fonts) says how). Where it finds one, labels start rounded; else square. `kit
+welcome` says which, in the terminal's line of its setup step. Open the app menu with `=`, choose Settings…, and turn
+Rounded labels on or off to choose for yourself: kittui keeps the choice in its settings file, and it wins over what
+kit finds. In a font without the glyphs, a rounded label's ends are boxes or gaps.
 
 Where the terminal draws no color, a label with a key and a value is one block, and keeps its `=` or `:`, so it reads
 `priority=high` and not `priorityhigh`.

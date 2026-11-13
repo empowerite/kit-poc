@@ -19,14 +19,26 @@ import (
 // shares, said once in the group's heading; whether it hides, as a view loads, each column no row holds a value in;
 // whether it draws an emoji every row shown shares, which it drops otherwise; and whether a label ends in half circles,
 // which a Nerd Font draws, or in a cell of its color. With no file, or one that does not read, each is as kittui
-// starts: the keys bar shown, shared values folded, empty columns hidden, shared emoji dropped, and labels rounded.
+// starts: the keys bar shown, shared values folded, empty columns hidden, shared emoji dropped, and labels rounded
+// where kit found a Nerd Font, else square. Rounded is nil until the person chooses, so a font found later is followed.
 type Settings struct {
 	Path        string `json:"-"`
 	KeysBar     bool   `json:"keysBar"`
 	FoldShared  bool   `json:"foldShared"`
 	HideBlank   bool   `json:"hideBlank"`
 	SharedEmoji bool   `json:"sharedEmoji"`
-	Rounded     bool   `json:"roundedLabels"`
+	Rounded     *bool  `json:"roundedLabels,omitempty"`
+}
+
+// NerdFont is the variable kit says in whether a Nerd Font is present, 1 or 0, as terminal:export-probes sets it.
+const NerdFont = "KIT_NERD_FONT"
+
+// Rounds says whether a label ends in half circles: as the person chose, else where kit found a Nerd Font.
+func (s Settings) Rounds() bool {
+	if s.Rounded != nil {
+		return *s.Rounded
+	}
+	return os.Getenv(NerdFont) == "1"
 }
 
 // SettingsMsg tells a screen the settings, when it is made and whenever the dialog changes one, so a table folds and
@@ -45,7 +57,7 @@ func SettingsFile() string {
 
 // LoadSettings gives the settings the file keeps, each it does not keep as kittui starts.
 func LoadSettings(path string) Settings {
-	s := Settings{KeysBar: true, FoldShared: true, HideBlank: true, Rounded: true}
+	s := Settings{KeysBar: true, FoldShared: true, HideBlank: true}
 	if data, err := os.ReadFile(path); path != "" && err == nil {
 		_ = json.Unmarshal(data, &s)
 	}
@@ -89,8 +101,8 @@ var settings = []setting{
 		func(s Settings) bool { return s.SharedEmoji },
 		func(s Settings) Settings { s.SharedEmoji = !s.SharedEmoji; return s }},
 	{"Rounded labels", "ends a label with half circles, which need a Nerd Font; off is a block of its color",
-		func(s Settings) bool { return s.Rounded },
-		func(s Settings) Settings { s.Rounded = !s.Rounded; return s }},
+		func(s Settings) bool { return s.Rounds() },
+		func(s Settings) Settings { on := !s.Rounds(); s.Rounded = &on; return s }},
 }
 
 // SettingsDialog is the dialog the app's menu's Settings… opens over the screen shown: whether it is open, which then

@@ -11,6 +11,7 @@
 #   alt_arrows_legacy   on macOS, Ghostty binds ⌥← and ⌥→ to esc:b and esc:f unless both are bound otherwise
 #   mouse               mouse-reporting, true
 #   grapheme            grapheme-width-method, unicode
+#   font                every font-family, regular and fallback; none where it is not set
 #
 # see: modules/bash/terminal.sh, https://github.com/ghostty-org/ghostty/blob/main/src/config/Config.zig
 
@@ -38,7 +39,8 @@ terminal/ghostty:settings() {
        alt_arrows_legacy: ($mac and ((any($binds[]; startswith("alt+left="))
                                       and any($binds[]; startswith("alt+right="))) | not)),
        mouse: (last("mouse-reporting"; "true") == "true"),
-       grapheme: last("grapheme-width-method"; "unicode")}' <<<"${config}"
+       grapheme: last("grapheme-width-method"; "unicode"),
+       font: [$lines[] | select(.key == "font-family" and .value != "") | .value | gsub("^\"|\"$"; "")]}' <<<"${config}"
 }
 
 # ----------------------------------------------------------------------------------------------------------------------

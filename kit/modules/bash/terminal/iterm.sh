@@ -20,6 +20,8 @@
 #   unicode_version         Unicode Version, 9
 #   ambiguous_wide          Ambiguous Double Width, false
 #   encoding                Character Encoding, 4, UTF-8
+#   font                    Normal Font, and Non Ascii Font where Use Non-ASCII Font is on, each a PostScript name and a
+#                           size, as MesloLGS-NF-Regular 13; the names alone
 #   clipboard               AllowClipboardAccess, Applications in terminal may access clipboard, iTerm2's own; false
 #
 # see: modules/bash/terminal.sh,
@@ -70,6 +72,9 @@ terminal/iterm:settings() {
      unicode_version: get("Unicode Version"; 9),
      ambiguous_wide: get("Ambiguous Double Width"; false),
      encoding: get("Character Encoding"; 4),
+     font: ([get("Normal Font"; null), (if get("Use Non-ASCII Font"; false) then get("Non Ascii Font"; null) else null end)]
+            | map(select(type == "string") | sub(" [0-9.]+$"; ""))
+            | unique),
      clipboard: $clipboard}' <<<"${bookmarks}"
 }
 

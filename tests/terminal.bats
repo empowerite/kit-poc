@@ -287,7 +287,7 @@ esac'
 }
 
 @test "with no ITERM_PROFILE, iTerm2's default profile is read, and its defaults fill what it does not set" {
-  local want='{"ambiguous_wide":false,"apps_change_keys":true,"clipboard":true,"encoding":4,"mouse":false,'
+  local want='{"ambiguous_wide":false,"apps_change_keys":true,"clipboard":true,"encoding":4,"font":[],"mouse":false,'
   want+='"mouse_clicks":true,'
   want+='"no_alternate_screen":false,"option_left":0,"option_right":0,"profile":"Default","triggers":1,'
   want+='"triggers_interactive":true,"unicode_version":9}'
@@ -315,6 +315,14 @@ esac'
     = '[false,"iTerm2 does not let apps set the clipboard, so ⧉ in kittui copies nothing"]' ]
   [[ "$(jq -sr 'map(select(.id == "terminal-iterm-clipboard")) | .[0].fix' <<<"$output")" \
     == "iTerm2 → Settings → General → Selection: tick Applications in terminal may access clipboard"* ]]
+}
+
+@test "iTerm2's font is the profile's, and its non-ASCII font only where the profile uses one" {
+  iterm-fakes
+  run kit-bash 'ITERM_PROFILE=Fonted terminal:settings iterm'
+  [ "$(jq -c .font <<<"$output")" = '["MesloLGS-NF-Regular","Monaco"]' ]
+  run kit-bash 'ITERM_PROFILE=Default terminal:settings iterm'
+  [ "$(jq -c .font <<<"$output")" = '[]' ]
 }
 
 @test "a dynamic profile takes what it does not set from its parent" {
@@ -447,6 +455,21 @@ kitty-config() {
   kitty-config 'mouse_map left press grabbed mouse_selection normal'
   run kit-bash 'OSTYPE=darwin24 terminal:checks'
   [ "$(found <<<"$output")" = '["terminal-kitty-option","terminal-kitty-mouse"]' ]
+}
+
+@test "kitty's font is its font_family and the families its symbol_maps name" {
+  kitty-config 'font_family Fira Code' 'font_family JetBrains Mono' 'symbol_map U+E0A0-U+E0D4 Symbols Nerd Font Mono'
+  run kit-bash 'terminal:settings kitty | jq -c .font'
+  [ "$output" = '["JetBrains Mono","Symbols Nerd Font Mono"]' ]
+  kitty-config 'macos_option_as_alt no'
+  run kit-bash 'terminal:settings kitty | jq -c .font'
+  [ "$output" = '[]' ]
+}
+
+@test "Ghostty's font is every font-family it is given, a quoted one without its quotes" {
+  ghostty-fakes US 'font-family = "JetBrains Mono"' 'font-family = Symbols Nerd Font Mono' 'font-family = '
+  run kit-bash 'TERM_PROGRAM=ghostty terminal:settings ghostty | jq -c .font'
+  [ "$output" = '["JetBrains Mono","Symbols Nerd Font Mono"]' ]
 }
 
 @test "a kitty that wrote no effective config for its window says so" {
@@ -770,6 +793,59 @@ EOF
   run grep -A4 '^tui:exec()' "${kit_root}/modules/bash/tui.sh"
   [[ "$output" == *'terminal:export-probes'* ]]
   [[ "$output" == *'export KIT='* ]]
+}
+
+@test "a font is a Nerd Font's where it says Nerd Font, or ends in NF, NFM, or NFP" {
+  run kit-bash 'for n in "JetBrainsMono Nerd Font" MesloLGMNerdFontMono-Regular "MesloLGS NF" MesloLGS-NF-Regular \
+      JetBrainsMonoNFM-Regular FiraCodeNFP-Reg; do terminal:nerd "${n}" && echo yes || echo "no ${n}"; done'
+  [ "$output" = $'yes\nyes\nyes\nyes\nyes\nyes' ]
+  run kit-bash 'for n in Menlo Monaco "SF Mono" Infinity-Regular "Fira Code"; do terminal:nerd "${n}" && echo "yes ${n}"; done; true'
+  [ -z "$output" ]
+  run kit-bash 'terminal:nerd Menlo "Symbols Nerd Font Mono"'
+  [ "$status" -eq 0 ]
+}
+
+# font-home makes a home with the font files <file>… in its Library/Fonts, and no other font folder is read.
+font-home() {
+  export HOME="${BATS_TEST_TMPDIR}/home" XDG_DATA_HOME="${BATS_TEST_TMPDIR}/data"
+  mkdir -p "${HOME}/Library/Fonts"
+  local file
+  for file in "$@"
+  do
+    : > "${HOME}/Library/Fonts/${file}"
+  done
+}
+
+@test "the terminal's own font decides, where its reader gives one, over the fonts installed" {
+  font-home CaskaydiaCoveNerdFont-Regular.ttf
+  stub-reader kitty 'printf "{\"font\":[\"Fira Code\"]}\n"'
+  run kit-bash 'TERM_PROGRAM=none KITTY_PID=1 terminal:font'
+  [ "$output" = '{"nerd":false,"name":"Fira Code","from":"terminal"}' ]
+  stub-reader kitty 'printf "{\"font\":[\"Fira Code\",\"Symbols Nerd Font Mono\"]}\n"'
+  run kit-bash 'KITTY_PID=1 terminal:font'
+  [ "$output" = '{"nerd":true,"name":"Symbols Nerd Font Mono","from":"terminal"}' ]
+}
+
+@test "with no font from the terminal, a Nerd Font installed is found, and none is none" {
+  run kit-bash 'terminal:font'
+  [ "$output" = '{"nerd":false,"name":null,"from":null}' ]
+  font-home 'Menlo.ttc' 'MesloLGS-NF-Regular.ttf'
+  run kit-bash 'terminal:font'
+  [ "$(jq -c '[.nerd, .from]' <<<"$output")" = '[true,"installed"]' ]
+  [[ "$(jq -r .name <<<"$output")" == Meslo*NF* ]]
+}
+
+@test "the heading says whether labels start rounded or square, by the font the probes found" {
+  export SSH_TTY=/dev/ttys1
+  export KIT_TERMINAL_PROBES='{"answered":true,"font":{"nerd":true,"name":"MesloLGS NF","from":"installed"}}'
+  run kit-bash 'terminal:checks'
+  [[ "$(jq -sr '.[0].line' <<<"$output")" == *"; labels start rounded: MesloLGS NF is a Nerd Font, installed" ]]
+  export KIT_TERMINAL_PROBES='{"answered":true,"font":{"nerd":false,"name":null,"from":null}}'
+  run kit-bash 'terminal:checks'
+  [[ "$(jq -sr '.[0].line' <<<"$output")" == *"; labels start square: no Nerd Font found; Settings → Rounded labels turns the half circles on" ]]
+  export KIT_TERMINAL_PROBES='{"answered":true}'
+  run kit-bash 'terminal:checks'
+  [[ "$(jq -sr '.[0].line' <<<"$output")" != *labels* ]]
 }
 
 @test "inside WSL, a reg.exe that hangs makes the window unknown within a second or so" {

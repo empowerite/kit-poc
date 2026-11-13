@@ -47,6 +47,25 @@ instead; Terminal and Tabby have no kitty keyboard protocol, so kittui offers > 
 
 Every fix is the person's to make, so `kit welcome` shows it and never runs it.
 
+## Fonts
+
+A font is taste, so it is never a finding. kit does say, in the terminal's line of the setup step, whether kittui's
+labels start rounded or square, which turns on whether a Nerd Font is present. kit cannot ask a terminal what its font
+draws, since a glyph the font lacks measures one cell too, so it reads:
+
+1. the terminal's own font, where kit reads the terminal's settings: iTerm2's profile font, and its non-ASCII font where
+   the profile uses one; Ghostty's `font-family` lines; and kitty's `font_family` and the families its `symbol_map`
+   lines name. A font read this way decides alone: a Nerd Font installed does not make labels rounded in a terminal
+   whose font is Menlo;
+2. else the fonts installed: a file under `~/Library/Fonts`, `/Library/Fonts`, `/System/Library/Fonts`, or the
+   `fonts` folders of `~/.local/share`, `/usr/local/share`, and `/usr/share`, whose name says Nerd Font, or ends in NF,
+   NFM, or NFP.
+
+A name is a Nerd Font's where it says Nerd Font, as `JetBrainsMono Nerd Font` and `MesloLGMNerdFontMono-Regular` do, or
+ends in NF, NFM, or NFP, as `MesloLGS NF` and `JetBrainsMonoNFM-Regular` do. With a Nerd Font present, labels start
+rounded, ending in half circles; else square, blocks of their color. The person's choice in kittui's Settings, Rounded
+labels, is kept and wins over what kit finds. kit tells kittui what it found in `KIT_NERD_FONT`, 1 or 0.
+
 ## Keeping a finding
 
 A finding you keep on purpose, such as triggers you want in vim, stops failing:

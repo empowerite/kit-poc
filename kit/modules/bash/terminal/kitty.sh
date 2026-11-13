@@ -7,6 +7,7 @@
 #
 #   option          macos_option_as_alt: no, left, right, or both; no where it is not set; null off macOS
 #   grabbed_left    a mouse_map that grabs a plain left press for kitty, so it never reaches the program
+#   font            font_family, and each family a symbol_map names, which is where a Nerd Font's glyphs are often kept
 #
 # see: modules/bash/terminal.sh, https://github.com/kovidgoyal/kitty/blob/master/kitty/options/definitions.py
 
@@ -33,7 +34,9 @@ terminal/kitty:settings() {
     [split("\n")[] | capture("^(?<key>[a-z_]+)\\s+(?<value>.*)$")] as $lines
     | {option: (if $mac then ([$lines[] | select(.key == "macos_option_as_alt") | .value] | last) // "no"
                 else null end),
-       grabbed_left: any($lines[]; .key == "mouse_map" and (.value | test("^left\\s+press\\s+grabbed\\s")))}' \
+       grabbed_left: any($lines[]; .key == "mouse_map" and (.value | test("^left\\s+press\\s+grabbed\\s"))),
+       font: (([$lines[] | select(.key == "font_family") | .value] | last) as $family
+              | [$family // empty] + [$lines[] | select(.key == "symbol_map") | .value | sub("^\\S+\\s+"; "")])}' \
     < "${file}"
 }
 

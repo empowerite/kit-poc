@@ -16,6 +16,7 @@
 #   terminal:settings     the reader's object for a key: modules/bash/terminal/<key>.sh, terminal/<key>:settings
 #   terminal:bad          each finding's answer, from the reader's object
 #   terminal:probes       what the terminal answered, or null where kit did not ask
+#   terminal:font         whether a Nerd Font is present, from the terminal's font, else from the fonts installed
 #   terminal:kept         the ids the person keeps
 #   terminal:keep         keeps one, in the profile it is judged in
 #   terminal:unkeep       undoes a keep
@@ -380,17 +381,74 @@ terminal:probes() {
   fi
 }
 
+# terminal:nerd <name>... succeeds where any name, a font's family or its PostScript name, is a Nerd Font's: it says Nerd
+# Font, as JetBrainsMono Nerd Font and MesloLGMNerdFontMono-Regular do, or it ends in NF, NFM, or NFP, as MesloLGS NF and
+# JetBrainsMonoNFM-Regular do.
+terminal:nerd() {
+  local name pattern='nerd[ _-]?font|(^|[ _-])nf([ _-]|$)|[a-z]nf[mp]?([ _-]|$)'
+  for name in "$@"
+  do
+    name=${name,,}
+    [[ ! "${name}" =~ ${pattern} ]] || return 0
+  done
+  return 1
+}
+
+# terminal:font prints whether a Nerd Font is present, as {nerd, name, from}: from the font the terminal's reader gives,
+# its settings' font, the names of its families, where it knows them, and is judged by them alone; else from the fonts
+# installed, where a file in a font folder says Nerd Font. from is terminal or installed, and name and from are null
+# where none was found. kit cannot ask a terminal what its font draws: a glyph the font lacks measures one cell.
+terminal:font() {
+  local key settings name found=''
+  local -a names=() dirs=()
+  key=$(terminal:key)
+  settings=$(terminal:settings "${key}")
+  mapfile -t names < <(jq --raw-output 'if type == "object" then .font // [] | map(select(type == "string"))[] else empty end' \
+    <<<"${settings}" 2>/dev/null)
+  if (( ${#names[@]} > 0 ))
+  then
+    for name in "${names[@]}"
+    do
+      if terminal:nerd "${name}"
+      then
+        found=${name}
+        break
+      fi
+    done
+    jq --null-input --compact-output --arg found "${found}" --arg first "${names[0]}" \
+      '{nerd: ($found != ""), name: (if $found != "" then $found else $first end), from: "terminal"}'
+    return 0
+  fi
+  dirs=("${HOME}/Library/Fonts" /Library/Fonts /System/Library/Fonts "${XDG_DATA_HOME:-${HOME}/.local/share}/fonts"
+    /usr/local/share/fonts /usr/share/fonts)
+  found=$(terminal:timed 2 find "${dirs[@]}" -maxdepth 4 -type f \( -iname '*nerd*font*' -o -iname '*-NF-*' \
+    -o -iname '*NF[MP]-*' -o -iname '* NF *' \) 2>/dev/null | head -n 1)
+  if [[ -n "${found}" ]]
+  then
+    found=${found##*/}
+    jq --null-input --compact-output --arg name "${found%.*}" '{nerd: true, name: $name, from: "installed"}'
+  else
+    printf '{"nerd":false,"name":null,"from":null}\n'
+  fi
+}
+
 # terminal:export-probes asks the terminal, where stdin and stdout are one and KIT_TERMINAL_PROBES holds no answers
 # yet, and exports what it answered in KIT_TERMINAL_PROBES, so kittui and every kit welcome --checks it runs read them
-# and never touch the terminal kittui holds. A KIT_TERMINAL_PROBES that is no JSON object is dropped, as if unset. A
-# verb calls it in its own shell, where the terminal is still stdin and stdout, before it hands the terminal to kittui.
+# and never touch the terminal kittui holds; the font is among them, as terminal:font gives it. KIT_NERD_FONT says it
+# to kittui, 1 where a Nerd Font is present and 0 where not, which kittui draws its labels by until the person says
+# otherwise. A KIT_TERMINAL_PROBES that is no JSON object is dropped, as if unset. A verb calls it in its own shell,
+# where the terminal is still stdin and stdout, before it hands the terminal to kittui.
 terminal:export-probes() {
-  local probes
+  local probes font
   [[ "$(terminal:probes)" == null ]] || return 0
   unset KIT_TERMINAL_PROBES
   [[ -t 0 && -t 1 ]] || return 0
   probes=$(terminal:parse "$(terminal:ask)")
+  font=$(terminal:font)
+  probes=$(jq --compact-output --argjson font "${font}" '. + {font: $font}' <<<"${probes}")
   export KIT_TERMINAL_PROBES="${probes}"
+  KIT_NERD_FONT=$(jq --raw-output 'if .nerd then 1 else 0 end' <<<"${font}")
+  export KIT_NERD_FONT
 }
 
 # terminal:settings-file prints the person's own settings file, where the keeps are.

@@ -167,34 +167,47 @@ func TestWithNoColorTheLineUnderTheKeyboardIsInReverseVideo(t *testing.T) {
 	}
 }
 
-// A label ends in the half circles a Nerd Font gives until the Settings dialog's Rounded labels line is turned off, in
-// every screen at once, and the choice is kept; off, a label is a block of its color with a cell each side, and on again
-// the half circles come back.
-func TestRoundedLabelsAreASettingAndLabelsStartRounded(t *testing.T) {
-	m := issues(t)
+// A label is a block of its color with a cell each side until kit finds a Nerd Font, which it says in KIT_NERD_FONT,
+// and then it ends in the half circles the font gives; the Settings dialog's Rounded labels line chooses for itself,
+// in every screen at once, and the choice is kept, over what kit found.
+func TestLabelsAreSquareUntilANerdFontIsFoundAndTheSettingChoosesOtherwise(t *testing.T) {
 	t.Cleanup(func() { style.Rounded(false) })
 	// the labels of #1 are priority=high, a key and a value, and bug under #46
-	view := func() string { return ansi.Strip(m.View().Content) }
-	if v := view(); !strings.Contains(v, style.PillLeft+"bug"+style.PillRight) ||
-		!strings.Contains(v, style.PillLeft+"All Issues ▼"+style.PillRight) {
-		t.Fatalf("labels start rounded:\n%s", v)
+	rounded := func(m Model) bool {
+		v := ansi.Strip(m.View().Content)
+		square := strings.Contains(v, " priority  h") && strings.Contains(v, " bug ") &&
+			strings.Contains(v, "All Issues ▼ ") && !strings.Contains(v, style.PillLeft)
+		half := strings.Contains(v, style.PillLeft+"bug"+style.PillRight) &&
+			strings.Contains(v, style.PillLeft+"All Issues ▼"+style.PillRight)
+		if square == half {
+			t.Fatalf("labels are neither square nor rounded:\n%s", v)
+		}
+		return half
 	}
 	toggle := []tea.Msg{shell.SwitchMsg{Screen: shell.SettingsScreen}, testkit.Press("down"), testkit.Press("down"),
 		testkit.Press("down"), testkit.Press("down"), testkit.Press("space"), testkit.Press("esc")}
+
+	t.Setenv(shell.NerdFont, "0")
+	m := issues(t)
+	if rounded(m) {
+		t.Error("labels start rounded where no Nerd Font was found")
+	}
+
+	t.Setenv(shell.NerdFont, "1")
+	m = issues(t)
+	if !rounded(m) {
+		t.Fatal("labels start square where a Nerd Font was found")
+	}
 	m, _ = testkit.Drive(m, nil, toggle...)
-	if v := view(); strings.Contains(v, style.PillLeft) || strings.Contains(v, style.PillRight) ||
-		!strings.Contains(v, " priority  h") || !strings.Contains(v, " bug ") || !strings.Contains(v, "All Issues ▼ ") {
-		t.Errorf("plain labels:\n%s", v)
+	if rounded(m) || m.settings.Rounded == nil || *m.settings.Rounded {
+		t.Errorf("the line did not turn the half circles off: %v", m.settings.Rounded)
 	}
-	if m.settings.Rounded {
-		t.Error("the setting is not off")
-	}
-	// kept in the file, so the next kittui starts as this one stands
-	if saved := shell.LoadSettings(m.settings.Path); saved.Rounded {
+	// kept in the file, so the next kittui starts as this one stands, though a Nerd Font is found
+	if saved := shell.LoadSettings(m.settings.Path); saved.Rounded == nil || *saved.Rounded {
 		t.Errorf("the settings file: %+v", saved)
 	}
 	m, _ = testkit.Drive(m, nil, toggle...)
-	if v := view(); !strings.Contains(v, style.PillLeft+"bug"+style.PillRight) {
-		t.Errorf("rounded again:\n%s", v)
+	if !rounded(m) {
+		t.Error("the line did not turn the half circles on again")
 	}
 }
