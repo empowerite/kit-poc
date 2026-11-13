@@ -1373,3 +1373,29 @@ func TestTheStoreDoesToTheFilesListWhatTheScreenDidToItsOwn(t *testing.T) {
 		t.Errorf("favorites, no file named: %v %q", err, got)
 	}
 }
+
+// A starred view moves among the favorites, and the keyboard goes with it: in the presets' menu and in the dialog, the
+// next press acts on the view starred, not on the line it left.
+func TestTheKeyboardStaysOnAViewItStars(t *testing.T) {
+	s := sheet(filepath.Join(t.TempDir(), "presets.json"))
+	s.presets = s.presets.Drop(&s)
+	s.presets.At = slices.IndexFunc(PresetItems(&s), func(it shell.Item) bool { return it.Name == "Compact" })
+	if !s.Key(tea.KeyPressMsg{Code: '*', Text: "*"}) {
+		t.Fatal("the menu took no star")
+	}
+	if name, _ := PresetView(&s, s.presets.At); name != "Compact" {
+		t.Errorf("the menu's keyboard is on %q after the star", name)
+	}
+	s.presets = PresetMenu{}
+	s.star(slices.IndexFunc(PresetItems(&s), func(it shell.Item) bool { return it.Name == "Compact" }))
+	s.manage = Manage{Open: true}
+	s.manage.At = slices.Index(s.manage.Listed(&s), "Compact")
+	pressed(&s, "space")
+	if name, _ := s.manage.view(&s); name != "Compact" || !s.Views().Favorite("Compact") {
+		t.Errorf("the dialog's keyboard is on %q after the star", name)
+	}
+	pressed(&s, "space")
+	if name, _ := s.manage.view(&s); name != "Compact" || s.Views().Favorite("Compact") {
+		t.Errorf("the dialog's keyboard is on %q after the star is taken back", name)
+	}
+}

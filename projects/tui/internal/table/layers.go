@@ -5,6 +5,8 @@
 package table
 
 import (
+	"slices"
+
 	tea "charm.land/bubbletea/v2"
 
 	"github.com/empowerite/kit/projects/tui/internal/shell"
@@ -73,11 +75,11 @@ func (o Overlays[M]) Layers() shell.Layers[M] {
 		{ // the presets dialog
 			Open: func(m M) bool { return o.Manage(&m).Open },
 			Key: func(m M, k tea.KeyPressMsg) (M, tea.Cmd) {
-				o.Managed(&m, o.Manage(&m).Key(o.Host(&m), k))
+				o.managed(&m, o.Manage(&m).Key(o.Host(&m), k))
 				return m, nil
 			},
 			Click: func(m M, c tea.MouseClickMsg) (M, tea.Cmd, bool) {
-				o.Managed(&m, o.Manage(&m).Click(o.Host(&m), c.X, c.Y))
+				o.managed(&m, o.Manage(&m).Click(o.Host(&m), c.X, c.Y))
 				return m, nil, true
 			},
 			Keys: func(m M) shell.Segment { return o.Manage(&m).Keys(o.Host(&m)) },
@@ -120,6 +122,24 @@ func (o Overlays[M]) act(m *M, chosen, star int) {
 	case chosen >= 0:
 		o.Choose(m, chosen)
 	case star >= 0:
+		name, _ := PresetView(o.Host(m), star)
 		o.Star(m, star)
+		// a starred view moves among the favorites: the keyboard stays on the view
+		lines := presetLines(o.Host(m))
+		if at := slices.IndexFunc(lines, func(l presetLine) bool { return l.view == name }); name != "" && at >= 0 {
+			o.Presets(m).At = at
+		}
+	}
+}
+
+// managed does what the presets dialog asked, as the screen's Managed does, and keeps the keyboard on the view it
+// starred or no longer, which moves with its star.
+func (o Overlays[M]) managed(m *M, do ManageDo) {
+	o.Managed(m, do)
+	if do.Act != ManageFavorites {
+		return
+	}
+	if at := slices.Index(o.Manage(m).Listed(o.Host(m)), do.Name); at >= 0 {
+		o.Manage(m).At = at
 	}
 }
