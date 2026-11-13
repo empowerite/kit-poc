@@ -46,7 +46,8 @@ do
     section "kit tools install"
     if run kit tools install
     then
-      PATH="$(toolchain:path | paste -s -d ':' -):${PATH}"
+      first_dirs=$(toolchain:path | paste -s -d ':' -)
+      PATH="${first_dirs:+${first_dirs}:}${PATH}"
     else
       error "the change's tools could not be installed; see above"
       unbuilt=1

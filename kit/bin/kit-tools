@@ -287,7 +287,8 @@ ambient() {
     (( ${#layers[@]} )) || ok "no toolchain pins this repository's tools, so none is behind; see: kit toolchains"
     return 0
   fi
-  found=$(PATH="$(toolchain:path | paste -s -d ':' -):${PATH}" needed) || return 1
+  first_dirs=$(toolchain:path | paste -s -d ':' -) || return 1
+  found=$(PATH="${first_dirs:+${first_dirs}:}${PATH}" needed) || return 1
   while IFS=$'\t' read -r tool path
   do
     [[ -n "${tool}" ]] || continue

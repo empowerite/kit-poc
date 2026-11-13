@@ -120,6 +120,17 @@ JSON
   [ "$output" = "a -- b" ]
 }
 
+
+@test "ambient, kit tools never finds a tool in the repository's root, which an empty PATH element would search" {
+  mkdir -p .kit/rules
+  printf -- '---\nlint: kit-test-absent-linter\n---\n# Absent\n' > .kit/rules/absent.md
+  printf '#!/bin/sh\n' > kit-test-absent-linter
+  chmod +x kit-test-absent-linter
+  # the caller's own PATH must not name the working directory: only kit may put an empty element first
+  PATH=$(tr ':' '\n' <<<"${PATH}" | grep --invert-match --line-regexp --regexp='' --regexp='\.' | paste -s -d ':' -)
+  run "${kit_root}/bin/kit" tools --json
+  [ "$(jq --raw-output '.path' <<<"$output")" = null ]
+}
 @test "ambient, a found path too long for the terminal gives way at its start, so its file name shows" {
   mkdir -p .kit/rules
   printf -- '---\nlint: shellcheck --shell=bash\n---\n# Bash\n' > .kit/rules/bash.md
