@@ -75,6 +75,13 @@ helper:isolate-in() {
   # the markers of a runner, on which kit policy refuses a detached HEAD that names no change; a test of a runner
   # sets its own
   unset CI GITLAB_CI TF_BUILD JENKINS_URL CODEBUILD_BUILD_ID BUILDKITE CIRCLECI DRONE
+  # git's own variables, which name a repository, an index, or an author for every git call a test makes, and the forge
+  # tokens and hosts, the release a loader is pointed at, and the markers of a nix shell and a dev container, which
+  # a desk or a runner has and a test names for itself where it counts
+  # shellcheck disable=SC2046  # git lists names, one a line, none with a space
+  unset $(git rev-parse --local-env-vars) GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_AUTHOR_DATE GIT_COMMITTER_NAME \
+    GIT_COMMITTER_EMAIL GIT_COMMITTER_DATE GIT_SSH_COMMAND GIT_ASKPASS GH_TOKEN GITHUB_TOKEN GH_ENTERPRISE_TOKEN \
+    GH_HOST KIT_BASE IN_NIX_SHELL CODESPACES REMOTE_CONTAINERS DEVCONTAINER DOCKER_HOST
   # the depth of the kit call that ran bats, kit gate's under kit ci, which every call a test makes would add to
   unset kit_depth
   # the release the loader chose for the call that ran bats, which a test's own kit calls choose again for themselves
