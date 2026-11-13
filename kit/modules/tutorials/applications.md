@@ -59,7 +59,7 @@ Open [People](kittui:people), or run `kit people`.
 
 The evidence that the work follows the rules, and what fails them.
 
-Open [Trust](kittui:trust), or run `kit audit`.
+Open [Trust](kittui:trust), or run `kit trust`.
 
 ## 🧰 Platform
 

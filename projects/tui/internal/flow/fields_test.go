@@ -326,7 +326,7 @@ func TestAnIssuesOrganizationAndRepositoryAreFields(t *testing.T) {
 // The workspace kittui reads can cross repositories, so every stage whose rows belong to one groups them, in each of
 // its own views, by source, organization, and repository, the outermost first, a view the person saves keeping the
 // groups they chose: repos, whose rows are repositories, by source and organization alone; remotes, whose
-// organization and repository are those a remote names, by none of them. Audit policy's rows merge up to a scope, and
+// organization and repository are those a remote names, by none of them. Trust policy's rows merge up to a scope, and
 // a rule set for a whole organization stands under its repository's null, all, as its column draws it.
 func TestEveryStageGroupsItsOwnViewsBySourceOrganizationAndRepository(t *testing.T) {
 	want := []string{"source", "organization", "repository"}
@@ -360,7 +360,7 @@ func TestEveryStageGroupsItsOwnViewsBySourceOrganizationAndRepository(t *testing
 		}
 	}
 	m := appOf(t, shell.Trust, tea.WindowSizeMsg{Width: 160, Height: 30})
-	for m.stages[m.stage].name != "audit/policy" {
+	for m.stages[m.stage].name != "trust/policy" {
 		m = drive(m, tab)
 	}
 	for _, heading := range []string{"▾ github · o 2", "▾ all 1", "▾ r 1"} {
@@ -369,7 +369,7 @@ func TestEveryStageGroupsItsOwnViewsBySourceOrganizationAndRepository(t *testing
 		}
 	}
 	// a clone with no remote on a forge has no source and no organization, "", which stand under none, not all
-	m = drive(m, reanswer(m, "audit/policy", `{"rows": [{"key": "branch   r", "source": "", "organization": "",
+	m = drive(m, reanswer(m, "trust/policy", `{"rows": [{"key": "branch   r", "source": "", "organization": "",
 		"repository": "r", "branch": null, "scope": "repository", "rule": "branch", "pattern": "^x-", "from": "default",
 		"engine": "patterns", "links": {}}], "errors": []}`))
 	if !strings.Contains(raw(m), "▾ none · none · r 1") || strings.Contains(raw(m), "▾ all") {

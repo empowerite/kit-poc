@@ -1,61 +1,167 @@
 #!/usr/bin/env bash
-# kit-trust - trusts a clone, so kit runs what it asks for there (kit verb: installation)
+# kit-trust - lists what the repository can be trusted for, and trusts a clone (kit verb: workflow)
 # ----------------------------------------------------------------------------------------------------------------------
 # Usage:
-#   kit trust [--yes] [<path>]
-#   kit trust --list
-#   kit trust --check [<path>]
-#   kit trust --asks [<path>]
-#   kit trust --revoke [<path>]
+#   kit trust [--text | --json | --jq]
+#   kit trust --stages
+#   kit trust --marks
+#   kit trust evidence [--text | --json | --jq]
+#   kit trust findings [--text | --json | --jq]
+#   kit trust controls [--text | --json | --jq]
+#   kit trust waivers [--text | --json | --jq]
+#   kit trust policy [--text | --json | --jq]
+#   kit trust enforcement [--text | --json | --jq]
+#   kit trust --clone [--yes] [<path>]
+#   kit trust --clone --list
+#   kit trust --clone --check [<path>]
+#   kit trust --clone --asks [<path>]
+#   kit trust --clone --revoke [<path>]
+#
+# Two things go by trust. The first is Trust, the app of kittui: it lists what the forge and the policy say the
+# repository can be trusted for, and what holds an agent to the rules, a stage for each of Trust's tabs. It changes
+# nothing. The stages, in order:
+#
+#   evidence → findings → controls → waivers → policy → enforcement
+#
+# On a terminal, kit trust opens Trust in kittui, and kit trust <stage> opens it on that tab, maximized. Without a
+# terminal, or with --text, it prints the stages as text. With --json or --jq, it prints them as JSON.
+#
+# kit --workspace=<workspace> trust draws each stage across a workspace's members with checkouts, as kit workspace does.
+# Without it, the workspace is the repository here, and outside one, the last group used, as kit workspaces --current
+# says.
+#
+# With --json, a stage prints {contract, rows, errors}, and limited where the forge holds more than it read. A
+# repository with no forge, or a forge without the stage's feature, gives no rows and no errors. A feature the forge has
+# off for this repository, such as secret scanning disabled, gives no rows and {feature, off: true} under errors, which
+# is no failure. The fields of each stage are in docs/apps.md.
+#
+# Legend
+#
+# Each stage lists the glyphs it draws in kittui, one per line. A glyph can show under more than one stage.
+#
+# kit:generate legend `k=$(command -v kit); jq -nr -L "${k%/bin/kit}/modules/jq" 'import "glyphs" as g; g::legend_for("trust")'`
+#   📚  workspace: a group, in the workspace menu that drops down from - in kittui's title
+#
+# evidence:
+#
+#   🧾  evidence: an attestation of what was built, and who signed it
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# findings:
+#
+#   🐛  finding: a scanner's alert, and its severity
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# controls:
+#
+#   🔒  control: a ruleset or a branch protection, and what it enforces
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# waivers:
+#
+#   🔓  waiver: a control bypassed or an alert dismissed, by whom and why
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# policy:
+#
+#   📏  policy rule: a rule kit policy holds the files to
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# enforcement:
+#
+#   🔐  enforcement: a mechanism that holds an agent to the rules, its tier, and whether it binds
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# kit:end legend
+#
+# The second is the trust of a clone, which kit trust --clone gives; it runs on its own, apart from the app, in a
+# clone you do not trust too.
 #
 # kit runs nothing in a clone until you trust it: in a clone you do not trust, bin/kit, the loader, runs kit help,
-# kit version, and kit trust alone, on the kit you installed, and every other verb refuses; kit serve and the hook,
-# kit context --claude, which an agent's harness runs, say so in the form the harness reads. kit trust shows what the
-# clone asks kit to run: the release it pins, read as the loader reads it, and whether that is the clone's own kit/,
-# which version: unreleased names whether or not the clone holds one yet; the bash it loads; its gate; the sources
-# it brings packages from; the tools it has kit download; and the lint: command of each rule and style. Each is one
-# line, with its value whole. Where the clone has no kit.yml, its settings are the .kit/settings.yml that kit moves
-# there, and kit trust shows what that file names. Then it asks you, and records your answer for the clone and every
-# worktree of it, with the digest of what it asks. A folder, written with a / at its end, trusts every clone under it.
+# kit version, and kit trust --clone alone, on the kit you installed, and every other verb refuses; kit serve and
+# the hook, kit context --claude, which an agent's harness runs, say so in the form the harness reads. kit trust
+# --clone shows what the clone asks kit to run: the release it pins, read as the loader reads it, and whether that
+# is the clone's own kit/, which version: unreleased names whether or not the clone holds one yet; the bash it
+# loads; its gate; the sources it brings packages from; the tools it has kit download; and the lint: command of each
+# rule and style. Each is one line, with its value whole. Where the clone has no kit.yml, its settings are the
+# .kit/settings.yml that kit moves there, and kit trust --clone shows what that file names. Then it asks you, and
+# records your answer for the clone and every worktree of it, with the digest of what it asks. A folder, written
+# with a / at its end, trusts every clone under it.
 #
 # Outside a clone, a folder that holds a kit.yml is held to the same trust, by its own path: an unpacked archive of
 # a repository is one. Until you trust it, kit reads no bash_path there and runs nothing its kit.yml names, and kit
-# trust shows what it asks and records your answer the same way. kit reads the settings of the folder you type in
-# alone, so a folder below it, and a folder in no clone that holds no kit.yml, is asked nothing and has nothing to
-# record.
+# trust --clone shows what it asks and records your answer the same way. kit reads the settings of the folder you
+# type in alone, so a folder below it, and a folder in no clone that holds no kit.yml, is asked nothing and has
+# nothing to record.
 #
-# The trust is a person's to give. With no terminal to ask on, and no --yes, kit trust records nothing and says so:
-# an agent that meets it asks the person to run kit trust, and never runs it for them.
+# The trust is a person's to give. With no terminal to ask on, and no --yes, kit trust --clone records nothing and
+# says so: an agent that meets it asks the person to run kit trust --clone, and never runs it for them.
 #
-# Trusting a clone means you accept code from whoever can push to it. kit does not check each pull; review and signed
-# commits do. The trust holds while the clone asks kit to run what it asked: a pull that changes its kit.yml's
-# version, bash_path, gate, sources, or tools, or a rule's or a style's frontmatter, withdraws it, and kit asks again.
-# A pull that changes only the code those name, as the gate's script, keeps it. A folder's trust holds whatever its
-# clones ask.
+# Trusting a clone means you accept code from whoever can push to it. kit does not check each pull; review and
+# signed commits do. The trust holds while the clone asks kit to run what it asked: a pull that changes its
+# kit.yml's version, bash_path, gate, sources, or tools, or a rule's or a style's frontmatter, withdraws it, and kit
+# asks again. A pull that changes only the code those name, as the gate's script, keeps it. A folder's trust holds
+# whatever its clones ask.
 #
-# The records are in kit/trusted under XDG_CONFIG_HOME, else ~/.config: a line per clone, the digest and the absolute
-# path, and a line per folder, its absolute path, which you may write by hand.
+# The records are in kit/trusted under XDG_CONFIG_HOME, else ~/.config: a line per clone, the digest and the
+# absolute path, and a line per folder, its absolute path, which you may write by hand.
 #
 # Arguments:
-#   --yes             records the trust without asking, as a CI job does for its own checkout
-#   --list            prints the clones and the folders you trust, one per line
-#   --check           prints the name the clone is trusted by, and exits 0 when it is trusted, as it asks now, and 1
-#                     when not; it asks nothing and runs nothing of the clone's, for a screen that asks for the trust
-#                     itself
-#   --asks            prints what the clone asks kit to run, one line each, as kit trust shows it, and asks nothing
-#   --revoke          takes the trust of a clone or a folder back
-#   <path>            a clone, or a directory in one, the clone here when none is given; a folder outside a clone
-#                     that holds a kit.yml; or a folder ending in /
+#   --text              prints the stages as text, even on a terminal
+#   --json              the stages as one JSON object: contract, stages, then each stage's document under its name,
+#                       null for one that could not be read
+#   --jq                the same JSON, formatted by jq for a person
+#   --stages            prints the stages, one per line, in order, the same over any workspace
+#   --marks             prints a mark per stage, as one JSON object, which changes when what the stage draws does; null
+#                       for controls and waivers, which are read again only on Refresh
+#   evidence            the attestations of the 5 newest releases' assets and the 20 newest artifacts
+#   findings            the code scanning, Dependabot, and secret scanning alerts, open and dismissed
+#   controls            the rulesets and the protection that guard the default branch
+#   waivers             who may bypass each control, and each alert dismissed
+#   policy              each rule kit policy judges by, as kit policy --rules lists them
+#   enforcement         what binds an agent and what is advice, per harness and for the repository, in four tiers
+#   --clone             trusts a clone, with the arguments below; on its own it asks you, and records your answer
+#   --yes               with --clone, records the trust without asking, as a CI job does for its own checkout
+#   --list              with --clone, prints the clones and the folders you trust, one per line
+#   --check             with --clone, prints the name the clone is trusted by, and exits 0 when it is trusted, as it
+#                       asks now, and 1 when not; it asks nothing and runs nothing of the clone's, for a screen that
+#                       asks for the trust itself
+#   --asks              with --clone, prints what the clone asks kit to run, one line each, as kit trust --clone shows
+#                       it, and asks nothing
+#   --revoke            with --clone, takes the trust of a clone or a folder back
+#   <path>              with --clone, a clone, or a directory in one, the clone here when none is given; a folder
+#                       outside a clone that holds a kit.yml; or a folder ending in /
 #
-# Exits 0 when the clone or the folder is trusted, or the list or the asks are printed; 1 when you answer no, there is
-# no terminal to ask and no --yes, --revoke finds no record, or --check finds the clone not trusted; and 2 on a usage
-# error, or a path in no clone that holds no kit.yml.
+# Exits 0 when the stages are drawn, 1 when a stage could not be read, after what was, and 2 on a usage error, or
+# outside a repository's working tree with no workspace. With --clone, it exits 0 when the clone or the folder is
+# trusted, or the list or the asks are printed; 1 when you answer no, there is no terminal to ask and no --yes,
+# --revoke finds no record, or --check finds the clone not trusted; and 2 on a usage error, or a path in no clone that
+# holds no kit.yml.
 #
-# see: modules/bash/trust.sh, modules/bash/1st.sh, bin/kit
+# see: modules/bash/apps.sh, modules/bash/apps/trust.sh, modules/jq/apps.jq, docs/apps.md, modules/bash/trust.sh,
+# modules/bash/1st.sh, bin/kit
 
 set -o errexit -o nounset -o pipefail
 # shellcheck source=modules/bash/1st.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
+
+# --clone chooses the trust of a clone, which runs in a clone you do not trust, as bin/kit, the loader, lets it; the
+# app, with no --clone, runs only in a clone you trust, as every other verb does, and kit:enter refuses any other.
+clone_form=false
+for word in "$@"
+do
+  [[ "${word}" != -- ]] || break
+  [[ "${word}" != --clone ]] || clone_form=true
+done
+if [[ "${clone_form}" == false ]]
+then
+  kit:enter
+  use apps
+  workspaces:misplaced trust "$@" || exit $?
+  guard:arguments trust "$@" || exit $?
+  apps:main trust "$@"
+  exit $?
+fi
 kit:enter --any-clone
 use trust
 
@@ -84,7 +190,7 @@ else
   if ! clone=$(kit:trust-root "${target}")
   then
     error "${target} is in no clone and holds no kit.yml, so kit runs nothing it names; to trust every clone under a" \
-      "folder, end it with /: kit trust ${target%/}/"
+      "folder, end it with /: kit trust --clone ${target%/}/"
     exit 2
   fi
   record=$(kit:trust-name "${clone}")
@@ -101,7 +207,8 @@ if [[ -n "${syntax_options[--asks]+x}" ]]
 then
   if [[ -z "${clone}" ]]
   then
-    error "${record} is a folder; a clone asks kit to run what it asks, so name one: kit trust --asks <path>"
+    error "${record} is a folder; a clone asks kit to run what it asks, so name one:" \
+      "kit trust --clone --asks <path>"
     exit 2
   fi
   trust:asks "${clone}"
@@ -112,11 +219,11 @@ if [[ -n "${syntax_options[--revoke]+x}" ]]
 then
   if ! trust:revoke "${record}"
   then
-    error "kit trust holds no record of ${record}; see what it holds: kit trust --list"
+    error "kit trust --clone holds no record of ${record}; see what it holds: kit trust --clone --list"
     exit 1
   fi
   ok "kit no longer trusts ${record}"
-  kit:trusted "${record}" && warn "a folder you trust still holds ${record}; see: kit trust --list"
+  kit:trusted "${record}" && warn "a folder you trust still holds ${record}; see: kit trust --clone --list"
   exit 0
 fi
 
@@ -169,7 +276,7 @@ then
     runner=''
     [[ -z "${GITHUB_ACTIONS:-}${GITLAB_CI:-}${TF_BUILD:-}" ]] \
       || runner='; a job on a runner trusts its own checkout, as kit help trust says'
-    error "there is no terminal to ask, and the trust is a person's to give; ask them to run: kit trust" \
+    error "there is no terminal to ask, and the trust is a person's to give; ask them to run: kit trust --clone" \
       "${record}${runner}"
     exit 1
   fi

@@ -266,27 +266,27 @@ var legends = map[string][]entry{
 		{Agent, "agent"},
 		{Failed, "failed"},
 	},
-	"audit/evidence": {
+	"trust/evidence": {
 		{Evidence, "evidence"},
 		{Failed, "failed"},
 	},
-	"audit/findings": {
+	"trust/findings": {
 		{Finding, "finding"},
 		{Failed, "failed"},
 	},
-	"audit/controls": {
+	"trust/controls": {
 		{Control, "control"},
 		{Failed, "failed"},
 	},
-	"audit/waivers": {
+	"trust/waivers": {
 		{Waiver, "waiver"},
 		{Failed, "failed"},
 	},
-	"audit/policy": {
+	"trust/policy": {
 		{Policy, "policy rule"},
 		{Failed, "failed"},
 	},
-	"audit/enforcement": {
+	"trust/enforcement": {
 		{Enforcement, "enforcement"},
 		{Failed, "failed"},
 	},
@@ -380,12 +380,12 @@ var stageGlyphs = map[string]string{
 	"people/people":         Person,
 	"people/teams":          Team,
 	"people/agents":         Agent,
-	"audit/evidence":        Evidence,
-	"audit/findings":        Finding,
-	"audit/controls":        Control,
-	"audit/waivers":         Waiver,
-	"audit/policy":          Policy,
-	"audit/enforcement":     Enforcement,
+	"trust/evidence":        Evidence,
+	"trust/findings":        Finding,
+	"trust/controls":        Control,
+	"trust/waivers":         Waiver,
+	"trust/policy":          Policy,
+	"trust/enforcement":     Enforcement,
 	"platform/services":     Service,
 	"platform/toolchains":   Toolchain,
 	"platform/tools":        Tool,
@@ -419,12 +419,12 @@ var stageColors = map[string]string{
 	"people/people":         "114",
 	"people/teams":          "114",
 	"people/agents":         "13",
-	"audit/evidence":        "75",
-	"audit/findings":        "203",
-	"audit/waivers":         "203",
-	"audit/controls":        "221",
-	"audit/policy":          "221",
-	"audit/enforcement":     "221",
+	"trust/evidence":        "75",
+	"trust/findings":        "203",
+	"trust/waivers":         "203",
+	"trust/controls":        "221",
+	"trust/policy":          "221",
+	"trust/enforcement":     "221",
 	"platform/services":     "114",
 	"platform/toolchains":   "114",
 	"platform/tools":        "177",

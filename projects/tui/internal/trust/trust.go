@@ -1,6 +1,6 @@
 // Package trust is the dialog kittui opens in a clone kit does not trust yet, before it reads anything there, as an
 // editor asks before it trusts a folder: it names the clone, says what trusting it lets kit do, from what kit trust
-// --asks prints, and offers Trust, which runs kit trust --yes on the clone, and Not now, which leaves it untrusted, so
+// --asks prints, and offers Trust, which runs kit trust --clone --yes on the clone, and Not now, which leaves it untrusted, so
 // kittui opens on what kit runs there, the palette of kit help. A plain click takes either button, as does the
 // keyboard.
 package trust
@@ -23,7 +23,7 @@ const (
 )
 
 // Model is the dialog: the clone's name, what it asks kit to run or why that could not be read, which button has the
-// keyboard, the screen's size, what kit trust --yes said when it refused, whether it runs now, and how the dialog
+// keyboard, the screen's size, what kit trust --clone --yes said when it refused, whether it runs now, and how the dialog
 // ended.
 type Model struct {
 	r             kit.Runner
@@ -38,7 +38,7 @@ type Model struct {
 	interrupted   bool
 }
 
-// trustedMsg is kit trust --yes's answer: nil, or its refusal.
+// trustedMsg is kit trust --clone --yes's answer: nil, or its refusal.
 type trustedMsg struct{ err error }
 
 // Open makes the dialog for the clone kit trusts by name, reading what it asks kit to run; a read kit refuses is said
@@ -62,7 +62,7 @@ func (m Model) Interrupted() bool { return m.interrupted }
 // Init starts nothing: the dialog has read what it shows.
 func (m Model) Init() tea.Cmd { return nil }
 
-// Update takes the screen's size, a key, a click on a button, and kit trust --yes's answer.
+// Update takes the screen's size, a key, a click on a button, and kit trust --clone --yes's answer.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
@@ -110,7 +110,7 @@ func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// press presses the button with the keyboard: Trust runs kit trust --yes on the clone, once at a time, and Not now
+// press presses the button with the keyboard: Trust runs kit trust --clone --yes on the clone, once at a time, and Not now
 // ends the dialog with the clone as it was.
 func (m Model) press() (tea.Model, tea.Cmd) {
 	if m.focus == 1 {

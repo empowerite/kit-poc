@@ -33,7 +33,7 @@ makes a screen the first time it is shown, and keeps it as you left it while ano
 Two dialogs open over a screen:
 
 - `internal/trust` asks before kittui reads anything in a clone that kit does not trust yet. Trust runs
-  `kit trust --yes` on the clone. Not now leaves it untrusted and opens the palette, which an untrusted clone allows.
+  `kit trust --clone --yes` on the clone. Not now leaves it untrusted and opens the palette, which an untrusted clone allows.
 - `internal/opener` is Open Repository… in the workspace menu. Type a folder, or find the clones under it.
 
 A word after the verb opens the screen at a place:
@@ -78,7 +78,7 @@ its first tab, and `kit <verb> <tab>` opens it on that tab, maximized.
 | Repositories | `kit workspace` | repos, worktrees, branches, commits, tags, remotes, incoming |
 | Delivery | `kit delivery` | releases, builds, artifacts, environments, deployments |
 | People | `kit people` | people, teams, agents |
-| Trust | `kit audit` | evidence, findings, controls, waivers, policy, enforcement |
+| Trust | `kit trust` | evidence, findings, controls, waivers, policy, enforcement |
 | Platform | `kit platform` | services, toolchains, tools, settings |
 | Packages | `kit packages` | packages |
 

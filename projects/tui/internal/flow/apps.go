@@ -30,8 +30,8 @@ var apps = []entityApp{
 	{shell.Delivery, "delivery", []string{"releases", "builds", "delivery/artifacts", "delivery/environments",
 		"delivery/deployments"}},
 	{shell.People, "people", []string{"people/people", "people/teams", "people/agents"}},
-	{shell.Trust, "audit", []string{"audit/evidence", "audit/findings", "audit/controls", "audit/waivers",
-		"audit/policy", "audit/enforcement"}},
+	{shell.Trust, "trust", []string{"trust/evidence", "trust/findings", "trust/controls", "trust/waivers",
+		"trust/policy", "trust/enforcement"}},
 	{shell.Platform, "platform", []string{"platform/services", "platform/toolchains", "platform/tools",
 		"platform/settings"}},
 	{shell.Packages, packagesVerb, []string{"packages/packages"}},
@@ -76,7 +76,7 @@ func AppOf(verb string, words []string) (shell.Screen, []string) {
 }
 
 // AppVerb says whether a verb besides kit flow opens one of kittui's apps, as kit workspace opens Repositories and kit
-// audit Trust.
+// trust Trust.
 func AppVerb(verb string) bool {
 	return slices.ContainsFunc(apps, func(a entityApp) bool { return a.verb == verb })
 }

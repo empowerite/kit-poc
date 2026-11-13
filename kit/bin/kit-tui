@@ -19,8 +19,8 @@
 # with the page of kit flow. Before the verb, or with no verb, it prints this page.
 #
 # In a clone kit does not trust yet, kittui asks you to trust it before it reads anything there: it names the clone and
-# what trusting it lets kit run, and offers Trust, which runs kit trust --yes on it, and Not now, which leaves it
-# untrusted and opens the palette, which reads kit help and kit syntax, as an untrusted clone allows. bin/kit, the
+# what trusting it lets kit run, and offers Trust, which runs kit trust --clone --yes on it, and Not now, which leaves
+# it untrusted and opens the palette, which reads kit help and kit syntax, as an untrusted clone allows. bin/kit, the
 # loader, lets kit tui through in such a clone on a terminal, on the kit you installed.
 #
 # kit tui runs kittui, which each release carries. In a checkout of the kit, it builds one from projects/tui/ with go,

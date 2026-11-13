@@ -140,7 +140,7 @@ terminal() {
   [ "${lines[${#lines[@]} - 1]}" = "kittui native-native people" ]
   run terminal "'${kit_root}/bin/kit' issues backlog"
   [ "${lines[${#lines[@]} - 1]}" = "kittui native-native issues backlog" ]
-  run terminal "'${kit_root}/bin/kit' audit --marks"
+  run terminal "'${kit_root}/bin/kit' trust --marks"
   [[ "$output" != *"kittui"* ]]
 }
 

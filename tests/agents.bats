@@ -140,10 +140,10 @@ claude-prefixes() {
   kit install agents/claude agents/gemini
   # the region is in a fresh clone before anything is hydrated, where .kit/1st.md is not; it names no option
   region=$(sed -n '/kit:generate AGENTS.md/,/kit:end AGENTS.md/p' AGENTS.md)
-  [[ "${region}" == *'stop and ask the person to run `kit trust`'* ]]
-  [[ "${region}" == *'Never run `kit trust` yourself'* ]]
+  [[ "${region}" == *'stop and ask the person to run `kit trust --clone`'* ]]
+  [[ "${region}" == *'Never run `kit trust --clone` yourself'* ]]
   [[ "${region}" != *--yes* ]]
-  grep --quiet --fixed-strings 'An agent never runs `kit trust`' .kit/1st.md
+  grep --quiet --fixed-strings 'An agent never runs `kit trust --clone`' .kit/1st.md
   jq --exit-status '.permissions.deny | index("Bash(kit trust *)")' .claude/settings.json >/dev/null
   jq --exit-status '.tools.exclude | index("run_shell_command(kit trust)")' .gemini/settings.json >/dev/null
 }

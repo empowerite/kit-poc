@@ -157,7 +157,7 @@ between calls except the log line.
 
 In a clone you have not trusted, kit reads no rule, and the hook says so in the same form, since the harness shows
 the agent nothing of a line on stderr. The additional context says that the trust is the person's to give, and
-names the command for the person to run, `kit trust` with the clone's path. The hook reads nothing of the clone
+names the command for the person to run, `kit trust --clone` with the clone's path. The hook reads nothing of the clone
 and trusts nothing.
 
 The harness runs the hook in the folder where the session started, which is usually the desk, and gives the file's

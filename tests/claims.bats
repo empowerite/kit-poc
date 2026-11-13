@@ -328,7 +328,7 @@ script-commands() {
           # kit tools install --toolchain kit, in a comment, is not run
           kit/bin/kit tools install --toolchain kit
           kit tools install --toolchain=kit && kit tools path --toolchain kit >> "${GITHUB_PATH}"
-          kit/bin/kit trust --yes "${GITHUB_WORKSPACE}"
+          kit/bin/kit trust --clone --yes "${GITHUB_WORKSPACE}"
       - name: kit
         run: kit nosuch
           if dirs=$(kit tools path --toolchain kit) && [[ -n "${dirs}" ]]
@@ -463,7 +463,7 @@ EOF
 @test "CONTRIBUTING's setup trusts the clone before direnv allow, which runs kit and would otherwise be refused" {
   local setup
   setup=$(awk '/^## Setup/ {on = 1} /^## The workflow/ {on = 0} on' "${root}/CONTRIBUTING.md")
-  [[ "${setup}" == *"kit/bin/kit trust"*"direnv allow"* ]]
+  [[ "${setup}" == *"kit/bin/kit trust --clone"*"direnv allow"* ]]
 }
 
 @test "kit flow with a stage opens it at a terminal and prints it with --json, and the pages say so: no --text there" {

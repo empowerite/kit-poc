@@ -383,8 +383,8 @@ sources:
   workspace, and never reaches the open internet.
 - Package sources are the repository's: a workspace or `KIT_SOURCES` that names one is refused.
 - `kit tools sources` prints the path, each entry with its kind, its url, and the layer it came from.
-- A clone's `kit.yml` that names a source is what `kit trust` asks about, each source by its kind and url, before kit
-  reads anything there.
+- A clone's `kit.yml` that names a source is what `kit trust --clone` asks about, each source by its kind and url,
+  before kit reads anything there.
 
 The design, and what the kinds beyond `kit-packages` fetch, is in
 [the artifact sources design](superpowers/specs/2026-11-12-artifact-sources-design.md).

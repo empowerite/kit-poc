@@ -278,7 +278,7 @@ group-has() {
   # and the Group line wraps between verbs, never inside one
   run "${kit_root}/bin/kit" help install
   [[ "$output" == *$'\nGroup\n  installation: also kit hydrate, kit packages, kit platform, kit toolchains,\n'* ]]
-  [[ "$output" == *$'\n                     kit tools, kit trust, kit uninstall, kit update,\n                     kit version'* ]]
+  [[ "$output" == *$'\n                     kit tools, kit uninstall, kit update, kit version'* ]]
   # the overview's LEARN MORE bullets fit 80 columns too
   run "${kit_root}/bin/kit" help
   while IFS= read -r line

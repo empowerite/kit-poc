@@ -59,8 +59,8 @@ Elsewhere, this rule is the only thing that stops it.
   list. A person merges, after review.
 - An agent never discards or hides work on the desk or in a worktree: `git restore`, `git clean`, and `git stash` are
   on the same deny list.
-- An agent never runs `kit trust`, which is on the same deny list. The trust is the person's to give. When kit
-  answers that it runs nothing in a clone until you trust it, the agent stops and asks the person to run `kit trust`
+- An agent never runs `kit trust --clone`, which is on the same deny list. The trust is the person's to give. When kit
+  answers that it runs nothing in a clone until you trust it, the agent stops and asks the person to run `kit trust --clone`
   in a terminal.
 
 These limits do not apply to the human at the desk.

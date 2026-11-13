@@ -118,7 +118,7 @@ The `agents/claude` and `agents/gemini` packages each deliver a deny list. The l
 raw git commands that these verbs replace, such as `git commit`, `git push`, `git rebase`, `git
 worktree add`, and `git branch -D`, and the merge commands of each forge. It matches literal patterns, so a form it
 does not list passes: Claude Code's list names `git -C <dir>` before the writing commands, and Gemini's, which matches
-a prefix, does not. The other agent tools get no deny list. `kit audit enforcement`
+a prefix, does not. The other agent tools get no deny list. `kit trust enforcement`
 shows what binds an agent and what is only advice, for the repository and for each agent tool.
 
 see: `kit help <verb>` for each verb, [architecture.md](architecture.md#the-workflow-and-the-gate),
@@ -234,7 +234,7 @@ Each app has a verb: at a terminal, the verb opens its app, and `kit <verb> <tab
 | Repositories | `kit workspace` | the repository | repos, worktrees, branches, commits, tags, remotes, incoming |
 | Delivery | `kit delivery` | the release | releases, builds, artifacts, environments, deployments |
 | People | `kit people` | the person | people, teams, agents |
-| Trust | `kit audit` | the evidence | evidence, findings, controls, waivers, policy, enforcement |
+| Trust | `kit trust` | the evidence | evidence, findings, controls, waivers, policy, enforcement |
 | Platform | `kit platform` | the service | services, toolchains, tools, settings |
 | Packages | `kit packages` | the package | packages |
 
@@ -352,7 +352,7 @@ see: [packages.md](packages.md), the "Changing what kit adds" section of `.kit/1
 - When `kit update` lacks the previous release for a file it must merge, it refuses before it writes anything.
 - git ignores what kit places under `.kit/`. `kit.yml` declares the active packages, and `kit hydrate`
   places their files in a fresh clone or worktree. Every verb that reads a delivered file hydrates first.
-- kit runs nothing in a clone until you trust it. `kit trust`
+- kit runs nothing in a clone until you trust it. `kit trust --clone`
   shows what the clone asks kit to run, and records your answer.
 
 see: [install.md](install.md), [packages.md](packages.md),

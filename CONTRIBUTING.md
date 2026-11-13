@@ -19,7 +19,7 @@ git config gpg.format openpgp
 git config user.signingkey "${signing_key}"
 git config commit.gpgsign true
 brew bundle install
-kit/bin/kit trust
+kit/bin/kit trust --clone
 direnv allow
 kit/bin/kit toolchains use kit
 kit tools install
@@ -27,7 +27,7 @@ kit hydrate && lefthook install
 kit welcome
 ```
 
-`kit trust` shows what this clone asks kit to run and records your answer. Run it before `direnv allow`: the
+`kit trust --clone` shows what this clone asks kit to run and records your answer. Run it before `direnv allow`: the
 `.envrc` calls kit, and kit refuses to run anything in a clone you have not trusted, so without the trust direnv puts
 no tool on `PATH`.
 

@@ -35,7 +35,7 @@ null
 ["repos","remotes","branches","worktrees","commits","tags"]
 
 # Each app verb's legend has its own stages alone, in its order, each tab of its in kittui.
-import "glyphs" as glyphs; ["issues", "changes", "delivery", "people", "audit", "platform"] | map([glyphs::legend_for(.) | select(test("^# [a-z]+:$")) | ltrimstr("# ") | rtrimstr(":")])
+import "glyphs" as glyphs; ["issues", "changes", "delivery", "people", "trust", "platform"] | map([glyphs::legend_for(.) | select(test("^# [a-z]+:$")) | ltrimstr("# ") | rtrimstr(":")])
 null
 [["milestones","iterations"],["reviews","checks","merged"],["artifacts","environments","deployments"],["people","teams","agents"],["evidence","findings","controls","waivers","policy","enforcement"],["services","toolchains","tools","settings"]]
 

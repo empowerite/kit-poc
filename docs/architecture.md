@@ -307,8 +307,8 @@ What holds an agent to the rules is in one of four tiers, and only the last bind
 | Local floor | `lefthook install` in this clone, its `lefthook.yml` extending `.kit/lefthook.yml` | `git commit --no-verify`, `LEFTHOOK=0`, and a commit made in another clone |
 | Authoritative | `kit ci` on the pull request's commit, where a ruleset or protection on the default branch requires its check, `CI`, and an approving review, and a human merges | who may bypass those controls |
 
-`kit audit enforcement` shows them for the repository and for each harness whose agent package is active, each with its
+`kit trust enforcement` shows them for the repository and for each harness whose agent package is active, each with its
 status, `active`, `missing`, or `unknown`, and its evidence, `probed`, `documented`, or `unverified`; see
-[apps.md](apps.md#trust-kit-audit). A deny list or a hook merely registered is `unknown`, never `active`: kit cannot
-probe that a harness runs it. The authoritative rows read the forge as `kit audit controls` does, and a forge kit
+[apps.md](apps.md#trust-kit-trust). A deny list or a hook merely registered is `unknown`, never `active`: kit cannot
+probe that a harness runs it. The authoritative rows read the forge as `kit trust controls` does, and a forge kit
 cannot read, or a control whose checks it does not show, as GitLab's protected branches, leaves them `unknown`.

@@ -150,7 +150,7 @@ func TestEveryTabReadsAKitStage(t *testing.T) {
 		{shell.Changes, "changes changes/reviews changes/checks changes/merged"},
 		{shell.Delivery, "releases builds delivery/artifacts delivery/environments delivery/deployments"},
 		{shell.People, "people/people people/teams people/agents"},
-		{shell.Trust, "audit/evidence audit/findings audit/controls audit/waivers audit/policy audit/enforcement"},
+		{shell.Trust, "trust/evidence trust/findings trust/controls trust/waivers trust/policy trust/enforcement"},
 		{shell.Platform, "platform/services platform/toolchains platform/tools platform/settings"},
 	} {
 		t.Setenv("XDG_CONFIG_HOME", t.TempDir())
@@ -185,7 +185,7 @@ func TestEveryTabReadsAKitStage(t *testing.T) {
 func TestATabOffHereSaysSo(t *testing.T) {
 	m := appOf(t, shell.Trust, tea.WindowSizeMsg{Width: 160, Height: 30})
 	m = drive(m, tab)
-	if m.stages[m.stage].name != "audit/findings" {
+	if m.stages[m.stage].name != "trust/findings" {
 		t.Fatalf("the second tab is %s", m.stages[m.stage].name)
 	}
 	v := view(m)
@@ -193,7 +193,7 @@ func TestATabOffHereSaysSo(t *testing.T) {
 		strings.Contains(v, Failed) || m.count(m.stage) != "2" {
 		t.Errorf("findings with secret scanning off, count %q:\n%s", m.count(m.stage), v)
 	}
-	m = drive(m, reanswer(m, "audit/findings", `{"rows": [], "errors": [{"feature": "secret-scanning", "off": true}]}`))
+	m = drive(m, reanswer(m, "trust/findings", `{"rows": [], "errors": [{"feature": "secret-scanning", "off": true}]}`))
 	got := m.lines()
 	if len(got) != 2 || !strings.Contains(got[0].Text, "no alert") ||
 		got[1].Text != lead+style.Off("secret-scanning is off here") || strings.Contains(view(m), Failed) ||
@@ -201,7 +201,7 @@ func TestATabOffHereSaysSo(t *testing.T) {
 		t.Errorf("findings with nothing but secret scanning off, count %q: %+v", m.count(m.stage), got)
 	}
 	// over a group, the member it is off for is named, and a member that failed is a failure, as ever
-	s := m.find("audit/findings")
+	s := m.find("trust/findings")
 	if err := s.decode([]byte(`{"rows": [], "errors": [{"member": "github.com/o/a", "feature": "secret-scanning",
 		"off": true}, {"member": "github.com/o/b", "error": "gh cannot read"}]}`), true); err != nil {
 		t.Fatal(err)
@@ -216,11 +216,11 @@ func TestATabOffHereSaysSo(t *testing.T) {
 	}
 	// the waivers draw what kit read beside a scanner off here, and beside a part the forge refused, its line a failure
 	m = drive(m, tab, tab)
-	if v := view(m); m.stages[m.stage].name != "audit/waivers" || !strings.Contains(v, "tolerable_risk") ||
+	if v := view(m); m.stages[m.stage].name != "trust/waivers" || !strings.Contains(v, "tolerable_risk") ||
 		!strings.Contains(v, "secret-scanning is off here") || strings.Contains(v, Failed) || m.count(m.stage) != "3" {
 		t.Errorf("waivers with secret scanning off, count %q:\n%s", m.count(m.stage), v)
 	}
-	m = drive(m, reanswer(m, "audit/waivers", `{"rows": [{"key": "dependabot 1", "waives": "dependabot 1",
+	m = drive(m, reanswer(m, "trust/waivers", `{"rows": [{"key": "dependabot 1", "waives": "dependabot 1",
 		"actor": null, "kind": "dismissal", "reason": "tolerable_risk", "by": "ada", "until": null, "hidden": null, "links": {}}],
 		"errors": [{"feature": "bypasses", "error": "the bypasses could not be read"},
 		{"feature": "secret-scanning", "off": true}]}`))
@@ -297,7 +297,7 @@ func TestACappedTabCountsWithAPlus(t *testing.T) {
 }
 
 // The stages whose verb never marks them, as their catalog entries' marked false says, are those whose --marks prints
-// null always: kit people's three, audit's controls and waivers, and issues' iterations.
+// null always: kit people's three, trust's controls and waivers, and issues' iterations.
 func TestTheStagesNeverMarkedAreTheCatalogs(t *testing.T) {
 	var never []string
 	for name := range catalog {
@@ -306,8 +306,8 @@ func TestTheStagesNeverMarkedAreTheCatalogs(t *testing.T) {
 		}
 	}
 	slices.Sort(never)
-	if want := []string{"audit/controls", "audit/waivers", "issues/iterations", "people/agents", "people/people",
-		"people/teams"}; !slices.Equal(never, want) {
+	if want := []string{"issues/iterations", "people/agents", "people/people", "people/teams", "trust/controls",
+		"trust/waivers"}; !slices.Equal(never, want) {
 		t.Errorf("never marked: %q", never)
 	}
 	if !everMarked("issues") || !everMarked("nonesuch") {
@@ -399,8 +399,8 @@ func TestAVerbThatNeverMarksItsTabsIsNotAskedForTheirMarks(t *testing.T) {
 // reads none, as Platform's, reads them only while the screen has none, so every app draws them, those whose stages
 // read no forge too, and a load that spends none does not read them again.
 func TestAForgeStagesLoadReadsTheLimitsAgain(t *testing.T) {
-	for name, forge := range map[string]bool{"issues": true, "people/teams": true, "audit/findings": true,
-		"audit/policy": false, "platform/tools": false, "workspace/repos": false, "incoming": false} {
+	for name, forge := range map[string]bool{"issues": true, "people/teams": true, "trust/findings": true,
+		"trust/policy": false, "platform/tools": false, "workspace/repos": false, "incoming": false} {
 		if catalog[name].Forge != forge {
 			t.Errorf("%s reads the forge: %v", name, catalog[name].Forge)
 		}
@@ -538,7 +538,7 @@ func TestTheWordsReachEachCommandThatTakesThem(t *testing.T) {
 }
 
 // A row's link to another stage of its verb's, row:<stage>/<key>, leads to that stage as kittui names it: a
-// deployment's environment to its row of delivery/environments, a waiver to its control's row of audit/controls;
+// deployment's environment to its row of delivery/environments, a waiver to its control's row of trust/controls;
 // following it lands there, on the stage the link names, not on another whose name it also starts with, as changes is
 // of changes/reviews.
 func TestARowOfAnAppVerbLeadsToItsVerbsStage(t *testing.T) {
@@ -555,8 +555,8 @@ func TestARowOfAnAppVerbLeadsToItsVerbsStage(t *testing.T) {
 		t.Errorf("the jump: on %s, row %d", s.name, s.Cursor)
 	}
 	trust := appOf(t, shell.Trust)
-	for _, r := range trust.records(*trust.find("audit/waivers")) {
-		if r.Key == "7 release" && r.values["waives"].Link != jumpTo("audit/controls", "7") {
+	for _, r := range trust.records(*trust.find("trust/waivers")) {
+		if r.Key == "7 release" && r.values["waives"].Link != jumpTo("trust/controls", "7") {
 			t.Errorf("the waiver leads to %q", r.values["waives"].Link)
 		}
 	}
@@ -601,14 +601,14 @@ func TestADateIsItsDayAndASizeItsUnit(t *testing.T) {
 	}
 }
 
-// Each app verb opens its own app, as kit audit opens Trust, on the tab its words name; a verb that is none opens Flow.
+// Each app verb opens its own app, as kit trust opens Trust, on the tab its words name; a verb that is none opens Flow.
 func TestEachAppVerbOpensItsApp(t *testing.T) {
 	for _, c := range []struct {
 		verb, words string
 		app         shell.Screen
 	}{
 		{"issues", "", shell.Issues}, {"issues", "milestones", shell.Issues}, {"changes", "merged", shell.Changes},
-		{"delivery", "", shell.Delivery}, {"people", "teams", shell.People}, {"audit", "", shell.Trust},
+		{"delivery", "", shell.Delivery}, {"people", "teams", shell.People}, {"trust", "", shell.Trust},
 		{"platform", "settings", shell.Platform}, {"tutorials", "", shell.Flow},
 	} {
 		app, _ := AppOf(c.verb, strings.Fields(c.words))
@@ -707,7 +707,7 @@ func TestAJumpOpensTheHeadingsOverItsRowAndSaysWhenTheRowIsNotShown(t *testing.T
 	}
 }
 
-// The title line names the app as the = menu does, not the verb that opens it: Trust is kit trust, not kit audit, and
+// The title line names the app as the = menu does, not the verb that opens it: Trust is kit trust, and
 // Repositories kit repositories, not kit workspace.
 func TestTheTitleLineNamesTheAppAsTheMenuDoes(t *testing.T) {
 	for _, a := range apps {

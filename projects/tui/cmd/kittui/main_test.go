@@ -284,7 +284,7 @@ func TestOffATerminalEachScreenNamesItsTextForm(t *testing.T) {
 		"flow":      "kit flow needs an interactive terminal for its picture; run: " + fix.Here("kit flow --text"),
 		"workspace": "kit workspace needs an interactive terminal for its picture; run: " + fix.Here("kit workspace --text"),
 		"packages":  "kit packages needs an interactive terminal for its picture; run: " + fix.Here("kit packages --text"),
-		"audit":     "kit audit needs an interactive terminal for its picture; run: " + fix.Here("kit audit --text"),
+		"trust":     "kit trust needs an interactive terminal for its picture; run: " + fix.Here("kit trust --text"),
 		"tutorials": "kit tutorials needs an interactive terminal; run: " + fix.Here("kit tutorials --text"),
 		"-- commit": "kit tui needs an interactive terminal; run: " + fix.Here("kit help tui"),
 	} {
@@ -405,7 +405,7 @@ func TestFlowAndWorkspaceOpenTheAppWithTheTabNamed(t *testing.T) {
 		{"issues", nil, shell.Issues}, {"issues", []string{"backlog"}, shell.Issues},
 		{"flow", []string{"underway"}, shell.Flow},
 		{"changes", []string{"changes"}, shell.Changes}, {"delivery", []string{"deployments"}, shell.Delivery},
-		{"people", nil, shell.People}, {"audit", []string{"waivers"}, shell.Trust}, {"platform", nil, shell.Platform},
+		{"people", nil, shell.People}, {"trust", []string{"waivers"}, shell.Trust}, {"platform", nil, shell.Platform},
 	} {
 		screen, m, err := open(r, c.verb, c.words)
 		if _, ok := m.(flow.Model); err != nil || !ok || screen != c.want {
@@ -470,8 +470,8 @@ func TestAnAppsVerbOpensItOnTheTabNamed(t *testing.T) {
 	}{
 		{"issues", []string{"backlog"}, shell.Issues, "issues", true},
 		{"issues", []string{"milestones"}, shell.Issues, "milestones", true},
-		{"audit", nil, shell.Trust, "evidence", false},
-		{"audit", []string{"waivers"}, shell.Trust, "waivers", true},
+		{"trust", nil, shell.Trust, "evidence", false},
+		{"trust", []string{"waivers"}, shell.Trust, "waivers", true},
 	} {
 		screen, m, err := open(r, c.verb, c.words)
 		f, ok := m.(flow.Model)

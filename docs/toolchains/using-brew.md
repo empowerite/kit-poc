@@ -45,7 +45,7 @@ It does not depend on **git**. Homebrew cannot be installed without git, and mac
 command line tools, so a machine that has brew has git. If that git is older than the 2.31 kit needs, or you want a
 newer one, run `brew install git`; `kit welcome` says which.
 
-Installing kit trusts nothing. Trust is a clone's, given by `kit trust`; see [install.md](../install.md#trust).
+Installing kit trusts nothing. Trust is a clone's, given by `kit trust --clone`; see [install.md](../install.md#trust).
 
 ## brew fills in
 

@@ -654,10 +654,10 @@ func (r Runner) Tutorials(ctx context.Context, tags []string) (Catalogue, error)
 	return c, nil
 }
 
-// Trusted says whether kit trusts the clone the runner runs in, as kit trust --check says, which runs nothing of the
+// Trusted says whether kit trusts the clone the runner runs in, as kit trust --clone --check says, which runs nothing of the
 // clone's.
 func (r Runner) Trusted() bool {
-	_, err := r.run("trust", "--check")
+	_, err := r.run("trust", "--clone", "--check")
 	return err == nil
 }
 
@@ -665,7 +665,7 @@ func (r Runner) Trusted() bool {
 // trust --check prints them; outside a clone, in a folder that holds no kit.yml, where kit needs no trust and names
 // none, it is trusted with no name.
 func (r Runner) Trust() (string, bool, error) {
-	out, err := r.run("trust", "--check")
+	out, err := r.run("trust", "--clone", "--check")
 	var refusal *ExitError
 	switch {
 	case err == nil:
@@ -678,9 +678,9 @@ func (r Runner) Trust() (string, bool, error) {
 	return "", false, err
 }
 
-// Asks gives what the clone the runner runs in asks kit to run, a line each, as kit trust --asks prints them.
+// Asks gives what the clone the runner runs in asks kit to run, a line each, as kit trust --clone --asks prints them.
 func (r Runner) Asks() ([]string, error) {
-	out, err := r.run("trust", "--asks")
+	out, err := r.run("trust", "--clone", "--asks")
 	if err != nil {
 		return nil, err
 	}
@@ -693,9 +693,9 @@ func (r Runner) Asks() ([]string, error) {
 	return asks, nil
 }
 
-// TrustClone has kit trust the clone kit names so, as kit trust --yes <name> records it; kit's refusal is an ExitError.
+// TrustClone has kit trust the clone kit names so, as kit trust --clone --yes <name> records it; kit's refusal is an ExitError.
 func (r Runner) TrustClone(name string) error {
-	_, err := r.run("trust", "--yes", name)
+	_, err := r.run("trust", "--clone", "--yes", name)
 	return err
 }
 

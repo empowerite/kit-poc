@@ -1,5 +1,4 @@
 assign	assigns issues to the caller, or to someone else	workflow
-audit	lists the forge's attestations, alerts, controls, waivers, the policy, and what binds	workflow
 bots	lists, adopts, and forgets the bots that act for you	workflow
 changes	lists the open changes, their reviews and checks, and the changes merged last	workflow
 check	fails when a delivered file differs from the pinned release	checks
@@ -41,7 +40,7 @@ template	rewrites a template's ASCII holes into guillemets	plumbing
 tidy	removes merged worktrees and gone branches	workflow
 toolchains	lists the toolchains kit found here, and records which one to use	installation
 tools	lists, installs, and updates what the chosen toolchain and the dependencies pin	installation
-trust	trusts a clone, so kit runs what it asks for there	installation
+trust	lists what the repository can be trusted for, and trusts a clone	workflow
 tui	runs the interactive terminal UI	interfaces
 tutorials	lists kit's tutorials, and opens one, in kittui or the browser	help
 unassign	takes the caller, or everyone, off issues	workflow

@@ -10,7 +10,7 @@
 # FAKE_FLOW_PART_JSON names and exits 1 with nothing on stderr, as incoming does when a remote's fetch fails.
 # FAKE_FLOW_SLOW names a stage that sleeps five seconds before it answers. FAKE_FLOW_ABOVE names a stage that
 # answers as kit does above repositories: an array of {path, status}, one per repository. With --no-fetch, incoming
-# answers incoming-no-fetch.json: fetched false, and the remotes without what a fetch brings. trust --check holds only
+# answers incoming-no-fetch.json: fetched false, and the remotes without what a fetch brings. trust --clone --check holds only
 # while FAKE_FLOW_TRUSTED is set.
 # --me prints FAKE_FLOW_ME, ada when it is unset; FAKE_FLOW_REFUSE=me refuses it with exit 1. --quota prints
 # FAKE_FLOW_QUOTA, and refuses with exit 1 while it is unset, as kit does with no forge to read; --marks prints
@@ -27,7 +27,7 @@
 # packages-<stage>.json beside this file, or refuses with exit 1 where FAKE_FLOW_REFUSE names packages/<stage>;
 # packages --marks prints FAKE_PACKAGES_MARKS, as workspace --marks does; and packages select, add, and remove say what
 # they were asked on stderr, or refuse with exit 1 where FAKE_FLOW_REFUSE names packages <verb>. The app verbs, issues,
-# changes, delivery, people, audit, and platform, answer as kit packages does: --stages prints the verb's stages,
+# changes, delivery, people, trust, and platform, answer as kit packages does: --stages prints the verb's stages,
 # <stage> --json prints <verb>-<stage>.json beside this file, or refuses with exit 1 where FAKE_FLOW_REFUSE names
 # <verb>/<stage>, and --marks prints the file FAKE_<VERB>_MARKS names, as FAKE_PEOPLE_MARKS, and refuses with exit 1
 # without one. A --workspace=<workspace> before the verb is handed to the verb's words, and one after it is refused.
@@ -137,9 +137,15 @@ then
   exit 0
 fi
 
+if [[ "${1:-}" == trust && "${2:-}" == --clone ]]
+then
+  [[ -n "${FAKE_FLOW_TRUSTED:-}" ]]
+  exit
+fi
+
 declare -A app_stages=([issues]="milestones iterations" [changes]="reviews checks merged"
   [delivery]="artifacts environments deployments" [people]="people teams agents"
-  [audit]="evidence findings controls waivers policy enforcement" [platform]="services toolchains tools settings")
+  [trust]="evidence findings controls waivers policy enforcement" [platform]="services toolchains tools settings")
 if [[ -n "${app_stages[${1:-flow}]:-}" ]]
 then
   verb=$1
@@ -168,11 +174,6 @@ then
   exit 0
 fi
 
-if [[ "${1:-}" == trust ]]
-then
-  [[ -n "${FAKE_FLOW_TRUSTED:-}" ]]
-  exit
-fi
 if [[ "${1:-}" != flow ]]
 then
   echo "❌ no kit verb '${1:-}'; run: kit help" >&2

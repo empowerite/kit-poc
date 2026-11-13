@@ -929,7 +929,7 @@
       ]
     },
     {
-      "stage": "audit/evidence", "command": ["audit", "evidence", "--json"], "staged": true, "forge": true,
+      "stage": "trust/evidence", "command": ["trust", "evidence", "--json"], "staged": true, "forge": true,
       "summary": "Attestations: who signed the newest releases and artifacts",
       "takes": ["workspace"], "record": ".rows[]", "empty": "no attestation",
       "fields": [
@@ -961,7 +961,7 @@
       ]
     },
     {
-      "stage": "audit/findings", "command": ["audit", "findings", "--json"], "staged": true, "forge": true,
+      "stage": "trust/findings", "command": ["trust", "findings", "--json"], "staged": true, "forge": true,
       "summary": "Security alerts by severity: code scanning, Dependabot, secrets",
       "takes": ["workspace"], "record": ".rows[]", "empty": "no alert",
       "fields": [
@@ -1001,7 +1001,7 @@
       ]
     },
     {
-      "stage": "audit/controls", "command": ["audit", "controls", "--json"], "staged": true, "marked": false,
+      "stage": "trust/controls", "command": ["trust", "controls", "--json"], "staged": true, "marked": false,
       "summary": "What guards the default branch, and whether each rule is enforced",
       "forge": true, "takes": ["workspace"], "record": ".rows[]", "empty": "no control guards the default branch",
       "fields": [
@@ -1036,7 +1036,7 @@
       ]
     },
     {
-      "stage": "audit/waivers", "command": ["audit", "waivers", "--json"], "staged": true, "marked": false,
+      "stage": "trust/waivers", "command": ["trust", "waivers", "--json"], "staged": true, "marked": false,
       "summary": "Who may bypass the controls, and which alerts were dismissed",
       "forge": true, "takes": ["workspace"], "record": ".rows[]", "empty": "no waiver",
       "fields": [
@@ -1072,7 +1072,7 @@
       ]
     },
     {
-      "stage": "audit/policy", "command": ["audit", "policy", "--json"], "staged": true, "takes": ["workspace"],
+      "stage": "trust/policy", "command": ["trust", "policy", "--json"], "staged": true, "takes": ["workspace"],
       "summary": "The rules kit policy checks, what each matches, and where it is set",
       "record": ".rows[]", "empty": "no rule",
       "fields": [
@@ -1106,7 +1106,7 @@
       ]
     },
     {
-      "stage": "audit/enforcement", "command": ["audit", "enforcement", "--json"], "staged": true,
+      "stage": "trust/enforcement", "command": ["trust", "enforcement", "--json"], "staged": true,
       "summary": "What binds an agent to the rules and what is advice, per harness and for the repository",
       "forge": true, "takes": ["workspace"], "record": ".rows[]", "empty": "no mechanism",
       "fields": [

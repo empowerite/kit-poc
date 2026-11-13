@@ -483,7 +483,7 @@ func TestWelcomeKeepRunsKitWelcomeKeepAndGivesTheCheckKitSaysOrItsRefusal(t *tes
 	}
 }
 
-// The clone is trusted as kit trust --check says.
+// The clone is trusted as kit trust --clone --check says.
 func TestTrustedIsKitTrustCheck(t *testing.T) {
 	if !fake(t, "").Trusted() {
 		t.Error("a clone kit trusts")
@@ -494,8 +494,8 @@ func TestTrustedIsKitTrustCheck(t *testing.T) {
 	}
 }
 
-// Trust gives kit trust --check's name and answer: trusted, not trusted, and no clone, which needs no trust; a kit that
-// cannot run is an error. Asks gives kit trust --asks's lines, and TrustClone runs kit trust --yes on the name.
+// Trust gives kit trust --clone --check's name and answer: trusted, not trusted, and no clone, which needs no trust; a kit that
+// cannot run is an error. Asks gives kit trust --clone --asks's lines, and TrustClone runs kit trust --clone --yes on the name.
 func TestTrustAsksAndTrustCloneAreKitTrust(t *testing.T) {
 	if name, ok, err := fake(t, "").Trust(); name != "/the/clone" || !ok || err != nil {
 		t.Errorf("trusted: %q %v %v", name, ok, err)
@@ -524,7 +524,7 @@ func TestTrustAsksAndTrustCloneAreKitTrust(t *testing.T) {
 	if err := fake(t, "").TrustClone("/the/clone"); err != nil {
 		t.Fatal(err)
 	}
-	if said, err := os.ReadFile(record); err != nil || string(said) != "trust --yes /the/clone\n" {
+	if said, err := os.ReadFile(record); err != nil || string(said) != "trust --clone --yes /the/clone\n" {
 		t.Errorf("kit ran %q (%v)", said, err)
 	}
 	t.Setenv("FAKE_KIT_REFUSE", "trust")

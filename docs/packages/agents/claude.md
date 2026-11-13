@@ -31,14 +31,14 @@ place:
 | `git restore`, `git clean`, `git stash` | none: an agent does not discard or hide work |
 | `git checkout -B`, `git switch -C`, `git switch --create` | `kit work` |
 | `git branch -d`, `git branch --delete` | `kit tidy` |
-| `kit trust` | none: the trust is the person's to give, so the agent asks them to run it |
+| `kit trust --clone` | none: the trust is the person's to give, so the agent asks them to run it |
 
 `hooks.PreToolUse` runs `kit context --claude` before each `Write`, `Edit`, and `MultiEdit`. It shows the agent the
 rules that govern the file; see [docs/context.md](../../context.md).
 A session is told a set of rules once: the hook says nothing when the same set governs the next file. Where `kit` is
 not on the harness's `PATH`, or kit does not answer, the command prints one line of additional context that says no
 rule was read, so the agent knows to run `kit context <path>` itself. In a clone you have not trusted, kit reads no
-rule: the hook says so in the same form, and that the person runs `kit trust` to give the trust.
+rule: the hook says so in the same form, and that the person runs `kit trust --clone` to give the trust.
 
 The package merges one more entry, `mcpServers.kit`, into `.mcp.json`: the kit's MCP server, `kit serve`, which
 offers the rules as resources and the verbs as tools in three groups; see [docs/serve.md](../../serve.md):

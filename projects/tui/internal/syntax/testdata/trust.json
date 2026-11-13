@@ -1,15 +1,283 @@
 {
   "verb": "trust",
-  "purpose": "trusts a clone, so kit runs what it asks for there",
+  "purpose": "lists what the repository can be trusted for, and trusts a clone",
   "usage": [
-    "kit trust [--yes] [<path>]",
-    "kit trust --list",
-    "kit trust --check [<path>]",
-    "kit trust --asks [<path>]",
-    "kit trust --revoke [<path>]"
+    "kit trust [--text | --json | --jq]",
+    "kit trust --stages",
+    "kit trust --marks",
+    "kit trust evidence [--text | --json | --jq]",
+    "kit trust findings [--text | --json | --jq]",
+    "kit trust controls [--text | --json | --jq]",
+    "kit trust waivers [--text | --json | --jq]",
+    "kit trust policy [--text | --json | --jq]",
+    "kit trust enforcement [--text | --json | --jq]",
+    "kit trust --clone [--yes] [<path>]",
+    "kit trust --clone --list",
+    "kit trust --clone --check [<path>]",
+    "kit trust --clone --asks [<path>]",
+    "kit trust --clone --revoke [<path>]"
   ],
   "syntax": [
     [
+      {
+        "kind": "group",
+        "optional": true,
+        "alternatives": [
+          [
+            {
+              "kind": "flag",
+              "name": "text",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "json",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "jq",
+              "repeat": false
+            }
+          ]
+        ],
+        "repeat": false
+      }
+    ],
+    [
+      {
+        "kind": "flag",
+        "name": "stages",
+        "repeat": false
+      }
+    ],
+    [
+      {
+        "kind": "flag",
+        "name": "marks",
+        "repeat": false
+      }
+    ],
+    [
+      {
+        "kind": "literal",
+        "name": "evidence",
+        "repeat": false
+      },
+      {
+        "kind": "group",
+        "optional": true,
+        "alternatives": [
+          [
+            {
+              "kind": "flag",
+              "name": "text",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "json",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "jq",
+              "repeat": false
+            }
+          ]
+        ],
+        "repeat": false
+      }
+    ],
+    [
+      {
+        "kind": "literal",
+        "name": "findings",
+        "repeat": false
+      },
+      {
+        "kind": "group",
+        "optional": true,
+        "alternatives": [
+          [
+            {
+              "kind": "flag",
+              "name": "text",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "json",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "jq",
+              "repeat": false
+            }
+          ]
+        ],
+        "repeat": false
+      }
+    ],
+    [
+      {
+        "kind": "literal",
+        "name": "controls",
+        "repeat": false
+      },
+      {
+        "kind": "group",
+        "optional": true,
+        "alternatives": [
+          [
+            {
+              "kind": "flag",
+              "name": "text",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "json",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "jq",
+              "repeat": false
+            }
+          ]
+        ],
+        "repeat": false
+      }
+    ],
+    [
+      {
+        "kind": "literal",
+        "name": "waivers",
+        "repeat": false
+      },
+      {
+        "kind": "group",
+        "optional": true,
+        "alternatives": [
+          [
+            {
+              "kind": "flag",
+              "name": "text",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "json",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "jq",
+              "repeat": false
+            }
+          ]
+        ],
+        "repeat": false
+      }
+    ],
+    [
+      {
+        "kind": "literal",
+        "name": "policy",
+        "repeat": false
+      },
+      {
+        "kind": "group",
+        "optional": true,
+        "alternatives": [
+          [
+            {
+              "kind": "flag",
+              "name": "text",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "json",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "jq",
+              "repeat": false
+            }
+          ]
+        ],
+        "repeat": false
+      }
+    ],
+    [
+      {
+        "kind": "literal",
+        "name": "enforcement",
+        "repeat": false
+      },
+      {
+        "kind": "group",
+        "optional": true,
+        "alternatives": [
+          [
+            {
+              "kind": "flag",
+              "name": "text",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "json",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "jq",
+              "repeat": false
+            }
+          ]
+        ],
+        "repeat": false
+      }
+    ],
+    [
+      {
+        "kind": "flag",
+        "name": "clone",
+        "repeat": false
+      },
       {
         "kind": "group",
         "optional": true,
@@ -42,11 +310,21 @@
     [
       {
         "kind": "flag",
+        "name": "clone",
+        "repeat": false
+      },
+      {
+        "kind": "flag",
         "name": "list",
         "repeat": false
       }
     ],
     [
+      {
+        "kind": "flag",
+        "name": "clone",
+        "repeat": false
+      },
       {
         "kind": "flag",
         "name": "check",
@@ -70,6 +348,11 @@
     [
       {
         "kind": "flag",
+        "name": "clone",
+        "repeat": false
+      },
+      {
+        "kind": "flag",
         "name": "asks",
         "repeat": false
       },
@@ -89,6 +372,11 @@
       }
     ],
     [
+      {
+        "kind": "flag",
+        "name": "clone",
+        "repeat": false
+      },
       {
         "kind": "flag",
         "name": "revoke",
@@ -111,23 +399,59 @@
     ]
   ],
   "arguments": {
+    "--text": {
+      "description": "prints the stages as text, even on a terminal"
+    },
+    "--json": {
+      "description": "the stages as one JSON object: contract, stages, then each stage's document under its name, null for one that could not be read"
+    },
+    "--jq": {
+      "description": "the same JSON, formatted by jq for a person"
+    },
+    "--stages": {
+      "description": "prints the stages, one per line, in order, the same over any workspace"
+    },
+    "--marks": {
+      "description": "prints a mark per stage, as one JSON object, which changes when what the stage draws does; null for controls and waivers, which are read again only on Refresh"
+    },
+    "evidence": {
+      "description": "the attestations of the 5 newest releases' assets and the 20 newest artifacts"
+    },
+    "findings": {
+      "description": "the code scanning, Dependabot, and secret scanning alerts, open and dismissed"
+    },
+    "controls": {
+      "description": "the rulesets and the protection that guard the default branch"
+    },
+    "waivers": {
+      "description": "who may bypass each control, and each alert dismissed"
+    },
+    "policy": {
+      "description": "each rule kit policy judges by, as kit policy --rules lists them"
+    },
+    "enforcement": {
+      "description": "what binds an agent and what is advice, per harness and for the repository, in four tiers"
+    },
+    "--clone": {
+      "description": "trusts a clone, with the arguments below; on its own it asks you, and records your answer"
+    },
     "--yes": {
-      "description": "records the trust without asking, as a CI job does for its own checkout"
+      "description": "with --clone, records the trust without asking, as a CI job does for its own checkout"
     },
     "--list": {
-      "description": "prints the clones and the folders you trust, one per line"
+      "description": "with --clone, prints the clones and the folders you trust, one per line"
     },
     "--check": {
-      "description": "prints the name the clone is trusted by, and exits 0 when it is trusted, as it asks now, and 1 when not; it asks nothing and runs nothing of the clone's, for a screen that asks for the trust itself"
+      "description": "with --clone, prints the name the clone is trusted by, and exits 0 when it is trusted, as it asks now, and 1 when not; it asks nothing and runs nothing of the clone's, for a screen that asks for the trust itself"
     },
     "--asks": {
-      "description": "prints what the clone asks kit to run, one line each, as kit trust shows it, and asks nothing"
+      "description": "with --clone, prints what the clone asks kit to run, one line each, as kit trust --clone shows it, and asks nothing"
     },
     "--revoke": {
-      "description": "takes the trust of a clone or a folder back"
+      "description": "with --clone, takes the trust of a clone or a folder back"
     },
     "<path>": {
-      "description": "a clone, or a directory in one, the clone here when none is given; a folder outside a clone that holds a kit.yml; or a folder ending in /"
+      "description": "with --clone, a clone, or a directory in one, the clone here when none is given; a folder outside a clone that holds a kit.yml; or a folder ending in /"
     }
   }
 }

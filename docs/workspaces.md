@@ -275,7 +275,7 @@ refuses `--workspace` among its own words.
 
 | Verbs | What `--workspace=` does |
 | --- | --- |
-| `kit flow`, `kit workspace`, `kit issues`, `kit changes`, `kit delivery`, `kit people`, `kit audit`, `kit platform`, `kit packages` | runs the verb in every cloned member's checkout |
+| `kit flow`, `kit workspace`, `kit issues`, `kit changes`, `kit delivery`, `kit people`, `kit trust`, `kit platform`, `kit packages` | runs the verb in every cloned member's checkout |
 | `kit welcome` | checks the folders of the workspace |
 | `kit workspaces --current` | names the workspace |
 | `kit tui <verb>` and a verb typed short of its arguments | opens the verb's form over the workspace |

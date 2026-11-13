@@ -164,7 +164,7 @@ func TestTheFlagOfAChosenOptionIsNoStopAndIsDrawnOnce(t *testing.T) {
 	if m = send(m, key("up")); m.focus != 0 {
 		t.Errorf("up from the command line: focus %d, want the row at 0", m.focus)
 	}
-	m = newForm(t, "audit", Answers{Chosen: map[string]int{"": 0, "0/0": 1}}, false)
+	m = newForm(t, "trust", Answers{Chosen: map[string]int{"": 0, "0/0": 1}}, false)
 	view := RenderStatic(m.spec, m.fields, 100)
 	if n := strings.Count(view, "--json"); n != 2 { // the row's name, and the command line
 		t.Errorf("--json drawn %d times, want the row and the command line:\n%s", n, view)

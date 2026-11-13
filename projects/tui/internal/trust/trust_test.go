@@ -1,4 +1,4 @@
-// The dialog names the clone and what it asks kit to run, and ends as the person chose: Trust runs kit trust --yes on
+// The dialog names the clone and what it asks kit to run, and ends as the person chose: Trust runs kit trust --clone --yes on
 // the clone, Not now leaves it as it was, by a plain click on either button or by the keyboard; every test runs it
 // against testdata/fake-kit.
 package trust
@@ -16,7 +16,7 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/testkit"
 )
 
-// opened gives the dialog over the fake, at 80 columns and 30 lines, with the calls to kit trust --yes recorded.
+// opened gives the dialog over the fake, at 80 columns and 30 lines, with the calls to kit trust --clone --yes recorded.
 func opened(t *testing.T) (Model, string) {
 	t.Helper()
 	record := filepath.Join(t.TempDir(), "record")
@@ -84,7 +84,7 @@ func TestTheProseWrapsToTheScreen(t *testing.T) {
 	}
 }
 
-// Trust, by enter on it, by t, or by a plain click on it, runs kit trust --yes on the clone and ends the dialog.
+// Trust, by enter on it, by t, or by a plain click on it, runs kit trust --clone --yes on the clone and ends the dialog.
 func TestTrustRunsKitTrustAndEnds(t *testing.T) {
 	m, _ := opened(t)
 	_, row := m.lines()
@@ -98,7 +98,7 @@ func TestTrustRunsKitTrustAndEnds(t *testing.T) {
 		m, record := opened(t)
 		m, quit := drive(m, msgs...)
 		said, err := os.ReadFile(record)
-		if !quit || !m.Trusted() || m.Interrupted() || err != nil || string(said) != "trust --yes /the/clone\n" {
+		if !quit || !m.Trusted() || m.Interrupted() || err != nil || string(said) != "trust --clone --yes /the/clone\n" {
 			t.Errorf("%s: quit %v, trusted %v, kit ran %q (%v)", name, quit, m.Trusted(), said, err)
 		}
 	}
@@ -148,7 +148,7 @@ func TestCtrlCInterrupts(t *testing.T) {
 	}
 }
 
-// While kit trust --yes runs, the dialog says so and a second press runs nothing more; a refusal stays on the dialog,
+// While kit trust --clone --yes runs, the dialog says so and a second press runs nothing more; a refusal stays on the dialog,
 // said under the buttons, and Trust can be pressed again.
 func TestARefusalOfTrustStaysOnTheDialog(t *testing.T) {
 	m, _ := opened(t)

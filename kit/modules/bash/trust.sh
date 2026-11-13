@@ -1,19 +1,18 @@
 # shellcheck shell=bash
 # trust.sh - the clones you trust: what one asks kit to run, and the file that records your answer (sourced module)
 # ----------------------------------------------------------------------------------------------------------------------
-# kit runs nothing in a clone until you trust it, nor in a folder outside a clone that holds a kit.yml, which is
-# trusted as a clone is, by its own path. modules/bash/1st.sh holds the check, kit:trust-here, which every verb's
-# kit:enter makes before anything else, and bin/kit, the loader, makes the same check in POSIX sh before it runs a
-# release the clone names. This module holds what kit trust adds: what a clone asks kit to run, and the records it
-# writes.
+# kit runs nothing in a clone until you trust it, nor in a folder outside a clone that holds a kit.yml, which is trusted
+# as a clone is, by its own path. modules/bash/1st.sh holds the check, kit:trust-here, which every verb's kit:enter
+# makes before anything else, and bin/kit, the loader, makes the same check in POSIX sh before it runs a release the
+# clone names. This module holds what kit trust --clone adds: what a clone asks kit to run, and the records it writes.
 #
 # A record is one line of the trust file, kit:trust-file. For a clone, which trusts it and every worktree of it, it is
 # the sha256 of what the clone asks kit to run, kit:trust-digest's, two spaces, and the clone's absolute path, as
-# sha256sum prints a file's: the trust holds while the clone asks the same, and a clone whose kit.yml, rules, or
-# styles come to ask something new is asked about again. A clone may have a line for each thing it asked that you
-# trusted, as two worktrees on different branches do. For a folder it is the folder's absolute path alone, ending in
-# /, which trusts every clone under it, whatever it asks. A line that starts with # is a comment, and ~/ at the start
-# of a path is the home directory. kit trust writes physical paths, with no link in them, as the check compares them.
+# sha256sum prints a file's: the trust holds while the clone asks the same, and a clone whose kit.yml, rules, or styles
+# come to ask something new is asked about again. A clone may have a line for each thing it asked that you trusted, as
+# two worktrees on different branches do. For a folder it is the folder's absolute path alone, ending in /, which trusts
+# every clone under it, whatever it asks. A line that starts with # is a comment, and ~/ at the start of a path is the
+# home directory. kit trust --clone writes physical paths, with no link in them, as the check compares them.
 #
 # see: bin/kit-trust, modules/bash/1st.sh, bin/kit
 
@@ -42,8 +41,8 @@ trust:version-line() {
 
 # trust:pinned <value> <from> <clone> puts in the variable <value> the release the clone at <clone> pins, read as
 # bin/kit, the loader, reads it, by the same two sed programs: the version line of its settings, trust:settings', as
-# trust:version-line reads it, and where that gives nothing, the version .kit/manifest records. It puts in <from>
-# the words that name where the release was read, for the line kit trust shows. yq is not asked: a version it finds
+# trust:version-line reads it, and where that gives nothing, the version .kit/manifest records. It puts in <from> the
+# words that name where the release was read, for the line kit trust --clone shows. yq is not asked: a version it finds
 # and the loader does not, as under a key in quotes, is not the release that runs.
 trust:pinned() {
   local pinned='' pinned_from='version:' pinned_settings
@@ -139,14 +138,14 @@ trust:asks() {
 }
 
 # trust:refusal <name> <status> prints, for an agent, why kit runs nothing in the clone or folder <name>, by
-# kit:trusted's <status>, 1 where no line names it and 3 where it asks something new, and what the agent does: the
-# trust is the person's to give, so it stops and asks them to run kit trust, by the path, from anywhere. It names no
+# kit:trusted's <status>, 1 where no line names it and 3 where it asks something new, and what the agent does: the trust
+# is the person's to give, so it stops and asks them to run kit trust --clone, by the path, from anywhere. It names no
 # option, so an agent that follows it trusts nothing. bin/kit-context says it in the hook's JSON, and
 # modules/bash/serve.sh in the protocol's error.
 trust:refusal() {
   local why="kit runs nothing in $1 until a person trusts it"
   [[ "$2" != 3 ]] || why="$1 asks kit to run something new since a person trusted it, so kit runs nothing there"
-  printf "%s. The trust is the person's to give, never an agent's: stop, and ask them to run: kit trust %s\n" \
+  printf "%s. The trust is the person's to give, never an agent's: stop, and ask them to run: kit trust --clone %s\n" \
     "${why}" "$(out:folder "$1")"
 }
 
@@ -184,7 +183,7 @@ trust:recorded() {
 }
 
 # trust:record <record> [<digest>] adds trust:line's line to the trust file, once, writing the file whole or not at
-# all. A line of the clone's path alone, which kit trust wrote before it kept the digest, goes.
+# all. A line of the clone's path alone, which kit trust --clone wrote before it kept the digest, goes.
 trust:record() {
   local file
   file=$(kit:trust-file)

@@ -159,9 +159,9 @@ Check it with `kit version` and `kit help`.
 
 Other ways to install, such as mise or a download with `gh`, are in [docs/install.md](docs/install.md). That page
 also lists what kit needs on the machine, which the download does not bring (bash 4.4 or later, git, `jq`, `yq`,
-and the linters), how kit picks which release to run, and how `kit trust` works.
+and the linters), how kit picks which release to run, and how `kit trust --clone` works.
 
-New to a repository that uses kit? Run `kit trust`, then `kit welcome`. `kit welcome` checks your tools, your code
+New to a repository that uses kit? Run `kit trust --clone`, then `kit welcome`. `kit welcome` checks your tools, your code
 forge logins, and the repository, and shows how to fix each problem. Then it explains how work flows, the terms, and
 what a team can change. It also names terminal settings that make kittui slower or worse; see
 [docs/terminals.md](docs/terminals.md), and [docs/kittui-needs.md](docs/kittui-needs.md) says what kittui needs of the

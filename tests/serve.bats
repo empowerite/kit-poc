@@ -210,7 +210,7 @@ call() {
 
 @test "every verb is a tool or is named here as not one, and kit-serve's header names the tools in their groups" {
   # not offered: each writes, needs a terminal, draws one of kittui's apps, or is a gate's, a person's, or a script's
-  local tools header withheld='audit bots changes ci commit completion delivery facts gate generate hydrate install
+  local tools header withheld='bots changes ci commit completion delivery facts gate generate hydrate install
     issues linked new people platform policy publish ready rebase region release root serve submit template tidy trust tui
     tutorials uninstall update usage welcome workspace workspaces'
   serve "$(modern 1 tools/list)"
@@ -683,7 +683,7 @@ call() {
   printf 'bash_path:\n  - kit:modules/bash/\n  - mods\n' >> kit.yml
   here=$(pwd -P)
   said="kit runs nothing in ${here} until a person trusts it. The trust is the person's to give, never an agent's:"
-  said+=" stop, and ask them to run: kit trust ${here}"
+  said+=" stop, and ask them to run: kit trust --clone ${here}"
   # the earlier revisions: the session opens and says so, ping is answered, and every list, call, and read is refused
   serve '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}' \
     '{"jsonrpc":"2.0","id":2,"method":"ping"}' '{"jsonrpc":"2.0","id":3,"method":"tools/list"}' \
@@ -718,7 +718,7 @@ call() {
       ! grep --quiet '"id":1' "${BATS_TEST_TMPDIR}/out" 2>/dev/null || break
       sleep 0.2
     done
-    "${kit_checkout}/bin/kit" trust --yes >/dev/null 2>&1
+    "${kit_checkout}/bin/kit" trust --clone --yes >/dev/null 2>&1
     printf '%s\n' "$(modern 2 tools/list)"
   } | "${kit_checkout}/bin/kit" serve >"${BATS_TEST_TMPDIR}/out" 2>"${BATS_TEST_TMPDIR}/err"
   [ "$(answer 1 | jq -r .error.code)" = -32003 ]

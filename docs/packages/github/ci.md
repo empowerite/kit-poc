@@ -10,8 +10,8 @@ default branch. The job:
    unpacks the tarball only when its bytes have that digest. It sets `KIT_VERSION` to that release, so kit does not
    choose another by the change's `kit.yml`. The first pull request of a repository, whose target has no `kit.yml`,
    declares its own.
-3. Trusts the checkout with `kit trust --yes`: kit runs nothing in a clone until it is trusted, and a runner has no one
-   to ask. It is the checkout of the repository whose workflow this is.
+3. Trusts the checkout with `kit trust --clone --yes`: kit runs nothing in a clone until it is trusted, and a runner has
+   no one to ask. It is the checkout of the repository whose workflow this is.
 4. Runs `kit ci`, which runs `kit linked` and `kit policy`, then, on a runner, installs the gate's tools with
    `kit tools install`, through the toolchain `ci_toolchain` names: kit itself, mise, nix, Homebrew, a Docker image, a
    dev container, or the tools already on the runner. Then it runs the gate, the repository's own CI command such as
@@ -50,9 +50,9 @@ a comment naming the merge commit; the issues of a pull request closed without m
 author, so they are backlog again. `Settle` alone may write to issues. For an Azure DevOps tracker it reads the
 repository's `AZURE_DEVOPS_EXT_PAT` secret, which `az` takes as its token.
 
-A repository on another CI system runs `kit trust --yes` on its checkout first, since kit runs nothing in a clone that
-is not trusted, and then calls `kit ci` from its own pipeline, with nothing of the change's installed before it; on a
-runner `kit ci` installs the tools after the two judgements.
+A repository on another CI system runs `kit trust --clone --yes` on its checkout first, since kit runs nothing in a
+clone that is not trusted, and then calls `kit ci` from its own pipeline, with nothing of the change's installed before
+it; on a runner `kit ci` installs the tools after the two judgements.
 
 The workflow is a template with three keys, all under `answers:` in `kit.yml`:
 

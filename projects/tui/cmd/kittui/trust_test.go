@@ -21,7 +21,7 @@ import (
 
 // overUntrusted makes kittui run on a terminal over the trust dialog's fake kit, in a clone it does not trust, with
 // the program stood in for: the dialog driven by the key, and the screen after it a program that cannot run, so a
-// test sees kittui go on past the dialog. It gives the file kit trust --yes writes its words to, and what was shown.
+// test sees kittui go on past the dialog. It gives the file kit trust --clone --yes writes its words to, and what was shown.
 func overUntrusted(t *testing.T, key tea.Msg) (string, *[]tea.Model) {
 	t.Helper()
 	shown := &[]tea.Model{}
@@ -45,7 +45,7 @@ func TestTrustGoesOnToTheScreenAskedFor(t *testing.T) {
 	if code := run(nil, &stderr); code != 1 || stderr.String() != "❌ kittui unreleased: past the dialog\n" {
 		t.Errorf("exit %d, stderr %q", code, stderr.String())
 	}
-	if said, err := os.ReadFile(record); err != nil || string(said) != "trust --yes /the/clone\n" || len(*shown) != 2 {
+	if said, err := os.ReadFile(record); err != nil || string(said) != "trust --clone --yes /the/clone\n" || len(*shown) != 2 {
 		t.Errorf("kit ran %q (%v), %d screens", said, err, len(*shown))
 	}
 }
@@ -80,7 +80,7 @@ func TestCtrlCOnTheDialogEndsWith130(t *testing.T) {
 }
 
 // A dialog the program cannot run is kittui's own line; a clone kit trusts opens no dialog; a kit that cannot answer
-// kit trust --check is kittui's line too.
+// kit trust --clone --check is kittui's line too.
 func TestTheDialogsProgramAndAKitThatCannotSay(t *testing.T) {
 	onTerminal(t, func(tea.Model) (tea.Model, error) { return nil, errors.New("no tty") })
 	t.Setenv("KIT", testkit.Runner(t, "trust").Kit)

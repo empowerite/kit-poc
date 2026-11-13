@@ -30,7 +30,7 @@ jobs:
       # bin/release enters the checkout as every kit verb does, and kit runs nothing in a clone until it is trusted; a
       # runner has no one to ask, so the job trusts the checkout it made, with the checkout's own kit.
       - name: trust
-        run: kit/bin/kit trust --yes "${GITHUB_WORKSPACE}"
+        run: kit/bin/kit trust --clone --yes "${GITHUB_WORKSPACE}"
 
       - name: retire
         env:

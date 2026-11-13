@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# audit.bats - kit audit: the forge's attestations, alerts, controls, and their waivers, and the policy's rules
+# trust-app.bats - kit trust: the forge's attestations, alerts, controls, and their waivers, and the policy's rules
 # ----------------------------------------------------------------------------------------------------------------------
 # Each test runs with HOME, XDG_CONFIG_HOME, and XDG_CACHE_HOME of its own, as helper:isolate sets them. A repository's
 # origin is a GitHub URL that nothing fetches: the fake gh answers for it.
@@ -80,23 +80,23 @@ JSON
   route gh 'api repos/{owner}/{repo}/branches/main' branch.json
 }
 
-@test "kit audit --stages prints its six stages, and --marks the forge's for its reads, the policy's hash for it" {
-  run "${kit_root}/bin/kit" audit --stages
+@test "kit trust --stages prints its six stages, and --marks the forge's for its reads, the policy's hash for it" {
+  run "${kit_root}/bin/kit" trust --stages
   [ "$status" -eq 0 ]
   [ "$output" = $'evidence\nfindings\ncontrols\nwaivers\npolicy\nenforcement' ]
   github-world
-  run --separate-stderr "${kit_root}/bin/kit" audit --marks
+  run --separate-stderr "${kit_root}/bin/kit" trust --marks
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   # evidence moves with the runs and the releases, findings with the runs and the alerts; the controls and their
   # waivers are read again only when asked; and a repository with no kit.yml nor policy of its own has no policy mark
   [ "$(jq -c '[.evidence, .findings, .controls, .waivers, .policy]' <<<"$output")" \
     = '["W/\"m1\" W/\"m1\"","W/\"m1\" W/\"m1\" W/\"m1\" W/\"m1\"",null,null,null]' ]
   printf 'policy:\n  branch: "^[0-9]+-"\n' > kit.yml
-  first=$("${kit_root}/bin/kit" audit --marks | jq -r .policy)
+  first=$("${kit_root}/bin/kit" trust --marks | jq -r .policy)
   [ -n "${first}" ]
   [ "${first}" != null ]
   printf 'policy:\n  branch: "^x-"\n' > kit.yml
-  [ "$("${kit_root}/bin/kit" audit --marks | jq -r .policy)" != "${first}" ]
+  [ "$("${kit_root}/bin/kit" trust --marks | jq -r .policy)" != "${first}" ]
 }
 
 @test "a policy file that is a link, as kit delivers one from the worktree, moves the policy mark" {
@@ -104,16 +104,16 @@ JSON
   mkdir -p .kit/policy real
   printf 'package x\n' > real/house.rego
   ln -s ../../real/house.rego .kit/policy/house.rego
-  first=$("${kit_root}/bin/kit" audit --marks | jq -r .policy)
+  first=$("${kit_root}/bin/kit" trust --marks | jq -r .policy)
   [ -n "${first}" ]
   [ "${first}" != null ]
   printf 'deny[1]\n' >> real/house.rego
-  [ "$("${kit_root}/bin/kit" audit --marks | jq -r .policy)" != "${first}" ]
+  [ "$("${kit_root}/bin/kit" trust --marks | jq -r .policy)" != "${first}" ]
 }
 
 @test "evidence is a row per attestation, keyed by its digest and kind: what it attests, and who signed it" {
   github-world
-  run --separate-stderr "${kit_root}/bin/kit" audit evidence --json
+  run --separate-stderr "${kit_root}/bin/kit" trust evidence --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   expected='[{"key":"sha256:ab12 https://slsa.dev/provenance/v1","subject":"kit-0.1.0.tar.gz","digest":"sha256:ab12",'
   expected+='"kind":"https://slsa.dev/provenance/v1","signer":"o/r/.github/workflows/release.yml@refs/tags/v0.1.0",'
@@ -124,7 +124,7 @@ JSON
 
 @test "findings merges the three scanners' alerts, each row its tool's, and a scanner off here says so, exit 0" {
   github-world
-  run --separate-stderr "${kit_root}/bin/kit" audit findings --json
+  run --separate-stderr "${kit_root}/bin/kit" trust findings --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   expected='[{"key":"code-scanning 4","tool":"code-scanning","number":4,"rule":"js/xss","severity":"high",'
   expected+='"state":"open","path":"src/app.js","links":{"rule":"https://github.com/o/r/security/code-scanning/4"}},'
@@ -133,7 +133,7 @@ JSON
   expected+='"links":{"rule":"https://github.com/o/r/security/dependabot/1"}}]'
   [ "$(jq -c '.rows | map(del(.age, .organization, .repository, .source))' <<<"$output")" = "${expected}" ]
   [ "$(jq -c '.errors' <<<"$output")" = '[{"feature":"secret-scanning","off":true}]' ]
-  run --separate-stderr "${kit_root}/bin/kit" audit findings --text
+  run --separate-stderr "${kit_root}/bin/kit" trust findings --text
   [ "$status" -eq 0 ]
   [ "${lines[-1]}" = 'secret-scanning is off here' ]
 }
@@ -148,7 +148,7 @@ JSON
   fixture refused.txt <<<'gh: Resource not accessible by integration (HTTP 403)'
   printf 'HTTP/2.0 403 Forbidden\r\nX-Oauth-Scopes: read:org\r\n%s\r\n\r\n{}\n' \
     'X-Accepted-Oauth-Scopes: repo, security_events' > "${FAKE_DIR}/scopes.txt"
-  run --separate-stderr "${kit_root}/bin/kit" audit findings --json
+  run --separate-stderr "${kit_root}/bin/kit" trust findings --json
   [ "$status" -eq 1 ]
   [ "$(jq -c '[.rows[].key]' <<<"$output")" = '["code-scanning 4","code-scanning 2"]' ]
   [[ "$(jq -c '.errors' <<<"$output")" == '[{"feature":"dependabot","error":"run: cd '*' && gh auth refresh --scopes'\
@@ -156,7 +156,7 @@ JSON
   # the picture of every stage still draws the others: the waivers hold the ruleset's bypass and code scanning's
   # dismissal, Dependabot's line under their errors too, each scanner read once for the findings and the waivers
   : > "${FAKE_DIR}/gh.calls"
-  run --separate-stderr "${kit_root}/bin/kit" audit --json
+  run --separate-stderr "${kit_root}/bin/kit" trust --json
   [ "$status" -eq 1 ]
   [ "$(jq -c '[(.findings.rows | length), (.controls.rows | length)]' <<<"$output")" = '[2,1]' ]
   [ "$(jq -c '[.waivers.rows[].key]' <<<"$output")" = '["7 release","code-scanning 2"]' ]
@@ -165,14 +165,14 @@ JSON
   [ "$(grep -c 'paginate --slurp repos/{owner}/{repo}/dependabot/alerts' "${FAKE_DIR}/gh.calls")" -eq 1 ]
   [ "$(grep -c 'code-scanning/alerts?state=dismissed' "${FAKE_DIR}/gh.calls")" -eq 1 ]
   # waivers alone read the scanners themselves, and still draw the rest
-  run --separate-stderr "${kit_root}/bin/kit" audit waivers --json
+  run --separate-stderr "${kit_root}/bin/kit" trust waivers --json
   [ "$status" -eq 1 ]
   [ "$(jq -c '[.rows[].key]' <<<"$output")" = '["7 release","code-scanning 2"]' ]
 }
 
 @test "controls is a row per control on the default branch, keyed by its id, its kind, its page the control's link" {
   github-world
-  run --separate-stderr "${kit_root}/bin/kit" audit controls --json
+  run --separate-stderr "${kit_root}/bin/kit" trust controls --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   expected='[{"key":7,"id":7,"control":"main","target":["~DEFAULT_BRANCH"],"enforcement":"active",'
   expected+='"rules":["deletion","pull_request"],"kind":"ruleset",'
@@ -184,7 +184,7 @@ JSON
 
 @test "waivers is a row per bypass and dismissal, keyed by what it waives and for whom, each linking its row" {
   github-world
-  run --separate-stderr "${kit_root}/bin/kit" audit waivers --json
+  run --separate-stderr "${kit_root}/bin/kit" trust waivers --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   expected='[{"key":"7 release","waives":7,"actor":"release","kind":"bypass","reason":"always","by":null,"until":null,'
   expected+='"hidden":null,"links":{"waives":"row:controls/7","reason":"https://github.com/o/r/rules/7"}},'
@@ -199,7 +199,7 @@ JSON
 @test "policy is a row per rule the policy judges by, where it is in force: its pattern, where it is set, the engine" {
   github-world
   printf 'policy:\n  branch: "^[0-9]+-"\n' > kit.yml
-  run --separate-stderr "${kit_root}/bin/kit" audit policy --json
+  run --separate-stderr "${kit_root}/bin/kit" trust policy --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq -c '.rows[0]' <<<"$output")" = "$(printf '%s' '{"key":"branch github o r main",' \
     '"source":"github","organization":"o","repository":"r","branch":"main","scope":"branch","rule":"branch",' \
@@ -218,7 +218,7 @@ JSON
   git worktree add --quiet -b 2-fix "${BATS_TEST_TMPDIR}/w"
   git worktree add --quiet --detach "${BATS_TEST_TMPDIR}/d"
   # the branch past the default is judged by the base's kit.yml, which main's own agrees with: one row a rule
-  run --separate-stderr "${kit_root}/bin/kit" audit policy --json
+  run --separate-stderr "${kit_root}/bin/kit" trust policy --json
   [ "$status" -eq 0 ] || { echo "S${status} E${stderr} O${output}"; return 1; }
   [ "$(jq -c '[.rows[] | [.key, .scope, .branch]]' <<<"$output")" = "$(printf '%s' \
     '[["branch github o r","repository",null],["worktree github o r","repository",null],' \
@@ -226,7 +226,7 @@ JSON
     '["commit_reference github o r","repository",null]]')" ]
   # main's own kit.yml now differs from what it holds, which still judges 2-fix: the rule is a row a branch
   printf 'policy:\n  branch: "^x-"\n' > kit.yml
-  run --separate-stderr "${kit_root}/bin/kit" audit policy --json
+  run --separate-stderr "${kit_root}/bin/kit" trust policy --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq -c '[.rows[] | [.rule, .scope, .branch, .pattern]]' <<<"$output")" = "$(printf '%s' \
     '[["branch","branch","2-fix","^[0-9]+-"],["branch","branch","main","^x-"],' \
@@ -236,23 +236,23 @@ JSON
   # nothing is placed in the other checkout
   [ ! -e "${BATS_TEST_TMPDIR}/w/.kit" ]
   # the marks follow each checkout's policy
-  first=$("${kit_root}/bin/kit" audit --marks | jq -r .policy)
+  first=$("${kit_root}/bin/kit" trust --marks | jq -r .policy)
   [[ "${first}" == "main="*" 2-fix="* ]]
   printf 'policy:\n  branch: "^y-"\n' > "${BATS_TEST_TMPDIR}/w/kit.yml"
-  [ "$("${kit_root}/bin/kit" audit --marks | jq -r .policy)" != "${first}" ]
+  [ "$("${kit_root}/bin/kit" trust --marks | jq -r .policy)" != "${first}" ]
 }
 
-@test "kit audit --json draws every stage, and a repository with no forge draws only the policy's rules" {
+@test "kit trust --json draws every stage, and a repository with no forge draws only the policy's rules" {
   mkdir -p "${BATS_TEST_TMPDIR}/r"
   git init --quiet --initial-branch=main "${BATS_TEST_TMPDIR}/r"
   cd "${BATS_TEST_TMPDIR}/r"
-  run --separate-stderr "${kit_root}/bin/kit" audit --json
+  run --separate-stderr "${kit_root}/bin/kit" trust --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq -c '.stages' <<<"$output")" = '["evidence","findings","controls","waivers","policy","enforcement"]' ]
   [ "$(jq -c '[.contract, .evidence, .findings, .controls, .waivers] | unique' <<<"$output")" \
     = '[1,{"contract":1,"rows":[],"errors":[]}]' ]
   [ "$(jq -c '.policy.rows | length' <<<"$output")" -eq 5 ]
-  run --separate-stderr "${kit_root}/bin/kit" audit --marks
+  run --separate-stderr "${kit_root}/bin/kit" trust --marks
   [ "$status" -eq 0 ]
   [ "$output" = '{"evidence":null,"findings":null,"controls":null,"waivers":null,"policy":null,"enforcement":null}' ]
 }
@@ -263,7 +263,7 @@ JSON
   cd "${BATS_TEST_TMPDIR}/r"
   git commit --quiet --allow-empty --message one
   # with no remote, the organization and the source it has none of are "", as null is only the place merged rows span
-  run --separate-stderr "${kit_root}/bin/kit" audit policy --json
+  run --separate-stderr "${kit_root}/bin/kit" trust policy --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq -c '[.rows[] | [.key, .scope, .source, .organization, .repository, .branch]]' <<<"$output")" \
     = "$(printf '%s' '[["branch   r main","branch","","","r","main"],["worktree   r main","branch","","","r","main"],' \
@@ -275,7 +275,7 @@ JSON
   git push --quiet origin main
   git fetch --quiet origin
   git worktree add --quiet -b 2-fix "${BATS_TEST_TMPDIR}/w"
-  run --separate-stderr "${kit_root}/bin/kit" audit policy --json
+  run --separate-stderr "${kit_root}/bin/kit" trust policy --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq -c '[.rows[] | [.key, .scope, .source, .organization, .repository, .branch]]' <<<"$output")" \
     = "$(printf '%s' '[["branch   r","repository","","","r",null],["worktree   r","repository","","","r",null],' \
@@ -283,7 +283,7 @@ JSON
     '["commit_reference   r","repository","","","r",null]]')" ]
   # read from the other worktree, the repository is still the main checkout's directory
   cd "${BATS_TEST_TMPDIR}/w"
-  run --separate-stderr "${kit_root}/bin/kit" audit policy --json
+  run --separate-stderr "${kit_root}/bin/kit" trust policy --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq -c '[.rows[] | [.scope, .organization, .repository]] | unique' <<<"$output")" = '[["repository","","r"]]' ]
 }
@@ -307,7 +307,7 @@ two-members() {
 
 @test "over a group, a member the forge refuses is its scanners' lines under errors, each with its member" {
   two-members
-  run --separate-stderr "${kit_root}/bin/kit" --workspace=w audit findings --json
+  run --separate-stderr "${kit_root}/bin/kit" --workspace=w trust findings --json
   [ "$status" -eq 1 ]
   # the member that answers draws its rows, each its own
   [ "$(jq --compact-output '[.rows[] | [.member, .key]]' <<<"$output")" \
@@ -323,7 +323,7 @@ two-members() {
 @test "over a group, the policy's rules every member agrees on are one row each, wider than any one repository" {
   two-members
   printf 'policy:\n  branch: "^b-"\n' > code/o/b/kit.yml
-  run --separate-stderr "${kit_root}/bin/kit" --workspace=w audit policy --json
+  run --separate-stderr "${kit_root}/bin/kit" --workspace=w trust policy --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq -c '[.rows[] | [.rule, .scope, .source, .repository, .member]]' <<<"$output")" = "$(printf '%s' \
     '[["branch","branch","github","a","github.com/o/a"],["branch","branch","gitlab","b","gitlab.com/o/b"],' \
@@ -385,7 +385,7 @@ rows() { jq -c '.rows[] | [.harness, .mechanism, .status, .evidence]' <<<"$1"; }
 
 @test "enforcement names each harness's advice and best effort, the local floor, and what the forge requires" {
   enforced-world
-  run --separate-stderr "${kit_root}/bin/kit" audit enforcement --json
+  run --separate-stderr "${kit_root}/bin/kit" trust enforcement --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   # a deny list or a hook merely registered is unknown, never active: kit cannot probe that a harness runs it
   [ "$(rows "$output")" = "$(printf '%s\n' \
@@ -411,7 +411,7 @@ rows() { jq -c '.rows[] | [.harness, .mechanism, .status, .evidence]' <<<"$1"; }
 '{"mechanism":"row:controls/7"}]' ]
   # the generic harness's own deny list kit cannot tell, so what passes it is unknown, null
   [ "$(jq -c '.rows[] | select(.key == "generic deny list") | .passes' <<<"$output")" = null ]
-  run --separate-stderr "${kit_root}/bin/kit" audit enforcement --text
+  run --separate-stderr "${kit_root}/bin/kit" trust enforcement --text
   [ "$status" -eq 0 ]
   in-order "$output" harness tier mechanism status evidence detail passes generic advisory AGENTS.md active
 }
@@ -425,7 +425,7 @@ rows() { jq -c '.rows[] | [.harness, .mechanism, .status, .evidence]' <<<"$1"; }
   printf '# AGENTS.md\n' > AGENTS.md
   git update-ref refs/remotes/origin/trunk "$(git commit-tree "$(git mktree </dev/null)" -m one)"
   git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/trunk
-  run --separate-stderr "${kit_root}/bin/kit" audit enforcement --json
+  run --separate-stderr "${kit_root}/bin/kit" trust enforcement --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq -c '.rows[] | select(.key == "claude deny list") | [.status, .evidence, .detail]' <<<"$output")" \
     = '["missing","probed",".claude/settings.json'"'"'s permissions.deny lacks 1 of the package'"'"'s entries: run kit'\
@@ -439,13 +439,13 @@ rows() { jq -c '.rows[] | [.harness, .mechanism, .status, .evidence]' <<<"$1"; }
   # the context hook still merged is still unknown; a default branch named trunk passes a list that names main
   [ "$(jq -c '.rows[] | select(.key == "claude context hook") | .status' <<<"$output")" = '"unknown"' ]
   printf '{"permissions": ' > .claude/settings.json
-  run --separate-stderr "${kit_root}/bin/kit" audit enforcement --json
+  run --separate-stderr "${kit_root}/bin/kit" trust enforcement --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq -c '[.rows[] | select(.harness == "claude" and .tier == "best-effort") | [.status, .evidence, .passes]]' \
     <<<"$output")" = '[["unknown","unverified",null],["unknown","unverified",null]]' ]
   [ "$(jq -c '.rows[] | select(.key == "gemini deny list") | .passes' <<<"$output")" = '["everything it lacks"]' ]
   cp "${kit_root}/packages/agents/gemini/files/repo/.gemini/settings.json" .gemini/
-  run --separate-stderr "${kit_root}/bin/kit" audit enforcement --json
+  run --separate-stderr "${kit_root}/bin/kit" trust enforcement --json
   [ "$(jq -c '.rows[] | select(.key == "gemini deny list") | .passes' <<<"$output")" \
     = '["git -C <dir> commit","a git command run inside bash -c","git checkout trunk","git switch trunk"]' ]
 }
@@ -454,33 +454,33 @@ rows() { jq -c '.rows[] | [.harness, .mechanism, .status, .evidence]' <<<"$1"; }
   enforced-world
   rm "${FAKE_DIR}/bin/lefthook"
   path-without lefthook
-  run --separate-stderr "${kit_root}/bin/kit" audit enforcement --json
+  run --separate-stderr "${kit_root}/bin/kit" trust enforcement --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq -c '.rows[] | select(.key == "repository pre-commit hook") | [.status, .evidence, .passes]' <<<"$output")" \
     = '["unknown","unverified",null]' ]
   rm .git/hooks/pre-commit
   rm .kit/lefthook.yml
-  run --separate-stderr "${kit_root}/bin/kit" audit enforcement --json
+  run --separate-stderr "${kit_root}/bin/kit" trust enforcement --json
   [ "$(jq -c '[.rows[] | select(.tier == "local floor") | [.status, .detail]]' <<<"$output")" \
     = '[["missing","git runs no lefthook before a commit in this clone: run lefthook install"],'\
 '["missing","lefthook.yml extends .kit/lefthook.yml, which is not here: run kit hydrate"]]' ]
   printf '# lefthook.yml\n' > lefthook.yml
-  run --separate-stderr "${kit_root}/bin/kit" audit enforcement --json
+  run --separate-stderr "${kit_root}/bin/kit" trust enforcement --json
   [ "$(jq -c '.rows[] | select(.key == "repository lefthook.yml") | .detail' <<<"$output")" \
     = '"lefthook.yml does not extend .kit/lefthook.yml: put extends: [.kit/lefthook.yml] in it"' ]
   # a repository whose kit.yml has no hooks/lefthook nor github/ci runs neither, and no agent package draws no harness
   printf 'version: unreleased\npackages: [kit]\n' > kit.yml
-  run --separate-stderr "${kit_root}/bin/kit" audit enforcement --json
+  run --separate-stderr "${kit_root}/bin/kit" trust enforcement --json
   [ "$(jq -c '[.rows[] | [.harness, .mechanism, .status]]' <<<"$output")" \
     = '[["repository","pre-commit hook","missing"],["repository","lefthook.yml","missing"],'\
 '["repository","kit'"'"'s CI job","missing"],["repository","required check CI","active"],'\
 '["repository","required review","active"]]' ]
   # the mark moves with the files the local rows read, and with no forge read
-  first=$("${kit_root}/bin/kit" audit --marks | jq -r .enforcement)
+  first=$("${kit_root}/bin/kit" trust --marks | jq -r .enforcement)
   [ -n "${first}" ]
   [ "${first}" != null ]
   printf '#!/bin/sh\nlefthook run pre-commit\n' > .git/hooks/pre-commit
-  [ "$("${kit_root}/bin/kit" audit --marks | jq -r .enforcement)" != "${first}" ]
+  [ "$("${kit_root}/bin/kit" trust --marks | jq -r .enforcement)" != "${first}" ]
 }
 
 @test "a control that only evaluates binds nothing, one whose checks the forge hides is unknown, and so is a refusal" {
@@ -489,7 +489,7 @@ rows() { jq -c '.rows[] | [.harness, .mechanism, .status, .evidence]' <<<"$1"; }
     | fixture rulesets-evaluate.json
   route gh 'api graphql*rulesets(first: 100*' rulesets-evaluate.json
   sed -i.bak '/rulesets-ci.json/d' "${FAKE_DIR}/gh.routes"
-  run --separate-stderr "${kit_root}/bin/kit" audit enforcement --json
+  run --separate-stderr "${kit_root}/bin/kit" trust enforcement --json
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq -c '.rows[] | select(.key == "repository required check CI") | [.status, .evidence, .detail, .passes]' \
     <<<"$output")" = '["missing","probed","no active control on the default branch requires the check CI; ruleset'\
@@ -497,7 +497,7 @@ rows() { jq -c '.rows[] | [.harness, .mechanism, .status, .evidence]' <<<"$1"; }
   # the ruleset's parameters unshown leave what it requires unknown, never missing
   jq '.data.repository.rulesets.nodes[0].rules.nodes |= map(.parameters = null)' "${FAKE_DIR}/rulesets-ci.json" \
     | fixture rulesets-evaluate.json
-  run --separate-stderr "${kit_root}/bin/kit" audit enforcement --json
+  run --separate-stderr "${kit_root}/bin/kit" trust enforcement --json
   [ "$(jq -c '[.rows[] | select(.tier == "authoritative" and .key != "repository kit'"'"'s CI job")'\
 ' | [.status, .evidence, .links]]' <<<"$output")" \
     = '[["unknown","unverified",{"mechanism":"row:controls/7"}],["unknown","unverified",{"mechanism":"row:controls/7"}]]' ]
@@ -506,7 +506,7 @@ rows() { jq -c '.rows[] | [.harness, .mechanism, .status, .evidence]' <<<"$1"; }
   printf 'api graphql*rulesets(first: 100*\t!1 refused.txt\n' > "${FAKE_DIR}/gh.routes.new"
   cat "${FAKE_DIR}/gh.routes" >> "${FAKE_DIR}/gh.routes.new"
   mv "${FAKE_DIR}/gh.routes.new" "${FAKE_DIR}/gh.routes"
-  run --separate-stderr "${kit_root}/bin/kit" audit enforcement --json
+  run --separate-stderr "${kit_root}/bin/kit" trust enforcement --json
   [ "$status" -eq 1 ]
   [ "$(jq -c '[.rows[] | select(.key | startswith("repository required")) | [.status, .passes]]' <<<"$output")" \
     = '[["unknown",null],["unknown",null]]' ]
@@ -523,7 +523,7 @@ rows() { jq -c '.rows[] | [.harness, .mechanism, .status, .evidence]' <<<"$1"; }
   route glab 'api user' user.json
   route glab 'api projects/o%2Fr/protected_branches?per_page=100 --paginate' gl-protected.json
   route glab 'api projects/o%2Fr/push_rule' gl-push.json
-  run --separate-stderr "${kit_root}/bin/kit" audit enforcement --json
+  run --separate-stderr "${kit_root}/bin/kit" trust enforcement --json
   [ "$(jq -c '[.rows[] | select(.key | startswith("repository required")) | [.status, .detail]]' <<<"$output")" \
     = '[["unknown","the forge does not show whether protection main requires the check CI"],'\
 '["unknown","the forge does not show whether protection main requires an approving review"]]' ] \
@@ -535,11 +535,11 @@ rows() { jq -c '.rows[] | [.harness, .mechanism, .status, .evidence]' <<<"$1"; }
 @test "each stage prints the keys of the fixture kittui's tests decode, and the fields its catalog declares" {
   local stage failed=0
   github-world
-  for stage in $("${kit_root}/bin/kit" audit --stages)
+  for stage in $("${kit_root}/bin/kit" trust --stages)
   do
-    "${kit_root}/bin/kit" audit "${stage}" --json > "${BATS_TEST_TMPDIR}/${stage}.json" 2>/dev/null || true
-    same-keys "projects/tui/internal/flow/testdata/audit-${stage}.json" < "${BATS_TEST_TMPDIR}/${stage}.json" || failed=1
-    fields-hold "audit/${stage}" < "${BATS_TEST_TMPDIR}/${stage}.json" || failed=1
+    "${kit_root}/bin/kit" trust "${stage}" --json > "${BATS_TEST_TMPDIR}/${stage}.json" 2>/dev/null || true
+    same-keys "projects/tui/internal/flow/testdata/trust-${stage}.json" < "${BATS_TEST_TMPDIR}/${stage}.json" || failed=1
+    fields-hold "trust/${stage}" < "${BATS_TEST_TMPDIR}/${stage}.json" || failed=1
   done
   (( failed == 0 ))
 }

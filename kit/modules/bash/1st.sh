@@ -40,13 +40,13 @@ declare -ag kit_bash_path=()
 # kit:enter [--any-clone] starts a verb's process: it turns POSIX mode off, which POSIXLY_CORRECT, or a SHELLOPTS
 # exported by the sh the loader runs in, would turn on, as the kit's modules are bash, each function named
 # <module>:<name>, which declare -F refuses in POSIX mode; it exports the directory the command was typed in as
-# kit_invoked_in, for verbs that take relative paths, refuses a clone you have not trusted, and outside a clone a
-# folder that holds a kit.yml and that you have not trusted, as kit:trust-here says, and changes to the repository
-# root, kit:work-root's, so every verb reads and writes the same paths wherever it was typed. A repository from a
-# release that kept its settings in .kit/settings.yml has them moved to kit.yml first, before anything reads them.
-# With --any-clone, a verb that runs nothing the clone names, as kit version and kit trust, runs in a clone, or such
-# a folder, that you have not trusted too, and moves nothing there; every git command it runs there is hardened, as
-# kit:harden-git says.
+# kit_invoked_in, for verbs that take relative paths, refuses a clone you have not trusted, and outside a clone a folder
+# that holds a kit.yml and that you have not trusted, as kit:trust-here says, and changes to the repository root,
+# kit:work-root's, so every verb reads and writes the same paths wherever it was typed. A repository from a release that
+# kept its settings in .kit/settings.yml has them moved to kit.yml first, before anything reads them. With --any-clone,
+# a verb that runs nothing the clone names, as kit version and kit trust --clone, runs in a clone, or such a folder,
+# that you have not trusted too, and moves nothing there; every git command it runs there is hardened, as kit:harden-git
+# says.
 kit:enter() {
   set +o posix
   local any_clone=false
@@ -237,12 +237,12 @@ kit:trust-digest() {
   printf '%s\n' "${line%% *}"
 }
 
-# kit:trusted <name> [<clone>] succeeds when the trust file trusts <name>: a folder above it, a line that ends in /,
-# or a line for <name> itself that holds the digest of what <clone> asks kit to run now, kit:trust-digest's. It
-# returns 1 when no line names <name> or a folder above it, and 3 when a line names <name> with another digest, or
-# none, as kit trust wrote before it kept one: what the clone asks has changed since you trusted it. Without <clone>,
-# a folder alone trusts it. A line that starts with # is a comment, and ~/ at the start of a path is the home
-# directory, by its physical path. The digest is worked out once, and only when a line names <name>.
+# kit:trusted <name> [<clone>] succeeds when the trust file trusts <name>: a folder above it, a line that ends in /, or
+# a line for <name> itself that holds the digest of what <clone> asks kit to run now, kit:trust-digest's. It returns 1
+# when no line names <name> or a folder above it, and 3 when a line names <name> with another digest, or none, as kit
+# trust --clone wrote before it kept one: what the clone asks has changed since you trusted it. Without <clone>, a
+# folder alone trusts it. A line that starts with # is a comment, and ~/ at the start of a path is the home directory,
+# by its physical path. The digest is worked out once, and only when a line names <name>.
 kit:trusted() {
   local file line want have='' status=1
   file=$(kit:trust-file)
@@ -299,9 +299,10 @@ kit:trust-here() {
   name=$(kit:trust-name "$(kit:trust-root .)")
   if (( status == 3 ))
   then
-    error "${name} asks kit to run something new since you trusted it; see what it asks, and trust it again: kit trust"
+    error "${name} asks kit to run something new since you trusted it; see what it asks, and trust it again:" \
+      "kit trust --clone"
   else
-    error "kit runs nothing in ${name} until you trust it; see what it asks kit to run, and trust it: kit trust"
+    error "kit runs nothing in ${name} until you trust it; see what it asks kit to run, and trust it: kit trust --clone"
   fi
   return 1
 }
@@ -310,7 +311,7 @@ kit:trust-here() {
 # could make git run: no hooks (core.hooksPath=/dev/null), no fsmonitor (core.fsmonitor=false), no transport at all
 # (protocol.allow=never), and no prompt for a password (GIT_TERMINAL_PROMPT=0). It sets them through
 # GIT_CONFIG_COUNT, after any the environment holds, as git -c would, so they win over every config file. kit:enter
-# calls it in a clone you have not trusted, where kit help, kit version, and kit trust run.
+# calls it in a clone you have not trusted, where kit help, kit version, and kit trust --clone run.
 kit:harden-git() {
   local i=${GIT_CONFIG_COUNT:-0} pair
   [[ "${i}" =~ ^[0-9]+$ ]] || i=0
@@ -322,10 +323,10 @@ kit:harden-git() {
   export GIT_CONFIG_COUNT=${i} GIT_TERMINAL_PROMPT=0
 }
 
-# kit:move-settings moves .kit/settings.yml to kit.yml at the root, where a release before kit.yml left it, and
-# points its schema modeline at .kit/kit.schema.json. Where kit.yml is there already, it leaves both alone. The trust
-# was judged of the file it moves: kit:trust-digest digests it as the kit.yml this writes, and kit trust shows what it
-# names, so the move runs nothing you were not shown and keeps the trust. A kit.yml that is a link to nothing is
+# kit:move-settings moves .kit/settings.yml to kit.yml at the root, where a release before kit.yml left it, and points
+# its schema modeline at .kit/kit.schema.json. Where kit.yml is there already, it leaves both alone. The trust was
+# judged of the file it moves: kit:trust-digest digests it as the kit.yml this writes, and kit trust --clone shows what
+# it names, so the move runs nothing you were not shown and keeps the trust. A kit.yml that is a link to nothing is
 # refused, since the move would write through it; a link to a file is a kit.yml already there.
 kit:move-settings() {
   [[ -f .kit/settings.yml ]] || return 0

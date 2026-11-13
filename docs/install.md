@@ -130,34 +130,35 @@ The loader refuses a kit option it does not know. A later kit may know it, so up
 
 kit runs nothing in a clone until you trust it.
 
-- `kit trust` shows what the clone asks kit to run: its pinned release, the bash it loads, its gate, the sources and
-  tools it downloads, and the `lint:` command of each rule and style. Then it asks you, and remembers your answer for
-  the clone and all its worktrees, with a digest of what it asks.
+- `kit trust --clone` shows what the clone asks kit to run: its pinned release, the bash it loads, its gate, the
+  sources and tools it downloads, and the `lint:` command of each rule and style. Then it asks you, and remembers your
+  answer for the clone and all its worktrees, with a digest of what it asks.
 - The release it shows is the one the loader runs: the first `version:` line of `kit.yml`, or else the version
-  `.kit/manifest` records. `version: unreleased` names the clone's own `kit/`, and `kit trust` shows it whether or
-  not the clone holds a `kit/` yet.
+  `.kit/manifest` records. `version: unreleased` names the clone's own `kit/`, and
+  `kit trust --clone` shows it whether or not the clone holds a `kit/` yet.
 - In a terminal, the first kit command in a clone you have not trusted asks the same question, and runs after a yes.
   Bare `kit` and `kit tui` open kittui, which asks in a dialog before it reads anything: Trust, or Not now, which
   leaves the clone untrusted and opens the help palette. A plain click takes either. `kit syntax`, which the palette
   reads, runs in an untrusted clone too, on the kit you installed.
 - An agent's harness runs two commands with no terminal: `kit serve`, and the hook, `kit context --claude`. In a
   clone you have not trusted each says so in the form the harness reads, an MCP error and the hook's JSON: the
-  trust is yours to give, and the command is `kit trust`. Neither reads anything of the clone or trusts it, and
+  trust is yours to give, and the command is `kit trust --clone`. Neither reads anything of the clone or trusts it, and
   the server answers from the clone once you have trusted it.
 - A pull that changes what the clone asks, such as a new gate or a new `lint:` command, withdraws the trust, and kit
   asks again. A pull that changes only the code those name keeps it, and so does what kit writes itself, such as the
   files it places under `.kit/` and the version `kit update` moves.
-- `kit trust ~/Code/` trusts every clone under that folder, whatever each one asks.
+- `kit trust --clone ~/Code/` trusts every clone under that folder, whatever each one asks.
 - Outside a clone, a folder that holds a `kit.yml` is held to the same trust, by its own path. An unpacked archive
   of a repository is such a folder. Until you trust it, kit reads no `bash_path` there and runs nothing its `kit.yml`
   names. kit reads `kit.yml` only in the folder you type in, so a folder below it is asked nothing, and neither is
   a folder with no `kit.yml`.
 - Where there is no `kit.yml`, kit reads the `.kit/settings.yml` an earlier release kept, and moves it to `kit.yml`.
-  The trust judges that file, and `kit trust` shows what it names, before anything moves: a pull that brings one
+  The trust judges that file, and `kit trust --clone` shows what it names, before anything moves: a pull that brings one
   withdraws the trust, and the move itself keeps it. The loader reads the release it pins the same way. A `kit.yml`
   that is a link to nothing stops the move, since kit writes nothing through a link; remove it first.
-- `kit trust --list` and `kit trust --revoke` read and change the records, which are plain lines in
-  `~/.config/kit/trusted`. `kit trust --check` and `kit trust --asks` answer a screen that asks for the trust itself.
+- `kit trust --clone --list` and `kit trust --clone --revoke` read and change the records, which are plain lines in
+  `~/.config/kit/trusted`. `kit trust --clone --check` and `kit trust --clone --asks` answer a screen that asks for the
+  trust itself.
 
 Trusting a clone means you accept code from anyone who can push to it. kit does not check each pull; code review and
 signed commits do.

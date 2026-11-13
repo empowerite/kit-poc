@@ -45,7 +45,7 @@ see: [architecture.md](../architecture.md#code-forges-seams-and-providers), `kit
 | Merged changes | read | `forge:merged-prs`: `kit changes merged`, kittui's merged tab |
 | A change's labels, added or removed | write | `forge:pr-label-add`, `forge:pr-label-remove`: the `drafts` stand-in |
 | Who has access, which teams, and which bots acted | read | `forge:collaborators`, `forge:teams`, `forge:bots`: `kit people` |
-| Attestations, the three kinds of security alert, rulesets, and who may bypass them | read | `forge:attestations`, `forge:code-scanning-alerts`, `forge:dependabot-alerts`, `forge:secret-scanning-alerts`, `forge:rulesets`, `forge:bypasses`: `kit audit` |
+| Attestations, the three kinds of security alert, rulesets, and who may bypass them | read | `forge:attestations`, `forge:code-scanning-alerts`, `forge:dependabot-alerts`, `forge:secret-scanning-alerts`, `forge:rulesets`, `forge:bypasses`: `kit trust` |
 | An app the forge signs in as, with a key of its own | write | the `forge:bot-*` calls: `kit bots` |
 
 ## Features

@@ -178,7 +178,7 @@ The patterns that branch names, worktrees, commit subjects, and pull request tit
 Your consent for kit to run the commands a clone names. kit asks for it once per clone, and again when a pull
 changes what the clone asks it to run.
 
-`kit trust`
+`kit trust --clone`
 
 ## Rules for files
 

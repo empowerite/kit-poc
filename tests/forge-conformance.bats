@@ -150,7 +150,7 @@ JSON
   route gh 'api --paginate --slurp repos/{owner}/{repo}/milestones?state=all&per_page=100' gh-milestones.json
   delivery-github
   people-github
-  audit-github
+  trust-github
   fixture gh-merged.json <<'JSON'
 {"data": {"repository": {"pullRequests": {"totalCount": 1, "nodes": [
   {"number": 2, "title": "Do the other thing", "url": "https://github.com/empowerite/example/pull/2",
@@ -228,7 +228,7 @@ JSON
 JSON
   fixture gl-forbidden.txt <<<'glab: 403 Forbidden'
   people-gitlab
-  audit-gitlab
+  trust-gitlab
   route glab 'api graphql*' "${GITLAB_MILESTONES:-gl-milestones.json}"
   route glab "api ${p}/iterations?include_ancestors=true&per_page=100*" "${GITLAB_ITERATIONS:-gl-iterations.json}"
   route glab "api ${p}/issues/7" issue.json
@@ -2536,13 +2536,13 @@ checks-world() {
   done
 }
 
-# audit-github adds to world-github's routes what Trust reads: the release v0.1.0 offers kit-0.1.0.tar.gz, whose
+# trust-github adds to world-github's routes what Trust reads: the release v0.1.0 offers kit-0.1.0.tar.gz, whose
 # digest, sha256:ab12, the artifact 13 has too, and which the release workflow attested as SLSA provenance; code
 # scanning's alert 4 is open, and bob dismissed its alert 2 as a false positive; ada dismissed Dependabot's alert 1 as
 # a tolerable risk; secret scanning is off; and the ruleset main guards the default branch with two rules, which the
 # team release may bypass, beside the ruleset releases, which guards the release branches alone. The default branch
 # has no protection of its own.
-audit-github() {
+trust-github() {
   local statement alerts='sort=updated&direction=desc&per_page=100'
   fixture gh-evidence-releases.json <<'JSON'
 [{"tag_name": "v0.1.0", "html_url": "https://github.com/empowerite/example/releases/tag/v0.1.0",
@@ -2631,10 +2631,10 @@ JSON
   route gh 'api repos/{owner}/{repo}/branches/main/protection' "${GITHUB_PROTECTION:-gh-protection.json}"
 }
 
-# audit-gitlab is audit-github's world, seen through GitLab's vulnerability report: SAST found alert 4 open, and ada
+# trust-gitlab is trust-github's world, seen through GitLab's vulnerability report: SAST found alert 4 open, and ada
 # dismissed the dependency scanning alert 1 as an acceptable risk; secret detection found nothing. The protected
 # branch main, and the wildcard ma*, guard the default branch, release/* does not, and the push rules hold two.
-audit-gitlab() {
+trust-gitlab() {
   local p='projects/empowerite%2Fexample'
   fixture gl-vulns-sast.json <<'JSON'
 {"data": {"project": {"vulnerabilities": {"pageInfo": {"hasNextPage": false, "endCursor": null}, "nodes": [

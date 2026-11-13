@@ -25,14 +25,14 @@
 # downloaded from its release on GitHub, with the .sha256 the release publishes beside it, and unpacked into the
 # cache only when its bytes have that digest.
 #
-# kit runs nothing in a clone until you trust it, as kit trust records it in kit/trusted under XDG_CONFIG_HOME, else
-# ~/.config: a clone, with every worktree of it, while it asks kit to run what it asked when you trusted it, by the
+# kit runs nothing in a clone until you trust it, as kit trust --clone records it in kit/trusted under XDG_CONFIG_HOME,
+# else ~/.config: a clone, with every worktree of it, while it asks kit to run what it asked when you trusted it, by the
 # digest of that, or a folder, with every clone under it, whatever they ask. In a clone you have not trusted, or one
-# that asks something new, the loader runs kit help, kit version, kit trust, and kit syntax alone, on this release,
-# whatever the clone names, and on a terminal kit tui, which bare kit runs, whose kittui asks you to trust the clone
-# before it reads anything there. Any other verb, on a terminal, runs this release's kit trust first, which shows what
-# the clone asks kit to run and asks you; after a yes, the call runs as it was typed. Without a terminal, or after a no,
-# it is refused. kit trust runs on this release in a clone you trust too.
+# that asks something new, the loader runs kit help, kit version, kit trust --clone, and kit syntax alone, on this
+# release, whatever the clone names, and on a terminal kit tui, which bare kit runs, whose kittui asks you to trust the
+# clone before it reads anything there. Any other verb, on a terminal, runs this release's kit trust --clone first,
+# which shows what the clone asks kit to run and asks you; after a yes, the call runs as it was typed. Without a
+# terminal, or after a no, it is refused. kit trust --clone runs on this release in a clone you trust too.
 #
 # Two commands are an agent's harness's to run, with no terminal: kit serve, and kit context --claude, its hook. The
 # harness reads each one's answer in a form of its own, so a refusal on stderr tells the agent nothing. There the
@@ -333,7 +333,7 @@ trusted() {
 # pinned <clone> prints the release <clone>'s kit.yml declares: its top-level version: line, without quotes and
 # without a comment beside it. Without one, it prints the version .kit/manifest records, or nothing. Where the clone
 # has no kit.yml, its settings are the .kit/settings.yml a release moves there, and that file's line is read.
-# modules/bash/trust.sh's trust:pinned reads the same files with the same two sed programs, so kit trust shows
+# modules/bash/trust.sh's trust:pinned reads the same files with the same two sed programs, so kit trust --clone shows
 # the release this loader runs: a change to one is a change to both.
 pinned() {
   pinned_value=''
@@ -579,6 +579,19 @@ clone=$(clone_root) || clone=''
 here=${clone:-$(pwd -P)}
 untrusted=''
 trust=0
+# clone_trust is yes where the call is kit trust --clone, the trust of a clone, which runs on this release whatever the
+# clone says or does not; bare kit trust is the app Trust, and is held to the trust as every other verb is.
+clone_trust=''
+if [ "${1:-}" = trust ]
+then
+  for arg in "$@"
+  do
+    case ${arg} in
+      (--) break ;;
+      (--clone) clone_trust=yes ;;
+    esac
+  done
+fi
 # The root whose trust is judged, as modules/bash/1st.sh's kit:trust-root finds it: the clone's, and outside a clone
 # the working directory, where it holds a kit.yml or the .kit/settings.yml a release moves there.
 judged=${clone}
@@ -596,14 +609,15 @@ then
   if [ "${trust}" = 3 ]
   then
     why="${name} asks kit to run something new since you trusted it"
-    remedy="see what it asks, and trust it again: kit trust"
+    remedy="see what it asks, and trust it again: kit trust --clone"
   else
     why="kit runs nothing in ${name} until you trust it"
-    remedy="see what it asks kit to run, and trust it: kit trust"
+    remedy="see what it asks kit to run, and trust it: kit trust --clone"
   fi
   case ${1:-tui} in
-    (help | version | trust | syntax) untrusted=yes ;;
+    (help | version | syntax) untrusted=yes ;;
   esac
+  [ -z "${clone_trust}" ] || untrusted=yes
   # An agent's harness runs kit serve, and kit context --claude as its hook, and reads each one's answer in a form of
   # its own, the protocol's messages and the hook's JSON: a line on stderr is a bare failure to it. With no terminal
   # to ask on, each runs on this release, says in that form that the clone is not trusted, and reads nothing there.
@@ -621,12 +635,12 @@ then
   case ${untrusted}:${1:-tui} in
     (yes:*) ;;
     (*)
-      # On a terminal, this release's kit trust shows what the clone asks kit to run, and asks; after a yes, the call
-      # runs again as it was typed. It asks once per clone in a call, so a trust that does not hold refuses.
+      # On a terminal, this release's kit trust --clone shows what the clone asks kit to run, and asks; after a yes, the
+      # call runs again as it was typed. It asks once per clone in a call, so a trust that does not hold refuses.
       if [ -t 0 ] && [ -t 2 ] && [ "${kit_trust_asked:-}" != "${name}" ]
       then
         say '→' 36 "${why}"
-        "${self}" trust || exit 1
+        "${self}" trust --clone || exit 1
         kit_trust_asked=${name}
         export kit_trust_asked
         exec "${self}" ${want:+"--version=${want}"} ${workspace:+"--workspace=${workspace}"} "$@"
@@ -636,10 +650,10 @@ then
       ;;
   esac
 fi
-if [ -n "${untrusted}" ] || [ "${1:-}" = trust ]
+if [ -n "${untrusted}" ] || [ -n "${clone_trust}" ]
 then
-  # A clone you have not trusted chooses no release: what it names could be code of its own. kit trust always runs
-  # on this release, so a clone you trusted can never keep you from taking the trust back.
+  # A clone you have not trusted chooses no release: what it names could be code of its own. kit trust --clone always
+  # runs on this release, so a clone you trusted can never keep you from taking the trust back.
   root=${self_root}
 elif [ -n "${across}" ]
 then

@@ -54,7 +54,7 @@ export-base() {
 update-staged() {
   local mise=${MISE_CONFIG_DIR:-${XDG_CONFIG_HOME:-${HOME}/.config}/mise}
   (cd "$1" && export XDG_CONFIG_HOME="$3" MISE_CONFIG_DIR="${mise}" \
-    && { kit/bin/kit trust --yes >/dev/null 2>&1 || true; } \
+    && { kit/bin/kit trust --clone --yes >/dev/null 2>&1 || true; } \
     && GIT_CEILING_DIRECTORIES="$(dirname "$1")" KIT_BASE="$2" kit/bin/kit update >/dev/null)
 }
 

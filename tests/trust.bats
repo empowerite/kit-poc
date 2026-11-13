@@ -50,7 +50,7 @@ answering() {
 @test "in a clone you have not trusted, every verb but help, version, trust, and syntax is refused, by the loader and by the verb" {
   run "${kit}" check
   [ "$status" -eq 1 ]
-  [[ "$output" == *"kit runs nothing in $(pwd -P) until you trust it; see what it asks kit to run, and trust it: kit trust"* ]]
+  [[ "$output" == *"kit runs nothing in $(pwd -P) until you trust it; see what it asks kit to run, and trust it: kit trust --clone"* ]]
   # bare kit, kit tui, off a terminal, where kittui could not ask
   run "${kit}"
   [ "$status" -eq 1 ]
@@ -65,6 +65,20 @@ answering() {
   [ "$status" -eq 0 ]
   run "${kit}" -h
   [ "$status" -eq 0 ]
+}
+
+@test "bare kit trust is the app Trust, held to the trust as every verb is; only kit trust --clone runs in a clone you have not trusted" {
+  run "${kit}" trust --stages
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit runs nothing in $(pwd -P) until you trust it; see what it asks kit to run, and trust it: kit trust --clone"* ]]
+  run "${kit}" trust --yes
+  [ "$status" -eq 1 ]
+  run "${kit}" trust --clone --check
+  [ "$status" -eq 1 ]
+  "${kit}" trust --clone --yes
+  run "${kit}" trust --stages
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = evidence ]
 }
 
 @test "on a terminal, a verb in a clone you have not trusted asks first, and after a yes runs as it was typed" {
@@ -96,7 +110,7 @@ answering() {
   cd "${BATS_TEST_TMPDIR}/plain"
   run "${kit}" kinds x
   [[ "$output" != *"until you trust it"* ]]
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 2 ]
   [[ "$output" == *"is in no clone and holds no kit.yml"* ]]
   [ ! -s "${trusted}" ]
@@ -123,10 +137,10 @@ answering() {
   [ "$status" -eq 0 ]
   run "${kit}" syntax commit
   [ "$status" -eq 0 ]
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 1 ]
   [ "$output" = "${folder}" ]
-  run "${kit}" trust --asks </dev/null
+  run "${kit}" trust --clone --asks </dev/null
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = 'load bash into every kit command from mods (bash_path)' ]
   [ "${lines[1]}" = 'run bin/ci for kit gate (gate)' ]
@@ -136,11 +150,11 @@ answering() {
   # every other verb is refused, by the loader and by the verb
   run "${kit}" gate
   [ "$status" -eq 1 ]
-  [[ "$output" == *"kit runs nothing in ${folder} until you trust it; see what it asks kit to run, and trust it: kit trust"* ]]
+  [[ "$output" == *"kit runs nothing in ${folder} until you trust it; see what it asks kit to run, and trust it: kit trust --clone"* ]]
   run "${kit_checkout}/bin/kit-gate"
   [ "$status" -eq 1 ]
   [[ "$output" == *"kit runs nothing in ${folder} until you trust it"* ]]
-  run "${kit}" trust </dev/null
+  run "${kit}" trust --clone </dev/null
   [ "$status" -eq 1 ]
   [[ "$output" == *"${folder} asks kit to:"* ]]
   [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
@@ -149,15 +163,15 @@ answering() {
   # below it kit reads nothing of the folder, so there is nothing to ask about
   run bash -c 'cd below && "$0" kinds x' "${kit}"
   [[ "$output" != *"until you trust it"* ]]
-  run bash -c 'cd below && "$0" trust --check' "${kit}"
+  run bash -c 'cd below && "$0" trust --clone --check' "${kit}"
   [ "$status" -eq 2 ]
   [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
   # trusted, by its own path and the digest of what it asks, it runs what it asked
-  run "${kit}" trust --yes
+  run "${kit}" trust --clone --yes
   [ "$status" -eq 0 ]
   [[ "$output" == *"kit trusts ${folder}, while it asks kit to run the same"* ]]
   recorded "${folder}"
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 0 ]
   run "${kit}" gate
   [ "$status" -eq 0 ]
@@ -168,7 +182,7 @@ answering() {
   run "${kit}" gate
   [ "$status" -eq 1 ]
   [[ "$output" == *"${folder} asks kit to run something new since you trusted it"* ]]
-  run "${kit}" trust --revoke
+  run "${kit}" trust --clone --revoke
   [ "$status" -eq 0 ]
   run "${kit}" gate
   [ "$status" -eq 1 ]
@@ -186,22 +200,22 @@ answering() {
   [[ "$output" == *"kit runs nothing in $(pwd -P) until you trust it"* ]]
   run "${kit_checkout}/bin/kit-kinds" x
   [ "$status" -eq 1 ]
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 1 ]
-  run "${kit}" trust --asks
+  run "${kit}" trust --clone --asks
   [ "$output" = 'load bash into every kit command from mods (bash_path)' ]
   [ ! -e kit.yml ]
   [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
 }
 
 @test "a .kit/settings.yml kit would move to kit.yml is judged and shown as the kit.yml it becomes: a pull that brings one asks again before anything moves" {
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   # a pull brings the settings of an earlier release into a clone with no kit.yml
   mkdir -p .kit mods bin
   printf '# yaml-language-server: $schema=settings.schema.json\ngate: bin/ci\nbash_path:\n  - kit:modules/bash/\n  - mods\n' \
     > .kit/settings.yml
   printf ': > "%s/sourced"\n' "${BATS_TEST_TMPDIR}" > mods/settings.sh
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 1 ]
   run "${kit}" kinds x
   [ "$status" -eq 1 ]
@@ -212,7 +226,7 @@ answering() {
   [ ! -e kit.yml ]
   [ ! -e "${BATS_TEST_TMPDIR}/sourced" ]
   # kit trust shows what the file names, and the move, which changes the modeline alone, keeps the trust
-  run "${kit}" trust --yes
+  run "${kit}" trust --clone --yes
   [ "$status" -eq 0 ]
   [[ "$output" == *"  - load bash into every kit command from mods (bash_path)"* ]]
   [[ "$output" == *"  - run bin/ci for kit gate (gate)"* ]]
@@ -220,11 +234,11 @@ answering() {
   [[ "$output" == *"kit.yml: the settings moved here from .kit/settings.yml"* ]]
   [ -e "${BATS_TEST_TMPDIR}/sourced" ]
   [ "$(sed -n '1p' kit.yml)" = '# yaml-language-server: $schema=.kit/kit.schema.json' ]
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 0 ]
   # beside a kit.yml, kit reads nothing of .kit/settings.yml, and neither does the trust
   printf 'gate: bin/other\n' > .kit/settings.yml
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 0 ]
 }
 
@@ -239,7 +253,7 @@ answering() {
   own-kit
   mkdir .kit
   mv kit.yml .kit/settings.yml
-  run "${kit}" trust --yes
+  run "${kit}" trust --clone --yes
   [ "$status" -eq 0 ]
   [[ "$output" == *"  - run its own kit, kit/ in the clone, for every kit command there (version: unreleased)"* ]]
   run "${kit}" kinds x
@@ -276,11 +290,11 @@ answering() {
   run "${kit}" version
   [ "$status" -eq 0 ]
   [ "$output" = unreleased ]
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 1 ]
-  run "${kit}" trust --asks </dev/null
+  run "${kit}" trust --clone --asks </dev/null
   [ "$status" -eq 0 ]
-  run "${kit}" trust </dev/null
+  run "${kit}" trust --clone </dev/null
   [ "$status" -eq 1 ]
   run "${kit}" syntax commit
   [ "$status" -eq 0 ]
@@ -295,7 +309,7 @@ answering() {
   [ "$status" -eq 0 ]
   [ "$output" = "${kit_checkout}/modules/bash" ]
   # trusted, the clone's own kit.yml is the one read, not the folder's
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   run "${kit}" version
   [ "$status" -eq 0 ]
   [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
@@ -317,7 +331,7 @@ answering() {
 @test "kit trust shows what the clone asks kit to run, and with no terminal and no --yes records nothing" {
   own-kit
   printf 'version: unreleased\ngate: bin/ci\nbash_path:\n  - kit:modules/bash/\n  - lib/bash/\nsources:\n  - name: house\n    url: https://example.com/house.git\n' > kit.yml
-  run "${kit}" trust </dev/null
+  run "${kit}" trust --clone </dev/null
   [ "$status" -eq 1 ]
   [[ "$output" == *"$(pwd -P) asks kit to:"* ]]
   [[ "$output" == *"  - run its own kit, kit/ in the clone, for every kit command there (version: unreleased)"* ]]
@@ -329,35 +343,35 @@ answering() {
 }
 
 @test "with no terminal, kit trust says the trust is a person's to give, and never names the option that gives it unasked" {
-  run "${kit}" trust </dev/null
+  run "${kit}" trust --clone </dev/null
   [ "$status" -eq 1 ]
-  [[ "$output" == *"there is no terminal to ask, and the trust is a person's to give; ask them to run: cd "*" && kit trust $(pwd -P)" ]]
+  [[ "$output" == *"there is no terminal to ask, and the trust is a person's to give; ask them to run: cd "*" && kit trust --clone $(pwd -P)" ]]
   [[ "$output" != *--yes* ]]
   [[ "$output" != *"kit help trust"* ]]
   # on a runner, where a job trusts its own checkout, it points at the page that says how, and still names no option
-  run env GITHUB_ACTIONS=true "${kit}" trust </dev/null
+  run env GITHUB_ACTIONS=true "${kit}" trust --clone </dev/null
   [ "$status" -eq 1 ]
-  [[ "$output" == *"ask them to run: cd "*" && kit trust $(pwd -P); a job on a runner trusts its own checkout, as kit help trust says"* ]]
+  [[ "$output" == *"ask them to run: cd "*" && kit trust --clone $(pwd -P); a job on a runner trusts its own checkout, as kit help trust says"* ]]
   [[ "$output" != *--yes* ]]
   for marker in GITLAB_CI TF_BUILD
   do
-    run env "${marker}=true" "${kit}" trust </dev/null
+    run env "${marker}=true" "${kit}" trust --clone </dev/null
     [[ "$output" == *"as kit help trust says"* ]]
   done
   [ ! -s "${trusted}" ]
 }
 
-@test "kit trust --yes records the clone, and kit runs there then, its own kit/ included" {
-  run "${kit}" trust --yes
+@test "kit trust --clone --yes records the clone, and kit runs there then, its own kit/ included" {
+  run "${kit}" trust --clone --yes
   [ "$status" -eq 0 ]
   [[ "$output" == *"asks kit to run nothing beyond the kit itself"* ]]
   [[ "$output" == *"kit trusts $(pwd -P), and every worktree of it"* ]]
   recorded "$(pwd -P)"
-  run "${kit}" trust --yes
+  run "${kit}" trust --clone --yes
   [[ "$output" == *"kit trusts $(pwd -P) already"* ]]
   [ "$(wc -l < "${trusted}")" -eq 1 ]
   own-kit
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   run "${kit}" check
   [ -e "${BATS_TEST_TMPDIR}/ran" ]
 }
@@ -365,11 +379,11 @@ answering() {
 @test "a worktree is trusted with its desk, wherever the worktree is" {
   git commit --quiet --allow-empty --message init
   git worktree add --quiet "${BATS_TEST_TMPDIR}/away" -b away
-  run bash -c 'cd "$1" && "$0" trust --check' "${kit}" "${BATS_TEST_TMPDIR}/away"
+  run bash -c 'cd "$1" && "$0" trust --clone --check' "${kit}" "${BATS_TEST_TMPDIR}/away"
   [ "$status" -eq 1 ]
   [ "$output" = "$(pwd -P)" ]
-  "${kit}" trust --yes
-  run bash -c 'cd "$1" && "$0" trust --check' "${kit}" "${BATS_TEST_TMPDIR}/away"
+  "${kit}" trust --clone --yes
+  run bash -c 'cd "$1" && "$0" trust --clone --check' "${kit}" "${BATS_TEST_TMPDIR}/away"
   [ "$status" -eq 0 ]
   run bash -c 'cd "$1" && "$0" kinds x' "${kit}" "${BATS_TEST_TMPDIR}/away"
   [[ "$output" != *"until you trust it"* ]]
@@ -378,30 +392,30 @@ answering() {
 @test "a .git file the desk does not confirm borrows none of its trust: a worktree of its own, or a name made up" {
   git commit --quiet --allow-empty --message init
   git worktree add --quiet "${BATS_TEST_TMPDIR}/real" -b real
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   desk=$(pwd -P)
   mkdir "${BATS_TEST_TMPDIR}/spoof"
   printf 'gitdir: %s/.git/worktrees/real\n' "${desk}" > "${BATS_TEST_TMPDIR}/spoof/.git"
-  run "${kit}" trust --check "${BATS_TEST_TMPDIR}/spoof"
+  run "${kit}" trust --clone --check "${BATS_TEST_TMPDIR}/spoof"
   [ "$status" -eq 1 ]
   [ "$output" = "$(cd "${BATS_TEST_TMPDIR}/spoof" && pwd -P)" ]
   run bash -c 'cd "$1" && "$0" check' "${kit}" "${BATS_TEST_TMPDIR}/spoof"
   [ "$status" -eq 1 ]
   [[ "$output" == *"kit runs nothing in $(cd "${BATS_TEST_TMPDIR}/spoof" && pwd -P) until you trust it"* ]]
   printf 'gitdir: %s/.git/worktrees/made-up\n' "${desk}" > "${BATS_TEST_TMPDIR}/spoof/.git"
-  run "${kit}" trust --check "${BATS_TEST_TMPDIR}/spoof"
+  run "${kit}" trust --clone --check "${BATS_TEST_TMPDIR}/spoof"
   [ "$status" -eq 1 ]
   # an admin directory of the clone's own making, which names the clone back and the desk as its common dir
   mkdir -p "${BATS_TEST_TMPDIR}/spoof/admin/x"
   printf '%s/.git\n' "$(cd "${BATS_TEST_TMPDIR}/spoof" && pwd -P)" > "${BATS_TEST_TMPDIR}/spoof/admin/x/gitdir"
   printf '%s/.git\n' "${desk}" > "${BATS_TEST_TMPDIR}/spoof/admin/x/commondir"
   printf 'gitdir: admin/x\n' > "${BATS_TEST_TMPDIR}/spoof/.git"
-  run "${kit}" trust --check "${BATS_TEST_TMPDIR}/spoof"
+  run "${kit}" trust --clone --check "${BATS_TEST_TMPDIR}/spoof"
   [ "$status" -eq 1 ]
   [ "$output" = "$(cd "${BATS_TEST_TMPDIR}/spoof" && pwd -P)" ]
   run bash -c 'cd "$1" && "$0" check' "${kit}" "${BATS_TEST_TMPDIR}/spoof"
   [ "$status" -eq 1 ]
-  run "${kit}" trust --check "${BATS_TEST_TMPDIR}/real"
+  run "${kit}" trust --clone --check "${BATS_TEST_TMPDIR}/real"
   [ "$status" -eq 0 ]
   [ "$output" = "${desk}" ]
 }
@@ -410,13 +424,13 @@ answering() {
   mkdir -p "${BATS_TEST_TMPDIR}/code/a" "${BATS_TEST_TMPDIR}/codex"
   git init --quiet "${BATS_TEST_TMPDIR}/code/a/one"
   git init --quiet "${BATS_TEST_TMPDIR}/codex/two"
-  run "${kit}" trust --yes "${BATS_TEST_TMPDIR}/code/"
+  run "${kit}" trust --clone --yes "${BATS_TEST_TMPDIR}/code/"
   [ "$status" -eq 0 ]
   [[ "$output" == *"trusts every clone under it"* ]]
   [ "$(cat "${trusted}")" = "$(cd "${BATS_TEST_TMPDIR}/code" && pwd -P)/" ]
-  run "${kit}" trust --check "${BATS_TEST_TMPDIR}/code/a/one"
+  run "${kit}" trust --clone --check "${BATS_TEST_TMPDIR}/code/a/one"
   [ "$status" -eq 0 ]
-  run "${kit}" trust --check "${BATS_TEST_TMPDIR}/codex/two"
+  run "${kit}" trust --clone --check "${BATS_TEST_TMPDIR}/codex/two"
   [ "$status" -eq 1 ]
 }
 
@@ -424,34 +438,34 @@ answering() {
   mkdir -p "${HOME}/src"
   git init --quiet "${HOME}/src/mine"
   printf '# mine\n\n~/src/\n' > "${trusted}"
-  run "${kit}" trust --check "${HOME}/src/mine"
+  run "${kit}" trust --clone --check "${HOME}/src/mine"
   [ "$status" -eq 0 ]
-  run "${kit}" trust --list
+  run "${kit}" trust --clone --list
   [ "$output" = "~/src/" ]
 }
 
-@test "kit trust --revoke takes the trust back, says when there is none, and warns when a folder still holds the clone" {
-  "${kit}" trust --yes
-  run "${kit}" trust --revoke
+@test "kit trust --clone --revoke takes the trust back, says when there is none, and warns when a folder still holds the clone" {
+  "${kit}" trust --clone --yes
+  run "${kit}" trust --clone --revoke
   [ "$status" -eq 0 ]
   [[ "$output" == *"kit no longer trusts $(pwd -P)"* ]]
   run "${kit}" check
   [ "$status" -eq 1 ]
-  run "${kit}" trust --revoke
+  run "${kit}" trust --clone --revoke
   [ "$status" -eq 1 ]
-  [[ "$output" == *"kit trust holds no record of $(pwd -P)"* ]]
+  [[ "$output" == *"kit trust --clone holds no record of $(pwd -P)"* ]]
   printf '%s/\n%s\n' "$(cd .. && pwd -P)" "$(pwd -P)" > "${trusted}"
-  run "${kit}" trust --revoke
+  run "${kit}" trust --clone --revoke
   [[ "$output" == *"a folder you trust still holds $(pwd -P)"* ]]
 }
 
 @test "kit trust runs on the installed kit in a trusted clone too, so a clone of its own kit cannot keep its trust" {
   own-kit
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   rm -f "${BATS_TEST_TMPDIR}/ran"
-  run "${kit}" trust --list
+  run "${kit}" trust --clone --list
   [ "$output" = "$(pwd -P)" ]
-  run "${kit}" trust --revoke
+  run "${kit}" trust --clone --revoke
   [ "$status" -eq 0 ]
   [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
 }
@@ -459,7 +473,7 @@ answering() {
 @test "kit.yml names a release by its version alone, even in a clone you trust; a path only --version= names" {
   later-release "${BATS_TEST_TMPDIR}/elsewhere" 9.9.7
   printf 'version: %s\n' "${BATS_TEST_TMPDIR}/elsewhere" > kit.yml
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   run "${kit}" version
   [ "$status" -eq 1 ]
   [[ "$output" == *"kit.yml names a release by its version, and a path only --version= or KIT_VERSION names"* ]]
@@ -469,54 +483,54 @@ answering() {
 
 @test "a clone that comes to ask kit to run something new is asked again; a change to anything else keeps its trust" {
   printf 'gate: bin/ci\npackages:\n  - kit\n' > kit.yml
-  "${kit}" trust --yes
-  run "${kit}" trust --check
+  "${kit}" trust --clone --yes
+  run "${kit}" trust --clone --check
   [ "$status" -eq 0 ]
   # what names no command: the packages, a README, the gate's own script
   printf 'gate: bin/ci\npackages:\n  - kit\n  - workflow\nanswers:\n  x: "1"\n' > kit.yml
   mkdir bin && printf '#!/bin/sh\n' > bin/ci && printf 'hello\n' > README.md
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 0 ]
   run "${kit}" kinds x
   [[ "$output" != *"since you trusted it"* ]]
   # a new gate, by a key written in quotes too
   printf '"gate": bin/other\npackages:\n  - kit\n' > kit.yml
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 1 ]
   [ "$output" = "$(pwd -P)" ]
   run "${kit}" kinds x
   [ "$status" -eq 1 ]
-  [[ "$output" == *"$(pwd -P) asks kit to run something new since you trusted it; see what it asks, and trust it again: kit trust"* ]]
+  [[ "$output" == *"$(pwd -P) asks kit to run something new since you trusted it; see what it asks, and trust it again: kit trust --clone"* ]]
   run "${kit_checkout}/bin/kit-kinds" x
   [ "$status" -eq 1 ]
   [[ "$output" == *"asks kit to run something new since you trusted it"* ]]
-  run "${kit}" trust --yes
+  run "${kit}" trust --clone --yes
   [[ "$output" == *"asks kit to run something new since you trusted it"* ]]
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 0 ]
   # a lint: command in a rule, and in a rule of the clone's own package
   mkdir -p .kit/rules
   printf -- '---\nkind:\n  - text\nlint: touch %s/linted\n---\n# Text\n' "${BATS_TEST_TMPDIR}" > .kit/rules/text.md
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 1 ]
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   printf '# Text\n\nAnother line of prose.\n' >> .kit/rules/text.md
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 0 ]
   mkdir -p .kit/packages/local/files/repo/.kit/styles
   printf -- '---\nkind:\n  - text\nlint: rm -rf /\n---\n' > .kit/packages/local/files/repo/.kit/styles/text.md
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 1 ]
   # a version kit.yml no longer names, which .kit/manifest names in its place
   rm -rf .kit/packages
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   printf 'version 9.9.9\n' > .kit/manifest
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 1 ]
 }
 
 @test "a trusted clone that comes to pin its own kit/ is asked again before the loader runs it" {
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   own-kit
   run "${kit}" kinds x
   [ "$status" -eq 1 ]
@@ -528,15 +542,15 @@ answering() {
   [ -e "${BATS_TEST_TMPDIR}/ran" ]
 }
 
-@test "a line of a clone's path alone, as kit trust wrote before it kept the digest, trusts it no more; kit trust --yes writes the digest in its place" {
+@test "a line of a clone's path alone, as kit trust wrote before it kept the digest, trusts it no more; kit trust --clone --yes writes the digest in its place" {
   printf '%s\n' "$(pwd -P)" > "${trusted}"
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 1 ]
   run "${kit}" kinds x
   [[ "$output" == *"asks kit to run something new since you trusted it"* ]]
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   recorded "$(pwd -P)"
-  run "${kit}" trust --list
+  run "${kit}" trust --clone --list
   [ "$output" = "$(pwd -P)" ]
 }
 
@@ -544,37 +558,37 @@ answering() {
   git commit --quiet --allow-empty --message init
   git worktree add --quiet "${BATS_TEST_TMPDIR}/away" -b away
   printf 'gate: bin/ci\n' > "${BATS_TEST_TMPDIR}/away/kit.yml"
-  "${kit}" trust --yes
-  run bash -c 'cd "$1" && "$0" trust --check' "${kit}" "${BATS_TEST_TMPDIR}/away"
+  "${kit}" trust --clone --yes
+  run bash -c 'cd "$1" && "$0" trust --clone --check' "${kit}" "${BATS_TEST_TMPDIR}/away"
   [ "$status" -eq 1 ]
-  run bash -c 'cd "$1" && "$0" trust --yes' "${kit}" "${BATS_TEST_TMPDIR}/away"
+  run bash -c 'cd "$1" && "$0" trust --clone --yes' "${kit}" "${BATS_TEST_TMPDIR}/away"
   [ "$status" -eq 0 ]
   [ "$(wc -l < "${trusted}")" -eq 2 ]
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 0 ]
-  run bash -c 'cd "$1" && "$0" trust --check' "${kit}" "${BATS_TEST_TMPDIR}/away"
+  run bash -c 'cd "$1" && "$0" trust --clone --check' "${kit}" "${BATS_TEST_TMPDIR}/away"
   [ "$status" -eq 0 ]
-  run "${kit}" trust --list
+  run "${kit}" trust --clone --list
   [ "$output" = "$(pwd -P)" ]
-  run "${kit}" trust --revoke
+  run "${kit}" trust --clone --revoke
   [ "$status" -eq 0 ]
   [ ! -s "${trusted}" ]
 }
 
-@test "kit trust --asks prints what the clone asks, its tools and every lint: command once, and asks nothing" {
+@test "kit trust --clone --asks prints what the clone asks, its tools and every lint: command once, and asks nothing" {
   printf 'gate: bin/ci\ntools:\n  jq:\n    version: "1.8.2"\n  yq:\n    version: "4.54.1"\n' > kit.yml
   mkdir -p .kit/rules .kit/styles .kit/packages/local/files/repo/.kit/rules
   printf -- '---\nkind:\n  - bash\nlint: shellcheck --shell=bash\n---\n' > .kit/rules/bash.md
   printf -- '---\nkind:\n  - bash\nlint: shellcheck --shell=bash\n---\n' > .kit/packages/local/files/repo/.kit/rules/bash.md
   printf -- '---\nkind:\n  - text\n---\n' > .kit/styles/text.md
-  run "${kit}" trust --asks </dev/null
+  run "${kit}" trust --clone --asks </dev/null
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = 'run bin/ci for kit gate (gate)' ]
   [ "${lines[1]}" = 'download and run the tools it pins, from the URLs it names: jq, yq (tools)' ]
   [ "${lines[2]}" = 'run shellcheck --shell=bash for kit lint (lint: in .kit/rules/bash.md)' ]
   [ "${#lines[@]}" -eq 3 ]
   [ ! -s "${trusted}" ]
-  run "${kit}" trust --asks "${BATS_TEST_TMPDIR}/"
+  run "${kit}" trust --clone --asks "${BATS_TEST_TMPDIR}/"
   [ "$status" -eq 2 ]
 }
 
@@ -585,35 +599,35 @@ answering() {
   printf 'version unreleased\n' > .kit/manifest
   own='run its own kit, kit/ in the clone, for every kit command there (version in .kit/manifest: unreleased)'
   # no kit.yml, and a manifest that records unreleased: the clone's own kit/
-  run "${kit}" trust --asks
+  run "${kit}" trust --clone --asks
   [ "$status" -eq 0 ]
   [ "$output" = "${own}" ]
   # a version the loader does not read, a key in quotes or in a flow mapping, leaves the manifest's
   printf '"version": 9.9.9\n' > kit.yml
-  run "${kit}" trust --asks
+  run "${kit}" trust --clone --asks
   [ "$output" = "${own}" ]
   printf '{version: 9.9.9}\n' > kit.yml
-  run "${kit}" trust --asks
+  run "${kit}" trust --clone --asks
   [ "$output" = "${own}" ]
-  run "${kit}" trust --yes
+  run "${kit}" trust --clone --yes
   [[ "$output" == *"  - ${own}"* ]]
   run "${kit}" kinds x
   [ -e "${BATS_TEST_TMPDIR}/ran" ]
   rm "${BATS_TEST_TMPDIR}/ran"
   # the digest holds both lines the loader reads: a change to either asks again
   printf '{version: 9.9.8}\n' > kit.yml
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 1 ]
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   printf 'version 9.9.8\n' > .kit/manifest
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 1 ]
   # a key written twice: the first line, which the loader takes, on one line
   later-release "${XDG_CACHE_HOME}/kit/kit-9.9.9" 9.9.9
   printf 'version: 9.9.9\nversion: unreleased\n' > kit.yml
-  run "${kit}" trust --asks
+  run "${kit}" trust --clone --asks
   [ "$output" = 'run kit 9.9.9, downloaded from its release and checked against its digest (version: 9.9.9)' ]
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   run "${kit}" version
   [ "$output" = 9.9.9 ]
   [ ! -e "${BATS_TEST_TMPDIR}/ran" ]
@@ -621,23 +635,23 @@ answering() {
   mkdir "${BATS_TEST_TMPDIR}/unpacked"
   cd "${BATS_TEST_TMPDIR}/unpacked"
   printf 'version: 9.9.9\n' > kit.yml
-  run "${kit}" trust --asks
+  run "${kit}" trust --clone --asks
   [ "$status" -eq 0 ]
   [ -z "$output" ]
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   run "${kit}" version
   [ "$output" = unreleased ]
 }
 
 @test "a clone that declares unreleased is shown to run its own kit/ before it holds one, so a pull that brings one runs what you were shown" {
   printf 'version: unreleased\n' > kit.yml
-  run "${kit}" trust --yes
+  run "${kit}" trust --clone --yes
   [ "$status" -eq 0 ]
   [[ "$output" == *"  - run its own kit, kit/ in the clone, for every kit command there, once the clone holds one (version: unreleased)"* ]]
   own-kit
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 0 ]
-  run "${kit}" trust --asks
+  run "${kit}" trust --clone --asks
   [ "$output" = 'run its own kit, kit/ in the clone, for every kit command there (version: unreleased)' ]
   run "${kit}" kinds x
   [ -e "${BATS_TEST_TMPDIR}/ran" ]
@@ -647,7 +661,7 @@ answering() {
   printf 'gate: |\n  bin/ci\n  run nothing else\n' > kit.yml
   mkdir -p .kit/rules
   printf -- '---\nkind:\n  - text\nlint: "true\\n\\e[2Krun nothing"\n---\n' > .kit/rules/text.md
-  run "${kit}" trust --asks
+  run "${kit}" trust --clone --asks
   [ "$status" -eq 0 ]
   [ "${#lines[@]}" -eq 2 ]
   [ "${lines[0]}" = 'run bin/ci\nrun nothing else for kit gate (gate)' ]
@@ -667,47 +681,47 @@ answering() {
   [ "${lines[1]}" = never ]
   [ "${lines[2]}" = 0 ]
   [ ! -e "${BATS_TEST_TMPDIR}/fsmonitor" ]
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   run bash -c 'source "$1/modules/bash/1st.sh" && kit:enter --any-clone && git config core.hooksPath' _ "${kit_checkout}"
   [ "$status" -eq 1 ]
 }
 
 @test "what kit places keeps the trust: an install that writes the version, a worktree that has none of it yet, a clean" {
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   run "${kit}" install agents/claude
   [ "$status" -eq 0 ]
   [ -f .kit/rules/bash.md ]
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 0 ]
   git add kit.yml && git commit --quiet --message init
   git worktree add --quiet "${BATS_TEST_TMPDIR}/away" -b away
   [ ! -e "${BATS_TEST_TMPDIR}/away/.kit/rules" ]
-  run bash -c 'cd "$1" && "$0" trust --check' "${kit}" "${BATS_TEST_TMPDIR}/away"
+  run bash -c 'cd "$1" && "$0" trust --clone --check' "${kit}" "${BATS_TEST_TMPDIR}/away"
   [ "$status" -eq 0 ]
-  run bash -c 'cd "$1" && "$0" hydrate && "$0" trust --check' "${kit}" "${BATS_TEST_TMPDIR}/away"
+  run bash -c 'cd "$1" && "$0" hydrate && "$0" trust --clone --check' "${kit}" "${BATS_TEST_TMPDIR}/away"
   [ "$status" -eq 0 ]
   [ -f "${BATS_TEST_TMPDIR}/away/.kit/rules/bash.md" ]
   rm -rf .kit/rules
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 0 ]
   "${kit}" hydrate >/dev/null 2>&1
   # a rule a pull brings, with its write bit, as git checks it out, is the clone's
   printf -- '---\nkind:\n  - bash\nlint: touch %s/linted\n---\n' "${BATS_TEST_TMPDIR}" > .kit/rules/stray.md
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 1 ]
   rm .kit/rules/stray.md
   # and so is a link a pull brings, which a .kit/.gitignore of kit's own does not name
   ln -s ../../README.md .kit/rules/stray.md
   printf -- '---\nlint: touch x\n---\n' > README.md
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 1 ]
   # a link kit's own .kit/.gitignore names, without its write bit, is kit's; one with its write bit, as a pull brings,
   # names nothing kit placed
   chmod u+w .kit/.gitignore && printf '/rules/stray.md\n' >> .kit/.gitignore && chmod a-w .kit/.gitignore
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 0 ]
   chmod u+w .kit/.gitignore
-  run "${kit}" trust --check
+  run "${kit}" trust --clone --check
   [ "$status" -eq 1 ]
 }
 
@@ -718,7 +732,7 @@ answering() {
   (cd "${BATS_TEST_DIRNAME}/.." && git ls-files -z | tar --null -T - -cf -) | tar -xf - -C "${checkout}"
   cd "${checkout}"
   git init --quiet . && git add --all --force . && git commit --quiet --message init
-  kit/bin/kit trust --yes
+  kit/bin/kit trust --clone --yes
   # a link to the file is the same file until something moves another over it, as kit trust does
   ln "${trusted}" "${BATS_TEST_TMPDIR}/trusted.same"
   cp "${trusted}" "${BATS_TEST_TMPDIR}/trusted.text"
@@ -755,7 +769,7 @@ answering() {
     printf ': > "%s/sourced"\n' "${BATS_TEST_TMPDIR}" > "lib/bash/${module}.sh"
   done
   input=$(printf '{"session_id":"s1","tool_name":"Write","tool_input":{"file_path":"%s/a.sh"}}' "${PWD}")
-  said="The trust is the person's to give, never an agent's: stop, and ask them to run: kit trust $(pwd -P)"
+  said="The trust is the person's to give, never an agent's: stop, and ask them to run: kit trust --clone $(pwd -P)"
   # through the loader, as the harness runs it, and the verb called directly
   for hook in "${kit} context" "${kit_checkout}/bin/kit-context"
   do
@@ -776,14 +790,14 @@ answering() {
   [ ! -e "${BATS_TEST_TMPDIR}/sourced" ]
   # a clone that came to ask something new says that, in the same form
   rm -rf kit lib kit.yml
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   printf 'gate: bin/ci\n' > kit.yml
   run --separate-stderr "${kit}" context --claude <<<"${input}"
   [ "$status" -eq 0 ]
   [ "$(jq -r .hookSpecificOutput.additionalContext <<<"$output")" \
     = "kit: no rule was read for this file. $(pwd -P) asks kit to run something new since a person trusted it, so kit runs nothing there. ${said}" ]
   # trusted, the hook answers with the rules, and here there are none
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   run --separate-stderr "${kit}" context --claude <<<"${input}"
   [ "$status" -eq 0 ]
   [ -z "$output" ]
@@ -816,7 +830,7 @@ answering() {
   [ ! -e "${BATS_TEST_TMPDIR}/sourced" ]
   [ ! -s "${trusted}" ]
   # in a clone you trust, it answers what a verb asks, as before
-  "${kit}" trust --yes
+  "${kit}" trust --clone --yes
   run "${kit}" syntax version --match
   [ "$status" -eq 0 ]
 }

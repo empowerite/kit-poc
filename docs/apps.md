@@ -17,7 +17,7 @@ of every stage. `kit tutorials` teaches the screens, and `kit help <verb>` lists
 | [Repositories](#repositories-kit-workspace) | `kit workspace` | repos, worktrees, branches, commits, tags, remotes, incoming (from `kit flow`) |
 | [Delivery](#delivery-kit-delivery) | `kit delivery` | releases and builds (from `kit flow`), artifacts, environments, deployments |
 | [People](#people-kit-people) | `kit people` | people, teams, agents |
-| [Trust](#trust-kit-audit) | `kit audit` | evidence, findings, controls, waivers, policy, enforcement |
+| [Trust](#trust-kit-trust) | `kit trust` | evidence, findings, controls, waivers, policy, enforcement |
 | [Platform](#platform-kit-platform) | `kit platform` | services, toolchains, tools, settings |
 | [Packages](#packages-kit-packages) | `kit packages` | packages |
 
@@ -25,10 +25,9 @@ of every stage. `kit tutorials` teaches the screens, and `kit help <verb>` lists
   [Tabs that show a stage of kit flow](#tabs-that-show-a-stage-of-kit-flow).
 - The Flow app shows the stages that the `flow` setting in `kit.yml` names, in that order. `kit help flow` describes
   what `kit flow` prints. The rest of this page is about the other eight verbs.
-- Two apps are not named for their verbs. The verb of Trust is `kit audit`, because `kit trust` is the verb that
-  trusts a clone. The verb of Repositories is `kit workspace`. The title line of each app is `kit` and the name of its
-  line in the `=` menu, so Trust reads `kit trust` and Repositories `kit repositories`, though the verbs are
-  `kit audit` and `kit workspace`.
+- One app is not named for its verb. The verb of Repositories is `kit workspace`. The title line of each app is `kit`
+  and the name of its line in the `=` menu, so Repositories reads "kit repositories", though the verb is
+  `kit workspace`.
 
 ## The shape every app verb shares
 
@@ -119,7 +118,7 @@ Every row holds its stage's own fields and these keys:
   folder.
 - `source` is the forge: `github`, `gitlab`, or `ado` for Azure DevOps. It is `kit` for a row that kit reads on this
   machine, such as a row of `kit platform`, and `git` for a row of `kit workspace`.
-- A row that already has these three fields keeps its own values. For example, a row of `kit audit policy` names the
+- A row that already has these three fields keeps its own values. For example, a row of `kit trust policy` names the
   place where the rule applies.
 
 ### Errors
@@ -678,16 +677,17 @@ the bot's last activity.
 
 Azure DevOps names no bots, so the stage has no rows there.
 
-## Trust: kit audit
+## Trust: kit trust
 
-`kit audit` prints what the repository can be trusted for:
+`kit trust` prints what the repository can be trusted for:
 
 - what the forge attests and finds
 - what guards the default branch, and who may get past it
 - the rules that kit's policy judges by
 - what holds an agent to those rules
 
-Every tab of the Trust app is a stage of this verb. The verb is not `kit trust`, which trusts a clone.
+Every tab of the Trust app is a stage of this verb. With `--clone`, `kit trust` instead trusts a clone; see
+[install.md](install.md#trust).
 
 | Stage | A row for each | Key | Mark |
 | --- | --- | --- | --- |
