@@ -96,7 +96,7 @@ JSON
   route az 'boards work-item show --id 4521 --org https://dev.azure.com/example*' active.json
   route az 'boards work-item show --id 4522 *' done.json
   route az 'boards work-item update --id 4521 --assigned-to ada@example.com *' '!0'
-  route az 'boards work-item create --title New work --type Task --project Claims Team *' created.json
+  route az 'boards work-item create --title New work --type Task --description  --project Claims Team *' created.json
   route az 'account show*' me.txt
   route az 'boards work-item update --id 4521 --assigned-to  *' '!0'
   route az 'boards work-item update --id 4521 --state *' '!0'
@@ -132,6 +132,38 @@ JSON
   in_tracker tracker:of 'AB#4521' close duplicate 4522
   run grep -o 'update --id 4521 --[a-z-]* [^-]*' "${FAKE_DIR}/az.calls"
   [ "$output" = $'update --id 4521 --assigned-to  \nupdate --id 4521 --state Closed \nupdate --id 4521 --state Removed \nupdate --id 4521 --discussion Duplicate of AB#4522 \nupdate --id 4521 --state Removed ' ]
+}
+
+@test "an Azure DevOps work item is created with its body, and a create az answers no id for fails" {
+  fixture created.json <<<'{"id": 4600}'
+  fixture none.json <<<'{"name": "no id"}'
+  route az 'boards work-item create --title New work --type Task --description Line one --project Claims Team *' created.json
+  route az 'boards work-item create --title Bare --type Task --description  --project Claims Team *' none.json
+  run in_tracker tracker:at 'AB#' create "New work" "Line one"
+  [ "$status" -eq 0 ]
+  [ "$output" = "4600" ]
+  run --separate-stderr in_tracker tracker:at 'AB#' create "Bare"
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+}
+
+@test "an Azure DevOps work item whose assignees cannot be read is not unassigned, and says so" {
+  route az 'boards work-item show --id 4521 *' '!1'
+  : > "${FAKE_DIR}/az.calls"
+  run in_tracker tracker:of 'AB#4521' unassign bob@example.com
+  [ "$status" -eq 1 ]
+  ! grep --quiet 'update' "${FAKE_DIR}/az.calls"
+}
+
+@test "an Azure DevOps work item asked of without az on PATH answers 1 and names az, not 127 and nothing" {
+  rm "${FAKE_DIR}/bin/az"
+  for call in 'assign ada@example.com' 'comment Hello' 'close completed' 'create Title'
+  do
+    # shellcheck disable=SC2086  # a call and its arguments, split on purpose
+    run --separate-stderr in_tracker tracker:of 'AB#4521' ${call}
+    [ "$status" -eq 1 ] || { echo "${call}: ${status}"; false; }
+    [[ "${stderr}" == *az* ]] || { echo "${call}: ${stderr}"; false; }
+  done
 }
 
 @test "an Azure Boards work item closed to the state the record names reads as closed, and the open work items leave it out" {

@@ -26,6 +26,7 @@
 tracker/ado:assign() {
   local org
   org=$(tracker/ado:organization) || return 1
+  guard:require tool:az || return 1
   az boards work-item update --id "$1" --assigned-to "$2" --org "${org}" --output none 2>/dev/null
 }
 
@@ -43,6 +44,7 @@ tracker/ado:close() {
   local org setting=removed_state state said='' tried
   local -a states=(Removed)
   org=$(tracker/ado:organization) || return 1
+  guard:require tool:az || return 1
   if [[ "$2" == completed ]]
   then
     setting=closed_state
@@ -66,6 +68,7 @@ tracker/ado:close() {
 tracker/ado:comment() {
   local org
   org=$(tracker/ado:organization) || return 1
+  guard:require tool:az || return 1
   az boards work-item update --id "$1" --discussion "$2" --org "${org}" --output none 2>/dev/null
 }
 
@@ -79,9 +82,14 @@ tracker/ado:create() {
     error "add project: <name> to the ${TRACKER_PREFIX} tracker in kit.yml"
     return 1
   fi
-  item=$(az boards work-item create --title "$1" --type "${type:-Task}" --project "${project}" --org "${org}" \
-    --output json 2>/dev/null) || { error "run: az login (the work item could not be created)"; return 1; }
-  jq --raw-output '.id' <<<"${item}"
+  guard:require tool:az || return 1
+  if ! item=$(az boards work-item create --title "$1" --type "${type:-Task}" --description "${2:-}" \
+    --project "${project}" --org "${org}" --output json 2>/dev/null) \
+    || ! jq --raw-output --exit-status '.id | numbers' <<<"${item}" 2>/dev/null
+  then
+    error "run: az login (the work item could not be created)"
+    return 1
+  fi
 }
 
 tracker/ado:me() {
@@ -158,9 +166,10 @@ tracker/ado:title() { tracker/ado:read "$1" '.fields["System.Title"]'; }
 
 # tracker/ado:unassign clears the work item's one assignee, when it is the login named.
 tracker/ado:unassign() {
-  local org
+  local org assignees
   org=$(tracker/ado:organization) || return 1
-  [[ "$(tracker/ado:assignees "$1")" == "$2" ]] || return 0
+  assignees=$(tracker/ado:assignees "$1") || return 1
+  [[ "${assignees}" == "$2" ]] || return 0
   az boards work-item update --id "$1" --assigned-to "" --org "${org}" --output none 2>/dev/null
 }
 
