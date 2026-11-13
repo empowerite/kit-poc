@@ -9,6 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/empowerite/kit/projects/tui/internal/pane"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/style"
 )
@@ -84,17 +85,22 @@ func (p prompt) keys() shell.Segment {
 	return s
 }
 
-// body gives the prompt's lines under its top edge: what is typed, a cursor after it, while a line is typed; kit's line,
-// or what to type; and the line that does it, dim while kit runs or what is typed makes no command.
-func (p prompt) body() []string {
+// body gives the prompt's lines under its top edge, none wider than width cells: what is typed, a cursor after it,
+// while a line is typed, its end in sight; kit's line, or what to type, wrapped; and the line that does it, dim while
+// kit runs or what is typed makes no command.
+func (p prompt) body(width int) []string {
 	var lines []string
 	if p.typing {
-		lines = append(lines, "› "+p.typed+"▏")
+		lines = append(lines, "› "+pane.Tail(p.typed, width-3)+"▏")
 	}
 	if p.refusal != "" {
-		lines = append(lines, style.Refusal(Failed+" "+p.refusal))
+		for _, l := range pane.Wrap(Failed+" "+p.refusal, width) {
+			lines = append(lines, style.Refusal(l))
+		}
 	} else {
-		lines = append(lines, style.Off(p.says))
+		for _, l := range pane.Wrap(p.says, width) {
+			lines = append(lines, style.Off(l))
+		}
 	}
 	does := Do + " " + p.does
 	if _, ok := p.makes(); p.busy || !ok {
@@ -103,10 +109,13 @@ func (p prompt) body() []string {
 	return append(lines, "", does)
 }
 
+// textWidth gives the cells of text a prompt's box holds over a screen so wide: 64 at most.
+func textWidth(width int) int { return min(64, max(0, width-6)) }
+
 // placed gives the prompt's box where it stands over a screen of so many lines, so wide: near its top, centered.
 func (p prompt) placed(height, width int) shell.Placed {
 	// a line of spaces, taken out again, keeps the box wide enough for what is typed
-	box := shell.Dialog(p.title, append(p.body(), strings.Repeat(" ", min(64, max(0, width-6)))), width-2)
+	box := shell.Dialog(p.title, append(p.body(textWidth(width)), strings.Repeat(" ", textWidth(width))), width-2)
 	box = append(box[:len(box)-2], box[len(box)-1])
 	return shell.Placed{Lines: box, Top: min(2, max(0, height-len(box))),
 		Left: max(0, (width-ansi.StringWidth(box[0]))/2)}
@@ -127,7 +136,7 @@ func (p prompt) click(c tea.MouseClickMsg, height, width int) (prompt, []string)
 	switch {
 	case !on:
 		p.open = false
-	case k == len(p.body())-1:
+	case k == len(p.body(textWidth(width)))-1:
 		return p.ask()
 	}
 	return p, nil

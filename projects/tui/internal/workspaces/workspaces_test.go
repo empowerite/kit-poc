@@ -212,7 +212,7 @@ func TestRemoveFromACommandFavoriteDeleteAndSwitch(t *testing.T) {
 	m, _ = drive(m, testkit.Press("enter"))
 	m, _ = drive(m, testkit.Press("f"))
 	m, _ = drive(m, testkit.Press("d"))
-	if !strings.Contains(view(m), "its checkouts stay as they are") {
+	if !strings.Contains(view(m), "checkouts stay as they are") {
 		t.Errorf("delete asks first:\n%s", view(m))
 	}
 	m, asked := drive(m, testkit.Press("enter"))
@@ -747,5 +747,32 @@ func TestUnderARefusalNoGroupIsUnderTheCursor(t *testing.T) {
 	}
 	if _, asked := drive(m, testkit.Press("enter")); len(asked) != 1 || asked[0] != (shell.PickMsg{Workspace: "w"}) {
 		t.Errorf("enter once kit lists again: %#v", asked)
+	}
+}
+
+// A dialog at 80 columns draws what is typed with its end in sight, and wraps what to type and kit's refusal, so none
+// is cut at the right edge.
+func TestADialogKeepsTheEndOfWhatIsTypedAndWrapsWhatItSays(t *testing.T) {
+	typed := "tools github.com/empowerite/kit github.com/empowerite/edge github.com/empowerite/jig"
+	p := prompt{open: true, title: "New 📚", typing: true, typed: typed, does: "Create",
+		says:  "a name, then the repositories to put in it, each as host/owner/name, separated by spaces",
+		words: func(string) ([]string, bool) { return []string{"workspaces"}, true }}
+	box := ansi.Strip(strings.Join(p.placed(30, 80).Lines, "\n"))
+	if !strings.Contains(box, "empowerite/jig▏") || !strings.Contains(box, "separated by spaces") || strings.Contains(box, "a…") {
+		t.Errorf("the dialog:\n%s", box)
+	}
+	p.refusal = "kit can find no repository named github.com/empowerite/nowhere, so the group is not made: run kit help workspaces"
+	box = ansi.Strip(strings.Join(p.placed(30, 80).Lines, "\n"))
+	if !strings.Contains(box, "help workspaces") || strings.Contains(box, "…│") {
+		t.Errorf("the refusal:\n%s", box)
+	}
+	for _, l := range strings.Split(box, "\n") {
+		if ansi.StringWidth(l) > 80 {
+			t.Errorf("a line of %d cells: %q", ansi.StringWidth(l), l)
+		}
+	}
+	// a click on the line that does it, under lines that wrapped, asks kit
+	if _, words := p.click(tea.MouseClickMsg{Button: tea.MouseLeft, X: 30, Y: 2 + len(p.body(textWidth(80)))}, 30, 80); words == nil {
+		t.Error("a click on Create did not ask kit")
 	}
 }
