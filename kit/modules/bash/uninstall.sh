@@ -181,7 +181,8 @@ uninstall:declaration() {
   [[ -f "${settings}" ]] || return 0
   # Runs of blank lines where the blocks stood become one, and none opens or closes the file.
   kept=$(settings:declaration-kept "${settings}" '' | awk 'NF { if (held && printed) print ""; held = 0; print; printed = 1; next } { held = 1 }')
-  if ! grep --quiet --invert-match '^# yaml-language-server:' <<<"${kept}"
+  # Nothing kept is nothing else in the file; a here-string of nothing would still hand grep one empty line.
+  if [[ -z "${kept}" ]] || ! grep --quiet --invert-match '^# yaml-language-server:' <<<"${kept}"
   then
     if [[ "${dry}" == true ]]
     then step "${settings}: would be removed, nothing else is in it"

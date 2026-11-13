@@ -147,6 +147,16 @@ tree() {
   run "${kit_checkout}/bin/kit" uninstall
   [ "$status" -eq 1 ]
   [[ "$output" == *"nothing to uninstall"* ]]
+  # the declaration alone, with no modeline above it: nothing is kept, and the file goes, dry run and real
+  "${kit_checkout}/bin/kit" install >/dev/null 2>&1
+  printf 'version: unreleased\npackages:\n  - kit\n' > kit.yml
+  run "${kit_checkout}/bin/kit" uninstall --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"kit.yml: would be removed, nothing else is in it"* ]]
+  run "${kit_checkout}/bin/kit" uninstall
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"kit.yml: removed, nothing else was in it"* ]]
+  [ ! -e kit.yml ]
 }
 
 @test "uninstall keeps the repository's own packages under .kit/packages/" {
