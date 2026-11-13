@@ -36,10 +36,11 @@
 # branch's change, so kit commit then adds a `Closes <reference>` line to the change's body, and assigns the caller to
 # the issue when no one is assigned. The commit exists by then, so a forge that fails only warns.
 #
-# kit submit commits when there is something to commit, then pushes the branch to the branch of its own name on its
-# remote, setting the upstream on the first push. Its remote is the push remote, the push setting in kit.yml, else the
-# primary, unless its upstream is a branch of its own name on another remote. It names the refspec, so push.default
-# and an upstream of another name, such as the origin/main a branch started from, never decide where the branch goes.
+# kit submit pushes the branch to the branch of its own name on its remote, setting the upstream on the first push. It
+# commits nothing and takes no argument: what is staged stays staged, and is said to be no part of the push. Its remote
+# is the push remote, the push setting in kit.yml, else the primary, unless its upstream is a branch of its own name
+# on another remote. It names the refspec, so push.default and an upstream of another name, such as the origin/main a
+# branch started from, never decide where the branch goes.
 # It never rebases: a push the remote refuses as not fast-forward names kit rebase as the remedy, so one verb does
 # one thing and a conflict with the default branch never blocks sharing work.
 #
@@ -47,7 +48,7 @@
 
 use git policy facts tracker context settings materialize leases
 
-# commit:parse <argument>… reads the options both verbs share into commit_all, commit_messages, commit_file, and
+# commit:parse <argument>… reads the options of kit commit into commit_all, commit_messages, commit_file, and
 # commit_paths. guard:arguments has judged the shape of the line already, so this reads what it let through.
 commit:parse() {
   local arg
@@ -882,7 +883,7 @@ commit:push-refused() {
 }
 
 # commit:choices <key> [<answer>…] answers kit syntax --choices for <path>: an open set, every path git status reports,
-# with what became of it as the description, and active for a path that is staged already. kit submit answers the same.
+# with what became of it as the description, and active for a path that is staged already.
 commit:choices() {
   local record xy path skip=false description state
   local -a records
