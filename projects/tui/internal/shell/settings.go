@@ -16,15 +16,16 @@ import (
 // Settings are kittui's own, the same on every screen and every view, which the Settings dialog changes and kittui's
 // file keeps: whether the keys bar shows on the screen's last line; whether a table folds a value every row of a group
 // shares, said once in the group's heading; whether it hides, as a view loads, each column no row holds a value in;
-// and whether it draws an emoji every row shown shares, which it drops
-// otherwise. With no file, or one that does not read, each is as kittui starts: the keys bar shown, shared values
-// folded, empty columns hidden, and shared emoji dropped.
+// whether it draws an emoji every row shown shares, which it drops otherwise; and whether a label ends in half circles,
+// which a Nerd Font draws, or in a cell of its color. With no file, or one that does not read, each is as kittui
+// starts: the keys bar shown, shared values folded, empty columns hidden, shared emoji dropped, and labels plain.
 type Settings struct {
 	Path        string `json:"-"`
 	KeysBar     bool   `json:"keysBar"`
 	FoldShared  bool   `json:"foldShared"`
 	HideBlank   bool   `json:"hideBlank"`
 	SharedEmoji bool   `json:"sharedEmoji"`
+	Rounded     bool   `json:"roundedLabels"`
 }
 
 // SettingsMsg tells a screen the settings, when it is made and whenever the dialog changes one, so a table folds and
@@ -86,6 +87,9 @@ var settings = []setting{
 	{"Repeated emoji", "shows an emoji in a column even where every row has the same one",
 		func(s Settings) bool { return s.SharedEmoji },
 		func(s Settings) Settings { s.SharedEmoji = !s.SharedEmoji; return s }},
+	{"Rounded labels", "ends a label with half circles, which need a Nerd Font; none is a block of its color",
+		func(s Settings) bool { return s.Rounded },
+		func(s Settings) Settings { s.Rounded = !s.Rounded; return s }},
 }
 
 // SettingsDialog is the dialog the app's menu's Settings… opens over the screen shown: whether it is open, which then

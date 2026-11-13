@@ -164,7 +164,8 @@ and the linters), how kit picks which release to run, and how `kit trust` works.
 New to a repository that uses kit? Run `kit trust`, then `kit welcome`. `kit welcome` checks your tools, your code
 forge logins, and the repository, and shows how to fix each problem. Then it explains how work flows, the terms, and
 what a team can change. It also names terminal settings that make kittui slower or worse; see
-[docs/terminals.md](docs/terminals.md). `kit tutorials` lists the tutorials and opens one; see
+[docs/terminals.md](docs/terminals.md), and [docs/kittui-needs.md](docs/kittui-needs.md) says what kittui needs of the
+terminal, the font, and the colors. `kit tutorials` lists the tutorials and opens one; see
 [docs/tutorials.md](docs/tutorials.md).
 
 ## Take the kit

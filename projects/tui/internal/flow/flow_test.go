@@ -116,9 +116,11 @@ func faded(msg tea.Msg) bool {
 
 // TestMain waits no time for a notice to fade, as drive runs the wait's command in place, and gives every test a home
 // of its own, as testkit.Main does, so no preset or tab the person last chose at their desk opens a test's screen on
-// it; a test that writes settings still sets its own.
+// it; a test that writes settings still sets its own. Labels and the preset selector are drawn with their rounded ends,
+// as a Nerd Font draws them; kittui draws them plain until its settings ask for them, which the root's tests hold.
 func TestMain(m *testing.M) {
 	fades = 0
+	style.Rounded(true)
 	os.Exit(testkit.Main(m))
 }
 

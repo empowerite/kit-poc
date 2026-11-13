@@ -166,3 +166,34 @@ func TestWithNoColorTheLineUnderTheKeyboardIsInReverseVideo(t *testing.T) {
 		t.Errorf("the Settings dialog's line under the keyboard, over the selector: %q", got)
 	}
 }
+
+// A label is a block of its color with a cell each side until the Settings dialog's Rounded labels line is on, which
+// draws the half circles a Nerd Font gives, in every screen at once, and is kept; off again, the blocks come back.
+func TestRoundedLabelsAreASettingAndLabelsStartPlain(t *testing.T) {
+	m := issues(t)
+	t.Cleanup(func() { style.Rounded(false) })
+	// the labels of #1 are priority=high, a key and a value, and bug under #46
+	view := func() string { return ansi.Strip(m.View().Content) }
+	if v := view(); strings.Contains(v, style.PillLeft) || strings.Contains(v, style.PillRight) ||
+		!strings.Contains(v, " priority  h") || !strings.Contains(v, " bug ") || !strings.Contains(v, "All Issues ▼ ") {
+		t.Fatalf("labels start plain:\n%s", v)
+	}
+	toggle := []tea.Msg{shell.SwitchMsg{Screen: shell.SettingsScreen}, testkit.Press("down"), testkit.Press("down"),
+		testkit.Press("down"), testkit.Press("down"), testkit.Press("space"), testkit.Press("esc")}
+	m, _ = testkit.Drive(m, nil, toggle...)
+	if v := view(); !strings.Contains(v, style.PillLeft+"bug"+style.PillRight) ||
+		!strings.Contains(v, style.PillLeft+"All Issues ▼"+style.PillRight) {
+		t.Errorf("rounded labels:\n%s", v)
+	}
+	if !m.settings.Rounded {
+		t.Error("the setting is not on")
+	}
+	// kept in the file, so the next kittui starts as this one stands
+	if saved := shell.LoadSettings(m.settings.Path); !saved.Rounded {
+		t.Errorf("the settings file: %+v", saved)
+	}
+	m, _ = testkit.Drive(m, nil, toggle...)
+	if v := view(); strings.Contains(v, style.PillLeft) || !strings.Contains(v, " bug ") {
+		t.Errorf("plain again:\n%s", v)
+	}
+}

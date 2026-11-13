@@ -111,7 +111,7 @@ func TestTheMenusKeysMoveChooseAndClose(t *testing.T) {
 
 func TestTheMenuHangsFromTheTitlesGlyphAndAClickChooses(t *testing.T) {
 	m := Menu{Here: Issues}.Opened()
-	screen := strings.Split(strings.Repeat(strings.Repeat("x", 60)+"\n", 20), "\n")
+	screen := strings.Split(strings.Repeat(strings.Repeat("x", 60)+"\n", 24), "\n")
 	drawn := m.Overlay(screen, 60)
 	if !strings.HasPrefix(ansi.Strip(drawn[Top]), "╭╴"+App+"╶") || !strings.HasPrefix(ansi.Strip(drawn[1]), "│ "+Home+" Welcome") ||
 		ansi.StringWidth(drawn[3]) != 60 {

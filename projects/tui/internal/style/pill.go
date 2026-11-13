@@ -1,8 +1,11 @@
-// A pill: a name drawn as a forge draws a label, its ends rounded by the half circles a Nerd Font gives, as a powerline
-// prompt rounds its segments, the text on its color. A name that is a key and a value, as priority=high, kind:fix, or
-// GitLab's scoped area::tui, split at its last separator, is two segments: the key on a color of its own, the same for
-// every name with that key, then the value on the name's color, the = or : between them dropped for the round edge
-// where the two colors meet.
+// A pill: a name drawn as a forge draws a label, the text on its color, padded a cell each side. A name that is a key
+// and a value, as priority=high, kind:fix, or GitLab's scoped area::tui, split at its last separator, is two
+// segments: the key on a color of its own, the same for every name with that key, then the value on the name's
+// color. Where the terminal draws no color, the two are one block that keeps the separator.
+//
+// With Rounded on, the ends are the half circles a Nerd Font gives, as a powerline prompt rounds its segments, and
+// the = or : between a key and a value is dropped for the round edge where the two colors meet. Rounded is off until
+// the person asks for it, since a font without those glyphs draws boxes in their place.
 package style
 
 import (
@@ -21,6 +24,16 @@ const (
 	PillRight = "\ue0b4"
 )
 
+// rounded is whether a pill's ends are the half circles, as Rounded was told.
+var rounded bool
+
+// Rounded tells the styles whether to end a pill with the half circles a Nerd Font draws, in place of a cell of its
+// color.
+func Rounded(on bool) { rounded = on }
+
+// IsRounded says whether a pill's ends are the half circles.
+func IsRounded() bool { return rounded }
+
 // pastel is the colors a pill is drawn on where it is given none, and a key's segment always: deep enough that white
 // text reads on each. A name picks one by its hash, so a name, and a key, is the same color wherever it is drawn.
 var pastel = []string{
@@ -37,6 +50,12 @@ func Pastel(k int) string { return pastel[k%len(pastel)] }
 func Pill(text, color string) string {
 	key, val, split := splitLabel(text)
 	back := pillColor(text, color)
+	if !rounded {
+		if !split || colorless {
+			return segment(" "+text+" ", back)
+		}
+		return segment(" "+key+" ", keyColor(key, back)) + segment(" "+val+" ", back)
+	}
 	if !split {
 		return PillEnd(PillLeft, back) + segment(text, back) + PillEnd(PillRight, back)
 	}
@@ -45,8 +64,12 @@ func Pill(text, color string) string {
 	return PillEnd(PillLeft, keyed) + segment(key, keyed) + meet + segment(val, back) + PillEnd(PillRight, back)
 }
 
-// PillEnd draws one of a pill's half circles, PillLeft or PillRight, in its color, on whatever the line is drawn on.
+// PillEnd draws one of a pill's half circles, PillLeft or PillRight, in its color, on whatever the line is drawn on;
+// where the ends are not rounded, a cell of the color.
 func PillEnd(glyph, color string) string {
+	if !rounded {
+		return lipgloss.NewStyle().Background(lipgloss.Color(color)).Render(" ")
+	}
 	return lipgloss.NewStyle().Foreground(lipgloss.Color(color)).Render(glyph)
 }
 

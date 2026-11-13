@@ -237,7 +237,7 @@ func PresetLine(h Host, focused bool) string {
 
 // SelectorPill draws the preset line's selector: the preset's name, struck through and italic once the table has
 // changed from it, as a terminal has no bolder strikethrough, and Presets, bold black on back, between half circles
-// in back. On SelectorFocus it is reverse video with the two colors swapped, as the line under the keyboard in a menu
+// in back, or, with the ends not rounded, between a cell of it each side. On SelectorFocus it is reverse video with the two colors swapped, as the line under the keyboard in a menu
 // is, so a terminal of no color still draws the selector that has the keyboard reversed.
 func SelectorPill(name, back string, changed bool) string {
 	text := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("0")).Background(lipgloss.Color(back))
@@ -245,8 +245,12 @@ func SelectorPill(name, back string, changed bool) string {
 		text = lipgloss.NewStyle().Bold(true).Reverse(true).Foreground(lipgloss.Color(back)).
 			Background(lipgloss.Color("0"))
 	}
-	return style.PillEnd(style.PillLeft, back) + text.Strikethrough(changed).Italic(changed).Render(name) +
-		text.Render(" "+Presets) + style.PillEnd(style.PillRight, back)
+	left, right := style.PillEnd(style.PillLeft, back), style.PillEnd(style.PillRight, back)
+	if !style.IsRounded() {
+		// the ends are a cell of the selector's own style, so reverse video under the keyboard covers them
+		left, right = text.Render(" "), text.Render(" ")
+	}
+	return left + text.Strikethrough(changed).Italic(changed).Render(name) + text.Render(" "+Presets) + right
 }
 
 // Chips gives a chip per field the table's panel filters by, in the catalog's order: its label, a colon, and the

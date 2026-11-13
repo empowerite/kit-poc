@@ -14,6 +14,7 @@ This page is for someone who changes the Go code. For what a person sees and doe
   screen. `kit tutorials` opens them.
 - [docs/apps.md](../../docs/apps.md) describes the JSON each app reads, and
   [docs/workspaces.md](../../docs/workspaces.md) describes workspaces and the workspace menu.
+- [docs/kittui-needs.md](../../docs/kittui-needs.md) says what kittui needs of the terminal, the font, and the colors.
 
 ## Screens
 
@@ -239,7 +240,7 @@ stdout, and stderr. Without one it exits 2 and names the command that prints tex
 | `internal/fix/` | the copy and run buttons of a line that names a command |
 | `internal/markdown/` | a markdown page drawn as text |
 | `internal/pane/` | text fitted into a space: clipped, wrapped, padded, or scrolled |
-| `internal/style/` | the look: the colors, the glyphs, reverse video under `NO_COLOR`, and the pill a label is drawn as |
+| `internal/style/` | the look: the colors, the glyphs, reverse video under `NO_COLOR`, and the pill a label is drawn as, plain unless Rounded labels is on |
 | `internal/kit/` | runs the `kit` CLI for every other package |
 | `internal/source/` | a screen's reads of kit: loads, polls, and the clock they wait on |
 | `internal/transcript/` | writes the command line kittui ran into the scrollback |

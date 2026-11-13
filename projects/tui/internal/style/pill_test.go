@@ -3,8 +3,10 @@
 package style
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -116,5 +118,30 @@ func TestAnEmptyColorPicksAPastelByName(t *testing.T) {
 		if Pill(name, "") != Pill(name, got) {
 			t.Errorf("%q without a color is not drawn on its pastel", name)
 		}
+	}
+}
+
+// Until its ends are asked for, a pill is its text on its color with a cell of that color each side, and a key and a
+// value are two blocks side by side, each on its own color; where the terminal draws no color, one block keeps the
+// separator, so the key and the value are not run together.
+func TestAPillIsABlockOfItsColorWhereItsEndsAreNotRounded(t *testing.T) {
+	Rounded(false)
+	t.Cleanup(func() { Rounded(true); Reset() })
+	if got := Pill("bug", "#d73a4a"); got != "\x1b[38;2;255;255;255;48;2;215;58;74m bug \x1b[m" {
+		t.Errorf("bug: %q", got)
+	}
+	if got := Pill("priority=high", ""); ansi.Strip(got) != " priority  high " || strings.Count(got, "\x1b[m") != 2 {
+		t.Errorf("priority=high: %q", got)
+	}
+	if got := PillEnd(PillLeft, "#123456"); got != "\x1b[48;2;18;52;86m \x1b[m" || IsRounded() {
+		t.Errorf("an end: %q", got)
+	}
+	Profile(colorprofile.ASCII)
+	if got := Pill("priority=high", ""); ansi.Strip(got) != " priority=high " {
+		t.Errorf("priority=high with no color: %q", got)
+	}
+	Rounded(true)
+	if !IsRounded() || !strings.Contains(Pill("bug", ""), PillLeft) {
+		t.Error("rounded again does not draw the half circles")
 	}
 }

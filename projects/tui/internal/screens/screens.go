@@ -77,6 +77,7 @@ func New(r kit.Runner, first shell.Screen, m tea.Model) Model {
 	root := Model{runner: r, here: first, made: map[shell.Screen]tea.Model{first: m},
 		settings: shell.LoadSettings(shell.SettingsFile()), home: r.Dir, start: r.Group,
 		epochs: map[shell.Screen]int{}}
+	style.Rounded(root.settings.Rounded)
 	root.made[first], root.first = m.Update(shell.SettingsMsg{Settings: root.settings})
 	return root
 }
@@ -456,6 +457,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // changed follows a setting the dialog changed from was: the keys bar shown or hidden, the screen shown has its line,
 // or gives it back; another, every screen made is told.
 func (m Model) changed(was shell.Settings) (tea.Model, tea.Cmd) {
+	style.Rounded(m.settings.Rounded)
 	switch {
 	case m.settings.KeysBar != was.KeysBar && m.size != nil:
 		return m.deliver(m.here, m.sized())

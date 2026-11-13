@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/empowerite/kit/projects/tui/internal/grid"
+	"github.com/empowerite/kit/projects/tui/internal/style"
 )
 
 // presetting gives a host whose table has the views of views, set as Default.
@@ -228,5 +229,20 @@ func TestAChipSaysWhatAFilterHoldsBack(t *testing.T) {
 	h.tbl.View = h.tbl.View.FilteredBy("state", grid.Filter{Values: []string{"open"}, Exclude: true})
 	if got := Chips(h); ansi.Strip(got[0]) != "state: ¬open" {
 		t.Errorf("exclude: %q", got)
+	}
+}
+
+// Where the ends are not rounded, the selector is its name and Presets on its color, a cell of the color each side, and
+// under the keyboard all of it, the cells too, is reversed, so a terminal of no color shows where the keyboard is.
+func TestThePresetSelectorIsABlockWhereItsEndsAreNotRounded(t *testing.T) {
+	style.Rounded(false)
+	t.Cleanup(func() { style.Rounded(true) })
+	h := presetting()
+	if got := ansi.Strip(PresetLine(h, false)); got != " "+Default+" "+Presets+" " {
+		t.Errorf("plain: %q", got)
+	}
+	got := PresetLine(h, true)
+	if !strings.HasPrefix(got, "\x1b[1;7;") || strings.Count(got, "\x1b[1;7;") != 4 || strings.Contains(got, style.PillLeft) {
+		t.Errorf("with the keyboard: %q", got)
 	}
 }

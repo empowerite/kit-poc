@@ -19,9 +19,11 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/testkit"
 )
 
-// TestMain waits no time for a notice to fade, as drive runs the wait's command in place.
+// TestMain waits no time for a notice to fade, as drive runs the wait's command in place, and draws labels with their
+// rounded ends, as a Nerd Font draws them; kittui draws them plain until its settings ask for them.
 func TestMain(m *testing.M) {
 	fades = 0
+	style.Rounded(true)
 	os.Exit(testkit.Main(m))
 }
 
