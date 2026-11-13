@@ -231,8 +231,8 @@ func drawKeys(b Binding, here bool) string {
 	return strings.Join(keys, style.Off(or))
 }
 
-// Digits are the presses that select a tab by its number: 1 to 9, and 0 for the tenth.
-var Digits = []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"}
+// Digits are the presses that select a tab by its number: 1 to 9.
+var Digits = []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"}
 
 // MenuKeys is the segment of an open menu or dropdown, which takes every press: esc closes it, the arrows move, and
 // enter chooses.

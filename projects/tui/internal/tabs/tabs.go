@@ -14,14 +14,14 @@
 // gutter before the bar for the tabs it hides on the left and ▹ after those on the right, a tab at either edge cut
 // there. The selected tab always shows whole, with its count and its menu's glyph: when it would not, the view centers
 // it, as near as the bar's ends let. A triangle scrolls the view to show whole the nearest tab it hides, never
-// selecting it; one that would cut the selected tab is hidden, its cell left blank, and moves nothing. The first ten tabs are numbered ➀ to ➉, the selected one ➊ to ➓; past the tenth a tab has no number, and its
+// selecting it; one that would cut the selected tab is hidden, its cell left blank, and moves nothing. The first nine tabs are numbered ➀ to ➈, the selected one ➊ to ➒; past the ninth a tab has no number, and its
 // border runs through the number's cell. The selected tab, its lines, and the line under every tab are in the accent,
 // wherever the keyboard is; while the pane under the bar has it, the other tabs are dim, all but a count that wants
 // attention. Widths are terminal cells, so a two-cell glyph never pushes the line past the edge.
 //
 // The bar holds no state of its own: a screen builds it from its own, each time, and reads back what Update chose. Tab
 // and shift-tab move along it while it has the keyboard, as they move between the stops on any line, and stop at its
-// ends; left and right, which fold and unfold, have nothing to fold on it; a number, 1 to 9 or 0 for the tenth, typed,
+// ends; left and right, which fold and unfold, have nothing to fold on it; a number, 1 to 9, typed,
 // on the keypad, with alt, or with super, which a terminal that reports it sends for command, selects that tab from
 // anywhere, as a click on the bar does, and gives the bar the keyboard; a click on a triangle scrolls the view, and
 // leaves the selected tab and the keyboard as they were.
@@ -165,26 +165,23 @@ func (b Bar) Keys(down string) shell.Segment {
 	return s
 }
 
-// number gives the tab a key names, from 0: 1 to 9, and 0 for the tenth, typed or on the keypad, alone or with alt or
-// super.
+// number gives the tab a key names, from 0: 1 to 9, typed or on the keypad, alone or with alt or super.
 func number(k tea.KeyPressMsg) (int, bool) {
 	key := strings.TrimPrefix(strings.TrimPrefix(k.String(), "alt+"), "super+")
 	key = strings.TrimPrefix(key, "kp")
 	switch {
-	case key == "0":
-		return 9, true
 	case len(key) == 1 && key[0] >= '1' && key[0] <= '9':
 		return int(key[0] - '1'), true
 	}
 	return 0, false
 }
 
-// Marker gives a tab's number: ➀ to ➉, ➊ to ➓ when selected, and past the tenth nothing, its cell then the tab's
+// Marker gives a tab's number: ➀ to ➈, ➊ to ➒ when selected, and past the ninth nothing, its cell then the tab's
 // border. The dingbats' sans-serif digits are one cell in every terminal, as Unicode fixes their width, and the two
 // sets come from one font; ① and ❶ are of ambiguous width, and terminals draw them from fonts of different sizes.
 func Marker(i int, selected bool) string {
 	switch {
-	case i >= 10:
+	case i >= 9:
 		return ""
 	case selected:
 		return string(rune('➊' + i))

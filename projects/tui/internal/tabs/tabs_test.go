@@ -60,36 +60,36 @@ func TestLabelIsTheSelectedTabAsTheBarDrawsIt(t *testing.T) {
 	}
 }
 
-func TestTheMarkersAreNumberedToTenThenNone(t *testing.T) {
+func TestTheMarkersAreNumberedToNineThenNone(t *testing.T) {
 	cases := []struct {
 		i        int
 		selected bool
 		want     string
-	}{{0, false, "➀"}, {0, true, "➊"}, {8, false, "➈"}, {8, true, "➒"}, {9, false, "➉"}, {9, true, "➓"}}
+	}{{0, false, "➀"}, {0, true, "➊"}, {8, false, "➈"}, {8, true, "➒"}}
 	for _, c := range cases {
 		if got := Marker(c.i, c.selected); got != c.want || ansi.StringWidth(got) != 1 {
 			t.Errorf("Marker(%d, %v) = %q, %d cells; want %q, one cell", c.i, c.selected, got, ansi.StringWidth(got),
 				c.want)
 		}
 	}
-	if Marker(10, false) != "" || Marker(12, true) != "" {
-		t.Errorf("a tab past the tenth has a number: %q %q", Marker(10, false), Marker(12, true))
+	if Marker(9, false) != "" || Marker(12, true) != "" {
+		t.Errorf("a tab past the ninth has a number: %q %q", Marker(9, false), Marker(12, true))
 	}
 }
 
-// Past the tenth, a tab's number cell is its border: ─ over it, or ╭ when selected; 0 selects the tenth.
-func TestPastTheTenthATabsBorderRunsThroughItsNumbersCell(t *testing.T) {
+// Past the ninth, a tab's number cell is its border: ─ over it, or ╭ when selected; 0 selects nothing.
+func TestPastTheNinthATabsBorderRunsThroughItsNumbersCell(t *testing.T) {
 	var many []Tab
 	for range 12 {
 		many = append(many, Tab{"🎫", "t", ""})
 	}
-	b := Bar{Tabs: many, Selected: 10, Focused: true, Width: 200}
+	b := Bar{Tabs: many, Selected: 9, Focused: true, Width: 200}
 	over := row(b, 0)
-	if !strings.Contains(over, "➉") || !strings.Contains(over, "─╴╭") ||
+	if !strings.Contains(over, "➈") || !strings.Contains(over, "─╴╭") ||
 		strings.Count(over, "╮") != 11 || !strings.HasSuffix(over, "╮") {
 		t.Errorf("the line over twelve tabs: %q", over)
 	}
-	if got, ok := b.Update(tea.KeyPressMsg{Code: '0', Text: "0"}); !ok || got.Selected != 9 || !strings.Contains(row(got, 0), "➓") {
+	if got, ok := b.Update(tea.KeyPressMsg{Code: '0', Text: "0"}); ok || got.Selected != 9 {
 		t.Errorf("0 with twelve tabs: tab %d, taken %v", got.Selected, ok)
 	}
 }

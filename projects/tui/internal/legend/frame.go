@@ -35,7 +35,7 @@ type Bar struct {
 // menu bar.
 func Tabs(b Bar) []Part {
 	var numbers, selected []string
-	for i := range 10 {
+	for i := range 9 {
 		numbers, selected = append(numbers, tabs.Marker(i, false)), append(selected, tabs.Marker(i, true))
 	}
 	return []Part{
