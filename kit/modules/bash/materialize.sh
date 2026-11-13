@@ -6,8 +6,8 @@
 # Every path the kit places under .kit/, other than the repository's own packages, is a link to its source when the
 # source is inside the worktree, and otherwise a copy without the write bit. .kit/.gitignore names every one, so
 # git never sees them: the repository commits the declaration in kit.yml and its own packages, and nothing kit
-# places. materialize:hydrate brings it all to that state from the declaration alone, and every verb that reads a
-# delivered file calls it first.
+# places. A delivered path that holds the repository's own file is not kit's, and git sees it. materialize:hydrate
+# brings it all to that state from the declaration alone, and every verb that reads a delivered file calls it first.
 #
 # see: docs/packages.md
 
@@ -293,7 +293,9 @@ materialize:list() {
 
 # materialize:ignore-text <path>… prints .kit/.gitignore: each path kit placed under .kit/, the manifest, the file
 # itself, cache/, where kit keeps what it found in this checkout, and logs/, where it logs its calls. git never sees
-# any of them.
+# any of them. A path given with ! in front is a delivered path that holds the repository's own file, which kit did
+# not place: it is written as git writes an exception, !/<path>, so git sees the file, and materialize:hydrated
+# reads from the line that the full run still has a file to name.
 materialize:ignore-text() {
   local path
   printf '# .kit/.gitignore - what kit placed here, which git never sees (written by kit, not by hand)\n'
@@ -301,24 +303,27 @@ materialize:ignore-text() {
     printf '/.gitignore\n/manifest\n/cache/\n/logs/\n'
     for path in "$@"
     do
-      printf '/%s\n' "${path#.kit/}"
+      if [[ "${path}" == '!'* ]]
+      then printf '!/%s\n' "${path#'!.kit/'}"
+      else printf '/%s\n' "${path#.kit/}"
+      fi
     done
   } | LC_ALL=C sort
 }
 
 # materialize:all [--check] <package>… brings every path the packages deliver under .kit/ to its state and writes
 # .kit/.gitignore, keeping the clone's trust across it, as trust:keeping does. It says what it changed, one line per
-# path. A path the manifest never recorded that holds a
-# different file is the repository's: it is left alone and named, as kit install names it, and kept in
-# materialize_left; manifest:text writes no record for it, so it stays the repository's. It warns about a file
-# under a delivered directory that no active package delivers, and about a delivered path git still tracks, both of
+# path. A path the manifest never recorded that holds a different file is the repository's: it is left alone and
+# named, as kit install names it, and kept in materialize_left; manifest:text writes no record for it, so it stays
+# the repository's, and .kit/.gitignore lists it as an exception, so git sees it. It warns about a file under a
+# delivered directory that no active package delivers, and about a path kit placed that git still tracks, both of
 # which a person settles; an empty directory left behind by a removed package is removed without a word. A path under
 # a link in .kit/, or a .kit that is a link, it neither writes nor removes, and names, and then it fails. With
 # --check it changes nothing: each of those is an error, and it prints how many on stdout.
 materialize:all() {
   local check=false path src dir entry state did ignore findings=0 refused=0 row kind
-  local -a owned=() tracked=() rows dirs=()
-  local -A source=() within=() recorded=() states=() ok=() listing=()
+  local -a owned=() tracked=() rows dirs=() named=()
+  local -A source=() within=() recorded=() states=() ok=() listing=() theirs=()
   if [[ "${1:-}" == --check ]]
   then
     check=true
@@ -399,14 +404,22 @@ materialize:all() {
       ok[${path}]=false
       ! materialize:ok "${src}" "${path}" "${state}" || ok[${path}]=true
     fi
-    if [[ "${check}" == false ]]
+    if [[ ( -e "${path}" || -L "${path}" ) && -z "${recorded[${path}]:-}" && "${ok[${path}]}" == false ]]
     then
-      if [[ ( -e "${path}" || -L "${path}" ) && -z "${recorded[${path}]:-}" && "${ok[${path}]}" == false ]]
+      # The repository's own file: kit never recorded the path, and what is there is not what it places.
+      theirs[${path}]=1
+      if [[ "${check}" == false ]]
       then
         warn "${path}: a different file is there already; move it aside, or remove it if it is not yours"
         materialize_left+=("${path}")
-        continue
+      else
+        error "${path} holds a different file; move it aside, or remove it if it is not yours, then run: kit hydrate"
+        findings=$(( findings + 1 ))
       fi
+      continue
+    fi
+    if [[ "${check}" == false ]]
+    then
       materialize:bring did "${src}" "${path}" "${state}" "${ok[${path}]}"
       case "${did}" in
         (placed) step "${path}: placed" ;;
@@ -420,8 +433,6 @@ materialize:all() {
     then
       if [[ "${state}" == link* ]]
       then error "${path} is not a link to ${state#link }; run: kit hydrate"
-      elif [[ -z "${recorded[${path}]:-}" ]]
-      then error "${path} holds a different file; move it aside, or remove it if it is not yours, then run: kit hydrate"
       else error "${path} was changed in place; run: kit hydrate (a delivered file changes by a new release, never in place)"
       fi
       findings=$(( findings + 1 ))
@@ -467,7 +478,8 @@ materialize:all() {
     list:read tracked git ls-files -- "${owned[@]}" .kit/manifest .kit/.gitignore || return 1
     for path in "${tracked[@]}"
     do
-      [[ -n "${path}" ]] || continue
+      # The repository's own file is the repository's to track.
+      [[ -n "${path}" && -z "${theirs[${path}]+x}" ]] || continue
       if [[ "${check}" == true ]]
       then
         error "${path} is tracked by git; run: git rm --cached '${path}', and commit, so the kit's file never reaches a commit"
@@ -477,7 +489,11 @@ materialize:all() {
       fi
     done
   fi
-  ignore=$(materialize:ignore-text "${owned[@]}")
+  for path in "${owned[@]}"
+  do
+    named+=("${theirs[${path}]+!}${path}")
+  done
+  ignore=$(materialize:ignore-text "${named[@]}")
   if [[ "${check}" == true ]]
   then
     if [[ ! -f .kit/.gitignore || "$(<.kit/.gitignore)" != "${ignore}" ]]
@@ -507,8 +523,9 @@ materialize:all() {
 # fail it, and the full materialize:all follows, as it does when kit.yml is newer than .kit/.gitignore: a declaration
 # edited by hand or pulled since the last full run, whose packages may have come or gone. So does a file or directory
 # under .kit/packages/ newer than .kit/.gitignore, or a look there that fails: a repository package's file added,
-# changed, or removed since, by hand or by a pull, which .kit/.gitignore cannot name yet. A caller takes a failure for
-# work to do, never for an error. A copy changed and put back without the write bit passes it: kit check judges that. A
+# changed, or removed since, by hand or by a pull, which .kit/.gitignore cannot name yet. So does a line that starts
+# with !, a delivered path that held the repository's own file at the last full run, which the full run names again
+# until the file is moved aside. A caller takes a failure for work to do, never for an error. A copy changed and put back without the write bit passes it: kit check judges that. A
 # template rendered under .kit/ is a copy even inside, so a release that delivers one there takes the full run every
 # time; none does.
 materialize:hydrated() {
@@ -526,6 +543,7 @@ materialize:hydrated() {
   ! materialize:within "${real}" || inside=true
   while IFS= read -r line
   do
+    [[ "${line}" != '!'* ]] || return 1
     [[ "${line}" == /* ]] || continue
     case "${line}" in
       (/.gitignore | /manifest | /cache/ | /logs/) continue

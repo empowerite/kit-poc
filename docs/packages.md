@@ -132,7 +132,8 @@ Each kind of source file is placed differently:
   to that state from the declaration, and every verb that reads a delivered file does the same first.
 - A path under `.kit/` that already holds a different file, which `.kit/manifest` never recorded, is the repository's
   own. Every verb names it and leaves it as it is, no verb records it, and `kit hydrate` and `kit check` fail until
-  it is moved aside or removed.
+  it is moved aside or removed. `.kit/.gitignore` lists it as an exception, `!/<path>`, so git sees the file, and
+  kit says nothing of git tracking it.
 - Every other destination outside `.kit/` is a copy.
 - Where two active packages deliver the same path, the later package in dependency order wins.
 

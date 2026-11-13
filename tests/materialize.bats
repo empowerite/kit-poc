@@ -135,7 +135,7 @@ setup() {
   [[ "$output" == *"1 file(s) need a hand"* ]]
   [ "$(cat .kit/rules/bash.md)" = "MY OWN RULE" ]
   run ! grep --quiet 'rules/bash.md' .kit/manifest
-  # without its write bit the file passes the quick look, and a verb that rewrites the manifest still records nothing
+  # without its write bit too, a verb that rewrites the manifest records nothing
   chmod a-w .kit/rules/bash.md
   run "${kit_checkout}/bin/kit" packages add style/json
   [ "$status" -eq 0 ]
@@ -154,6 +154,51 @@ setup() {
   grep --quiet '  .kit/rules/bash.md$' .kit/manifest
   run "${kit_checkout}/bin/kit" check
   [ "$status" -eq 0 ]
+}
+
+@test "a repository's own file at a delivered path under .kit/ is not named in .kit/.gitignore: git sees it, and kit calls it neither ignored nor tracked" {
+  "${kit_checkout}/bin/kit" install
+  chmod -R u+w .kit && rm .kit/manifest .kit/.gitignore
+  printf 'MY OWN RULE\n' > .kit/rules/bash.md
+  run "${kit_checkout}/bin/kit" hydrate
+  [ "$status" -eq 1 ]
+  # the path is written as an exception, and every path kit placed as before
+  run ! grep --quiet --line-regexp '/rules/bash.md' .kit/.gitignore
+  grep --quiet --line-regexp '!/rules/bash.md' .kit/.gitignore
+  grep --quiet --line-regexp '/rules/json.md' .kit/.gitignore
+  run git check-ignore --quiet .kit/rules/bash.md
+  [ "$status" -eq 1 ]
+  git check-ignore --quiet .kit/rules/json.md
+  [[ "$(git status --short --untracked-files=all)" == *".kit/rules/bash.md"* ]]
+  # without its write bit the file would pass the quick look as a copy kit placed; the exception sends the next verb
+  # to the full run, which names it again
+  chmod a-w .kit/rules/bash.md
+  printf 'x\n' > x.md
+  run "${kit_checkout}/bin/kit" context x.md
+  [ "$status" -eq 0 ]
+  [[ "$output" == *".kit/rules/bash.md: a different file is there already"* ]]
+  # kit check names the file, once, and finds .kit/.gitignore as kit writes it
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 1 ]
+  [[ "$output" == *".kit/rules/bash.md holds a different file"* ]]
+  [[ "$output" != *".kit/.gitignore is not what kit writes"* ]]
+  [[ "$output" == *"1 finding(s)"* ]]
+  # committed, it is the repository's to track: kit does not say to take it out of the index
+  git add .kit/rules/bash.md && git commit --quiet --message own
+  run "${kit_checkout}/bin/kit" hydrate
+  [ "$status" -eq 1 ]
+  [[ "$output" != *"is tracked by git"* ]]
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 1 ]
+  [[ "$output" != *"is tracked by git"* ]]
+  [[ "$output" == *"1 finding(s)"* ]]
+  # moved aside, the kit's file takes the path, and .kit/.gitignore names it again
+  git rm --quiet --cached .kit/rules/bash.md && rm -f .kit/rules/bash.md
+  run "${kit_checkout}/bin/kit" hydrate
+  [ "$status" -eq 0 ]
+  grep --quiet --line-regexp '/rules/bash.md' .kit/.gitignore
+  run ! grep --quiet '^!' .kit/.gitignore
+  git check-ignore --quiet .kit/rules/bash.md
 }
 
 @test "kit hydrate refuses a repository that declares no kit version, and a reading verb does nothing there" {

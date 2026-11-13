@@ -16,7 +16,8 @@
 # directory that no active package delivers.
 #
 # A delivered path that holds a different file, which kit never recorded, is the repository's own. It is named, left
-# as it is, and gets no record, so no later command replaces it. kit hydrate fails until it is moved aside or removed.
+# as it is, and gets no record, so no later command replaces it. .kit/.gitignore lists it as an exception, so git
+# sees it. kit hydrate fails until it is moved aside or removed.
 #
 # Every verb that reads a delivered file hydrates first. This verb is for a fresh clone or worktree, before any other
 # command.
