@@ -12,6 +12,9 @@ import (
 // Find is the search's glyph, before what is typed.
 const Find = "🔎"
 
+// caret is what ends a search that has the keyboard, where the next character goes.
+const caret = "▏"
+
 // Idle is what an idle, empty search reads, dim: /search, its key before its name.
 const Idle = "/search"
 
@@ -84,7 +87,7 @@ func Type(query string, k tea.KeyPressMsg) (string, bool) {
 func SearchLine(query string, focused bool) string {
 	switch {
 	case focused:
-		return Find + " " + query + "▏"
+		return Find + " " + query + caret
 	case query == "":
 		return Find + " " + style.Off(Idle)
 	}

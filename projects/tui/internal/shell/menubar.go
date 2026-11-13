@@ -103,11 +103,17 @@ func RuleLine(width int, color string) string {
 }
 
 // Line draws the menu bar on a screen so wide: the left part, clipped two cells short of the search field, and the
-// search field from SearchAt, clipped a cell short of the edge.
+// search field from SearchAt, clipped a cell short of the edge, at its start; a search that has the keyboard, which
+// ends in its caret, is cut at its start instead, so what was typed last stays in sight. A search wider than the
+// screen has no left part, and only the cells before it, if any, as its gap.
 func (b MenuBar) Line(width int) string {
 	title := pane.Clip(b.title(), b.TitleWidth(width))
 	if b.Search == "" {
 		return title
 	}
-	return pane.Pad(title, b.TitleWidth(width), false) + "  " + pane.Clip(b.Search, width-1-b.SearchAt(width))
+	at, search := b.SearchAt(width), pane.Clip(b.Search, width-1-b.SearchAt(width))
+	if strings.HasSuffix(ansi.Strip(b.Search), caret) {
+		search = pane.Tail(b.Search, width-1-at)
+	}
+	return pane.Pad(title, b.TitleWidth(width), false) + strings.Repeat(" ", min(2, at)) + search
 }

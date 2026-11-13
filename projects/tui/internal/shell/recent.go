@@ -138,7 +138,7 @@ func (r Recent) Click(x, y, glyph, room int) (Recent, string) {
 // Recall against its 🔎, so the glyph that recalls a search stands with the glyph that says it is one.
 func RecallLine(query string, focused, recall bool) string {
 	if focused && recall {
-		return Find + Recall + " " + query + "▏"
+		return Find + Recall + " " + query + caret
 	}
 	return SearchLine(query, focused)
 }
