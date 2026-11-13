@@ -153,11 +153,11 @@ a list. `az devops invoke` calls any REST route with the extension's sign-in.
 
 | Capability | Command |
 | --- | --- |
-| Recent runs | `az pipelines runs list --branch "${branch}" --top 20 --query-order QueueTimeDesc --reason individualCI`; `--reason` takes one value per call, `schedule` or `manual` the others; kit reads `--top 50 --reason "${reason}"` for `individualCI`, `batchedCI`, `schedule`, and `manual`, a call each, so a pull request's runs take no room |
+| Recent runs | `az pipelines runs list --branch "${branch}" --top 20 --query-order QueueTimeDesc --reason individualCI`; `--reason` takes one value per call, `schedule` or `manual` the others; kit reads `--top 50 --reason "${reason}"` for `individualCI`, `batchedCI`, `schedule`, and `manual`, a call each, so a pull request's runs take no room; `az` has no filter by repository, so kit keeps the runs whose `repository.name` is the repository's, and a project with busy neighbours shows fewer than 20 |
 | A run's jobs and failed step | REST `GET https://dev.azure.com/${organization}/${project}/_apis/build/builds/${build_id}/timeline?api-version=7.1`: records of type `Stage`, `Job`, and `Task`, each with `result` |
 | A change's checks | `az pipelines runs list --reason pullRequest --branch "refs/pull/${n}/merge"` on GitHub; an Azure Repos pull request's policies belong to the code forge |
 | A run's log | REST `GET https://dev.azure.com/${organization}/${project}/_apis/build/builds/${build_id}/logs/${log_id}?api-version=7.1`; the timeline names each record's `log.id` |
-| Artifacts | `az pipelines runs artifact list --run-id "${run_id}"`, which kit reads for each of the 20 newest runs, until 100 artifacts, `az pipelines runs list --top 21` saying whether there are more; an artifact's `id` is its run's own, so kit keys it `<run>/<id>`; a pipeline artifact's size is its `resource.properties.artifactsize`, and none has a digest or an expiry; `kit delivery artifacts` draws them; `az pipelines runs artifact download --run-id "${run_id}" --artifact-name "${name}" --path "${dir}"` |
+| Artifacts | `az pipelines runs artifact list --run-id "${run_id}"`, which kit reads for each of the 20 newest runs, until 100 artifacts, `az pipelines runs list --top 21` saying whether there are more, those of the project's other repositories, by `repository.name`, left out; an artifact's `id` is its run's own, so kit keys it `<run>/<id>`; a pipeline artifact's size is its `resource.properties.artifactsize`, and none has a digest or an expiry; `kit delivery artifacts` draws them; `az pipelines runs artifact download --run-id "${run_id}" --artifact-name "${name}" --path "${dir}"` |
 
 ### Write to Azure Pipelines runs
 

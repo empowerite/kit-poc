@@ -44,16 +44,19 @@
 #
 # see: modules/bash/forge.sh, modules/bash/tracker/ado.sh
 
-# forge/ado:artifacts prints one document per artifact of the project's 20 newest pipeline runs, newest first, as the
-# seam's header says: a read of 21 runs, then a read of each of the 20 newest's artifacts, until 100 are drawn. It
-# prints {"limited": N} after the N drawn when it stopped at 100, or when a 21st run says there are more.
+# forge/ado:artifacts prints one document per artifact of the repository's 20 newest pipeline runs, newest first, as the
+# seam's header says: a read of the project's 21 newest runs, those of its other repositories left out, then a read of
+# each of the 20 newest's artifacts, until 100 are drawn. It prints {"limited": N} after the N drawn when it stopped at
+# 100, or when a 21st run says there are more.
 forge/ado:artifacts() {
-  local org project runs id run artifacts results docs='' doc drawn=0
+  local org project repo runs id run artifacts results docs='' doc drawn=0
   local -a ids
-  IFS=$'\t' read -r org project _ < <(forge/ado:place) || return 1
+  IFS=$'\t' read -r org project repo < <(forge/ado:place) || return 1
   results="${org}/$(forge/ado:encode "${project}")/_build/results"
   forge/ado:ask runs 'the artifacts' pipelines runs list --project "${project}" --top 21 --query-order QueueTimeDesc \
     || return 1
+  runs=$(forge/ado:fold 'the artifacts' "${runs}" --compact-output --arg repo "${repo}" \
+    'if type == "array" then map(select((.repository.name // $repo) == $repo)) else error end') || return 1
   list:read ids forge/ado:fold 'the artifacts' "${runs}" --raw-output '.[:20][].id' || return 1
   for id in "${ids[@]}"
   do
@@ -592,12 +595,13 @@ forge/ado:rulesets() {
 # forge/ado:runs prints the builds stage's runs as one JSON array, as the seam's header says. It asks Azure Pipelines
 # for the runs of the project's pipelines by their reason, as az filters them, a reason a call, so a pull request's
 # runs take no room in what it reads: the 50 newest of individualCI and of batchedCI, the pushes; of schedule; and of
-# manual. The four lists are joined, each run once, and forge.jq's builds keeps the 20 newest. A push to a branch
+# manual. The four lists are joined, each run once, those of the project's other repositories left out, and forge.jq's
+# builds keeps the 20 newest. A push to a branch
 # that is not the default one is among the pushes, so a push to the default branch or a tag older than the 50 newest
 # pushes of its reason is not listed. A run's jobs would cost a call each, so every run carries none.
 forge/ado:runs() {
-  local list lists='' default tags org project reason
-  IFS=$'\t' read -r org project _ < <(forge/ado:place) || return 1
+  local list lists='' default tags org project repo reason
+  IFS=$'\t' read -r org project repo < <(forge/ado:place) || return 1
   default=$(git:default-branch) || return 1
   tags=$(forge:tags) || return 1
   for reason in individualCI batchedCI schedule manual
@@ -606,11 +610,12 @@ forge/ado:runs() {
       --query-order QueueTimeDesc --reason "${reason}" || return 1
     lists+=${list}$'\n'
   done
-  forge/ado:fold 'the pipeline runs' "${lists}" --slurp --compact-output --argjson now "$(date +%s)" \
+  forge/ado:fold 'the pipeline runs' "${lists}" --slurp --compact-output --argjson now "$(date +%s)" --arg repo "${repo}" \
     --arg default "${default}" --argjson tags "${tags}" \
     --arg results "${org}/$(forge/ado:encode "${project}")/_build/results" \
     'import "forge" as forge;
-     if all(.[]; type == "array") then add | unique_by(.id) else error end
+     if all(.[]; type == "array")
+     then add | map(select((.repository.name // $repo) == $repo)) | unique_by(.id) else error end
      | forge::ado_builds($now; $default; $tags; $results)'
 }
 
@@ -673,9 +678,22 @@ forge/ado:place() {
   printf '%s\t%s\t%s\n' "${org}" "$(forge/ado:decode "${project}")" "$(forge/ado:decode "${repo}")"
 }
 
-# forge/ado:decode <text> prints a URL's path segment decoded: %20 as a space.
-forge/ado:decode() { jq --null-input --raw-output --arg s "$1" '$s | gsub("%(?<h>[0-9A-Fa-f]{2})"; .h | ascii_downcase
-  | explode | map(if . >= 97 then . - 87 else . - 48 end) | .[0] * 16 + .[1] | [.] | implode)'; }
+# forge/ado:decode <text> prints a URL's path segment decoded: %20 as a space, %C3%A9 as the one character é, the bytes
+# of a UTF-8 character together.
+forge/ado:decode() {
+  local rest=$1 out='' hex
+  while [[ "${rest}" =~ ^([^%]*)%([0-9A-Fa-f]{2})(.*)$ ]]
+  do
+    out+=${BASH_REMATCH[1]}
+    hex=${BASH_REMATCH[2]}
+    rest=${BASH_REMATCH[3]}
+    printf -v hex '\\x%s' "${hex}"
+    # shellcheck disable=SC2059  # the format is the byte's escape
+    printf -v hex "${hex}"
+    out+=${hex}
+  done
+  printf '%s\n' "${out}${rest}"
+}
 
 # forge/ado:encode <text> prints the text encoded for a URL's path segment.
 forge/ado:encode() { jq --null-input --raw-output --arg s "$1" '$s | @uri'; }

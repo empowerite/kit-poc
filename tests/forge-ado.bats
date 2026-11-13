@@ -142,6 +142,12 @@ added+='"bot-accounts","merge-closing"'
   [ "$output" = 'Claims Team/example' ]
   run call repo-url
   [ "$output" = https://acme.visualstudio.com/Claims%20Team/_git/example ]
+  # a name that is not ASCII is decoded to its characters, not to the bytes of them
+  git remote set-url origin https://dev.azure.com/acme/Caf%C3%A9/_git/example
+  run call repo
+  [ "$output" = 'Café/example' ]
+  run call repo-url
+  [ "$output" = https://dev.azure.com/acme/Caf%C3%A9/_git/example ]
   # An Azure DevOps Server is the setting; its collection is part of the organization's URL.
   git remote set-url origin https://tfs.example.com/tfs/Main/empowerite/_git/example
   printf 'forge: ado\n' > kit.yml
@@ -583,6 +589,16 @@ JSON
   # a reason a call, and never the runs of any reason, among which a pull request's take the room
   [ "$(grep -c '^pipelines runs list .* --reason ' "${FAKE_DIR}/az.calls")" -eq 4 ]
   ! grep --quiet '^pipelines runs list .* QueueTimeDesc --output json' "${FAKE_DIR}/az.calls"
+  # the runs of another repository of the project are not this repository's
+  for reason in individualCI batchedCI schedule manual
+  do
+    jq 'map(.repository = {name: (if .id == 103 then "billing" else "example" end)})' \
+      "${FAKE_DIR}/runs-${reason}.json" > "${FAKE_DIR}/runs-${reason}-mixed.json"
+    ado-first "${list} --reason ${reason} --output json --org *" "runs-${reason}-mixed.json"
+  done
+  run call runs
+  [ "$status" -eq 0 ]
+  [ "$(jq --compact-output 'map(.id)' <<<"$output")" = '[102,101,99]' ]
 }
 
 @test "Azure DevOps lacks rate limits, marks, releases, and linked branches, and says so in its declaration" {
@@ -700,6 +716,14 @@ ado-first() {
   [ "$(jq --slurp --compact-output '[length, .[0].id, .[99].id, .[100]]' <<<"$output")" \
     = '[101,"200/0","184/3",{"limited":100}]' ]
   [ "$(grep -c 'runs artifact list' "${FAKE_DIR}/az.calls")" -eq 17 ]
+  # the runs of the project's other repositories are not this repository's, and their artifacts are not read
+  jq 'map(.repository = {name: "billing"})' "${FAKE_DIR}/delivery-runs.json" | fixture runs-other.json
+  ado-first 'pipelines runs list --project empowerite --top 21 *' runs-other.json
+  : > "${FAKE_DIR}/az.calls"
+  run --separate-stderr call artifacts
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  ! grep --quiet 'runs artifact list' "${FAKE_DIR}/az.calls"
 }
 
 @test "the provider lists its environments, their approvals and branch controls read in one request for them all" {
