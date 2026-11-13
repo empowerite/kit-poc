@@ -670,10 +670,10 @@ forge/gitlab:teams() {
     --arg host "https://${host}" 'import "forge" as forge; forge::gitlab_teams($members; $host; 20)'
 }
 
-# The provider implements contract 7. Its forge keeps no attestations kit can read, and no waivers: a dismissed
+# The provider implements contract 8. Its forge keeps no attestations kit can read, and no waivers: a dismissed
 # vulnerability is among the alerts; no swimlanes, which no forge kit reaches has; and no bot account, as kit makes one
 # of a GitHub App alone.
-forge/gitlab:contract() { printf '7\n'; }
+forge/gitlab:contract() { printf '8\n'; }
 
 forge/gitlab:lacks() {
   printf '%s\n' attestations bypasses swimlanes bot-accounts

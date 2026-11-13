@@ -60,7 +60,7 @@ and GraphQL fields exist, and features of the paid tiers are absent from Communi
 | Capability | Command |
 | --- | --- |
 | Branch linked to an issue | `glab api -X POST 'projects/:id/repository/branches' -f branch="${n}-${slug}" -f ref="${default}"` (raw API); GitLab links a branch named `${n}-…` to issue `${n}`. `glab mr create --related-issue "${n}"` makes the branch and a merge request at once |
-| Open a draft | `glab mr create --draft --source-branch "${branch}" --target-branch "${default}" --title "${title}" --description "" --yes` |
+| Open a draft | `glab mr create --draft --source-branch "${branch}" --target-branch "${default}" --title "${title}" --description "" --yes`; a merge request opened so takes no closing line from its branch's name, as GitLab's own page for a new one does, so `kit work` then writes `Closes #${n}` in the description for every issue |
 | Mark ready | `glab mr update "${n}" --ready`; `--draft` makes it a draft again |
 | Set the title | `glab mr update "${n}" --title "${title}"` |
 | Set the body | `glab mr update "${n}" --description "${body}"`, or `--description-file -` from standard input |

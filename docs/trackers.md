@@ -47,14 +47,19 @@ that matches no declared tracker is refused, and the error lists the known prefi
   - Each issue is assigned to the caller as its tracker knows the caller. For Azure DevOps, that is the
     identity `az` is signed in as.
   - The branch name starts with the reference's key: `7-<slug>` or `ab4521-<slug>`.
-  - The code forge links a branch to one of its own issues and closes the issue on merge. For any other issue, and
-    for every secondary issue, `kit work` adds a `Closes <reference>` line to the body of the change (the
-    pull request or merge request). GitHub's Azure Boards integration reads that line as a link.
+  - `kit work` adds a `Closes <reference>` line to the body of the change (the pull request or merge request) for
+    every issue, the primary included. GitHub and GitLab read the line for one of their own issues and close the
+    issue on merge. Azure DevOps reads no such line and closes a work item only when whoever completes the pull
+    request says so, so `kit settle` closes the work items the pull request links or its body closes. `kit settle`
+    also closes each issue of another tracker. GitHub's Azure Boards integration reads the line as a link.
+  - The code forge links a branch to one of its own issues where it links branches. The link alone closes nothing
+    on GitLab, nor on a branch `kit work` pushes itself, as to a fork.
 - `kit linked` passes when the code forge reports that the change closes an open issue of the repository. It also
   passes when the change's body names an open issue of a declared tracker with a closing keyword:
-  `Closes AB#4521`, `Fixes AB#4521`, or `Resolves AB#4521`. An issue of a `web` tracker never counts, since kit
-  cannot read its state. A change by a login under `linked_exempt` in `kit.yml` passes without an issue, and the
-  output says so.
+  `Closes AB#4521`, `Fixes AB#4521`, or `Resolves AB#4521`. On Azure DevOps, which reads no closing keyword, a
+  line that names a work item of the forge's own counts the same way, `Closes #8`, and a work item the pull request
+  also links counts once. An issue of a `web` tracker never counts, since kit cannot read its state. A change by a
+  login under `linked_exempt` in `kit.yml` passes without an issue, and the output says so.
 - `kit work --title=<text> 7 AB#4521` gathers the issues under a new parent issue and starts the parent, as
   `kit gather` does without starting it: a forge issue is a sub-issue on GitHub, a linked item on GitLab; a work
   item is a task line in the parent's body.

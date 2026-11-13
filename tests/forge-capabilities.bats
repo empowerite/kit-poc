@@ -39,24 +39,24 @@ provider() {
   } > "bash/forge/${name}.sh"
 }
 
-# added is what contracts 4, 5, and 6 add, as JSON strings: a provider that has written none of it lacks all of it.
+# added is what contracts 4, 5, 6, and 8 add, as JSON strings: a provider that has written none of it lacks all of it.
 added='"milestones","iterations","reviewers","merged","artifacts","environments","deployments","collaborators",'
 added+='"teams","bots","attestations","code-scanning","dependabot","secret-scanning","rulesets","bypasses",'
-added+='"check-runs","swimlanes","bot-accounts"'
+added+='"check-runs","swimlanes","bot-accounts","merge-closing"'
 
-@test "GitHub and GitLab implement contract 7, and each lacks the features no call of its own answers, swimlanes among them" {
+@test "GitHub and GitLab implement contract 8, and each lacks the features no call of its own answers, swimlanes among them" {
   git remote set-url origin https://github.com/empowerite/example.git
   run "${kit_root}/bin/kit" flow --capabilities
   [ "$status" -eq 0 ]
-  [ "$(jq -c '{contract, forge, provider}' <<<"$output")" = '{"contract":7,"forge":"github","provider":7}' ]
-  [ "$(jq -c '[.features | to_entries[] | select(.value == "native") | .key] | length' <<<"$output")" = 30 ]
+  [ "$(jq -c '{contract, forge, provider}' <<<"$output")" = '{"contract":8,"forge":"github","provider":8}' ]
+  [ "$(jq -c '[.features | to_entries[] | select(.value == "native") | .key] | length' <<<"$output")" = 31 ]
   [ "$(jq -c '.features.milestones, .features.swimlanes' <<<"$output" | paste -sd ' ' -)" = '"native" "none"' ]
   [ "$(jq -r '.features | keys_unsorted | join(" ")' <<<"$output")" \
-    = 'issues sub-issues linked-branches drafts closing-issues review-threads checks quota marks releases runs labels milestones iterations reviewers merged artifacts environments deployments collaborators teams bots attestations code-scanning dependabot secret-scanning rulesets bypasses check-runs swimlanes bot-accounts' ]
+    = 'issues sub-issues linked-branches drafts closing-issues review-threads checks quota marks releases runs labels milestones iterations reviewers merged artifacts environments deployments collaborators teams bots attestations code-scanning dependabot secret-scanning rulesets bypasses check-runs swimlanes bot-accounts merge-closing' ]
   git remote set-url origin https://gitlab.com/empowerite/example.git
   run "${kit_root}/bin/kit" flow --capabilities
   [ "$(jq -c '{forge, provider, none: [.features | to_entries[] | select(.value == "none") | .key]}' <<<"$output")" \
-    = '{"forge":"gitlab","provider":7,"none":["attestations","bypasses","swimlanes","bot-accounts"]}' ]
+    = '{"forge":"gitlab","provider":8,"none":["attestations","bypasses","swimlanes","bot-accounts"]}' ]
 }
 
 @test "a provider that declares nothing implements contract 1: every feature of it, none added since" {
@@ -122,10 +122,10 @@ added+='"check-runs","swimlanes","bot-accounts"'
 }
 
 @test "a declaration of a contract above the kit's, or of a feature the contract does not have, is refused" {
-  provider ahead 8
+  provider ahead 9
   run call quota
   [ "$status" -eq 1 ]
-  [[ "$output" == *"the ahead forge implements contract '8', and this kit knows 1 to 7; move to a later kit: kit --version=<version> update"* ]]
+  [[ "$output" == *"the ahead forge implements contract '9', and this kit knows 1 to 8; move to a later kit: kit --version=<version> update"* ]]
   provider odd 2 telepathy
   run call quota
   [ "$status" -eq 1 ]

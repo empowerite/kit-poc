@@ -31,7 +31,7 @@ see: [the code forges](forges.md), whose APIs GitHub Issues, GitLab, Azure Board
 | Adds a comment | write | `comment`: `kit settle`, `kit close --duplicate-of` across trackers |
 | Creates an issue | write | `create`: `kit gather` and `kit work --title` create the parent |
 | Puts an issue under a parent | write | `issue-add-sub` (forge seam): `kit gather`, `kit work --title` |
-| Links a change to an issue | write | `kit work`: a linked branch, and a `Closes` line in the change's body; `kit linked` reads it |
+| Links a change to an issue | write | `kit work`: a linked branch where the forge links one, and a `Closes` line in the change's body for every issue; `kit linked` reads it |
 | Iterations: sprints or cycles, with dates and their issues | read | planned: kittui's iterations tab |
 | Milestones or versions, with due dates and their issues | read | planned: kittui's milestones tab |
 | A project board's status field | read | planned: a column beside an issue in the issues stage |
@@ -99,7 +99,7 @@ How a change reaches an issue in each tracker:
 | --- | --- | --- |
 | GitHub Issues | a branch from `gh issue develop`, a closing keyword | `Closes #${n}` in the pull request's body |
 | GitLab | a branch named `${n}-${slug}`, a closing pattern | `Closes #${n}` in the merge request's description |
-| Azure Boards | `AB#${n}` in a GitHub pull request, the Azure Repos pull request's work items | `Fixes AB#${n}`; Azure Repos' option to complete linked work items |
+| Azure Boards | `AB#${n}` in a GitHub pull request, the Azure Repos pull request's work items | `Fixes AB#${n}`; Azure Repos' option to complete linked work items, and `kit settle` where that is not taken |
 | Jira | the key in a branch, commit, or pull request title | a smart commit's transition, or `kit settle` |
 | Linear | the identifier in the branch, title, or description | a closing word before the identifier |
 | YouTrack | the ID in a commit or pull request | a command in a commit message, where the integration allows it |

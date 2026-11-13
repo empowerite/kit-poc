@@ -24,7 +24,7 @@
 #   issue            a work item of the project's Azure Boards, #<id> and AB#<id> alike
 #   checks           the pull request's build and status policies
 #   review threads   its threads that a person opened, active or pending until resolved
-#   closing issues   the work items linked to it, which its completion can close
+#   closing issues   the work items linked to it, which its completion can close, and kit settle closes otherwise
 #   sub-issues       a work item's parent relation
 #   runs             Azure Pipelines' runs
 #
@@ -92,13 +92,14 @@ forge/ado:branch-for-issue() {
     '[.[] | (.sourceRefName | ltrimstr("refs/heads/")) | select(startswith("\($n)-"))] | .[0] // empty'
 }
 
-# The provider implements contract 7, and its forge lacks these features: a bot account among them, as kit makes one
-# of a GitHub App alone.
-forge/ado:contract() { printf '7\n'; }
+# The provider implements contract 8, and its forge lacks these features: a bot account among them, as kit makes one
+# of a GitHub App alone, and the closing of a work item when a pull request merges, which Azure DevOps leaves to
+# whoever completes the pull request, so kit settle closes those left open.
+forge/ado:contract() { printf '8\n'; }
 
 forge/ado:lacks() {
   printf '%s\n' quota marks releases linked-branches milestones bots attestations code-scanning dependabot \
-    secret-scanning bypasses swimlanes bot-accounts
+    secret-scanning bypasses swimlanes bot-accounts merge-closing
 }
 
 forge/ado:bypasses() { return 3; }
@@ -412,7 +413,8 @@ forge/ado:pr-closing-issues() {
 }
 
 # forge/ado:pr-create opens the draft, or the change ready for review when the draft is false, and links the work
-# item the branch is named for, <id>-<slug>, so the pull request closes it as the forge's own tracker closes an issue.
+# item the branch is named for, <id>-<slug>, so the forge says the pull request closes it. Azure DevOps closes it on
+# completion only when whoever completes the pull request says so; kit settle closes one left open.
 # az opens no pull request from a fork's branch, so with a push remote other than the primary it is refused, naming
 # where to open it by hand.
 forge/ado:pr-create() {

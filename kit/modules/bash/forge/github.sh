@@ -991,8 +991,8 @@ forge/github:teams() {
     'import "forge" as forge; forge::github_teams($members; 20)'
 }
 
-# The provider implements contract 7, and its forge lacks only swimlanes, which no forge kit reaches has.
-forge/github:contract() { printf '7\n'; }
+# The provider implements contract 8, and its forge lacks only swimlanes, which no forge kit reaches has.
+forge/github:contract() { printf '8\n'; }
 
 forge/github:lacks() {
   printf '%s\n' swimlanes

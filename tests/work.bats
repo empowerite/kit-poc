@@ -61,6 +61,23 @@ desk-world() {
   run ! git -C worktrees/7-fix-the-thing ls-files --error-unmatch .kit/1st.md
 }
 
+@test "kit work writes a closing line for the primary issue in the change's body, so no forge is left to guess it" {
+  desk-world
+  # the change as a forge opens it through its API: with an empty body
+  fixture pr.json <<<'{"title": "Fix the thing", "body": ""}'
+  route 'pr edit 3 --body *' '!0'
+  run "${kit_checkout}/bin/kit" work 7
+  [ "$status" -eq 0 ]
+  run grep -A1 '^pr edit 3 --body' "${FAKE_DIR}/gh.calls"
+  [ "${lines[1]}" = 'Closes #7' ]
+  # a body that closes it already is left as it is
+  fixture pr.json <<<'{"title": "Fix the thing", "body": "Fixes #7"}'
+  : > "${FAKE_DIR}/gh.calls"
+  run "${kit_checkout}/bin/kit" work 7
+  [ "$status" -eq 0 ]
+  run ! grep --quiet '^pr edit 3 --body' "${FAKE_DIR}/gh.calls"
+}
+
 @test "kit work takes the issue's lease for the paths it lists under Paths, pushes it to origin, and ** for none" {
   desk-world
   fixture issue.json <<<'{"title": "Fix the thing", "state": "OPEN", "assignees": [{"login": "bob"}], "body": "Why.\n\n## Paths\n\n- `docs/**`\n- kit/bin/kit-work: the verb\n"}'
@@ -468,13 +485,19 @@ SHIM
   route 'issue edit 7 --add-assignee ada' '!0'
   route 'pr list --state open --json headRefName*' none.json
   route 'pr list --head 7-fix-the-thing --state open*' none.json
+  fixture pr.json <<<'{"title": "Fix the thing", "body": ""}'
   route 'pr create --draft --base main --head ada:7-fix-the-thing --title Fix the thing --body ' pr-url.txt
+  route 'pr view 3 --json *' pr.json
+  route 'pr edit 3 --body *' '!0'
   run env PATH="${BATS_TEST_TMPDIR}/shims:${PATH}" "${kit_checkout}/bin/kit" work 7
   [ "$status" -eq 0 ]
   [[ "$output" == *"Making 7-fix-the-thing for #7 from origin/main"* ]]
   [[ "$output" == *"Draft pull request #3 on 7-fix-the-thing"* ]]
-  # the forge links no branch on upstream: the branch is the fork's, with the start commit, and upstream has none
+  # the forge links no branch on upstream, so the change's body is what says it closes the issue
   run ! grep -q '^issue develop' "${FAKE_DIR}/gh.calls"
+  run grep -A1 '^pr edit 3 --body' "${FAKE_DIR}/gh.calls"
+  [ "${lines[1]}" = 'Closes #7' ]
+  # the branch is the fork's, with the start commit, and upstream has none
   [ "$(git -C "${repo}.origin.git" log -1 --format=%s 7-fix-the-thing)" = "#7 start: Fix the thing" ]
   [ "$(git -C "${repo}.origin.git" rev-parse 7-fix-the-thing)" = "$(git -C worktrees/7-fix-the-thing rev-parse HEAD)" ]
   run ! git -C "${repo}.upstream.git" rev-parse --quiet --verify 7-fix-the-thing

@@ -7,7 +7,9 @@
 # Does for the issues a pull request names what its forge does not do itself, once the pull request is closed:
 #
 #   - merged: each issue in another tracker that its body closes (Closes AB#4521) gets a comment naming the merge
-#     commit, and is closed; the forge closes its own issues
+#     commit, and is closed; the forge closes its own issues, and where it does not, as Azure DevOps leaves a work
+#     item to whoever completes the pull request, those the pull request links or its body closes (Closes #7) are
+#     closed the same way
 #   - closed without merging: each issue it names, the forge's own and the other trackers', gets a comment that it is
 #     backlog again, and its author is taken off it (in another tracker, the caller as that tracker knows the caller)
 #   - open: nothing

@@ -7,10 +7,16 @@
 #   - `7` or `#7`: an issue in the forge's own tracker (GitHub or GitLab)
 #   - `AB#4521`: a work item in a declared Azure DevOps tracker
 #
-# The first reference is the primary issue. The others are secondary. Each issue is closed on merge by:
+# The first reference is the primary issue. The others are secondary. issue:start writes a `Closes <reference>` line
+# in the pull request's body for each of them, the primary included, and the line is what closes the issue on merge:
 #
-#   - a primary issue in the forge's tracker: the forge links it to the branch the forge creates
-#   - any other primary issue, and every secondary one: a `Closes <reference>` line in the pull request's body
+#   - an issue in the forge's tracker: the forge reads the line and closes the issue, and where the forge lacks
+#     merge-closing, as Azure DevOps does, kit settle closes it
+#   - an issue in another tracker: kit settle closes it
+#
+# A primary issue in the forge's tracker also gets the branch the forge links to it, where the forge links one. The
+# link alone closes nothing on GitLab, where a merge request opened through the API takes no closing line from its
+# branch's name, nor on a branch kit pushes itself, as to a fork.
 #
 # Every listed issue is assigned to the caller, as each tracker identifies the caller.
 #
@@ -270,12 +276,41 @@ issue:join() {
   ok "Added ${refs[*]} to ${noun} ${sigil}${pr}"
 }
 
+# issue:named <change> <body> <own> prints each reference the change names that kit settles, one per line. With <own>
+# true, the forge's own open issues the forge says the change closes come first, each as #<number>. Then come those
+# the body's closing lines name, as tracker:body-refs reads them, but for one of the forge's own already printed, so
+# each issue is settled once.
+issue:named() {
+  local pr=$1 body=$2 own=$3 repo row number istate owner ref seen=' '
+  local -a rows
+  if [[ "${own}" == true ]]
+  then
+    repo=$(forge:repo) || return 1
+    # A forge that says nothing of what a change closes leaves the body to say it.
+    list:read rows forge:pr-closing-issues "${pr}" || (( $? == 3 )) || return 1
+    for row in "${rows[@]}"
+    do
+      read -r number istate owner <<<"${row}"
+      [[ "${owner}" == "${repo}" && "${istate}" == OPEN ]] || continue
+      printf '#%s\n' "${number}"
+      seen+="${number} "
+    done
+  fi
+  list:read rows tracker:body-refs "${body}" || return 1
+  for ref in "${rows[@]}"
+  do
+    [[ -n "${ref}" ]] || continue
+    [[ "${seen}" == *" ${ref##*#} "* ]] && tracker:is-forge "${ref}" && continue
+    printf '%s\n' "${ref}"
+  done
+}
+
 # issue:settle <change> settles the issues a closed pull request names, as kit settle describes. It is safe to run
 # again: an issue already closed, or no longer assigned, is left as it is.
 issue:settle() {
-  local pr=${1#[#!]} line state sha sigil noun url body author repo ref login number istate owner failed=0 row
+  local pr=${1#[#!]} line state sha sigil noun url body author ref login failed=0 own=false
   local current assignees
-  local -a refs=() closing
+  local -a refs=()
   IFS=$'\t' read -r sigil noun < <(forge:noun) || return 1
   line=$(forge:pr-state "${pr}") || return 1
   state=${line%%$'\t'*}
@@ -284,10 +319,12 @@ issue:settle() {
   body=$(forge:pr-body "${pr}") || return 1
   case ${state} in
     MERGED)
-      list:read closing tracker:body-refs "${body}" || return 1
-      for ref in "${closing[@]}"
+      # A forge that closes none of its own issues on a merge has those it says the change closes closed here, with
+      # those the body names.
+      forge:has merge-closing || own=true
+      list:read refs issue:named "${pr}" "${body}" "${own}" || return 1
+      for ref in "${refs[@]}"
       do
-        [[ -n "${ref}" ]] || continue
         if ! current=$(tracker:of "${ref}" state)
         then
           error "${ref} could not be closed: its state could not be read"
@@ -307,19 +344,7 @@ issue:settle() {
       ;;
     CLOSED)
       author=$(forge:pr-author "${pr}") || return 1
-      repo=$(forge:repo) || return 1
-      # A forge that says nothing of what a change closes leaves the body to say it.
-      list:read closing forge:pr-closing-issues "${pr}" || (( $? == 3 )) || return 1
-      for row in "${closing[@]}"
-      do
-        read -r number istate owner <<<"${row}"
-        [[ "${owner}" == "${repo}" && "${istate}" == OPEN ]] && refs+=("#${number}")
-      done
-      list:read closing tracker:body-refs "${body}" || return 1
-      for ref in "${closing[@]}"
-      do
-        [[ -z "${ref}" ]] || refs+=("${ref}")
-      done
+      list:read refs issue:named "${pr}" "${body}" true || return 1
       for ref in "${refs[@]}"
       do
         if tracker:is-forge "${ref}"
@@ -664,8 +689,8 @@ issue:pull-request() {
 }
 
 # issue:link-in-body <change> <reference>… adds a `Closes <reference>` line to the pull request's body for each
-# reference the body does not already close, fix, or resolve. The references are the secondary issues, and a
-# primary issue the forge cannot link by itself. It returns 1, and changes nothing, when the body cannot be read.
+# reference the body does not already close, fix, or resolve. The references are the issues the pull request is for,
+# the primary and the secondaries. It returns 1, and changes nothing, when the body cannot be read.
 issue:link-in-body() {
   local pr=$1 ref escaped body changed=false
   shift
@@ -693,7 +718,7 @@ issue:link-in-body() {
 issue:start() {
   local n primary title default_branch main_root desk desk_branch branch wt stash="" pr created sigil noun new_title=''
   local remote sweep=''
-  local -a refs=() in_body=()
+  local -a refs=()
   if [[ "${1:-}" == --sweep || "${1:-}" == --no-sweep ]]
   then
     sweep=${1#--}
@@ -745,8 +770,6 @@ issue:start() {
   done
   set -- "${refs[@]}"
   primary=$1
-  tracker:is-forge "${primary}" || in_body+=("${primary}")
-  in_body+=("${@:2}")
 
   remote=$(forge:push-remote) || return 1
   git fetch --quiet --prune --end-of-options "${remote}"
@@ -793,9 +816,9 @@ issue:start() {
     issue:sweep-apply "${desk}" "${wt}" "${stash}" "${default_branch}" "${remote}" || return
   fi
   pr=$(issue:pull-request "${branch}" "${default_branch}" "${title}") || return
-  if (( ${#in_body[@]} > 0 )) && ! issue:link-in-body "${pr}" "${in_body[@]}"
+  if ! issue:link-in-body "${pr}" "$@"
   then
-    error "run: kit work $* (${in_body[*]} could not be linked in the change's body)"
+    error "run: kit work $* ($* could not be linked in the change's body)"
     return 1
   fi
 

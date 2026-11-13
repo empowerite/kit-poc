@@ -70,7 +70,10 @@ older version. `--org` names the collection URL; which Server releases the exten
 | Set the body | `az repos pr update --id "${n}" --description "${body}"`; each value is a line |
 
 Gaps: review threads and their state have no `az repos` command. Azure DevOps closes no work item from a pull
-request's body by itself; work items link with `--work-items` and move on completion with `--transition-work-items`.
+request's body by itself; work items link with `--work-items` and move on completion with `--transition-work-items`,
+which kit does not pass: it moves a work item to its next state, which need not be a closed one. The provider
+declares that the forge lacks `merge-closing`, so `kit settle` closes, after a merge, the work items the pull request
+links and those a closing line in its body names, and `kit linked` counts both.
 The `az devops invoke` area and resource names here were not tried against a live organization.
 
 ### Azure DevOps Repos schemas

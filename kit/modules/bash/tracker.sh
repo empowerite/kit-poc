@@ -181,7 +181,7 @@ tracker:normal() {
 }
 
 # tracker:is-forge <reference> succeeds when the reference is in the forge's own tracker. The forge can then link
-# a branch to the issue and close the issue on merge by itself.
+# a branch to the issue, where it links branches, and closes the issue on merge, where it has merge-closing.
 tracker:is-forge() {
   local prefix number
   IFS=$'\t' read -r prefix number < <(tracker:parse "$1" 2>/dev/null) || return 1
@@ -226,15 +226,22 @@ tracker:branch-ref() {
 }
 
 # tracker:body-refs <body> prints every reference that follows a closing keyword in a change's body, for the
-# trackers the forge does not link by itself: `Closes AB#4521`, `fixes AB#4521`, `Resolves: AB#4521`.
+# trackers the forge does not link and close by itself: `Closes AB#4521`, `fixes AB#4521`, `Resolves: AB#4521`. The
+# forge's own tracker is among them where the forge has issues and lacks merge-closing, as Azure DevOps does:
+# `Closes #7` there.
 tracker:body-refs() {
-  local body=$1 prefix provider escaped row
+  local body=$1 prefix provider escaped row own=false
   local -a rows
   list:read rows tracker:records || return 1
+  # A forge whose declaration cannot be read is taken to close its own, as one that says so is.
+  if forge:lacks >/dev/null 2>&1 && forge:has issues && ! forge:has merge-closing
+  then
+    own=true
+  fi
   for row in "${rows[@]}"
   do
     IFS=$'\x1f' read -r prefix provider <<<"${row}"
-    [[ "${provider}" == forge ]] && continue
+    [[ "${provider}" == forge && "${own}" != true ]] && continue
     escaped=$(ere:quote "${prefix}")
     # grep's exit 1 is a body that names no reference to this tracker.
     grep --only-matching --ignore-case --extended-regexp \

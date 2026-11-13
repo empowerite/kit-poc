@@ -112,10 +112,11 @@ JSON
   az-route 'boards iteration team list --team Alpha --project empowerite --output json' iterations.json
 }
 
-# added is what contracts 4, 5, and 6 add that Azure DevOps lacks, as JSON strings: it has iterations, reviewers, the
-# changes merged, artifacts, environments, deployments, who has access, teams, and the default branch's policies, and
-# no milestone, bot, attestation, alert, waiver, or swimlane.
-added='"milestones","bots","attestations","code-scanning","dependabot","secret-scanning","bypasses","swimlanes","bot-accounts"'
+# added is what contracts 4, 5, 6, and 8 add that Azure DevOps lacks, as JSON strings: it has iterations, reviewers,
+# the changes merged, artifacts, environments, deployments, who has access, teams, and the default branch's policies,
+# and no milestone, bot, attestation, alert, waiver, or swimlane, and it closes no work item on a merge by itself.
+added='"milestones","bots","attestations","code-scanning","dependabot","secret-scanning","bypasses","swimlanes",'
+added+='"bot-accounts","merge-closing"'
 
 @test "dev.azure.com, its ssh host, and a host under visualstudio.com are Azure DevOps, and each names the repository" {
   run call provider
@@ -288,6 +289,62 @@ added='"milestones","bots","attestations","code-scanning","dependabot","secret-s
   [ "$output" = $'CLOSED\t' ]
 }
 
+@test "Azure DevOps closes no work item on a merge by itself, so kit settle closes those the pull request names" {
+  # pull request 4 is completed: it links work item 7, still Active, and its body names 7 and 8, as kit work
+  # wrote them
+  jq '.pullRequestId = 4 | .status = "completed" | .lastMergeCommit = {commitId: "def4567890abcdef"}
+      | .description = "What changed.\n\nCloses #7\nCloses AB#8"' "${FAKE_DIR}/pr.json" | fixture done.json
+  fixture item-8.json <<<'{"id": 8, "fields": {"System.Title": "Another", "System.State": "New"}}'
+  az-route 'repos pr show --id 4 --output json' done.json
+  az-route 'repos pr work-item list --id 4 --output json' linked.json
+  az-route 'boards work-item show --id 8 --output json' item-8.json
+  az-route 'boards work-item update --id 8 *' '!0'
+  run call has merge-closing
+  [ "$status" -eq 1 ]
+  : > "${FAKE_DIR}/az.calls"
+  run "${kit_root}/bin/kit" settle 4
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"#7 closed: pull request !4 merged"* ]]
+  [[ "$output" == *"AB#8 closed: pull request !4 merged"* ]]
+  said='Closed by pull request !4, merged as def4567890ab: '
+  said+='https://dev.azure.com/acme/empowerite/_git/example/pullrequest/4'
+  for id in 7 8
+  do
+    grep --quiet -- "work-item update --id ${id} --discussion ${said} " "${FAKE_DIR}/az.calls"
+    [ "$(grep --count -- "work-item update --id ${id} --state Closed " "${FAKE_DIR}/az.calls")" -eq 1 ]
+  done
+  # a work item the body no longer names is still closed, as the pull request links it
+  fixture done.json <<<"$(jq '.description = ""' "${FAKE_DIR}/done.json")"
+  : > "${FAKE_DIR}/az.calls"
+  run "${kit_root}/bin/kit" settle 4
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"#7 closed: pull request !4 merged"* ]]
+  [[ "$output" != *"#8"* ]]
+  # run again, with the work item closed: nothing more is done to it
+  fixture item-7.json <<<"$(jq '.fields["System.State"] = "Closed"' "${FAKE_DIR}/item-7.json")"
+  fixture linked.json <<<"$(jq '.[0].fields["System.State"] = "Closed"' "${FAKE_DIR}/linked.json")"
+  : > "${FAKE_DIR}/az.calls"
+  run "${kit_root}/bin/kit" settle 4
+  [ "$status" -eq 0 ]
+  run ! grep --quiet 'work-item update' "${FAKE_DIR}/az.calls"
+}
+
+@test "on Azure DevOps kit linked counts a work item the body's closing line names, and one it also links once" {
+  fixture pr.json <<<"$(jq '.description = "Closes #7\nCloses AB#8"' "${FAKE_DIR}/pr.json")"
+  fixture item-8.json <<<'{"id": 8, "fields": {"System.Title": "Another", "System.State": "New"}}'
+  az-route 'boards work-item show --id 8 --output json' item-8.json
+  run "${kit_root}/bin/kit" linked 3
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"pull request !3 is linked to #7 AB#8"* ]]
+  # with nothing linked, the body's line alone links the work item
+  az-route 'repos pr work-item list --id 5 --output json' none.json
+  jq '.pullRequestId = 5 | .description = "Closes #8"' "${FAKE_DIR}/pr.json" | fixture pr-5.json
+  az-route 'repos pr show --id 5 --output json' pr-5.json
+  run "${kit_root}/bin/kit" linked 5
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"pull request !5 is linked to #8"* ]]
+}
+
 @test "the provider folds its open pull requests into the one document kit flow draws" {
   expected='{"number":3,"branch":"7-fix-the-thing","fork":null,"title":"Fix the thing","author":"ada","pushed":null,'
   expected+='"state":"comments:open","checks":{"state":"SUCCESS","passed":2,"total":2,"failing":"","took":50},'
@@ -457,7 +514,7 @@ JSON
   run "${kit_root}/bin/kit" flow --capabilities
   [ "$status" -eq 0 ]
   [ "$(jq -c '{forge, provider, none: [.features | to_entries[] | select(.value == "none") | .key]}' <<<"$output")" \
-    = "{\"forge\":\"ado\",\"provider\":7,\"none\":[\"linked-branches\",\"quota\",\"marks\",\"releases\",${added}]}" ]
+    = "{\"forge\":\"ado\",\"provider\":8,\"none\":[\"linked-branches\",\"quota\",\"marks\",\"releases\",${added}]}" ]
   for c in quota marks releases 'link-branch 7 main'
   do
     read -r -a words <<<"${c}" && run --separate-stderr call "${words[@]}"

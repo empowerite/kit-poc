@@ -254,6 +254,9 @@
 #                           one it reads the same way, so a repository gives it a stand-in, or every issue has none
 #   bot-accounts     6      bot-app, bot-installation, bot-installations, bot-proof, bot-token, bot-repositories,
 #                           bot-revoke: an app the forge signs in as, with a key of its own
+#   merge-closing    8      a change that merges closes the forge's own issues it closes; without it, kit settle
+#                           closes them after the merge: those pr-closing-issues names, and those a closing line in
+#                           the change's body names, Closes #7
 #
 # A repository chooses a stand-in for a feature in kit.yml, under the forge it is for, and the seam then answers the
 # feature's calls itself, from the forge's other calls, whether the forge has the feature or not:
@@ -305,12 +308,12 @@ declare -g forge_list_limit=10000
 # forge_contract is the version of the contract the file header states. forge_features lists each feature with the
 # version that added it, in the header's order, and forge_feature_of names the feature each gated call belongs to.
 # forge_lacking holds, once read, the features the primary's forge lacks, one per line; forge_lacking_read says it was.
-declare -gr forge_contract=7
+declare -gr forge_contract=8
 declare -gra forge_features=(issues:1 sub-issues:1 linked-branches:1 drafts:1 closing-issues:1 review-threads:1
   checks:1 quota:1 marks:1 releases:1 runs:1 labels:3
   milestones:4 iterations:4 reviewers:4 merged:4 artifacts:4 environments:4 deployments:4 collaborators:4 teams:4
   bots:4 attestations:4 code-scanning:4 dependabot:4 secret-scanning:4 rulesets:4 bypasses:4 check-runs:4
-  swimlanes:5 bot-accounts:6)
+  swimlanes:5 bot-accounts:6 merge-closing:8)
 declare -grA forge_feature_of=(
   [issue-create]=issues [issue-title]=issues [issue-body]=issues [issue-state]=issues [issue-assignees]=issues
   [issue-assign]=issues [issue-unassign]=issues [issue-close]=issues [issue-comment]=issues [open-issues]=issues
@@ -982,8 +985,8 @@ forge:pr-closing-issues() {
 # forge:pr-report <n> <report> writes <report> as the body of pull request <n>. The new body is the report, an empty
 # line, and then each line of the old body that only closes issues, in the old order. A line only closes issues when
 # it holds nothing but closing keywords, each followed by a reference that has a digit in it: `Closes #7`,
-# `fixes AB#4521`, or `Closes #8, closes #9`. kit work and kit commit write such a line for each issue the forge does
-# not link by itself, and kit linked and kit settle read them, so the pull request closes the same issues after the
+# `fixes AB#4521`, or `Closes #8, closes #9`. kit work and kit commit write such a line for each issue the change is
+# for, and the forge, kit linked, and kit settle read them, so the pull request closes the same issues after the
 # report is written. Every other line of the old body is dropped, including an earlier report. A closing line that
 # the report already contains is not added again. The function returns 1 and changes nothing when the body cannot be
 # read. It returns forge:pr-set-body's status when the body cannot be written.

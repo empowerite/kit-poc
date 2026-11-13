@@ -87,9 +87,18 @@ fi
 # A forge that says nothing of what a change closes leaves the body to say it.
 refs=$(forge:pr-closing-issues "${number}") || (( $? == 3 )) || exit 1
 # The forge does not link issues of other trackers, such as Azure DevOps. A closing keyword in the pull request's
-# body links them: `Closes AB#4521`.
+# body links them: `Closes AB#4521`. Where the forge closes none of its own on a merge, the body names those too, and
+# one the forge already says the change closes counts once.
 body=$(forge:pr-body "${number}") || exit 1
-others=$(tracker:body-refs "${body}") || exit 1
+declare -a named
+list:read named tracker:body-refs "${body}" || exit 1
+others=''
+for ref in "${named[@]}"
+do
+  grep --quiet --line-regexp --fixed-strings --regexp="${ref##*#} OPEN ${repo}" \
+    --regexp="${ref##*#} CLOSED ${repo}" <<<"${refs}" && tracker:is-forge "${ref}" && continue
+  others+=${ref}$'\n'
+done
 if [[ -z "${refs}${others}" ]]
 then
   error "${change} is not linked to any issue"

@@ -11,7 +11,7 @@
 #   - a branch linked to the issue
 #   - a worktree for the branch, hydrated: what the kit delivers under .kit/ is in place
 #   - a start commit
-#   - a draft pull request, so the team sees the work at once
+#   - a draft pull request, so the team sees the work at once, its body closing every issue named: Closes #7
 #
 # Every issue it starts is assigned to the caller, whose worktree it is.
 #
