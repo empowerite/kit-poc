@@ -54,6 +54,55 @@ setup() {
   grep --quiet 'indicative' .kit/styles/prose.md
 }
 
+# compressed <page> prints, in the form <line>: <sentence>, each sentence of the page's paragraphs and list items that
+# runs past 30 words or holds a second colon or semicolon. A code span and a quoted example each count as one word,
+# so the fault that an example shows is not counted against the page.
+compressed() {
+  awk '
+    function flush(   count, i, held, parts) {
+      gsub(/`[^`]*`/, "code", text); gsub(/\."/, "\".", text); gsub(/"[^"]*"/, "quote", text)
+      count = split(text, parts, /[.?!]( |$)/); text = ""
+      for (i = 1; i <= count; i++)
+        if (split(parts[i], held, " ") > 30 || gsub(/[:;]/, "&", parts[i]) > 1) print at ": " parts[i]
+    }
+    FNR == 1 && $0 == "---" { front = 1; next }
+    front { front = ($0 != "---"); next }
+    /^[[:space:]]*$/ || /^#/ { flush(); next }
+    /^[[:space:]]*([0-9]+\.|-) / { flush() }
+    {
+      line = $0; sub(/^[[:space:]]*(([0-9]+\.|-) )?/, "", line)
+      if (text == "") at = FNR
+      text = (text == "" ? "" : text " ") line
+    }
+    END { flush() }
+  ' "$1"
+}
+
+@test "the prose style names compressed prose in six rules, and its own sentences keep the two rules a count can judge" {
+  local rule style="${kit_root}/packages/style/prose/files/repo/.kit/styles/prose.md" text
+  text=$(tr '\n' ' ' < "${style}" | tr -s ' ')
+  for rule in 'make who or what acts the subject' 'Give each sentence one idea' 'Repeat the noun' \
+    '"such as" before an example and "because" before a cause' "Define a term of the project's own" \
+    "Do not repeat another file's text"
+  do
+    [[ "${text}" == *"${rule}"* ]] || { echo "the prose style does not say: ${rule}"; return 1; }
+  done
+  # the two rules that led writers to compressed prose are reworded
+  [[ "${text}" != *'thing under discussion'* && "${text}" != *'Do not restate'* ]]
+  # the counter finds a second mark and a thirty-first word, and passes over a quoted example and a code span
+  {
+    printf -- '---\nkind: a; b; c\n---\n# A page: one; two\n\nOne idea here. A case: the first; the second.\n\n'
+    printf '1. Short, not "a; b: c." Short again: `a; b; c`.\n2. %sone.\n' "$(printf 'word %.0s' {1..30})"
+    printf '   %s\n' "$(printf 'word %.0s' {1..29})one."
+  } > page.md
+  run compressed page.md
+  [ "${lines[0]}" = '6: A case: the first; the second' ]
+  [ "${lines[1]}" = "9: $(printf 'word %.0s' {1..30})one" ]
+  [ "${#lines[@]}" -eq 2 ]
+  run compressed "${style}"
+  [ -z "$output" ] || { printf '%s\n' "${output}"; return 1; }
+}
+
 @test "a relative path is taken from the directory the command was typed in" {
   mkdir docs && cd docs
   run "${kit_checkout}/bin/kit" context x.md
