@@ -254,7 +254,10 @@ probes still run, as the terminal answers them across the connection.
 Inside tmux, the outer terminal's variables are those of whichever terminal started tmux's server, and may be stale,
 so kit judges what tmux answers and reads no terminal's settings. tmux's `escape-time` holds esc back, `extended-keys`
 off withholds the kitty keyboard protocol, and `terminal-features` decides whether 24-bit color passes through; kit
-does not read them yet.
+does not read them yet. The copy need is met only where tmux passes the clipboard on: at its default,
+`set-clipboard external`, tmux drops what an app sends, so ⧉ and Copy Links send the text and nothing lands. Set
+`set -g set-clipboard on` in `~/.tmux.conf`. kittui says "sent", not "copied", because no terminal says whether it
+took the request.
 
 ## GNU screen
 

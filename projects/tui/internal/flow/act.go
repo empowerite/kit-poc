@@ -371,7 +371,12 @@ func (m *Model) act(name string) tea.Cmd {
 			return one(append([]string{"close", "--duplicate-of=" + original}, refs...)...)
 		})
 	case "Copy Links":
-		m.done(fmt.Sprintf("%s copied %d links", ToPage, len(refs)))
+		// the terminal does not say whether it took the request, so the notice says what was sent
+		noun := "links"
+		if len(refs) == 1 {
+			noun = "link"
+		}
+		m.done(fmt.Sprintf("%s sent %d %s to the clipboard", ToPage, len(refs), noun))
 		return tea.SetClipboard(m.links())
 	}
 	return nil

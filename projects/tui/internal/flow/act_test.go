@@ -421,7 +421,7 @@ func TestCopyLinksCopiesEachIssueAsMarkdown(t *testing.T) {
 	m = drive(m, press(':'))
 	m.tabMenu.At = item(m, "Copy Links")
 	next, cmd := m.Update(press(tea.KeyEnter))
-	if m = next.(Model); cmd == nil || !strings.Contains(ansi.Strip(lines(m)[len(lines(m))-1]), "copied 2 links") {
+	if m = next.(Model); cmd == nil || !strings.Contains(ansi.Strip(lines(m)[len(lines(m))-1]), "sent 2 links to the clipboard") {
 		t.Errorf("copy links: %q", lines(m)[len(lines(m))-1])
 	}
 	// an issue kit printed no page for is its reference and title alone
@@ -431,6 +431,12 @@ func TestCopyLinksCopiesEachIssueAsMarkdown(t *testing.T) {
 	m.stages[0].Picked["#7"] = true
 	if got := m.links(); got != "- #7 seven" {
 		t.Errorf("the link of an issue with no page: %q", got)
+	}
+	m = drive(m, press(':'))
+	m.tabMenu.At = item(m, "Copy Links")
+	next, _ = m.Update(press(tea.KeyEnter))
+	if m = next.(Model); !strings.Contains(ansi.Strip(lines(m)[len(lines(m))-1]), "sent 1 link to the clipboard") {
+		t.Errorf("copy one link: %q", lines(m)[len(lines(m))-1])
 	}
 }
 
