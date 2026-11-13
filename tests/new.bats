@@ -40,6 +40,18 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
   [[ "$output" == *"no kind ini is defined yet; run: cd "*" && kit new kind ini"* ]]
 }
 
+@test "an option before the word that says what to make is the thing's own, as one after it is" {
+  run kit new --package=mine kind toml --path='**/*.toml'
+  [ "$status" -eq 0 ]
+  [ -f .kit/packages/mine/files/repo/.kit/kinds/toml.yml ]
+  run kit new --lint='taplo lint' --package=mine rule toml
+  [ "$status" -eq 0 ]
+  grep --quiet --line-regexp 'lint: taplo lint' .kit/packages/mine/files/repo/.kit/rules/toml.md
+  run kit new --title=X --rule=markdown file x.md
+  [[ "$output" != *"no template governs"* ]]
+  [ -f x.md ]
+}
+
 @test "a package depends on kit and the packages named, and a template is listed in its package's style" {
   run kit new package team --description='The team rules' --depends=style/bash
   [ "$status" -eq 0 ]

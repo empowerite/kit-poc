@@ -101,21 +101,37 @@ materialize:hydrate
 
 # What the kit's packages and its module path hold is made only where the kit is installed, so a repository without
 # it gets no .kit/ from kit new.
-case "$1" in
+# The guard takes an option wherever it stands, so the word that says what to make is the guard's literal, not the
+# first word. It is taken out of the arguments, and the rest go to the thing's own function with the operands first,
+# as they were typed after the word, then the options.
+# shellcheck disable=SC2154  # syntax_literals is set by guard:arguments
+what=${syntax_literals[0]}
+operands=() options=() taken=false
+for arg in "$@"
+do
+  if [[ "${taken}" == false && "${arg}" == "${what}" ]]
+  then taken=true
+  elif [[ "${arg}" == --?* ]]
+  then options+=("${arg}")
+  else operands+=("${arg}")
+  fi
+done
+set -- ${operands[@]+"${operands[@]}"} ${options[@]+"${options[@]}"}
+
+case "${what}" in
   (kind | rule | style | template | package | module | provider) settings:require || exit 1
 esac
 
-case "$1" in
-  (kind) shift; new:kind "$@"; exit $? ;;
-  (rule | style) new:rule "$@"; exit $? ;;
-  (package) shift; new:package "$@"; exit $? ;;
-  (template) shift; new:template "$@"; exit $? ;;
-  (module) shift; new:module "$@"; exit $? ;;
-  (provider) shift; new:provider "$@"; exit $? ;;
-  (verb) shift; new:verb "$@"; exit $? ;;
-  (issue) shift; new:issue "$@"; exit $?
+case "${what}" in
+  (kind) new:kind "$@"; exit $? ;;
+  (rule | style) new:rule "${what}" "$@"; exit $? ;;
+  (package) new:package "$@"; exit $? ;;
+  (template) new:template "$@"; exit $? ;;
+  (module) new:module "$@"; exit $? ;;
+  (provider) new:provider "$@"; exit $? ;;
+  (verb) new:verb "$@"; exit $? ;;
+  (issue) new:issue "$@"; exit $?
 esac
-shift
 
 path='' rule_name='' variant=''
 declare -A values=()
