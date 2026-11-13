@@ -67,7 +67,7 @@ func TestANameInTheHeadingOverTheGroupsOpensItsCard(t *testing.T) {
 	}
 	m = drive(m, esc)
 	// a click on a value's heading puts the cursor on it, folding nothing; one on its ▾ folds it, menu or none; ⏎ there
-	// drops none, nor does the keys bar offer one
+	// opens no card, nor does the keys bar offer one: it drops the heading's own menu down, as on any row
 	all = len(m.rows(0))
 	y := rowY(m, m.rows(0)[1].Key)
 	if m = drive(m, testkit.Click(8, y)); m.pop.Open || len(m.rows(0)) != all || m.stages[0].Cursor != 1 {
@@ -81,9 +81,10 @@ func TestANameInTheHeadingOverTheGroupsOpensItsCard(t *testing.T) {
 	if last := lines(m)[len(lines(m))-1]; strings.Contains(last, "⏎ settings") {
 		t.Errorf("the keys on a value's heading: %q", last)
 	}
-	if m = drive(m, press(tea.KeyEnter)); m.pop.Open {
-		t.Error("⏎ on a value's heading opened a card")
+	if m = drive(m, press(tea.KeyEnter)); m.pop.Open || !m.rowMenu.Open {
+		t.Errorf("⏎ on a value's heading: card %v, the row's menu %v", m.pop.Open, m.rowMenu.Open)
 	}
+	m = drive(m, esc)
 	if m = drive(m, testkit.Click(fold, y)); len(m.rows(0)) != all {
 		t.Errorf("a click on the value's ▸: %d rows of %d", len(m.rows(0)), all)
 	}

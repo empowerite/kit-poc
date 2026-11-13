@@ -408,12 +408,12 @@ func TestRowsAreSelectedSeveralAtOnceForTheTabsMenuToActOn(t *testing.T) {
 	if m = drive(m, testkit.Click(10, rowY(m, "#45"))); m.selected() != 0 || m.stages[0].Cursor != 3 {
 		t.Errorf("a click: %d selected, cursor %d", m.selected(), m.stages[0].Cursor)
 	}
-	// the tab's menu: open selected and clear selection are dim with nothing selected
+	// the tab's menu: with nothing selected, clear selection is dim, and open page opens the row under the cursor
 	on := func(name string) bool {
 		return m.enabled(slices.IndexFunc(m.tabItems(), func(i shell.Item) bool { return i.Name == name }))
 	}
-	if m = drive(m, press(':')); on("Open Selected") || !on("Select All") || on("Clear Selection") {
-		t.Errorf("open %v, select all %v, clear %v, with nothing selected", on("Open Selected"), on("Select All"),
+	if m = drive(m, press(':')); !on(OpenPage) || !on("Select All") || on("Clear Selection") {
+		t.Errorf("open %v, select all %v, clear %v, with nothing selected", on(OpenPage), on("Select All"),
 			on("Clear Selection"))
 	}
 	// select all selects every row, and is then dim
@@ -424,7 +424,7 @@ func TestRowsAreSelectedSeveralAtOnceForTheTabsMenuToActOn(t *testing.T) {
 	m.tabMenu.At = item(m, "Clear Selection")
 	m = drive(m, press(tea.KeyEnter), press(tea.KeySpace), up, press(tea.KeySpace))
 	browsed = nil
-	m = drive(m, press(':'), typed("o")[0], press(tea.KeyEnter))
+	m = drive(m, press(':'), typed("o")[0])
 	if len(browsed) != 2 || !strings.HasSuffix(browsed[0], "/issues/46") && !strings.HasSuffix(browsed[1], "/issues/46") {
 		t.Errorf("open selected opened %q", browsed)
 	}

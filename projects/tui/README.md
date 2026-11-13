@@ -18,13 +18,13 @@ It has six screens:
   keyboard, and a second click there runs it, as ⏎ does, so no single click runs a command.
 - **The flow picture.** `kit flow` at a terminal draws its stages here. Over a group, `kit --workspace=<group> flow`
   or one picked from the 📚 workspace menu, every tab gathers every cloned member's rows, grouped by member as they
-  load. An action on rows runs in each row's member's checkout. An action that writes, on issues or on packages, asks
-  first, once, in one dialog: its title says what it will do, a line for each issue or package says which it changes,
-  the repository is named under them, and for `kit work`, what it makes. The dialog has two buttons. ⏎, or a click on
-  the button that does it, runs kit. Esc, a click on Cancel, or a click off the dialog runs nothing and keeps the
-  selection. Where an action ran more than one command, the notice says how many. An issue's row and a pull
-  request's open the page kit printed for each, `url`, which its forge's provider gives; kittui builds no address of
-  its own, so a row kit gave none leads nowhere.
+  load. An action acts on the rows selected, or, with none selected, on the row under the cursor, and runs in each
+  row's member's checkout. An action that writes, on issues or on packages, asks first, once, in one dialog: its title
+  says what it will do, a line for each issue or package says which it changes, the repository is named under them,
+  and for `kit work`, what it makes. The dialog has two buttons. ⏎, or a click on the button that does it, runs kit.
+  Esc, a click on Cancel, or a click off the dialog runs nothing and keeps the selection. Where an action ran more
+  than one command, the notice says how many. An issue's row and a pull request's open the page kit printed for each,
+  `url`, which its forge's provider gives; kittui builds no address of its own, so a row kit gave none leads nowhere.
 - **The workspace picture.** `kit workspace` at a terminal draws what git holds across the workspace here: the 📚 repos
   tab first, a row per member of the workspace, then a tab for each of git's entities, remotes, branches, worktrees,
   commits, and tags. It is the flow picture's screen on kit workspace's stages, which kittui knows after `workspace/`,
@@ -186,8 +186,13 @@ Each screen reads what it shows from kit as JSON. A form reads `kit syntax <verb
     `internal/screens/crumb.go`, keeps the chain for the session. Only the app menu shows an app with no crumb.
   - A menu line's key stands at its right, dim, a letter in upper case, R as ⌃A, as a macOS menu draws it, and the
     letter alone does the same with the menu closed as choosing the line does with it open: r Refresh, w Watch, m
-    Maximize or Restore, o Open Selected, ⌃A Select All, and on issues n New… and a Assign to Me. With a menu open, a
+    Maximize or Restore, o Open Page, ⌃A Select All, and on issues n New… and a Assign to Me. With a menu open, a
     line's key chooses it before a letter moves to the next line starting with it.
+  - A row has a menu of its own, in `rowmenu.go`: ⏎ on a row drops it down under the row, or over it near the
+    screen's bottom. Its lines are Open Page, first, Select or Unselect, and, on issues and on packages, the stage's
+    actions; a line that cannot act stays, dim. It acts on its own row, or, where that row is among the selected, on
+    all of them. Esc or a click off it closes it, and a reload that takes its row away closes it too. The keys bar
+    names ⏎ while the rows have the keyboard.
     [ and ] move the cursor to the group heading before and after it, { and } to the first and the last, as they move
     between the palette's groups.
   - The search stands at the menu bar's right end, every screen's, and ⏎ or esc there gives the rows focus. No sidebar:

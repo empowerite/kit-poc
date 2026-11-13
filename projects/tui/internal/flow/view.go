@@ -179,8 +179,15 @@ func (m Model) presetKeys() shell.Segment { return table.PresetKeys(&m) }
 func (m *Model) Selects() bool { return true }
 
 // rowKeys gives the segment of the rows while they have the keyboard, as table.RowKeys says, ⌥ with an arrow named
-// where the terminal answered the kitty keyboard protocol.
-func (m Model) rowKeys() shell.Segment { return table.RowKeys(&m, m.altArrows) }
+// where the terminal answered the kitty keyboard protocol; and enter, which drops the menu of the row under the
+// cursor down, named after the keys that move, where a row is there.
+func (m Model) rowKeys() shell.Segment {
+	seg := table.RowKeys(&m, m.altArrows)
+	if _, ok := m.underCursor(); ok {
+		seg.Bindings = slices.Insert(seg.Bindings, 2, shell.Bind("⏎", "menu", "enter"))
+	}
+	return seg
+}
 
 // menuBar gives the menu bar, as internal/shell draws every screen's: the kit menu's = before kit flow; the workspace
 // menu, which names the workspace; maximized, the selected tab, as the bar draws it but its number in place of its

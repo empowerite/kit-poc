@@ -1,13 +1,15 @@
-// The issues' actions: what the tab's menu offers on the issues selected in issues, each a kit verb kittui runs and
-// never does itself, so a terminal, an agent over kit serve, and the menu do the same thing. An action that writes
-// asks first, once, in the one dialog they share: its title says what it will do, a line for each issue says which it
-// will change and where, and it has two buttons. Enter, or a click on the button that does it, runs kit; esc, a click
-// on Cancel, or a click off the dialog runs nothing. One that wants an answer, a title, a login, an issue, or one of
-// the caller's pull requests, asks for it in the same dialog. While kit runs, the keys bar says so; then it says what
-// kit did, or why it refused, the selection is cleared when kit did it, and the stages that read the forge's issues
-// and pull requests read them afresh. kit's verbs read a reference in the repository they run in, so while an issue
-// of another repository, which kit lists where a pull request here closes it, is among those selected, every action
-// that hands kit a reference is dim; Copy Links, which hands kit nothing, is not.
+// The issues' actions: what the tab's menu, and a row's, offer on the issues selected in issues, or, with none
+// selected, on the issue under the cursor, each a kit verb kittui runs and never does itself, so a terminal, an agent
+// over kit serve, and the menu do the same thing. The rows an action acts on are those subjects gives. An action that
+// writes asks first, once, in the one dialog they share: its title says what it will do, a line for each issue says
+// which it will change and where, and it has two buttons. Enter, or a click on the button that does it, runs kit;
+// esc, a click on Cancel, or a click off the dialog runs nothing. One that wants an answer, a title, a login, an
+// issue, or one of the caller's pull requests, asks for it in the same dialog. While kit runs, the keys bar says so;
+// then it says what kit did, or why it refused, the rows it acted on are selected no longer when kit did it, and the
+// stages that read the forge's issues and pull requests read them afresh. kit's verbs read a reference in the
+// repository they run in, so while an issue of another repository, which kit lists where a pull request here closes
+// it, is among those acted on, every action that hands kit a reference is dim; Copy Links, which hands kit nothing,
+// is not.
 package flow
 
 import (
@@ -43,7 +45,7 @@ const issuesStage = "issues"
 
 // actions gives the issues' actions, in the tab's menu's order, on issues, the Packages app's on its stage, as
 // packages.go says, and none elsewhere: New… first, which files an issue and needs none selected, then those on the
-// issues selected, there with nothing selected too, dim, so the menu shows what selecting issues makes possible.
+// issues it acts on, there with none to act on too, dim, so the menu shows what a row makes possible.
 func (m Model) actions() []shell.Item {
 	if m.onPackages() {
 		return packageActions()
@@ -79,6 +81,7 @@ type ask struct {
 	pick    []string // each line's answer, when one is picked
 	at      int      // the line under the keyboard
 	changes []string // what it will change, a line each
+	rows    []string // the keys of the rows it acts on
 	says    []string // what is said under them, a sentence each: the repository, and what kit makes
 	does    string   // the name on its button that does it: Assign
 	run     func(answer string) []call
@@ -127,11 +130,11 @@ func (m Model) checkoutOf(member string) string {
 	return ""
 }
 
-// refsByMember gives the issues selected in issues, a member's together, the members in the rows' order, an issue
-// underway that two selected rows stand for once.
+// refsByMember gives the issues an action acts on, a member's together, the members in the rows' order, an issue
+// underway that two rows stand for once.
 func (m Model) refsByMember() []memberRefs {
 	var out []memberRefs
-	for _, r := range m.selectedRows() {
+	for _, r := range m.subjects() {
 		member, ref := refOf(r.Key)
 		k := slices.IndexFunc(out, func(g memberRefs) bool { return g.member == member })
 		if k < 0 {
@@ -156,18 +159,19 @@ type trackersMsg struct {
 }
 
 // actedMsg is what kit printed for an action's commands, its refusal when one failed: those after it did not run;
-// and how many commands the action ran, or would have.
+// how many commands the action ran, or would have; and the keys of the rows it acted on.
 type actedMsg struct {
-	out string
-	err error
-	ran int
+	out  string
+	err  error
+	ran  int
+	rows []string
 }
 
-// refs gives the references of the issues selected in issues, in the rows' order: #45, whatever their member, each
+// refs gives the references of the issues an action acts on, in the rows' order: #45, whatever their member, each
 // once.
 func (m Model) refs() []string {
 	var out []string
-	for _, r := range m.selectedRows() {
+	for _, r := range m.subjects() {
 		if _, ref := refOf(r.Key); !slices.Contains(out, ref) {
 			out = append(out, ref)
 		}
@@ -196,10 +200,10 @@ func (m Model) mine() (numbers []int, lines []string) {
 	return numbers, lines
 }
 
-// acting says whether an item of the tab's menu is one of the issues' actions, and whether it does anything now:
-// New… always; the rest none while no issue is selected; all of those but Copy Links, which hand kit the issues'
-// references, none while an issue of another repository is among them, as away says; and Add to Pull Request only
-// while the caller has an open pull request to add to.
+// acting says whether a menu's line is one of the issues' actions, and whether it does anything now: New… always;
+// the rest none while there is no issue to act on, none selected and none under the cursor, as subjects says; all of
+// those but Copy Links, which hand kit the issues' references, none while an issue of another repository is among
+// them, as away says; and Add to Pull Request only while the caller has an open pull request to add to.
 func (m Model) acting(name string) (action, enabled bool) {
 	if !slices.ContainsFunc(m.actions(), func(i shell.Item) bool { return i.Name == name }) {
 		return false, false
@@ -210,7 +214,7 @@ func (m Model) acting(name string) (action, enabled bool) {
 	if name == "New…" {
 		return true, m.runner.Group == "" || m.cursorMember() != ""
 	}
-	if m.selected() == 0 || name != "Copy Links" && m.away() ||
+	if len(m.subjects()) == 0 || name != "Copy Links" && m.away() ||
 		slices.Contains(oneMember, name) && len(m.refsByMember()) > 1 {
 		return true, false
 	}
@@ -221,7 +225,7 @@ func (m Model) acting(name string) (action, enabled bool) {
 	return true, true
 }
 
-// away says whether an issue of another repository, as elsewhere says, is among those selected in issues: kit's verbs
+// away says whether an issue of another repository, as elsewhere says, is among those an action acts on: kit's verbs
 // would read its reference as the issue of that number in the repository here.
 func (m Model) away() bool {
 	far := map[string]bool{}
@@ -233,7 +237,7 @@ func (m Model) away() bool {
 	if len(far) == 0 {
 		return false
 	}
-	return slices.ContainsFunc(m.selectedRows(), func(r row) bool {
+	return slices.ContainsFunc(m.subjects(), func(r row) bool {
 		member, ref := refOf(r.Key)
 		return far[m.keyOf(member, ref)]
 	})
@@ -292,7 +296,7 @@ func (m *Model) act(name string) tea.Cmd {
 		these, all, twins = "this issue", "this issue", "a duplicate"
 	}
 	asks := func(a ask, made ...string) {
-		a.changes, a.says = m.listed(), append(m.inHere(), made...)
+		a.changes, a.says, a.rows = m.listed(), append(m.inHere(), made...), m.subjectKeys()
 		m.ask = &a
 	}
 	confirm := func(title, does string, words ...string) {
@@ -393,12 +397,12 @@ func (m *Model) newIssue(msg trackersMsg) tea.Cmd {
 	return nil
 }
 
-// listed gives a line for each issue selected, its reference and title, after its member's short name over a group,
-// for the dialog an action asks in, which lists what it will change: an issue underway that two selected rows stand
+// listed gives a line for each issue an action acts on, its reference and title, after its member's short name over
+// a group, for the dialog an action asks in, which lists what it will change: an issue underway that two rows stand
 // for is listed once.
 func (m Model) listed() []string {
 	var out []string
-	for _, r := range m.selectedRows() {
+	for _, r := range m.subjects() {
 		member, ref := refOf(r.Key)
 		line := ref + " " + m.issueTitle(member, ref)
 		if member != "" {
@@ -437,12 +441,12 @@ func (m Model) issueNamed(member, ref string) (found issue) {
 	return found
 }
 
-// links gives the selected issues as Markdown, one a line: a link to each issue's page, the one kit printed for the
-// issue, never its pull request's, its reference and title the link's text, or the text alone for an issue kit
-// printed no page for.
+// links gives the issues an action acts on as Markdown, one a line: a link to each issue's page, the one kit printed
+// for the issue, never its pull request's, its reference and title the link's text, or the text alone for an issue
+// kit printed no page for.
 func (m Model) links() string {
 	var out []string
-	for _, r := range m.selectedRows() {
+	for _, r := range m.subjects() {
 		member, ref := refOf(r.Key)
 		i := m.issueNamed(member, ref)
 		text := ref + " " + i.Title
@@ -456,8 +460,8 @@ func (m Model) links() string {
 }
 
 // run runs kit's commands, one after another, each in its checkout, the keys bar saying so until kit answers; a
-// refusal stops the rest.
-func (m *Model) run(calls []call) tea.Cmd {
+// refusal stops the rest. rows are the keys of the rows the commands act on.
+func (m *Model) run(calls []call, rows []string) tea.Cmd {
 	if len(calls) == 0 {
 		return nil
 	}
@@ -473,17 +477,17 @@ func (m *Model) run(calls []call) tea.Cmd {
 			o, err := in.Act(ctx, c.words...)
 			out.WriteString(o)
 			if err != nil {
-				return actedMsg{out.String(), err, len(calls)}
+				return actedMsg{out.String(), err, len(calls), rows}
 			}
 		}
-		return actedMsg{out.String(), nil, len(calls)}
+		return actedMsg{out.String(), nil, len(calls), rows}
 	}
 }
 
 // acted takes what kit said for an action: its last line in place of the keys, and, where the action ran more than
-// one command, that the line is the last of so many, or its refusal; when kit did what was asked, the selection is
-// cleared; either way, what reads the forge's issues reads them afresh, and the packages stage, after a Packages
-// action, reads the active set again.
+// one command, that the line is the last of so many, or its refusal; when kit did what was asked, the rows it acted
+// on are selected no longer, and any other selected stays; either way, what reads the forge's issues reads them
+// afresh, and the packages stage, after a Packages action, reads the active set again.
 func (m *Model) acted(msg actedMsg) tea.Cmd {
 	lines := strings.Split(strings.TrimSpace(ansi.Strip(msg.out)), "\n")
 	name := issuesStage
@@ -499,7 +503,9 @@ func (m *Model) acted(msg actedMsg) tea.Cmd {
 		}
 		m.done(did)
 		if s := m.find(name); s != nil {
-			clear(s.Picked)
+			for _, key := range msg.rows {
+				delete(s.Picked, key)
+			}
 		}
 	}
 	return m.refresh(name)
@@ -524,7 +530,7 @@ func (m Model) askKey(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if a.then != nil {
 			return m, a.then(answer)
 		}
-		return m, m.run(a.run(answer))
+		return m, m.run(a.run(answer), a.rows)
 	case a.pick != nil && (key == "up" || key == "down"):
 		a.at = shell.Step(a.at, len(a.pick), map[string]int{"up": -1, "down": 1}[key], shell.Every)
 	case a.typing:

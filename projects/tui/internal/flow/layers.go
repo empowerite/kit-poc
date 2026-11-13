@@ -2,8 +2,8 @@
 // follow, as shell.Layers says, the topmost first: what an issues action asks, which takes every key and click until it
 // is answered, a click on one of its buttons, or off it, answering it; a field's card; the fields dialog, which the
 // card opens over; the presets' menu; the searches remembered under the search's ▾; the app's menu; the workspace
-// menu's dropdown; and the tab's menu. The two menus that hang from the bar take a left click, and leave the others
-// to the screen, as a right click under them groups.
+// menu's dropdown; the tab's menu; and a row's menu. The two menus that hang from the bar take a left click, and
+// leave the others to the screen, as a right click under them groups.
 package flow
 
 import (
@@ -101,6 +101,22 @@ func (m Model) layers() shell.Layers[Model] {
 			Draw: func(m Model, lines []string) []string {
 				box, left := m.menuBox()
 				return shell.Over(lines, box, m.menuTop(), left)
+			},
+		},
+		{ // a row's menu, which takes every click
+			Open: func(m Model) bool { return m.rowMenu.Open },
+			Key:  model(Model.rowMenuKey),
+			Click: func(m Model, c tea.MouseClickMsg) (Model, tea.Cmd, bool) {
+				if c.Button != tea.MouseLeft {
+					return m, nil, true
+				}
+				cmd := m.rowMenuClick(c.X, c.Y)
+				return m, cmd, true
+			},
+			Keys: menu,
+			Draw: func(m Model, lines []string) []string {
+				box, top, left, _ := m.rowMenuBox()
+				return shell.Over(lines, box, top, left)
 			},
 		},
 	}...)

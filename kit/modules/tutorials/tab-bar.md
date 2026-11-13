@@ -37,9 +37,10 @@ Each [app](kittui:welcome/terms/application) has its own tabs: one [stage](kittu
 - **Maximize** `M`  the rows take the whole screen. **Restore** `M` undoes it.
 - **Refresh** `R`  read the stage again
 - **Watch** `W`  read it again whenever it changes
-- **Open Selected** `O`  open the selected [rows](kittui:tutorials/rows) on the forge
+- **Open Page** `O`  open the selected [rows](kittui:tutorials/rows) on the forge, or the row under the cursor
 - **Select All** `⌃A`
 - **Show More** `>` and **Show Less** `<`  open or close a level of the rows
 - **Show Selected** and **Hide Selected**
 
-Some stages add their own lines. The issues tab has **New…** `N` and **Assign to Me** `A`.
+Some stages add their own lines. The issues tab has **New…** `N` and **Assign to Me** `A`. They act on the selected
+rows, or on the row under the cursor when none is selected.

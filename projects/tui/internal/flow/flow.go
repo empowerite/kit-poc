@@ -2,8 +2,9 @@
 // and a row opened in place. It draws from kit flow <stage> --json and never parses kit's text. While the bar has the
 // keyboard, tab and shift-tab move along it, as they move between the stops on any line; a stage's number, or a click on the bar, selects it from anywhere and gives
 // the bar the keyboard. Down enters a stage's rows and up on the first row leaves them; in the rows, right opens a row
-// and left closes it, space selects it as one of several, shift with up or down selects as it moves, and ctrl+a selects
-// every row, and a click on a row puts the cursor there, and on the row under it opens or closes it; = drops the app's
+// and left closes it, enter drops the row's menu down, which rowmenu.go describes, space selects it as one of
+// several, shift with up or down selects as it moves, and ctrl+a selects every row, and a click on a row puts the
+// cursor there, and on the row under it opens or closes it; = drops the app's
 // menu down, as a click on = or the screen's name does, - the workspace menu, and : or ; the selected tab's, as a click
 // anywhere on the tab does; F1 or ? shows the legend over the rows, and again hides it; / or a click on the search,
 // always on the screen's top right, gives the search the keyboard. A click on a linked glyph, as an issue's before its
@@ -203,6 +204,7 @@ type Model struct {
 	noPresets     bool                      // whether the stages' tables have no preset line
 	recent        shell.Recent              // the searches remembered, every screen's, and their dropdown
 	tabMenu       shell.Dropdown            // the selected tab's menu: whether it is open, and then has the keyboard, and its line under it
+	rowMenu       rowMenu                   // the menu of the row under the cursor, which enter drops down from it
 	maximized     bool                      // whether the tab's rows have the bar's lines but one, for the session
 	appMenu       shell.Menu                // the app's menu, internal/shell's, which has the keyboard while it is open
 	books         shell.BooksMenu           // the title's workspace menu, which has the keyboard while it is open
@@ -340,8 +342,9 @@ func (m Model) env() source.Env { return source.Env{Ctx: m.ctx, Limit: m.limit, 
 // Update takes a message, as update does; then kit is asked who the caller is, once, where a stage's panel filters by
 // @me and nothing has asked yet; a name typed for Save As… or Rename… on a preset line that no longer
 // has the keyboard is dropped, so the line does not come back to it; a stage that loaded has the marks read again, and
-// the rate limits, where it reads the forge; and a notice that says what was done, new, goes after Fades, unless a key
-// or another notice took its place first.
+// the rate limits, where it reads the forge; a row's menu whose row is no longer under the cursor, as a reload may
+// take it away, is closed, since it would act on another row; and a notice that says what was done, new, goes after
+// Fades, unless a key or another notice took its place first.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if f, ok := msg.(shell.FadedMsg); ok {
 		m.note = m.note.Faded(f)
@@ -362,6 +365,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd = tea.Batch(cmd, n.marks.Ask(n.env()))
 		if c := catalog[a.Name]; c != nil && c.Forge || !n.quota.Got {
 			cmd = tea.Batch(cmd, n.quota.Ask(n.env()))
+		}
+	}
+	if n.rowMenu.Open {
+		if under, ok := n.underCursor(); !ok || under.Key != n.rowMenu.key {
+			n.rowMenu.Open = false
 		}
 	}
 	if !n.onPreset {
@@ -883,6 +891,8 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.fit()
 	case "?", "f1":
 		m.toggleLegend()
+	case "enter":
+		return m, m.openRowMenu(-1)
 	case "space":
 		m.selectRow(false)
 	case "ctrl+a":

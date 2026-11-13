@@ -33,9 +33,17 @@ order: 14
 
 - `↑` `↓`  move
 - `→` `←`  open and close, or step in and out
+- `⏎`  the row's menu: open its page, select it, or act on it
 - `␣`  select. On a heading: its whole group.
 - `[` `]`  previous and next group
 - `{` `}`  first and last group
 - `>` `<`  open or close a level everywhere
 
 A selected heading shows `▣` when all its rows are selected, and `◩` when some are.
+
+## Acting on rows
+
+- With rows selected, an action in the [tab menu](kittui:tutorials/tab-bar) acts on all of them.
+- With none selected, it acts on the row under the cursor. So does its key: `O` opens that row's page.
+- `⏎` on a row opens the row's own menu. It acts on that row, or on the whole selection when the row is part of it.
+- An action that writes asks first, and lists what it will change. `⏎` does it, `esc` cancels.

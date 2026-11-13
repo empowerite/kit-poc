@@ -73,8 +73,8 @@ func TestOverSSHOpeningAPageShowsTheLinkAndRunsNoOpener(t *testing.T) {
 	}
 }
 
-// Open Selected over SSH shows the first page's link and says how many more were asked, and runs no opener.
-func TestOverSSHOpenSelectedShowsTheFirstLinkAndCountsTheRest(t *testing.T) {
+// Open Page over SSH shows the first page's link and says how many more were asked, and runs no opener.
+func TestOverSSHOpenPageShowsTheFirstLinkAndCountsTheRest(t *testing.T) {
 	m := loaded(t, options(), down)
 	record := atTheOpener(t, &m)
 	t.Setenv("SSH_TTY", "/dev/pts/0")
@@ -83,7 +83,7 @@ func TestOverSSHOpenSelectedShowsTheFirstLinkAndCountsTheRest(t *testing.T) {
 	if len(pages) != 2 {
 		t.Fatalf("pages: %q", pages)
 	}
-	m = choose(t, m, "Open Selected")
+	m = choose(t, m, OpenPage)
 	if want := "Open " + pages[0] + " in a browser, and 1 more page"; m.note.Text != want || m.note.Done {
 		t.Errorf("the notice: %q (noted %v), want %q", m.note.Text, m.note.Done, want)
 	}
@@ -96,13 +96,13 @@ func TestOverSSHOpenSelectedShowsTheFirstLinkAndCountsTheRest(t *testing.T) {
 	if len(three) != 3 {
 		t.Fatalf("pages: %q", three)
 	}
-	if m = choose(t, m, "Open Selected"); m.note.Text != "Open "+three[0]+" in a browser, and 2 more pages" {
+	if m = choose(t, m, OpenPage); m.note.Text != "Open "+three[0]+" in a browser, and 2 more pages" {
 		t.Errorf("three pages: %q", m.note.Text)
 	}
 	// one page asked says no more
 	delete(m.stages[0].Picked, "empowerite/jig#7")
 	delete(m.stages[0].Picked, "#45")
-	if m = choose(t, m, "Open Selected"); m.note.Text != "Open "+pages[0]+" in a browser" {
+	if m = choose(t, m, OpenPage); m.note.Text != "Open "+pages[0]+" in a browser" {
 		t.Errorf("one page: %q", m.note.Text)
 	}
 }

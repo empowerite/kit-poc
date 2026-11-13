@@ -5,7 +5,7 @@
 // would run off the screen. While one is open it has the keyboard: up and down move, a letter moves to the next item
 // that starts with it, enter and space choose, and esc or the key that opened it closes it; a click on an item chooses
 // it, and a click anywhere else closes it. The tab's choices act on the selected stage's rows; an item that would
-// change nothing is dim, and the keyboard passes it by.
+// change nothing is dim, and the keyboard passes it by. A row has a menu of its own, which rowmenu.go describes.
 package flow
 
 import (
@@ -42,8 +42,9 @@ const (
 // tabItems gives the tab's menu's lines, top to bottom: the stage loaded again; watched, or no longer, as watch.go
 // says, where its verb marks it; the tab maximized, or restored once it is; a rule; a level more of the outline and a
 // level less, and the selection shown and hidden, as folds names them; a rule; every row selected and none; a rule;
-// and what acts on the rows selected: on issues, the actions there, then each one's page opened. A line with a key
-// shows it at its right; the key does the same with the menu closed, as shortcut says.
+// and what acts on the rows selected, or, with none selected, on the row under the cursor, which subjects gives: on
+// issues, the actions there, then each one's page opened. A line with a key shows it at its right; the key does the
+// same with the menu closed, as shortcut says.
 func (m Model) tabItems() []shell.Item {
 	size := tabs.SizeItem(m.maximized)
 	items := []shell.Item{{Glyph: Reload, Name: "Refresh", Keys: "R"}}
@@ -52,7 +53,7 @@ func (m Model) tabItems() []shell.Item {
 	}
 	items = append(append(items, size, shell.Item{}), m.folds()...)
 	items = append(append(append(items, shell.Item{}), tabs.SelectItems()...), shell.Item{})
-	return append(append(items, m.actions()...), shell.Item{Glyph: Browse, Name: "Open Selected", Keys: "O"})
+	return append(append(items, m.actions()...), shell.Item{Glyph: Browse, Name: OpenPage, Keys: "O"})
 }
 
 // shortcut gives the tab's menu's line whose key the press is, when it acts now, or -1; with the menu closed, the key
@@ -113,26 +114,32 @@ func (m *Model) chose(c shell.Choice) tea.Cmd {
 	return nil
 }
 
-// enabled says whether the tab's menu's line k does something to the selected stage's rows now: a fold item while it
-// would show or hide a node of the outline, as Folding says, so Show Selected and Hide Selected are dim while no row
-// is selected; the rule never does.
-func (m Model) enabled(k int) bool {
+// enabled says whether the tab's menu's line k does something now, as acts says of its name.
+func (m Model) enabled(k int) bool { return m.acts(m.tabItems()[k].Name) }
+
+// acts says whether the line named, of the tab's menu or of a row's, does something to the selected stage's rows
+// now: a fold item while it would show or hide a node of the outline, as Folding says, so Show Selected and Hide
+// Selected are dim while no row is selected; Open Page while a row it acts on has a page; a row's Select and
+// Unselect on a row that can be selected; the rule never does.
+func (m Model) acts(name string) bool {
 	s := m.stages[m.stage]
-	if action, on := m.acting(m.tabItems()[k].Name); action {
+	if action, on := m.acting(name); action {
 		return on
 	}
-	if next, fold := table.Folding(&m, m.tabItems()[k].Name); fold {
+	if next, fold := table.Folding(&m, name); fold {
 		return table.Changes(&m, next)
 	}
-	switch m.tabItems()[k].Name {
+	switch name {
 	case "Maximize", "Restore":
 		return true
 	case "Refresh", StopIt:
 		return sourced(s.name)
 	case WatchIt:
 		return m.watchable(m.stage)
-	case "Open Selected":
+	case OpenPage:
 		return len(m.pages()) > 0
+	case SelectIt, UnselectIt:
+		return m.selects()
 	case "Select All":
 		return m.selected() < table.Counted(m.every(m.stage))
 	case "Clear Selection":
@@ -141,23 +148,27 @@ func (m Model) enabled(k int) bool {
 	return false
 }
 
-// pick does what the tab's menu's item at k says to the selected stage's rows, closes the menu, and gives the rows the
-// keyboard, so left and right go on from there; maximize and restore give the rows the bar's lines but one, or take them
-// back, and refresh runs the stage again, as refresh says, each leaving the keyboard where it was. It gives what
-// refresh runs. The item is always one enabled: the menu's keys and clicks, and a shortcut, choose no other, as
-// shell.Dropdown and shell.Shortcut do.
-func (m *Model) pick(k int) tea.Cmd {
+// pick does what the tab's menu's item at k says, as do says of its name.
+func (m *Model) pick(k int) tea.Cmd { return m.do(m.tabItems()[k].Name) }
+
+// do does what the line named, of the tab's menu or of a row's, says to the selected stage's rows, and closes the
+// menu it was chosen from, once what it acts on is read, since a row's menu acts on its own row; a fold gives the
+// rows the keyboard, so left and right go on from there; maximize and restore give the rows the bar's lines but one,
+// or take them back, and refresh runs the stage again, as refresh says, each leaving the keyboard where it was. It
+// gives what the line runs. The line is always one enabled: the menus' keys and clicks, and a shortcut, choose no
+// other, as shell.Dropdown and shell.Shortcut do.
+func (m *Model) do(name string) tea.Cmd {
+	defer func() { m.tabMenu.Open, m.rowMenu.Open = false, false }()
 	s := &m.stages[m.stage]
-	m.tabMenu.Open = false
-	if action, _ := m.acting(m.tabItems()[k].Name); action {
-		return m.act(m.tabItems()[k].Name)
+	if action, _ := m.acting(name); action {
+		return m.act(name)
 	}
-	if next, fold := table.Folding(m, m.tabItems()[k].Name); fold {
+	if next, fold := table.Folding(m, name); fold {
 		m.inRows, m.inPanel, m.onPreset = true, false, false
 		table.Reoutline(m, next)
 		return nil
 	}
-	switch m.tabItems()[k].Name {
+	switch name {
 	case "Maximize", "Restore":
 		m.maximize(!m.maximized)
 		return nil
@@ -165,8 +176,11 @@ func (m *Model) pick(k int) tea.Cmd {
 		return m.refresh(s.name)
 	case WatchIt, StopIt:
 		return m.toggleWatch(m.stage)
-	case "Open Selected":
+	case OpenPage:
 		return m.openPages(m.pages())
+	case SelectIt, UnselectIt:
+		m.selectRow(false)
+		return nil
 	case "Select All":
 		clear(s.Picked)
 		m.selectAll()
@@ -177,11 +191,11 @@ func (m *Model) pick(k int) tea.Cmd {
 	return nil
 }
 
-// pages gives the page each selected row of the selected stage leads to: its first cell's link that opens a page;
-// a row with none gives none.
+// pages gives the page each row an action acts on leads to, as subjects gives the rows: its first cell's link that
+// opens a page; a row with none gives none.
 func (m Model) pages() []string {
 	var out []string
-	for _, r := range m.selectedRows() {
+	for _, r := range m.subjects() {
 		for _, c := range r.Cells {
 			if strings.Contains(c.Link, "://") {
 				out = append(out, c.Link)

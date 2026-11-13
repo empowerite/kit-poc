@@ -1,7 +1,7 @@
 // The Packages app: kit packages' one stage, a row per package in reach, drawn from the catalog as kit workspace's
-// stages are, and the tab's menu's actions on the packages selected, each kit packages add, remove, or select, which
-// kittui runs and never does itself. Each shows what it changes and asks first, in the dialog the issues' actions ask
-// in, which act.go describes.
+// stages are, and the menus' actions on the packages selected, or on the one under the cursor, each kit packages add,
+// remove, or select, which kittui runs and never does itself. Each shows what it changes and asks first, in the
+// dialog the issues' actions ask in, which act.go describes.
 package flow
 
 import (
@@ -73,11 +73,12 @@ func (m Model) packageStates() (states map[string]string, active map[string][]st
 	return states, active
 }
 
-// pickedPackages gives the packages selected, a member's together, the members in the rows' order.
+// pickedPackages gives the packages an action acts on, as subjects gives the rows, a member's together, the members
+// in the rows' order.
 func (m Model) pickedPackages() []memberPackages {
 	states, _ := m.packageStates()
 	var out []memberPackages
-	for _, r := range m.selectedRows() {
+	for _, r := range m.subjects() {
 		member, name := refOf(r.Key)
 		k := slices.IndexFunc(out, func(g memberPackages) bool { return g.member == member })
 		if k < 0 {
@@ -144,7 +145,7 @@ func (m *Model) actOnPackages(name string) tea.Cmd {
 		if len(lines) == 1 {
 			title = one
 		}
-		m.ask = &ask{title: title, does: does, changes: lines, says: m.inHere(),
+		m.ask = &ask{title: title, does: does, changes: lines, says: m.inHere(), rows: m.subjectKeys(),
 			run: func(string) []call { return each(verb, names) }}
 	}
 	switch name {
@@ -175,9 +176,10 @@ func (m *Model) actOnPackages(name string) tea.Cmd {
 		if len(chosen) == 1 {
 			title = "Make this the only active package? kit keeps what it needs, and takes out the rest"
 		}
-		m.ask = &ask{title: title, does: "Select", changes: lines, says: m.inHere(), run: func(string) []call {
-			return []call{{g.dir, append([]string{packagesVerb, "select"}, chosen...)}}
-		}}
+		m.ask = &ask{title: title, does: "Select", changes: lines, says: m.inHere(), rows: m.subjectKeys(),
+			run: func(string) []call {
+				return []call{{g.dir, append([]string{packagesVerb, "select"}, chosen...)}}
+			}}
 	}
 	return nil
 }

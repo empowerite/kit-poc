@@ -51,7 +51,7 @@ func TestARefusedReloadDrawsTheRefusalAndNoRowOfTheLoadBefore(t *testing.T) {
 		}
 		// the tab's menu selects and copies nothing of the load before, and a key in the rows moves to none
 		m = drive(m, press(':'))
-		for _, name := range []string{"Select All", "Copy Links", "Open Selected"} {
+		for _, name := range []string{"Select All", "Copy Links", OpenPage} {
 			if k := item(m, name); k < 0 || m.enabled(k) {
 				t.Errorf("at %d columns, %s over the refusal: line %d, not dim", width, name, k)
 			}

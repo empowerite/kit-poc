@@ -97,7 +97,7 @@ func TestTheIssuesActionsAreInItsMenuDimUntilIssuesAreSelected(t *testing.T) {
 	m, _ = selecting(t)
 	names := []string{"New…", "Start Local Work for Each", "Start Local Work Together…", "Add to Pull Request…", "Assign to Me",
 		"Assign to…", "Unassign", "Gather Under a Parent…", "Close as Not Planned", "Close as Duplicate of…",
-		"Copy Links", "Open Selected"}
+		"Copy Links", OpenPage}
 	if got := m.tabItems()[len(m.tabItems())-len(names):]; !slices.EqualFunc(got, names,
 		func(i shell.Item, n string) bool { return i.Name == n }) || m.tabItems()[len(m.tabItems())-len(names)-1].Name != "" {
 		t.Errorf("the last section: %+v", got)
@@ -445,7 +445,7 @@ func TestATallMenuScrollsWithTheKeyboardAndAClickPicksWhatItShows(t *testing.T) 
 		strings.Contains(ansi.Strip(box[0]), "▴") {
 		t.Fatalf("the menu at the top: %d lines, first %d\n%s", len(box), first, view(m))
 	}
-	m.tabMenu.At = item(m, "Open Selected")
+	m.tabMenu.At = item(m, OpenPage)
 	box, left, first := m.menuBoxIn()
 	if first == 0 || !strings.Contains(ansi.Strip(box[0]), "▴") || strings.Contains(ansi.Strip(box[len(box)-1]), "▾") {
 		t.Errorf("the menu at the end: first %d\n%s", first, view(m))
@@ -494,8 +494,11 @@ func TestNewOffersTheTrackersAndOpensThePagePicked(t *testing.T) {
 		!slices.Equal(opened, []string{"https://dev.azure.com/example/Claims%20Team/_workitems/create/Task"}) {
 		t.Errorf("a click on Open: opened %q, dialog %+v", opened, byClick.ask)
 	}
+	// the dialog asked again, from its first line
 	opened = nil
-	m = choose(t, m, "New…")
+	if m = choose(t, drive(m, esc), "New…"); m.ask == nil || m.ask.at != 0 {
+		t.Fatalf("the dialog asked again: %+v", m.ask)
+	}
 	if m = drive(m, down, press(tea.KeyEnter)); m.ask != nil ||
 		!slices.Equal(opened, []string{"https://dev.azure.com/example/Claims%20Team/_workitems/create/Task"}) {
 		t.Errorf("enter on AB#: opened %q, dialog %+v", opened, m.ask)
@@ -636,7 +639,7 @@ func TestOverAGroupNewAsksInTheMemberUnderTheCursor(t *testing.T) {
 
 func TestNoCommandRunsNothing(t *testing.T) {
 	m := loaded(t, options())
-	if cmd := m.run(nil); cmd != nil || m.note.Text != "" {
+	if cmd := m.run(nil, nil); cmd != nil || m.note.Text != "" {
 		t.Errorf("run with no command: %v, %q", cmd != nil, m.note.Text)
 	}
 	// a label a row holds is the row's, with its color; one no row holds is its name alone

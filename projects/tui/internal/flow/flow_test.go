@@ -471,9 +471,13 @@ func TestRightOpensARowAndLeftClosesIt(t *testing.T) {
 	if !m.find("builds").Open["41309409501"] {
 		t.Errorf("the row is not open by its key: %v", m.find("builds").Open)
 	}
-	// right on an open row and enter keep it open; left closes it, and again keeps it closed
-	if m = drive(m, right, press(tea.KeyEnter)); !strings.Contains(view(m), "publish") {
-		t.Errorf("right or enter closed the row:\n%s", view(m))
+	// right on an open row keeps it open, and so does enter, which drops the row's menu down over it; left closes it,
+	// and again keeps it closed
+	if m = drive(m, right, press(tea.KeyEnter)); !m.rowMenu.Open || !m.find("builds").Open["41309409501"] {
+		t.Errorf("right or enter closed the row, or enter dropped no menu:\n%s", view(m))
+	}
+	if m = drive(m, esc); !strings.Contains(view(m), "publish") {
+		t.Errorf("the row under the menu is closed:\n%s", view(m))
 	}
 	m = drive(m, left, left)
 	if v := view(m); strings.Contains(v, "publish") || m.stage != 2 {
@@ -670,19 +674,19 @@ func fit(keys string, room int) string {
 const (
 	screenKeys = "= menu - workspace / search ? legend ⌃Q quit │ "
 	barKeys    = screenKeys + "⇥·⇧⇥ tab ↓ groups 1-5 jump : tab menu"
-	inRows     = screenKeys + "1-5 jump : tab menu │ esc tabs ↑↓ move ␣·⇧↑↓ select ⌃A all"
+	inRows     = screenKeys + "1-5 jump : tab menu │ esc tabs ↑↓ move ⏎ menu ␣·⇧↑↓ select ⌃A all"
 	opens      = inRows + " → show"
 	closes     = inRows + " ← hide"
 )
 
 // keysFor gives the keys bar for the screen as it is: in rows more than the pane shows, the page keys move a page at a
-// time; in rows wider than the pane, tab and shift-tab scroll their columns.
+// time; in rows wider than the pane, tab and shift-tab scroll their columns; both after the row's menu's key.
 func keysFor(m Model, keys string) string {
 	if _, before, after := table.Scrolled(&m); m.inRows && (before || after) {
-		keys = strings.Replace(keys, "↑↓ move ", "↑↓ move ⇥·⇧⇥ columns ", 1)
+		keys = strings.Replace(keys, "⏎ menu ", "⏎ menu ⇥·⇧⇥ columns ", 1)
 	}
 	if m.inRows && len(m.lines()) > m.rowsHeight() {
-		keys = strings.Replace(keys, "↑↓ move ", "↑↓ move ⇞⇟ page ", 1)
+		keys = strings.Replace(keys, "⏎ menu ", "⏎ menu ⇞⇟ page ", 1)
 	}
 	return keys
 }
@@ -695,7 +699,7 @@ func TestTheKeysBarIsTheLastLineInEveryState(t *testing.T) {
 		{nil, barKeys},
 		{[]tea.Msg{tab, tab, down, down}, opens},
 		// past the headings, jig's #7, and kit's heading, to #45, which [ and ] step from group to group
-		{[]tea.Msg{down, down, down, down, down, down}, strings.Replace(opens, "↑↓ move ", "↑↓ move [] group ", 1)},
+		{[]tea.Msg{down, down, down, down, down, down}, strings.Replace(opens, "⏎ menu ", "⏎ menu [] group ", 1)},
 		{[]tea.Msg{tab, tab, down, down, right}, closes},
 		{[]tea.Msg{press('?')}, barKeys},
 		{[]tea.Msg{press('?'), press(tea.KeyPgDown)}, barKeys},
