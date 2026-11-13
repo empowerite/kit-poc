@@ -131,6 +131,71 @@ fake-tui() {
   export FAKES="${BATS_TEST_TMPDIR}/fake" PATH="${BATS_TEST_TMPDIR}/fake:${PATH}"
 }
 
+# started <function> <argument>… prints how many bash processes the function starts, itself included, with the flow
+# module loaded: it runs under xtrace, where each process's lines carry its own BASHPID, so a command substitution, a
+# pipeline's part, and a process substitution each count once. It counts work, which a loaded machine does not change.
+started() {
+  kit_invoked_in=$(pwd -P) bash -c 'source "${kit_root}/modules/bash/1st.sh" && use flow \
+    && PS4="+@\${BASHPID}@ " && set -x && "$@"' _ "$@" 2>&1 >/dev/null \
+    | grep --only-matching '^+*@[0-9]*@ ' | tr -d '+ ' | LC_ALL=C sort -u | wc -l | tr -d ' '
+}
+
+@test "a table's rows start no process: issues, changes, builds, and releases draw 40 rows with the processes 4 take" {
+  local few many
+  # every cell an issue's row can hold: assignees, a change with its state, a fork, a push, and where the work is
+  issues() {
+    jq --null-input --compact-output --argjson n "$1" '[range(1; $n + 1) | {number: ., title: "Issue \(.)",
+      assignees: (if . % 2 == 0 then ["ada"] else [] end), age: (. * 4000), milestone: "v0.1", iteration: "Sprint 2",
+      swimlane: "Lane", status: (if . % 3 == 0 then "backlog" else "underway" end), here: (. % 5 == 0),
+      local: (. % 7 == 0), branch: (if . % 3 == 2 then "\(.)-branch" else null end)}
+      + (if . % 3 == 1 then {pr: {number: (100 + .), source: "github", state: "draft", author: "bob", fork: "cy",
+                                  pushed: {age: 7200, by: "dee"}}} else {} end)]'
+  }
+  # every cell a change's block can hold: its author, checks that failed, unresolved threads, and an issue it closes
+  changes() {
+    jq --null-input --compact-output --argjson n "$1" '[range(1; $n + 1) | {number: ., title: "Change \(.)",
+      author: "ada", branch: "\(.)-branch", state: "ready", age: 3600, unresolved: (. % 2),
+      checks: {state: "FAILURE", passed: 3, total: 5, failing: 2, took: 31},
+      closes: [{number: (200 + .), title: "Closed by \(.)", assignees: ["bob"], age: 7200, branch: "b"}]}]'
+  }
+  # every cell a run's row and a release's row can hold
+  builds() {
+    jq --null-input --compact-output --argjson n "$1" '[range(1; $n + 1) | {state: "passed", workflow: "kit", number: .,
+      event: (if . % 2 == 0 then "push" else "workflow_dispatch" end), tag: (. % 3 == 0), branch: "main",
+      sha: "8e817bf", title: "Run \(.)", age: (. * 4000), took: (. * 40)}]'
+  }
+  releases() {
+    jq --null-input --compact-output --argjson n "$1" '[range(1; $n + 1) | {version: "0.1.\(.)",
+      kind: (if . % 2 == 0 then "release" else "pre-release" end), latest: (if . == 1 then "latest" else "" end),
+      age: (. * 4000), visibility: [{state: "visible", source: "ghcr", artifact: "kit"}]}]'
+  }
+  few=$(started issues:draw "$(issues 4)" all)
+  many=$(started issues:draw "$(issues 40)" all)
+  [ "${few}" -gt 1 ]
+  [ "${many}" -eq "${few}" ] || { echo "issues: ${few} processes at 4 rows, ${many} at 40"; return 1; }
+  few=$(started changes:draw "$(changes 4)" all)
+  many=$(started changes:draw "$(changes 40)" all)
+  [ "${few}" -gt 1 ]
+  [ "${many}" -eq "${few}" ] || { echo "changes: ${few} processes at 4 blocks, ${many} at 40"; return 1; }
+  few=$(started builds:draw "$(builds 4)")
+  many=$(started builds:draw "$(builds 40)")
+  [ "${few}" -gt 1 ]
+  [ "${many}" -eq "${few}" ] || { echo "builds: ${few} processes at 4 rows, ${many} at 40"; return 1; }
+  few=$(started releases:draw "$(releases 4)")
+  many=$(started releases:draw "$(releases 40)")
+  [ "${few}" -gt 1 ]
+  [ "${many}" -eq "${few}" ] || { echo "releases: ${few} processes at 4 rows, ${many} at 40"; return 1; }
+  # and the rows are drawn: 40 issues, and 40 changes each with the issue it closes, a blank line between blocks
+  run in_flow issues:draw "$(issues 40)" all
+  [ "${#lines[@]}" -eq 40 ]
+  run in_flow changes:draw "$(changes 40)" all
+  [ "${#lines[@]}" -eq 80 ]
+  run in_flow builds:draw "$(builds 40)"
+  [ "${#lines[@]}" -eq 40 ]
+  run in_flow releases:draw "$(releases 40)"
+  [ "${#lines[@]}" -eq 40 ]
+}
+
 @test "a cell is padded to its width, or clipped with an ellipsis" {
   run in_flow flow:cell abc 5
   [ "$output" = "abc  " ]
@@ -717,8 +782,11 @@ the desk its first row; run: cd "*" && kit workspace worktrees" ]]
 }
 
 @test "a failed checks cell names the failing count, then passed of total, then the time taken" {
-  run in_flow flow:check-cell '{"state":"FAILURE","passed":3,"total":5,"failing":2,"took":31}'
+  run in_flow eval 'flow:check-cell-to cell FAILURE 3 5 2 31 && printf "%s" "${cell}"'
   [ "$output" = "❌ 2 failing 3 / 5 31s" ]
+  # no check reported is no cell
+  run in_flow eval 'flow:check-cell-to cell null null null null "" && printf "[%s]" "${cell}"'
+  [ "$output" = "[]" ]
 }
 
 @test "the pull requests shown are everyone's, the named authors' alone, or everyone's but theirs" {
@@ -905,8 +973,13 @@ the desk its first row; run: cd "*" && kit workspace worktrees" ]]
   use flow
   [ "${flow_glyphs[Issue]}" = "$(jq -r '.glyphs[] | select(.name == "Issue") | .glyph' "${kit_root}/modules/jq/glyphs.json")" ]
   [ "${flow_stage_glyphs[incoming]}" = "${flow_glyphs[Fetched]}" ]
-  [ "$(flow:state-emoji ready)" = "${flow_state_glyphs[ready]}" ]
-  [ "$(flow:state-emoji nonesuch)" = "${flow_glyphs[Other]}" ]
+  local glyph
+  flow:state-emoji-to glyph ready
+  [ "${glyph}" = "${flow_state_glyphs[ready]}" ]
+  flow:state-emoji-to glyph nonesuch
+  [ "${glyph}" = "${flow_glyphs[Other]}" ]
+  flow:state-emoji-to glyph ''
+  [ "${glyph}" = "${flow_glyphs[Other]}" ]
 }
 
 # ----------------------------------------------------------------------------------------------------------------------

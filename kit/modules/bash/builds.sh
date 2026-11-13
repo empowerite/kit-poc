@@ -24,37 +24,43 @@ builds:documents() {
   forge:runs || { (( $? == 3 )) && printf '[]\n'; }
 }
 
-# builds:glyph <state> prints a run's state glyph: the check glyphs the changes stage draws, and 🛑 for cancelled.
-builds:glyph() {
-  case "$1" in
-    (running) printf '%s' "${flow_glyphs[Running]}" ;;
-    (passed) printf '%s' "${flow_glyphs[Passed]}" ;;
-    (failed) printf '%s' "${flow_glyphs[Failed]}" ;;
-    (*) printf '%s' "${flow_glyphs[Cancelled]}" ;;
+# Each helper of a run's cell sets a variable, as the cells of modules/bash/flow.sh do, so a row starts no process.
+
+# builds:glyph-to <name> <state> sets the variable <name> to a run's state glyph: the check glyphs the changes stage
+# draws, and 🛑 for cancelled.
+builds:glyph-to() {
+  case "$2" in
+    (running) printf -v "$1" '%s' "${flow_glyphs[Running]}" ;;
+    (passed) printf -v "$1" '%s' "${flow_glyphs[Passed]}" ;;
+    (failed) printf -v "$1" '%s' "${flow_glyphs[Failed]}" ;;
+    (*) printf -v "$1" '%s' "${flow_glyphs[Cancelled]}" ;;
   esac
 }
 
-# builds:took <seconds> prints how long a run took: 42s, 3m 36s, 1h 05m. It prints … for none, while it runs.
-builds:took() {
-  local secs=$1
-  if [[ -z "${secs}" || "${secs}" == null ]]
-  then printf '…'
-  elif (( secs < 60 ))
-  then printf '%ds' "${secs}"
-  elif (( secs < 3600 ))
-  then printf '%dm %02ds' $(( secs / 60 )) $(( secs % 60 ))
-  else printf '%dh %02dm' $(( secs / 3600 )) $(( secs % 3600 / 60 ))
+# builds:took-to <name> <seconds> sets the variable <name> to how long a run took: 42s, 3m 36s, 1h 05m; and to … for
+# none, while it runs.
+builds:took-to() {
+  local builds_to_secs=$2
+  if [[ -z "${builds_to_secs}" || "${builds_to_secs}" == null ]]
+  then printf -v "$1" '…'
+  elif (( builds_to_secs < 60 ))
+  then printf -v "$1" '%ds' "${builds_to_secs}"
+  elif (( builds_to_secs < 3600 ))
+  then printf -v "$1" '%dm %02ds' $(( builds_to_secs / 60 )) $(( builds_to_secs % 60 ))
+  else printf -v "$1" '%dh %02dm' $(( builds_to_secs / 3600 )) $(( builds_to_secs % 3600 / 60 ))
   fi
 }
 
-# builds:event <event> <tag> prints how a run began, in a word: tag for a push to a tag, push, schedule, or manual.
-builds:event() {
-  if [[ "$2" == true ]]
-  then printf 'tag'
+# builds:event-to <name> <event> <tag> sets the variable <name> to how a run began, in a word: tag for a push to a
+# tag, push, schedule, or manual.
+builds:event-to() {
+  if [[ "$3" == true ]]
+  then
+    printf -v "$1" 'tag'
   else
-    case "$1" in
-      (workflow_dispatch) printf 'manual' ;;
-      (*) printf '%s' "$1" ;;
+    case "$2" in
+      (workflow_dispatch) printf -v "$1" 'manual' ;;
+      (*) printf -v "$1" '%s' "$2" ;;
     esac
   fi
 }
@@ -64,9 +70,10 @@ builds:event() {
 # number, how it began, and the hash are dim; the age and the time taken are numbers, so they are right-aligned and
 # dim. A title that only repeats the workflow is left out, and so is a column no run fills. The title gives way first
 # to what the terminal's width leaves, then the branch, then the workflow, none below 10, each clipped with an
-# ellipsis. With none it says so in one dim line.
+# ellipsis. With none it says so in one dim line. One jq reads every run's fields, so the table starts the same
+# processes whatever its length.
 builds:draw() {
-  local doc=$1 row state workflow number event tag branch sha title age took room excess name floor give line
+  local doc=$1 row state workflow number event tag branch sha title age took room excess name floor give line cell
   local workflow_w=0 number_w=0 event_w=0 branch_w=0 sha_w=0 title_w=0 age_w=0 took_w=0
   local -a rows=()
   if [[ "$(jq 'length' <<<"${doc}")" == 0 ]]
@@ -80,9 +87,9 @@ builds:draw() {
   for row in "${rows[@]}"
   do
     IFS=$'\x1f' read -r state workflow number event tag branch sha title age took <<<"${row}"
-    event=$(builds:event "${event}" "${tag}")
-    age=$(flow:age "${age}")
-    took=$(builds:took "${took}")
+    builds:event-to event "${event}" "${tag}"
+    flow:age-to age "${age}"
+    builds:took-to took "${took}"
     (( ${#workflow} > workflow_w )) && workflow_w=${#workflow}
     (( ${#number} > number_w )) && number_w=${#number}
     (( ${#event} > event_w )) && event_w=${#event}
@@ -110,14 +117,35 @@ builds:draw() {
   for row in "${rows[@]}"
   do
     IFS=$'\x1f' read -r state workflow number event tag branch sha title age took <<<"${row}"
-    line="$(builds:glyph "${state}")  $(flow:cell "${workflow}" "${workflow_w}")"
-    (( number_w > 0 )) && line+="${flow_gap}$(flow:paint 90 "$(flow:cell "${number}" "${number_w}" right)")"
-    line+="${flow_gap}$(flow:paint 90 "$(flow:cell "$(builds:event "${event}" "${tag}")" "${event_w}")")"
-    line+="${flow_gap}$(flow:cell "${branch}" "${branch_w}")"
-    (( sha_w > 0 )) && line+="${flow_gap}$(flow:paint 90 "$(flow:cell "${sha}" "${sha_w}")")"
-    (( title_w > 0 )) && line+="${flow_gap}$(flow:cell "${title}" "${title_w}")"
-    line+="${flow_gap}$(flow:paint 90 "$(flow:cell "$(flow:age "${age}")" "${age_w}" right)")"
-    line+="${flow_gap}$(flow:paint 90 "$(flow:cell "$(builds:took "${took}")" "${took_w}" right)")"
+    builds:glyph-to line "${state}"
+    flow:cell-to cell "${workflow}" "${workflow_w}"
+    line+="  ${cell}"
+    if (( number_w > 0 ))
+    then
+      flow:cell-to cell "${number}" "${number_w}" right 90
+      line+="${flow_gap}${cell}"
+    fi
+    builds:event-to cell "${event}" "${tag}"
+    flow:cell-to cell "${cell}" "${event_w}" left 90
+    line+="${flow_gap}${cell}"
+    flow:cell-to cell "${branch}" "${branch_w}"
+    line+="${flow_gap}${cell}"
+    if (( sha_w > 0 ))
+    then
+      flow:cell-to cell "${sha}" "${sha_w}" left 90
+      line+="${flow_gap}${cell}"
+    fi
+    if (( title_w > 0 ))
+    then
+      flow:cell-to cell "${title}" "${title_w}"
+      line+="${flow_gap}${cell}"
+    fi
+    flow:age-to cell "${age}"
+    flow:cell-to cell "${cell}" "${age_w}" right 90
+    line+="${flow_gap}${cell}"
+    builds:took-to cell "${took}"
+    flow:cell-to cell "${cell}" "${took_w}" right 90
+    line+="${flow_gap}${cell}"
     printf '%s\n' "${line}"
   done
 }

@@ -150,10 +150,11 @@ issues:documents() {
 #  11. 🎫 and the issue's title, clipped to what the terminal's width leaves
 #
 # A cell is blank in a row that has none, and a column takes no room when no row has one: column 5 when no issue is
-# underway, and column 6 when none is underway.
+# underway, and column 6 when none is underway. One jq reads every row's fields, and each cell is set through the
+# forms of modules/bash/flow.sh that start no process, so the table starts the same few whatever its length.
 issues:draw() {
   local doc=$1 choice=$2 desk row ref assignees age status number state where author fork pushed by branch
-  local milestone iteration swimlane title width glyph
+  local milestone iteration swimlane title width glyph cell blank sgr
   local ref_w=0 owner_w=0 age_w=0 pr_w=0 state_w=0 where_w=0 fork_w=0 pushed_w=0 by_w=0 milestone_w=0
   local iteration_w=0 swimlane_w=0
   local -a rows=()
@@ -179,8 +180,8 @@ issues:draw() {
   do
     IFS=$'\x1f' read -r ref assignees age status number state where author fork pushed by branch milestone \
       iteration swimlane title <<<"${row}"
-    age=$(flow:age "${age}")
-    pushed=$(flow:age "${pushed}")
+    flow:age-to age "${age}"
+    flow:age-to pushed "${pushed}"
     case "${where}" in
       (desk | linked) where=here ;;
       (branch) where=${branch} ;;
@@ -214,14 +215,17 @@ issues:draw() {
   do
     IFS=$'\x1f' read -r ref assignees age status number state where author fork pushed by branch milestone \
       iteration swimlane title <<<"${row}"
-    row=$(flow:paint "${flow_issue_sgr}" "$(flow:cell "${ref}" "${ref_w}" right)")
+    flow:cell-to row "${ref}" "${ref_w}" right "${flow_issue_sgr}"
     if (( owner_w > 0 ))
     then
       glyph='   '
       [[ -n "${assignees}" ]] && glyph="${flow_glyphs[Owner]} "
-      row+="${flow_gap}${glyph}$(flow:paint 90 "$(flow:cell "${assignees}" "${owner_w}")")"
+      flow:cell-to cell "${assignees}" "${owner_w}" left 90
+      row+="${flow_gap}${glyph}${cell}"
     fi
-    row+="${flow_gap}$(flow:paint 90 "$(flow:cell "$(flow:age "${age}")" "${age_w}" right)")"
+    flow:age-to cell "${age}"
+    flow:cell-to cell "${cell}" "${age_w}" right 90
+    row+="${flow_gap}${cell}"
     if [[ "${status}" == underway ]]
     then row+="${flow_gap}${flow_glyphs[InFlight]}"
     else row+="${flow_gap}${flow_glyphs[Waiting]}"
@@ -230,48 +234,74 @@ issues:draw() {
     then
       if [[ -n "${number}" ]]
       then
-        row+="${flow_gap}${flow_glyphs[Change]} $(flow:paint "${flow_change_sgr}" \
-          "$(flow:cell "${number}" "${pr_w}" right)")"
-        row+=" $(flow:state-emoji "${state}") $(flow:paint "$(flow:state-sgr "${state}")" \
-          "$(flow:cell "${state}" "${state_w}")")"
+        flow:cell-to cell "${number}" "${pr_w}" right "${flow_change_sgr}"
+        row+="${flow_gap}${flow_glyphs[Change]} ${cell}"
+        flow:state-emoji-to glyph "${state}"
+        flow:state-sgr-to sgr "${state}"
+        flow:cell-to cell "${state}" "${state_w}" left "${sgr}"
+        row+=" ${glyph} ${cell}"
       else
-        row+="${flow_gap}   $(flow:cell '' "${pr_w}") $(flow:cell '' $(( 2 + 1 + state_w )))"
+        flow:cell-to cell '' "${pr_w}"
+        flow:cell-to blank '' $(( 2 + 1 + state_w ))
+        row+="${flow_gap}   ${cell} ${blank}"
       fi
     fi
     if (( where_w > 0 ))
     then
       case "${where}" in
-        (desk) row+="${flow_gap}${flow_glyphs[Desk]} $(flow:cell here "${where_w}")" ;;
-        (linked) row+="${flow_gap}${flow_glyphs[Branch]} $(flow:cell here "${where_w}")" ;;
-        (local) row+="${flow_gap}${flow_glyphs[Sprout]} $(flow:cell local "${where_w}")" ;;
-        (branch) row+="${flow_gap}${flow_glyphs[Branch]} $(flow:paint 90 "$(flow:cell "${branch}" "${where_w}")")" ;;
-        (none) row+="${flow_gap}   $(flow:cell '' "${where_w}")" ;;
-        (*) row+="${flow_gap}${flow_glyphs[Owner]} $(flow:paint 90 "$(flow:cell "${author}" "${where_w}")")"
+        (desk)
+          flow:cell-to cell here "${where_w}"
+          row+="${flow_gap}${flow_glyphs[Desk]} ${cell}"
+          ;;
+        (linked)
+          flow:cell-to cell here "${where_w}"
+          row+="${flow_gap}${flow_glyphs[Branch]} ${cell}"
+          ;;
+        (local)
+          flow:cell-to cell local "${where_w}"
+          row+="${flow_gap}${flow_glyphs[Sprout]} ${cell}"
+          ;;
+        (branch)
+          flow:cell-to cell "${branch}" "${where_w}" left 90
+          row+="${flow_gap}${flow_glyphs[Branch]} ${cell}"
+          ;;
+        (none)
+          flow:cell-to cell '' "${where_w}"
+          row+="${flow_gap}   ${cell}"
+          ;;
+        (*)
+          flow:cell-to cell "${author}" "${where_w}" left 90
+          row+="${flow_gap}${flow_glyphs[Owner]} ${cell}"
       esac
     fi
-    row+=$(issues:cell "${fork_w}" "${fork}" Fork)
+    issues:cell row "${fork_w}" "${fork}" Fork
     if (( pushed_w > 0 ))
     then
       glyph='   '
       [[ -n "${pushed}" ]] && glyph="${flow_glyphs[Pushed]} "
-      row+="${flow_gap}${glyph}$(flow:paint 90 "$(flow:cell "$(flow:age "${pushed}")" "${pushed_w}" right)")"
+      flow:age-to cell "${pushed}"
+      flow:cell-to cell "${cell}" "${pushed_w}" right 90
+      row+="${flow_gap}${glyph}${cell}"
     fi
-    row+=$(issues:cell "${by_w}" "${by}" Owner)
-    row+=$(issues:cell "${milestone_w}" "${milestone}" Milestone)
-    row+=$(issues:cell "${iteration_w}" "${iteration}" Iteration)
-    row+=$(issues:cell "${swimlane_w}" "${swimlane}" Swimlane)
+    issues:cell row "${by_w}" "${by}" Owner
+    issues:cell row "${milestone_w}" "${milestone}" Milestone
+    issues:cell row "${iteration_w}" "${iteration}" Iteration
+    issues:cell row "${swimlane_w}" "${swimlane}" Swimlane
     (( ${#title} > width )) && title="${title:0:width-1}…"
     printf '%s%s%s %s\n' "${row}" "${flow_gap}" "${flow_glyphs[Issue]}" "${title}"
   done
 }
 
-# issues:cell <width> <text> <glyph> prints one dim cell of issues:draw's, after flow_gap: the glyph named and the text,
-# padded to the width, or blank, glyph included, for no text; nothing for a width of 0, a column no row has.
+# issues:cell <name> <width> <text> <glyph> adds one dim cell of issues:draw's to the row the variable <name> holds,
+# after flow_gap: the glyph named and the text, padded to the width, or blank, glyph included, for no text; nothing
+# for a width of 0, a column no row has. It starts no process. <name> is none of its own: issues_cell_….
 issues:cell() {
-  local width=$1 text=$2 glyph='   '
-  (( width > 0 )) || return 0
-  [[ -z "${text}" ]] || glyph="${flow_glyphs[$3]} "
-  printf '%s%s%s' "${flow_gap}" "${glyph}" "$(flow:paint 90 "$(flow:cell "${text}" "${width}")")"
+  local -n issues_cell_row=$1
+  local issues_cell_glyph='   ' issues_cell_text
+  (( $2 > 0 )) || return 0
+  [[ -z "$3" ]] || issues_cell_glyph="${flow_glyphs[$4]} "
+  flow:cell-to issues_cell_text "$3" "$2" left 90
+  issues_cell_row+="${flow_gap}${issues_cell_glyph}${issues_cell_text}"
 }
 
 # issues:render [--json] [--today] [--all | [--mine] [--others] [--owner=<login>…]] prints the rows as issues:draw

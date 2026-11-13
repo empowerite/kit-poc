@@ -177,9 +177,10 @@ releases:visible() {
 
 # releases:draw <releases-json> prints the releases, one row each: the version, the kind with its glyph and the age,
 # and the latest marked. With none it says so in one dim line. A release stuck on a pull source is a warning after
-# the rows, on stderr.
+# the rows, on stderr. Each cell is set through the forms of modules/bash/flow.sh that start no process, so the table
+# starts the same few whatever its length.
 releases:draw() {
-  local doc=$1 width kind_width age_width version kind latest age glyph seen line
+  local doc=$1 width kind_width age_width version kind latest age glyph seen line cell
   local -a stuck
   if [[ "$(jq 'length' <<<"${doc}")" == 0 ]]
   then
@@ -198,12 +199,20 @@ releases:draw() {
       (pre-release) glyph=${flow_glyphs[Pre]} ;;
       (*) glyph=${flow_glyphs[Release]} ;;
     esac
+    flow:cell-to line "${version}" "${width}"
+    flow:cell-to cell "${kind}" "${kind_width}"
+    line+="  ${glyph} ${cell}"
     # the age is a number, so it is right-aligned, as kit flow draws one
-    printf '%s  %s %s %s%s%s\n' "$(flow:cell "${version}" "${width}")" "${glyph}" \
-      "$(flow:cell "${kind}" "${kind_width}")" \
-      "$(flow:paint 2 "$(flow:cell "$(flow:age "${age}")" "${age_width}" right)")" \
-      "$([[ "${latest}" == latest ]] && printf '  %s latest' "${flow_glyphs[Latest]}")" \
-      "$([[ -z "${seen}" ]] || printf '  %s' "$(flow:paint 2 "${seen}")")"
+    flow:age-to cell "${age}"
+    flow:cell-to cell "${cell}" "${age_width}" right 2
+    line+=" ${cell}"
+    [[ "${latest}" != latest ]] || line+="  ${flow_glyphs[Latest]} latest"
+    if [[ -n "${seen}" ]]
+    then
+      flow:paint-to cell 2 "${seen}"
+      line+="  ${cell}"
+    fi
+    printf '%s\n' "${line}"
   done < <(jq --raw-output '.[] | [.version, .kind, .latest, .age, (.visibility // [] | if length == 0 then ""
       elif all(.state == "visible") then "pull: visible"
       else "pull: " + (map(select(.state != "visible") | "\(.state) on \(.source)") | join(", ")) end)]

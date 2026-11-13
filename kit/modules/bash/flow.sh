@@ -231,28 +231,54 @@ flow:width() {
   fi
 }
 
-# flow:cell <text> <width> [right] prints <text> padded to <width> characters, or clipped to it with an ellipsis.
-# The padding follows the text, or precedes it with right, which is for a number.
-flow:cell() {
-  local text=$1 width=$2 side=${3:-left}
-  if (( ${#text} > width ))
+# A table draws a row from many cells. A helper that prints its cell costs the row a process for each one, taken as
+# $(…), and more where they nest, so each helper here has a form that sets a variable instead, its name ending in
+# -to: flow:cell-to, flow:paint-to, flow:age-to, flow:state-sgr-to, flow:state-emoji-to, and flow:check-cell-to. A
+# row is built from those and starts no process, whatever its table's length. The variable named is any that does not start with flow_to_, as
+# the helpers' own do.
+
+# flow:cell-to <name> <text> <width> [<side> [<sgr>]] sets the variable <name> to <text> padded to <width>
+# characters, or clipped to it with an ellipsis. The padding follows the text, or precedes it when <side> is right,
+# which is for a number. With <sgr>, the cell is painted, as flow:paint-to paints it.
+flow:cell-to() {
+  local flow_to_text=$2 flow_to_width=$3
+  if (( ${#flow_to_text} > flow_to_width ))
   then
-    printf '%s…' "${text:0:width-1}"
-  elif [[ "${side}" == right ]]
+    flow_to_text="${flow_to_text:0:flow_to_width-1}…"
+  elif [[ "${4:-left}" == right ]]
   then
-    printf '%*s%s' $(( width - ${#text} )) '' "${text}"
+    printf -v flow_to_text '%*s%s' $(( flow_to_width - ${#flow_to_text} )) '' "${flow_to_text}"
   else
-    printf '%s%*s' "${text}" $(( width - ${#text} )) ''
+    printf -v flow_to_text '%s%*s' "${flow_to_text}" $(( flow_to_width - ${#flow_to_text} )) ''
+  fi
+  if [[ -n "${5:-}" ]]
+  then flow:paint-to "$1" "$5" "${flow_to_text}"
+  else printf -v "$1" '%s' "${flow_to_text}"
   fi
 }
 
-# flow:paint <sgr> <text> prints <text> in the color when the picture is painted, as flow_color says, and plain
-# otherwise.
-flow:paint() {
+# flow:cell <text> <width> [right] prints <text> padded to <width> characters, or clipped to it with an ellipsis,
+# as flow:cell-to sets it.
+flow:cell() {
+  local flow_cell
+  flow:cell-to flow_cell "$1" "$2" "${3:-left}"
+  printf '%s' "${flow_cell}"
+}
+
+# flow:paint-to <name> <sgr> <text> sets the variable <name> to <text> in the color when the picture is painted, as
+# flow_color says, and to <text> alone otherwise.
+flow:paint-to() {
   if (( flow_color ))
-  then printf '\x1b[%sm%s\x1b[0m' "$1" "$2"
-  else printf '%s' "$2"
+  then printf -v "$1" '\x1b[%sm%s\x1b[0m' "$2" "$3"
+  else printf -v "$1" '%s' "$3"
   fi
+}
+
+# flow:paint <sgr> <text> prints <text> in the color when the picture is painted, as flow:paint-to sets it.
+flow:paint() {
+  local flow_painted
+  flow:paint-to flow_painted "$1" "$2"
+  printf '%s' "${flow_painted}"
 }
 
 # flow:heading <stage> [<count>] prints a stage's heading: its glyph, its name in capitals and bold, then its count,
@@ -269,36 +295,47 @@ flow:none() {
   printf '%s\n' "$(flow:paint 90 "$1")"
 }
 
-# flow:state-sgr <state> prints the color code of a state's family.
-flow:state-sgr() {
-  case "$1" in
-    (ready)                                     printf '32' ;;
-    (conflicted | failing:gate | comments:open) printf '33' ;;
-    (queued | no-check | blocked:approval)      printf '34' ;;
-    (*)                                         printf '90' ;;
+# flow:state-sgr-to <name> <state> sets the variable <name> to the color code of a state's family.
+flow:state-sgr-to() {
+  case "$2" in
+    (ready)                                     printf -v "$1" '32' ;;
+    (conflicted | failing:gate | comments:open) printf -v "$1" '33' ;;
+    (queued | no-check | blocked:approval)      printf -v "$1" '34' ;;
+    (*)                                         printf -v "$1" '90' ;;
   esac
 }
 
-# flow:state-emoji <state> prints a state's glyph. Each glyph is one code point drawn two columns wide, so the
-# next column stays aligned.
-flow:state-emoji() {
-  printf '%s' "${flow_state_glyphs[$1]:-${flow_glyphs[Other]}}"
+# flow:state-emoji-to <name> <state> sets the variable <name> to a state's glyph, and to the glyph for any other where
+# the state has none. Each glyph is one code point drawn two columns wide, so the next column stays aligned.
+flow:state-emoji-to() {
+  printf -v "$1" '%s' "${flow_state_glyphs[${2:-none}]:-${flow_glyphs[Other]}}"
 }
 
-# flow:age <seconds> prints a duration in its coarsest informative unit: 45s, 12m, 3h, 47d. It prints nothing
-# for no seconds at all, as an issue without a time has.
-flow:age() {
-  local secs=$1
-  [[ -n "${secs}" && "${secs}" != null ]] || return 0
-  (( secs < 0 )) && secs=0
-  if (( secs < 120 ))
-  then printf '%ds' "${secs}"
-  elif (( secs < 7200 ))
-  then printf '%dm' $(( secs / 60 ))
-  elif (( secs < 172800 ))
-  then printf '%dh' $(( secs / 3600 ))
-  else printf '%dd' $(( secs / 86400 ))
+# flow:age-to <name> <seconds> sets the variable <name> to a duration in its coarsest informative unit: 45s, 12m, 3h,
+# 47d; and to nothing for no seconds at all, as an issue without a time has.
+flow:age-to() {
+  local flow_to_secs=$2
+  if [[ -z "${flow_to_secs}" || "${flow_to_secs}" == null ]]
+  then
+    printf -v "$1" ''
+    return 0
   fi
+  (( flow_to_secs < 0 )) && flow_to_secs=0
+  if (( flow_to_secs < 120 ))
+  then printf -v "$1" '%ds' "${flow_to_secs}"
+  elif (( flow_to_secs < 7200 ))
+  then printf -v "$1" '%dm' $(( flow_to_secs / 60 ))
+  elif (( flow_to_secs < 172800 ))
+  then printf -v "$1" '%dh' $(( flow_to_secs / 3600 ))
+  else printf -v "$1" '%dd' $(( flow_to_secs / 86400 ))
+  fi
+}
+
+# flow:age <seconds> prints a duration as flow:age-to sets it, and nothing for no seconds at all.
+flow:age() {
+  local flow_age
+  flow:age-to flow_age "$1"
+  printf '%s' "${flow_age}"
 }
 
 # flow:refs <remote> prints "<ref> <sha>" for the remote's branches and for the tags: the refs a fetch of it moves.
@@ -774,7 +811,8 @@ flow:relative() {
   fi
 }
 
-# flow:check-cell <checks-json> prints the checks cell, with the duration dim:
+# flow:check-cell-to <name> <state> <passed> <total> <failing> <took> sets the variable <name> to the checks cell,
+# with the duration dim:
 #
 #   - passed: "✅ <passed> / <total> <took>"
 #   - failed: "❌ <failing> failing <passed> / <total> <took>"
@@ -783,21 +821,25 @@ flow:relative() {
 # <took> is the slowest check's own duration, and <elapsed> how long the pending one has waited. A check that ran
 # again counts once, by its latest run.
 #
-# It prints nothing when no check has reported.
-flow:check-cell() {
-  local state passed total failing took text
-  # A field can be empty, and a tab-separated read collapses an empty field, so the separator is \x1f instead.
-  IFS=$'\x1f' read -r state passed total failing took \
-    < <(jq --raw-output '[.state, .passed, .total, .failing, (.took // "")] | map(tostring) | join("\u001f")' <<<"$1")
-  case "${state}" in
-    (SUCCESS) text="${flow_glyphs[Passed]} ${total} / ${total}" ;;
-    (FAILURE) text="${flow_glyphs[Failed]} ${failing} failing ${passed} / ${total}" ;;
-    (PENDING) text="${flow_glyphs[Running]} ${passed} / ${total}" ;;
-    (*) return 0 ;;
+# It sets nothing when no check has reported.
+flow:check-cell-to() {
+  local flow_to_checks flow_to_took
+  case "$2" in
+    (SUCCESS) flow_to_checks="${flow_glyphs[Passed]} $4 / $4" ;;
+    (FAILURE) flow_to_checks="${flow_glyphs[Failed]} $5 failing $3 / $4" ;;
+    (PENDING) flow_to_checks="${flow_glyphs[Running]} $3 / $4" ;;
+    (*)
+      printf -v "$1" ''
+      return 0
+      ;;
   esac
-  printf '%s' "${text}"
-  [[ -n "${took}" ]] && printf ' %s' "$(flow:paint 90 "$(flow:age "${took}")")"
-  return 0
+  if [[ -n "$6" ]]
+  then
+    flow:age-to flow_to_took "$6"
+    flow:paint-to flow_to_took 90 "${flow_to_took}"
+    flow_to_checks+=" ${flow_to_took}"
+  fi
+  printf -v "$1" '%s' "${flow_to_checks}"
 }
 
 # flow:issue-widths <issues-json> reads a JSON array of issue documents and prints the widths of the widest number,
@@ -809,7 +851,7 @@ flow:issue-widths() {
     [[ -n "${ref}" ]] || continue
     (( ${#ref} > ref_w )) && ref_w=${#ref}
     (( ${#assignees} > owner_w )) && owner_w=${#assignees}
-    text=$(flow:age "${age}")
+    flow:age-to text "${age}"
     (( ${#text} > age_w )) && age_w=${#text}
     (( ${#branch} > branch_w )) && branch_w=${#branch}
   done < <(jq --raw-output '.[] | [(.ref // "#\(.number)"), ((.assignees // []) | join(" ")),
@@ -817,48 +859,56 @@ flow:issue-widths() {
   printf '%s %s %s %s\n' "${ref_w}" "${owner_w}" "${age_w}" "${branch_w}"
 }
 
-# flow:issue-row <issue-json> <widths> <state> <indent> prints one issue as the changes stage draws
-# it: <indent>, the number right-aligned, the assignees when any issue in the table has one, then <state> with the
-# age when <state> is given, as under a change, else the age alone, then the branch when any issue has one, and last
-# the title, clipped to what the terminal's width leaves. <widths> is flow:issue-widths' line. Every cell after
-# the number opens with a glyph, so flow_gap separates them, and a cell with nothing is blank, glyph included, so
-# every title starts at the same column. The number is cyan; the state is blue, the family of a move that is
-# someone else's; the detail is dim.
+# flow:issue-row <widths> <state> <indent> <columns> <ref> <title> <assignees> <age> <branch> prints one issue as the
+# changes stage draws it: <indent>, the reference right-aligned, the assignees when any issue in the table has one,
+# then <state> with the age when <state> is given, as under a change, else the age alone, then the branch when any
+# issue has one, and last the title, clipped to what <columns>, the terminal's width, leaves. <widths> is
+# flow:issue-widths' line, and <age> is in seconds. Every cell after the reference opens with a glyph, so flow_gap
+# separates them, and a cell with nothing is blank, glyph included, so every title starts at the same column. The
+# reference is cyan; the state is blue, the family of a move that is someone else's; the detail is dim. It starts no
+# process.
 flow:issue-row() {
-  local doc=$1 state=$3 indent=$4 ref_w owner_w age_w branch_w ref title assignees age branch row glyph width text
-  read -r ref_w owner_w age_w branch_w <<<"$2"
-  IFS=$'\x1f' read -r ref title assignees age branch \
-    < <(jq --raw-output '[(.ref // "#\(.number)"), .title, ((.assignees // []) | join(" ")),
-                          (.age // "" | tostring), (.branch // "")] | join("\u001f")' <<<"${doc}")
-  row="${indent}$(flow:paint "${flow_issue_sgr}" "$(flow:cell "${ref}" "${ref_w}" right)")"
-  width=$(( $(flow:width) - ${#indent} - ref_w - 5 ))
+  local state=$2 indent=$3 ref=$5 title=$6 assignees=$7 age=$8 branch=$9
+  local ref_w owner_w age_w branch_w row glyph width text cell
+  read -r ref_w owner_w age_w branch_w <<<"$1"
+  flow:cell-to cell "${ref}" "${ref_w}" right "${flow_issue_sgr}"
+  row="${indent}${cell}"
+  width=$(( $4 - ${#indent} - ref_w - 5 ))
   if (( owner_w > 0 ))
   then
     glyph='   '
     [[ -n "${assignees}" ]] && glyph="${flow_glyphs[Owner]} "
-    row+="${flow_gap}${glyph}$(flow:paint 90 "$(flow:cell "${assignees}" "${owner_w}")")"
+    flow:cell-to cell "${assignees}" "${owner_w}" left 90
+    row+="${flow_gap}${glyph}${cell}"
     width=$(( width - 5 - owner_w ))
   fi
-  text=$(flow:age "${age}")
+  flow:age-to text "${age}"
   if [[ -n "${state}" ]]
   then
-    row+="${flow_gap}${flow_glyphs[InFlight]} $(flow:paint 34 "${state}")"
+    flow:paint-to cell 34 "${state}"
+    row+="${flow_gap}${flow_glyphs[InFlight]} ${cell}"
     width=$(( width - 5 - ${#state} ))
     if [[ -n "${text}" ]]
     then
-      row+=" $(flow:paint 90 "$(flow:cell "${text}" "${age_w}" right)")"
+      flow:cell-to cell "${text}" "${age_w}" right 90
+      row+=" ${cell}"
       width=$(( width - 1 - age_w ))
     fi
   elif (( age_w > 0 ))
   then
-    row+="${flow_gap}$(flow:paint 90 "$(flow:cell "${text}" "${age_w}" right)")"
+    flow:cell-to cell "${text}" "${age_w}" right 90
+    row+="${flow_gap}${cell}"
     width=$(( width - 2 - age_w ))
   fi
   if (( branch_w > 0 ))
   then
+    flow:cell-to cell "${branch}" "${branch_w}"
     if [[ -n "${branch}" ]]
-    then row+="${flow_gap}$(flow:paint 90 "${flow_glyphs[Branch]} $(flow:cell "${branch}" "${branch_w}")")"
-    else row+="${flow_gap}   $(flow:cell '' "${branch_w}")"
+    then
+      flow:paint-to cell 90 "${flow_glyphs[Branch]} ${cell}"
+      row+="${flow_gap}${cell}"
+    else
+      row+="${flow_gap}   ${cell}"
     fi
     width=$(( width - 5 - branch_w ))
   fi
@@ -867,67 +917,130 @@ flow:issue-row() {
   printf '%s%s%s %s\n' "${row}" "${flow_gap}" "${flow_glyphs[Issue]}" "${title}"
 }
 
-# flow:pr-block <pr-json> <title-width> <owner-width> <state-width> <age-width> <with-branch> <issue-widths>
-# prints a pull request: its row, then the issues it closes, one row each, in flight, indented under it. The state
-# and its age share a cell. The row shows the author before the state when <owner-width> is above zero, and ends
-# with the branch when <with-branch> is not empty. <issue-widths> is flow:issue-widths' line over every issue in
-# the table.
-flow:pr-block() {
-  local doc=$1 title_w=$2 owner_w=$3 state_w=$4 age_w=$5 worktree=$6 issue_widths=$7
-  local ref title author branch state age unresolved row issue checks
-  IFS=$'\x1f' read -r ref title author branch state age unresolved \
-    < <(jq --raw-output '[(.ref // "#\(.number)"), .title, .author, .branch, .state, .age, .unresolved]
-          | map(tostring)
-          | join("\u001f")' <<<"${doc}")
-  row="${flow_glyphs[Change]} $(flow:paint "${flow_change_sgr}" "${ref}") $(flow:cell "${title}" $(( title_w - ${#ref} - 1 )))"
-  (( owner_w > 0 )) && row+="${flow_gap}${flow_glyphs[Owner]} $(flow:paint 90 "$(flow:cell "${author}" "${owner_w}")")"
-  row+="${flow_gap}$(flow:state-emoji "${state}")"
-  row+=" $(flow:paint "$(flow:state-sgr "${state}")" "$(flow:cell "${state}" "${state_w}")")"
-  row+=" $(flow:paint 90 "$(flow:cell "$(flow:age "${age}")" "${age_w}" right)")"
-  checks=$(flow:check-cell "$(jq --compact-output .checks <<<"${doc}")")
-  [[ -n "${checks}" ]] && row+="${flow_gap}${checks}"
-  (( unresolved > 0 )) && row+="${flow_gap}$(flow:paint 33 "${flow_glyphs[Threads]} ${unresolved} unresolved")"
-  [[ -n "${worktree}" ]] && row+="${flow_gap}$(flow:paint 90 "${flow_glyphs[Branch]} ${branch}")"
+# flow_block_records is the jq program that reads pull request documents and gives what their blocks draw, a record
+# a line, its fields apart by \x1f: for each pull request, P and its reference, title, author, branch, state, age,
+# unresolved threads, and its checks' state, passed, total, failing, and time taken; then, for each issue it closes,
+# I and the issue's reference, title, assignees, age, and branch. One jq reads a whole table, so its rows start none.
+# shellcheck disable=SC2016  # the program is jq's, not the shell's
+flow_block_records='
+  (["P", (.ref // "#\(.number)"), .title, .author, .branch, .state, .age, .unresolved]
+   + (.checks | [.state, .passed, .total, .failing, (.took // "")])),
+  (.closes[]? | ["I", (.ref // "#\(.number)"), .title, ((.assignees // []) | join(" ")), (.age // ""),
+                 (.branch // "")])
+  | map(tostring) | join("\u001f")'
+
+# flow:pr-row <title-width> <owner-width> <state-width> <age-width> <with-branch> <field>… prints a pull request's
+# row from the fields of its P record, as flow_block_records gives them. The state and its age share a cell. The row
+# shows the author before the state when <owner-width> is above zero, and ends with the branch when <with-branch> is
+# not empty. It starts no process.
+flow:pr-row() {
+  local title_w=$1 owner_w=$2 state_w=$3 age_w=$4 worktree=$5 ref=$6 title=$7 author=$8 branch=$9 state=${10}
+  local age=${11} unresolved=${12} row cell sgr glyph
+  flow:paint-to cell "${flow_change_sgr}" "${ref}"
+  row="${flow_glyphs[Change]} ${cell}"
+  flow:cell-to cell "${title}" $(( title_w - ${#ref} - 1 ))
+  row+=" ${cell}"
+  if (( owner_w > 0 ))
+  then
+    flow:cell-to cell "${author}" "${owner_w}" left 90
+    row+="${flow_gap}${flow_glyphs[Owner]} ${cell}"
+  fi
+  flow:state-emoji-to glyph "${state}"
+  flow:state-sgr-to sgr "${state}"
+  flow:cell-to cell "${state}" "${state_w}" left "${sgr}"
+  row+="${flow_gap}${glyph} ${cell}"
+  flow:age-to cell "${age}"
+  flow:cell-to cell "${cell}" "${age_w}" right 90
+  row+=" ${cell}"
+  flow:check-cell-to cell "${13}" "${14}" "${15}" "${16}" "${17}"
+  [[ -n "${cell}" ]] && row+="${flow_gap}${cell}"
+  if (( unresolved > 0 ))
+  then
+    flow:paint-to cell 33 "${flow_glyphs[Threads]} ${unresolved} unresolved"
+    row+="${flow_gap}${cell}"
+  fi
+  if [[ -n "${worktree}" ]]
+  then
+    flow:paint-to cell 90 "${flow_glyphs[Branch]} ${branch}"
+    row+="${flow_gap}${cell}"
+  fi
   printf '%s\n' "${row}"
-  while IFS= read -r issue
+}
+
+# flow:pr-blocks <records> <apart> <columns> <title-width> <owner-width> <state-width> <age-width> <with-branch>
+# <issue-widths> draws the blocks of the records in the array <records> names, as flow_block_records gives them: each
+# pull request's row, as flow:pr-row draws it, then the issues it closes, one row each, in flight, indented under it.
+# With <apart> true, a blank line parts the blocks. <columns> is the terminal's width, and <issue-widths> is
+# flow:issue-widths' line over every issue in the table.
+flow:pr-blocks() {
+  local -n flow_blocks_records=$1
+  local apart=$2 columns=$3 first=true record kind
+  local -a fields
+  shift 3
+  for record in "${flow_blocks_records[@]}"
   do
-    [[ -n "${issue}" ]] || continue
-    flow:issue-row "${issue}" "${issue_widths}" 'in flight' '   '
-  done < <(jq --compact-output '.closes[]?' <<<"${doc}")
+    [[ -n "${record}" ]] || continue
+    # a field can be empty, and the last ones too, which a read into an array would drop without the closing \x1f
+    IFS=$'\x1f' read -r -a fields <<<"${record}"$'\x1f'
+    kind=${fields[0]}
+    if [[ "${kind}" == P ]]
+    then
+      [[ "${apart}" != true || "${first}" == true ]] || printf '\n'
+      first=false
+      flow:pr-row "$1" "$2" "$3" "$4" "$5" "${fields[@]:1:12}"
+    else
+      flow:issue-row "$6" 'in flight' '   ' "${columns}" "${fields[@]:1:5}"
+    fi
+  done
   return 0
+}
+
+# flow:pr-block <pr-json> <title-width> <owner-width> <state-width> <age-width> <with-branch> <issue-widths>
+# prints a pull request: its row, then the issues it closes, one row each, in flight, indented under it, as
+# flow:pr-blocks draws them.
+flow:pr-block() {
+  local -a flow_block=()
+  # shellcheck disable=SC2034  # flow:pr-blocks reads the array by its name
+  readarray -t flow_block < <(jq --raw-output "${flow_block_records}" <<<"$1")
+  flow:pr-blocks flow_block false "$(flow:width)" "${@:2}"
 }
 
 # flow:pr-table <choice> <prs> draws the pull requests in <prs>, one JSON document per line, one block each, a
 # blank line between blocks, their cells sized across the rows: the row's title, author, state, and age, and the
-# issue rows' number, assignees, and age. Every row ends with its branch. <choice> mine leaves the author column out.
+# issue rows' reference, assignees, age, and branch. Every row ends with its branch. <choice> mine leaves the author
+# column out. One jq reads every block's fields, so the table starts the same processes whatever its length.
 flow:pr-table() {
-  local choice=$1 prs=$2 doc issue_widths first=true
-  local title_w=0 owner_w=0 state_w=0 age_w=0 width text author state_text age_secs
+  local choice=$1 prs=$2 record text columns width
+  local title_w=0 owner_w=0 state_w=0 age_w=0 ref_w=0 assignees_w=0 issue_age_w=0 branch_w=0
+  local -a flow_table=() fields
   [[ -n "${prs}" ]] || return 0
-  while IFS=$'\x1f' read -r text author state_text age_secs
+  readarray -t flow_table < <(jq --raw-output "${flow_block_records}" <<<"${prs}")
+  for record in "${flow_table[@]}"
   do
-    [[ -n "${text}" ]] || continue
-    (( ${#text} > title_w )) && title_w=${#text}
-    [[ "${choice}" != mine ]] && (( ${#author} > owner_w )) && owner_w=${#author}
-    (( ${#state_text} > state_w )) && state_w=${#state_text}
-    text=$(flow:age "${age_secs}")
-    (( ${#text} > age_w )) && age_w=${#text}
-  done < <(jq --raw-output '["\(.ref // "#\(.number)") \(.title)", .author, .state, .age] | map(tostring)
-      | join("\u001f")' \
-    <<<"${prs}")
-  width=$(( $(flow:width) - 3 - 2 - 3 - state_w - 3 - age_w - 3 - 24 - (owner_w > 0 ? owner_w + 5 : 0) ))
+    [[ -n "${record}" ]] || continue
+    IFS=$'\x1f' read -r -a fields <<<"${record}"$'\x1f'
+    if [[ "${fields[0]}" == P ]]
+    then
+      text="${fields[1]} ${fields[2]}"
+      (( ${#text} > title_w )) && title_w=${#text}
+      [[ "${choice}" != mine ]] && (( ${#fields[3]} > owner_w )) && owner_w=${#fields[3]}
+      (( ${#fields[5]} > state_w )) && state_w=${#fields[5]}
+      flow:age-to text "${fields[6]}"
+      (( ${#text} > age_w )) && age_w=${#text}
+    else
+      (( ${#fields[1]} > ref_w )) && ref_w=${#fields[1]}
+      (( ${#fields[3]} > assignees_w )) && assignees_w=${#fields[3]}
+      flow:age-to text "${fields[4]}"
+      (( ${#text} > issue_age_w )) && issue_age_w=${#text}
+      (( ${#fields[5]} > branch_w )) && branch_w=${#fields[5]}
+    fi
+  done
+  columns=$(flow:width)
+  width=$(( columns - 3 - 2 - 3 - state_w - 3 - age_w - 3 - 24 - (owner_w > 0 ? owner_w + 5 : 0) ))
   (( width < 20 )) && width=20
   (( title_w > width )) && title_w=${width}
-  issue_widths=$(flow:issue-widths "$(jq --slurp --compact-output 'map(.closes[]?)' <<<"${prs}")")
-  while IFS= read -r doc
-  do
-    [[ -n "${doc}" ]] || continue
-    if [[ "${first}" == true ]]
-    then first=false
-    else printf '\n'
-    fi
-    flow:pr-block "${doc}" "${title_w}" "${owner_w}" "${state_w}" "${age_w}" yes "${issue_widths}"
-  done <<<"${prs}"
+  flow:pr-blocks flow_table true "${columns}" "${title_w}" "${owner_w}" "${state_w}" "${age_w}" yes \
+    "${ref_w} ${assignees_w} ${issue_age_w} ${branch_w}"
 }
 
 # flow:in-worktree succeeds in a linked worktree, whose git directory is not the repository's common one.
