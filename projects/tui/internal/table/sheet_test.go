@@ -1374,6 +1374,22 @@ func TestTheStoreDoesToTheFilesListWhatTheScreenDidToItsOwn(t *testing.T) {
 	}
 }
 
+// A level of the groups is kept by its depth, so a fold made on one grouping ends when the groups change, and stays
+// while a panel keeps them.
+func TestALevelsFoldEndsWhenTheGroupsChange(t *testing.T) {
+	s := sheet("")
+	s.SetPanel(s.Panel().GroupedBy([]string{"kind"}))
+	s.Table().Open = grid.Outline{grid.LevelKey(1): false, "a": true}
+	s.SetPanel(s.Panel().Sorted("kind"))
+	if open, ok := s.Table().Open[grid.LevelKey(1)]; !ok || open {
+		t.Errorf("the groups kept, the level's fold: %v", s.Table().Open)
+	}
+	s.SetPanel(s.Panel().GroupedBy(nil))
+	if _, ok := s.Table().Open[grid.LevelKey(1)]; ok || !s.Table().Open["a"] {
+		t.Errorf("the groups changed: %v", s.Table().Open)
+	}
+}
+
 // A starred view moves among the favorites, and the keyboard goes with it: in the presets' menu and in the dialog, the
 // next press acts on the view starred, not on the line it left.
 func TestTheKeyboardStaysOnAViewItStars(t *testing.T) {
@@ -1400,18 +1416,17 @@ func TestTheKeyboardStaysOnAViewItStars(t *testing.T) {
 	}
 }
 
-// A level of the groups is kept by its depth, so a fold made on one grouping ends when the groups change, and stays
-// while a panel keeps them.
-func TestALevelsFoldEndsWhenTheGroupsChange(t *testing.T) {
+// With one column showing, a row is still a row: the header names the column, and a closed heading folds its rows.
+func TestOneColumnLeftStillHasItsHeaderAndFoldsUnderItsHeading(t *testing.T) {
 	s := sheet("")
-	s.SetPanel(s.Panel().GroupedBy([]string{"kind"}))
-	s.Table().Open = grid.Outline{grid.LevelKey(1): false, "a": true}
-	s.SetPanel(s.Panel().Sorted("kind"))
-	if open, ok := s.Table().Open[grid.LevelKey(1)]; !ok || open {
-		t.Errorf("the groups kept, the level's fold: %v", s.Table().Open)
+	s.SetPanel(s.Panel().Placed("note", grid.Hidden))
+	if h, _ := s.Header(); len(h) == 0 || !strings.Contains(ansi.Strip(h[0]), "name") {
+		t.Fatalf("no header over the one column: %q\n%s", h, strings.Join(screenOf(s), "\n"))
 	}
-	s.SetPanel(s.Panel().GroupedBy(nil))
-	if _, ok := s.Table().Open[grid.LevelKey(1)]; ok || !s.Table().Open["a"] {
-		t.Errorf("the groups changed: %v", s.Table().Open)
+	all := len(s.Rows())
+	s.Table().Open = grid.Outline{s.Rows()[1].Key: false}
+	s.Rebuild()
+	if got := len(s.Rows()); got >= all {
+		t.Errorf("a closed heading folds no row: %d rows, as before %d", got, all)
 	}
 }

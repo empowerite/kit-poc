@@ -1,19 +1,12 @@
 // Package grid is the rows a screen lays out in columns: kit flow's stages draw theirs through it. A row has cells, one
 // a column, and the lines it opens to. A cell holds one value, or several, as an issue's assignees, or a text that
-// wraps, as a title. A closed row shows a cell's first value, with +N, right-aligned in the cell, when it holds more,
-// and its text cut with … where its column ends. An open row shows every value, one a line in its column, the text
-// wrapped in its column, then the lines it opens to. A cell with a summary, as an issue's labels by their count, shows
-// the summary in its column, closed or open, and an open row's values in it follow the row's lines, as many to a line
-// as the width holds. A row that hides anything, closed, has ▸ in the gutter before it,
-// and ▾ open; the row under the cursor is drawn on a faint band, its first cell bold in the accent, a pill as it is;
-// the band marks the row, so the cell is not underlined as a chosen name is. A glyph, or a first word, whose link
-// opens a page is underlined with dots. A header can stand the columns' names over the rows, widening each column to
-// its name; a click on a name sorts by it. A row selected, one of several, has ✓ before its ▸. A panel beside the rows narrows them: a
-// search, which keeps the rows whose text has it, and a field editor, each field in one of three sections, the groups,
-// the columns, and the hidden, moved within its section or across into the next. It keeps, per field, its placement, as
-// a column at a position, a group at a depth, or hidden, its sort, and its filter, each group under a heading; while it
-// folds, a column whose value is the same on every row of a group groups it on its own, its value said once in the
-// heading.
+// wraps, as a title. A closed row shows a cell's first value, with +N when it holds more, and its text cut with …
+// where its column ends. An open row shows every value, one a line in its column, then the lines it opens to. A cell
+// with a summary, as an issue's labels by their count, shows the summary closed and its values open. A row that hides
+// anything has ▸ in the gutter before it, closed, and ▾ open; the row under the cursor is on a band; a row selected,
+// one of several, has ▣ in the gutter. A header stands the columns' names over the rows. A Panel holds what is asked
+// of the rows: the search, each field's placement, sort, and filter, and the groups, each under a heading that folds
+// its rows away.
 package grid
 
 import (
@@ -185,7 +178,7 @@ type Row struct {
 // the header names; nothing when there is none.
 func shapeOf(rows []Row) []Cell {
 	for _, r := range rows {
-		if len(r.Cells) >= 2 {
+		if !r.Aside && len(r.Cells) > 0 {
 			return r.Cells
 		}
 		if shape := shapeOf(r.Folded); shape != nil {
@@ -644,11 +637,11 @@ func table(rows [][]Cell, width int) []string {
 	return lines
 }
 
-// wrap gives the rows as rows of cells, for columnWidths.
+// wrap gives the rows as rows of cells, for columnWidths: a row of one cell spans the columns, as an aside does.
 func wrap(rows [][]Cell) []Row {
 	out := make([]Row, len(rows))
 	for i, r := range rows {
-		out[i].Cells = r
+		out[i].Cells, out[i].Aside = r, len(r) < 2
 	}
 	return out
 }
@@ -717,7 +710,7 @@ func measure(rows []Row) []int {
 			}
 			widths[j] = max(widths[j], w)
 		}
-		if len(r.Cells) < 2 {
+		if r.Aside || len(r.Cells) == 0 {
 			continue
 		}
 		for j, c := range r.Cells {
@@ -735,14 +728,21 @@ func measure(rows []Row) []int {
 // value or the summary, as its values stand in its column when the row is open.
 func (c Cell) need() int {
 	n := 0
-	if c.Summary != "" {
-		n = ansi.StringWidth(c.Summary)
-	}
 	if !c.Wrap {
-		n = ansi.StringWidth(c.first() + c.more())
+		n = ansi.StringWidth(c.face() + c.more())
 	}
 	for _, v := range c.Values {
-		n = max(n, ansi.StringWidth(v))
+		n = max(n, widest(v))
+	}
+	return n
+}
+
+// widest gives the cells of a text's widest line: a newline has no width of its own, so the text's width would be its
+// lines end to end.
+func widest(s string) int {
+	n := 0
+	for _, line := range strings.Split(s, "\n") {
+		n = max(n, ansi.StringWidth(line))
 	}
 	return n
 }

@@ -878,7 +878,7 @@ func (p Panel) fold(key string) string {
 // outline's Shows says. The row before it stays, the heading over the groups when nothing does, and holds them in its
 // Folded, which lay the columns out still.
 func (p Panel) FoldAway(rows []Row) []Row {
-	groups := Levels(rows)
+	groups := len(p.Groups())
 	// the rows stand at a level of their own under the heading over the groups, though nothing groups
 	over := len(rows) > 0 && OverGroups(rows[0])
 	var out []Row
@@ -890,11 +890,11 @@ func (p Panel) FoldAway(rows []Row) []Row {
 		switch {
 		case level >= 2:
 			depth = level - 2
-		case level == 0 && len(r.Cells) > 1 && (groups > 0 || over):
+		case level == 0 && !r.Aside && (groups > 0 || over):
 			depth = groups
 		}
 		hidden := depth >= 0 && !p.Outline.Shows(depth)
-		if hidden || closed > 0 && (level > closed || level == 0 && len(r.Cells) > 1) {
+		if hidden || closed > 0 && (level > closed || level == 0 && !r.Aside) {
 			out[len(out)-1].Folded = append(out[len(out)-1].Folded, r)
 			continue
 		}
@@ -938,7 +938,7 @@ func beneath(r Row, level int) bool {
 	if Heads(r) {
 		return Level(r) > level
 	}
-	return len(r.Cells) > 1
+	return !r.Aside
 }
 
 // Span gives where the subtree of the row at k ends in the rows, past its last: a heading's runs over every row and
@@ -957,7 +957,7 @@ func Span(rows []Row, k int) int {
 // Parent gives the index of the heading the row at k stands under in the rows, the nearest above it shallower than it,
 // or -1 for a row under none: an outermost heading, or a row that follows the groups or stands where nothing groups.
 func Parent(rows []Row, k int) int {
-	if !Heads(rows[k]) && len(rows[k].Cells) < 2 {
+	if !Heads(rows[k]) && rows[k].Aside {
 		return -1
 	}
 	for j := k - 1; j >= 0; j-- {

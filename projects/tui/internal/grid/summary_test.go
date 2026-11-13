@@ -58,3 +58,30 @@ func TestTwoListsInAnOpenRowEachKeepTheirColumn(t *testing.T) {
 		t.Errorf("open:\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 }
+
+// A summary wider than the values it stands for is what the closed row draws, so it is what its column needs.
+func TestAColumnTakesTheWidthOfItsSummaryToo(t *testing.T) {
+	cell := Cell{Values: []string{"a", "b"}, Raw: []string{"a", "b"}, Summary: "12 things"}
+	if n := Need([]Cell{cell}, ""); n != len("12 things") {
+		t.Errorf("the column needs %d cells, not %d", n, len("12 things"))
+	}
+	rows := []Row{{Key: "a", Cells: []Cell{{Values: []string{"a"}}, cell, {Values: []string{"title"}, Wrap: true}}}}
+	got := plain(Draw(rows, nil, 40, 0, -1, func(Row) bool { return false }, nil))
+	if want := []string{"  ▸ a  12 things  title"}; !slices.Equal(got, want) {
+		t.Errorf("closed:\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+// A title of several lines needs its widest line, not its lines end to end, so the other columns keep their width.
+func TestATitleOfSeveralLinesNeedsItsWidestLine(t *testing.T) {
+	title := strings.TrimSuffix(strings.Repeat("twelve cells\n", 12), "\n")
+	if n := Need([]Cell{{Values: []string{title}, Wrap: true}}, ""); n != len("twelve cells") {
+		t.Errorf("the title needs %d cells", n)
+	}
+	rows := []Row{{Key: "a", Cells: []Cell{{Values: []string{"a-rather-long-b-column-of-text"}},
+		{Values: []string{title}, Wrap: true}}}}
+	got := plain(Draw(rows, nil, 60, 0, -1, func(Row) bool { return false }, nil))
+	if want := []string{"  ▸ a-rather-long-b-column-of-text  twelve cells"}; !slices.Equal(got, want) {
+		t.Errorf("closed:\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+}

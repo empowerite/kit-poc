@@ -121,7 +121,7 @@ func TestLinkAtFindsTheLinkedGlyphOrFirstWordUnderAColumn(t *testing.T) {
 	rows := issues()
 	rows[0].Cells[3].Link = "https://example/1"
 	rows[0].Cells[0].Link = "https://example/number"
-	rows = append(rows, Row{Key: "s", Cells: []Cell{{Values: []string{"🔗 a span"}, Link: "https://example/span"}}})
+	rows = append(rows, Row{Key: "s", Aside: true, Cells: []Cell{{Values: []string{"🔗 a span"}, Link: "https://example/span"}}})
 	// the title starts after the gutter, #1, the assignees, and the age, each with the gap after it
 	title := len(lead) + 3 + gap + ansi.StringWidth("👤 ada +1") + gap + 3 + gap
 	for x, want := range map[int]string{title: "https://example/1", title + 1: "", title + 2: "",
@@ -377,7 +377,7 @@ func TestTheHeaderStandsEachNameOverItsColumn(t *testing.T) {
 	if got, hides := Header(rows, names[:3], 40, 0, false); hides || strings.Contains(ansi.Strip(got[0]), "▸") {
 		t.Errorf("a header of one line: %q", got)
 	}
-	if got, _ := Header([]Row{{Cells: []Cell{one("a heading")}}}, []string{"x"}, 40, 0, false); got != nil {
+	if got, _ := Header([]Row{{Aside: true, Cells: []Cell{one("a heading")}}}, []string{"x"}, 40, 0, false); got != nil {
 		t.Errorf("rows of one cell have a header: %q", got)
 	}
 }
@@ -507,7 +507,7 @@ func TestThePanelSortsTheRows(t *testing.T) {
 	row := func(id, age, secs string) Row {
 		return Row{Key: id, Cells: []Cell{one(id), {Values: []string{age}, Raw: []string{secs}}}}
 	}
-	rows := []Row{row("#31", "2d", "172800"), row("#7", "60m", "3600"), {Key: "heading", Cells: []Cell{one("heading")}},
+	rows := []Row{row("#31", "2d", "172800"), row("#7", "60m", "3600"), {Key: "heading", Aside: true, Cells: []Cell{one("heading")}},
 		row("#100", "60m", "3600")}
 	keys := func(rows []Row) string {
 		var out []string
@@ -624,7 +624,7 @@ func TestThePanelGroupsTheRows(t *testing.T) {
 	columns := []string{"id", "state", "who"}
 	row := func(id, state, who string) Row { return Row{Key: id, Cells: []Cell{one(id), one(state), one(who)}} }
 	rows := []Row{row("#3", "ready", "ada"), row("#1", "draft", "bob"), row("#2", "ready", ""),
-		{Key: "gone", Cells: []Cell{one("gone: x")}}}
+		{Key: "gone", Aside: true, Cells: []Cell{one("gone: x")}}}
 	p := Panel{Groupable: map[string]bool{"state": true, "who": true}}.Grouped("state", false).Grouped("who", true)
 	var got []string
 	grouped := p.group(rows, columns)
@@ -637,7 +637,7 @@ func TestThePanelGroupsTheRows(t *testing.T) {
 	}
 	// draft's one heading, bob's, heads the same row, so it stands on draft's line, across
 	want := []string{"▾ state ▾ who ▾ 3", "▾ draft · bob 1", "#1", "▾ ready 2", "  ▾ ada 1", "#3", "  ▾ none 1", "#2",
-		"gone"}
+		"gone: x"}
 	if !slices.Equal(got, want) {
 		t.Errorf("grouped:\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
@@ -748,7 +748,7 @@ func TestABlankColumnShowsNotWhileTwoColumnsStay(t *testing.T) {
 	row := func(id, state, where, who string) Row {
 		return Row{Key: id, Cells: []Cell{one(id), one(state), one(where), one(who)}}
 	}
-	rows := []Row{row("#1", "draft", "", ""), row("#2", "ready", "", "bob"), {Key: "gone", Cells: []Cell{one("x")}}}
+	rows := []Row{row("#1", "draft", "", ""), row("#2", "ready", "", "bob"), {Key: "gone", Aside: true, Cells: []Cell{one("x")}}}
 	if got := Blanks(rows, columns); !slices.Equal(got, []string{"where"}) {
 		t.Fatalf("blanks: %q", got)
 	}
@@ -786,7 +786,7 @@ func TestAViewAsItLoadsGroupsByEachColumnTheSameOnEveryRow(t *testing.T) {
 	}
 	groupable := map[string]bool{"source": true, "state": true, "where": true, "who": true}
 	rows := []Row{row("#1", "draft", "here", "ada"), row("#2", "draft", "here", ""), row("#3", "ready", "here", "bob"),
-		{Key: "gone", Cells: []Cell{one("gone: x")}}}
+		{Key: "gone", Aside: true, Cells: []Cell{one("gone: x")}}}
 	p := Panel{Columns: columns, Groupable: groupable, Fold: true}
 	if got := p.AutoGrouped(rows, columns).Groups(); !slices.Equal(got, []string{"source", "where"}) {
 		t.Fatalf("grouped as it loads: %q", got)
@@ -799,7 +799,7 @@ func TestAViewAsItLoadsGroupsByEachColumnTheSameOnEveryRow(t *testing.T) {
 			headings = append(headings, ansi.Strip(r.Cells[0].first()))
 		}
 	}
-	if want := []string{"▾ source · where 3", "▾ github · here 3"}; !slices.Equal(headings, want) {
+	if want := []string{"▾ source · where 3", "▾ github · here 3", "gone: x"}; !slices.Equal(headings, want) {
 		t.Errorf("the headings: %q", headings)
 	}
 	if got := q.Grouped("source", true).Groups(); !slices.Equal(got, []string{"where"}) {
@@ -895,7 +895,7 @@ func TestAGroupsHeadingFoldsItsRowsAway(t *testing.T) {
 	columns := []string{"id", "state", "who"}
 	row := func(id, state, who string) Row { return Row{Key: id, Cells: []Cell{one(id), one(state), one(who)}} }
 	rows := []Row{row("#3", "ready", "ada"), row("#1", "draft", "bob"), row("#2", "ready", ""),
-		{Key: "gone", Cells: []Cell{one("gone: x")}}}
+		{Key: "gone", Aside: true, Cells: []Cell{one("gone: x")}}}
 	p := Panel{Groupable: map[string]bool{"state": true, "who": true}}.Grouped("state", false).Grouped("who", true)
 	texts := func(p Panel) []string {
 		grouped := p.group(rows, columns)
@@ -918,13 +918,13 @@ func TestAGroupsHeadingFoldsItsRowsAway(t *testing.T) {
 		}
 		return p
 	}
-	want := []string{"▾ state ▾ who ▾ 3", "▾ draft · bob 1", "#1", "▸ ready 2", "gone"}
+	want := []string{"▾ state ▾ who ▾ 3", "▾ draft · bob 1", "#1", "▸ ready 2", "gone: x"}
 	if got := texts(shut(p, ready)); !slices.Equal(got, want) {
 		t.Errorf("ready folded:\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
 	// a nested heading folds only its own rows
 	want = []string{"▾ state ▾ who ▾ 3", "▾ draft · bob 1", "#1", "▾ ready 2", "  ▸ ada 1", "  ▾ none 1", "#2",
-		"gone"}
+		"gone: x"}
 	if got := texts(shut(p, ready+"\x00ada")); !slices.Equal(got, want) {
 		t.Errorf("ada folded:\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
 	}
@@ -961,7 +961,7 @@ func TestTheOutlinesTreeAndWhatStandsOpen(t *testing.T) {
 	columns := []string{"id", "state", "who"}
 	row := func(id, state, who string) Row { return Row{Key: id, Cells: []Cell{one(id), one(state), one(who)}} }
 	rows := []Row{row("#3", "ready", "ada"), row("#1", "draft", "bob"), row("#2", "ready", ""),
-		{Key: "gone", Cells: []Cell{one("gone: x")}}}
+		{Key: "gone", Aside: true, Cells: []Cell{one("gone: x")}}}
 	p := Panel{Groupable: map[string]bool{"state": true, "who": true}}.Grouped("state", false).Grouped("who", true)
 	grouped := p.group(rows, columns)
 	// state and who, draft with bob on its line, #1, ready, ada, #3, none, #2, gone
@@ -1237,7 +1237,7 @@ func TestALevelThatDoesNotShowFoldsAway(t *testing.T) {
 	columns := []string{"id", "state", "who"}
 	row := func(id, state, who string) Row { return Row{Key: id, Cells: []Cell{one(id), one(state), one(who)}} }
 	rows := []Row{row("#3", "ready", "ada"), row("#1", "draft", "bob"), row("#2", "ready", ""),
-		{Key: "gone", Cells: []Cell{one("gone: x")}}}
+		{Key: "gone", Aside: true, Cells: []Cell{one("gone: x")}}}
 	p := Panel{Groupable: map[string]bool{"state": true, "who": true}}.Grouped("state", false).Grouped("who", true)
 	grouped := p.group(rows, columns)
 	texts := func(p Panel) []string {
@@ -1253,16 +1253,16 @@ func TestALevelThatDoesNotShowFoldsAway(t *testing.T) {
 	}
 	p.Outline = Outline{LevelKey(2): false}
 	if got, want := texts(p), []string{"▾ state ▾ who ▸ 3", "▸ draft · bob 1", "▾ ready 2", "  ▸ ada 1", "  ▸ none 1",
-		"gone"}; !slices.Equal(got, want) {
+		"gone: x"}; !slices.Equal(got, want) {
 		t.Errorf("the rows closed:\n%s", strings.Join(got, "\n"))
 	}
 	p.Outline = Outline{LevelKey(1): false, byFields + "\x00ready\x00ada": false}
-	if got, want := texts(p), []string{"▾ state ▸ who ▸ 3", "▸ draft 1", "▸ ready 2", "gone"}; !slices.Equal(got, want) {
+	if got, want := texts(p), []string{"▾ state ▸ who ▸ 3", "▸ draft 1", "▸ ready 2", "gone: x"}; !slices.Equal(got, want) {
 		t.Errorf("who's level closed:\n%s", strings.Join(got, "\n"))
 	}
 	p.Outline = Outline{LevelKey(0): false}
 	folded := p.FoldAway(grouped)
-	if got := texts(p); !slices.Equal(got, []string{"▸ state ▸ who ▸ 3", "gone"}) || len(Every(folded)) != len(grouped) ||
+	if got := texts(p); !slices.Equal(got, []string{"▸ state ▸ who ▸ 3", "gone: x"}) || len(Every(folded)) != len(grouped) ||
 		!slices.Equal(headed(folded, columns), headed(grouped, columns)) {
 		t.Errorf("state's level closed: %q", got)
 	}
@@ -1711,7 +1711,7 @@ func TestARangeLetsThroughTheNumbersInIt(t *testing.T) {
 func TestAColumnIsBlankWhereNoRowHoldsAValueInIt(t *testing.T) {
 	columns := []string{"id", "title", "repository"}
 	rows := []Row{{Key: "#1", Cells: []Cell{one("#1"), one("a"), {}}}, {Key: "#2", Cells: []Cell{one("#2"), one("b")}},
-		{Aside: true, Cells: []Cell{one("▾ kit"), {}, one("kit")}}, {Key: "gone", Cells: []Cell{one("kit")}}}
+		{Aside: true, Cells: []Cell{one("▾ kit"), {}, one("kit")}}, {Key: "gone", Aside: true, Cells: []Cell{one("kit")}}}
 	for name, want := range map[string]bool{"repository": true, "id": false, "nope": true} {
 		if got := Blank(rows, columns, name); got != want {
 			t.Errorf("%s is blank: %v", name, got)
@@ -1811,10 +1811,59 @@ func TestValuesTheNaturalOrderTiesStandUnderAHeadingEach(t *testing.T) {
 	}
 }
 
+// With one column left a row has one cell, and is still a row, not an aside: a closed heading folds it away, the
+// header names the column, and a row has its heading for a parent.
+func TestARowOfOneCellIsStillARowWhileOneColumnShows(t *testing.T) {
+	columns := []string{"id", "state", "who"}
+	row := func(id, state, who string) Row { return Row{Key: id, Cells: []Cell{one(id), one(state), one(who)}} }
+	rows := []Row{row("#1", "draft", "bob"), row("#2", "ready", "ada"), row("#3", "draft", "cy")}
+	p := Panel{Groupable: map[string]bool{"state": true}}.Grouped("state", false).Placed("who", Hidden)
+	p.Outline = Outline{byFields + "\x00draft": false}
+	shown := p.Filter(rows, columns)
+	var keys []string
+	for _, r := range p.FoldAway(shown) {
+		keys = append(keys, r.Key)
+	}
+	if want := []string{byFields, byFields + "\x00draft", byFields + "\x00ready", "#2"}; !slices.Equal(keys, want) {
+		t.Errorf("rows after a closed heading: %q, want %q", keys, want)
+	}
+	if lines, _ := Header(shown, []string{"id"}, 40, 0, false); len(lines) == 0 {
+		t.Errorf("no header over the one column")
+	}
+	if k := slices.IndexFunc(shown, func(r Row) bool { return r.Key == "#2" }); Parent(shown, k) < 0 {
+		t.Errorf("the row has no heading above it")
+	}
+}
+
+// The rows' level is the one under the last group, though every innermost heading stands on its parent's line and the
+// headings drawn say one level fewer.
+func TestTheRowsLevelFoldsWhenEveryInnermostHeadingStandsOnItsParentsLine(t *testing.T) {
+	columns := []string{"id", "a", "b"}
+	rows := []Row{{Key: "#1", Cells: []Cell{one("#1"), one("x"), one("p")}},
+		{Key: "#2", Cells: []Cell{one("#2"), one("y"), one("q")}}}
+	p := Panel{Groupable: map[string]bool{"a": true, "b": true}}.Grouped("a", false).Grouped("b", true)
+	p.Outline = Outline{LevelKey(2): false}
+	folded := 0
+	for _, r := range p.FoldAway(p.Filter(rows, columns)) {
+		folded += len(r.Folded)
+	}
+	if folded != 2 {
+		t.Errorf("the rows' level closed folds %d rows, not 2", folded)
+	}
+}
+
 // An outline without its levels keeps every other key: a heading's, a row's.
 func TestAnOutlineWithoutItsLevelsKeepsTheRest(t *testing.T) {
 	o := Outline{LevelKey(0): false, LevelKey(2): true, "a": true, "b": false}
 	if got := o.WithoutLevels(); !maps.Equal(got, Outline{"a": true, "b": false}) || len(o) != 4 {
 		t.Errorf("without levels: %v, from %v", got, o)
+	}
+}
+
+// Rows that are all asides have no columns to scroll.
+func TestRowsThatAreAllAsidesScrollNothing(t *testing.T) {
+	rows := []Row{{Key: "a", Aside: true, Cells: []Cell{one("a heading")}}}
+	if to, before, after := Scroll(rows, []string{"x"}, 40, 3); to != 0 || before || after {
+		t.Errorf("scrolled to %d, before %v, after %v", to, before, after)
 	}
 }

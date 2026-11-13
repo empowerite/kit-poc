@@ -170,7 +170,7 @@ func ShownValues(records []Record, rows []grid.Row, p grid.Panel) map[string][]V
 func Filled(rows []grid.Row, names []string) []string {
 	out := make([]string, len(names))
 	for _, r := range rows {
-		if len(r.Cells) < 2 {
+		if r.Aside || len(r.Cells) == 0 {
 			continue
 		}
 		for j, c := range r.Cells {
