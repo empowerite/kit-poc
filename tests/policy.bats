@@ -423,6 +423,15 @@ REGO
   [[ "$output" == *"1 refusal(s) by the opa policy"* ]]
 }
 
+@test "Rego held only in a subdirectory of .kit/policy/ chooses the opa engine, as a file at the top does" {
+  run kit-bash 'use policy && policy:engine'
+  [ "$output" = patterns ]
+  mkdir -p .kit/policy/sub/deeper
+  printf 'package kit.policy\n' > .kit/policy/sub/deeper/deny.rego
+  run kit-bash 'use policy && policy:engine'
+  [ "$output" = opa ]
+}
+
 @test "Rego a branch adds does not choose the engine that judges it" {
   printf 'policy:\n  commit_subject: "^#[0-9]+ "\n' > kit.yml
   git add kit.yml

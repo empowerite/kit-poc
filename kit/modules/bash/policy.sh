@@ -38,7 +38,7 @@
 # The provider is chosen by:
 #
 #   1. the `policy_engine` setting in kit.yml, if set
-#   2. otherwise opa, if .kit/policy/ contains a .rego file
+#   2. otherwise opa, if .kit/policy/ contains a .rego file, in a subdirectory too
 #   3. otherwise patterns
 #
 # kit commit reads the policy from the tree it will commit, never from the disk: kit.yml as that tree holds it, and
@@ -492,7 +492,7 @@ policy:engine() {
   if [[ -z "${engine}" ]]
   then
     engine=patterns
-    compgen -G "${policy_rego}/*.rego" >/dev/null && engine=opa
+    [[ -z "$(find "${policy_rego}" -name '*.rego' -print -quit 2>/dev/null)" ]] || engine=opa
   fi
   if [[ -z "$(use:modules "policy/${engine}")" ]]
   then
