@@ -288,11 +288,15 @@ def gitlab_mark($kind):
   else [.environments[]? | [.id, .name, .state, .updated_at]] end
   | tojson;
 
-# gitlab_runs reads a pipeline's jobs and gives its runs.
+# gitlab_runs reads a pipeline's jobs and gives its runs. A job that failed but is allowed to fail has passed.
 def gitlab_runs:
   map({ name,
-        verdict: (if .status | IN("created", "pending", "running", "preparing", "waiting_for_resource", "scheduled")
-                  then "pending" elif .status | IN("success", "skipped", "manual") then "passed" else "failed" end),
+        verdict: (if .status | IN("created", "pending", "running", "preparing", "waiting_for_resource",
+                                  "waiting_for_callback", "scheduled")
+                  then "pending"
+                  elif .status | IN("success", "skipped", "manual") then "passed"
+                  elif .status == "failed" and .allow_failure then "passed"
+                  else "failed" end),
         at: (.started_at // .created_at // ""),
         since: (.started_at // .created_at // null | if . == null then null else epoch end),
         took: (if .started_at != null and .finished_at != null
@@ -316,9 +320,9 @@ def gitlab_pr($now; $jobs; $discussions; $closes; $fork; $approvals):
     fork: $fork,
     pushed: (.head_pipeline // {}
              | if .created_at == null then null else {at: .created_at, by: (.user.username // null)} end),
-    approval: ((.detailed_merge_status // "") == "not_approved"), labels,
+    approval: ((.detailed_merge_status // "") | IN("not_approved", "requested_changes")), labels,
     runs: ($jobs | gitlab_runs),
-    unresolved: ([$discussions[] | .notes[]? | select(.resolvable and (.resolved | not))] | length),
+    unresolved: ([$discussions[] | select(any(.notes[]?; .resolvable and (.resolved | not)))] | length),
     reviewers: ([$approvals.approved_by[]? | {login: .user.username, state: "approved", at: (.approved_at // null)}]
                 + [.reviewers[]? | {login: .username, state: "requested", at: null}]),
     closes: [$closes[] | { number: .iid, title, assignees: [.assignees[]?.username], labels, createdAt: .created_at,
@@ -464,7 +468,9 @@ def github_jobs:
 # gitlab_build_state reads a GitLab pipeline's status and gives running, passed, failed, or cancelled. A pipeline
 # that waits for a person, manual, is cancelled: it does not run on its own.
 def gitlab_build_state:
-  if .status | IN("created", "waiting_for_resource", "preparing", "pending", "running", "scheduled") then "running"
+  if .status | IN("created", "waiting_for_resource", "waiting_for_callback", "preparing", "pending", "running",
+                  "scheduled")
+  then "running"
   elif .status == "success" then "passed"
   elif .status == "failed" then "failed"
   else "cancelled" end;

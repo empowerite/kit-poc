@@ -27,6 +27,10 @@
           "scheduled"
         ]
       },
+      "allow_failure": {
+        "type": "boolean",
+        "description": "True when a failure of the job does not fail the pipeline; kit counts such a failed job as passed."
+      },
       "created_at": {
         "type": "string",
         "format": "date-time"

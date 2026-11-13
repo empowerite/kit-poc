@@ -92,6 +92,29 @@ import "forge" as forge; forge::gitlab_runs | map([.name, .verdict, .took])
 [{"name": "test", "status": "success", "started_at": "1970-01-12T13:45:00.5Z", "finished_at": "1970-01-12T13:46:40.5Z"}, {"name": "deploy", "status": "manual", "started_at": null, "finished_at": null, "created_at": "1970-01-12T13:45:00Z"}, {"name": "lint", "status": "running", "started_at": "1970-01-12T13:45:00Z", "finished_at": null}, {"name": "build", "status": "failed", "started_at": null, "finished_at": null}]
 [["test","passed",100],["deploy","passed",null],["lint","pending",null],["build","failed",null]]
 
+# A GitLab job that failed but is allowed to fail has passed, and one that waits for a callback is pending, as is
+# every status the research's schema lists that is not final.
+import "forge" as forge; forge::gitlab_runs | map([.name, .verdict])
+[{"name": "flaky", "status": "failed", "allow_failure": true}, {"name": "hard", "status": "failed", "allow_failure": false}, {"name": "hook", "status": "waiting_for_callback"}, {"name": "gone", "status": "canceled", "allow_failure": true}]
+[["flaky","passed"],["hard","failed"],["hook","pending"],["gone","failed"]]
+
+# A GitLab pipeline that waits for a callback is running, not cancelled.
+import "forge" as forge; map(forge::gitlab_build_state)
+[{"status": "waiting_for_callback"}, {"status": "canceled"}]
+["running","cancelled"]
+
+# A GitLab merge request whose detailed status says changes were requested needs approval, as one that is not
+# approved does; a mergeable one needs none.
+import "forge" as forge; map(forge::gitlab_pr(1000000; [{"name": "test", "status": "success"}]; []; []; null; {}) | .state)
+[{"iid": 1, "title": "a", "created_at": "1970-01-12T13:30:00Z", "detailed_merge_status": "requested_changes"}, {"iid": 2, "title": "b", "created_at": "1970-01-12T13:30:00Z", "detailed_merge_status": "not_approved"}, {"iid": 3, "title": "c", "created_at": "1970-01-12T13:30:00Z", "detailed_merge_status": "mergeable"}]
+["blocked:approval","blocked:approval","ready"]
+
+# GitLab's unresolved count is of discussions, as GitHub's and Azure DevOps's are of threads: a thread of three open
+# notes is one.
+import "forge" as forge; forge::gitlab_pr(1000000; []; [{"notes": [{"resolvable": true, "resolved": false}, {"resolvable": true, "resolved": false}, {"resolvable": true, "resolved": false}]}, {"notes": [{"resolvable": true, "resolved": true}]}, {"notes": [{"resolvable": false}]}]; []; null; {}) | .unresolved
+{"iid": 1, "title": "a", "created_at": "1970-01-12T13:30:00Z"}
+1
+
 # A merge request folds into the document, with its ref written !<iid> and its page, GitLab's web_url, as each issue
 # it closes has its own; with no pipeline, its last push is unknown.
 import "forge" as forge; forge::gitlab_pr(1000000; [{"name": "test", "status": "success", "started_at": "1970-01-12T13:45:00Z", "finished_at": "1970-01-12T13:46:40Z"}]; [{"notes": [{"resolvable": true, "resolved": false}, {"resolvable": false}]}]; [{"iid": 7, "title": "Fix the thing", "created_at": "1970-01-12T13:40:00Z", "assignees": [{"username": "bob"}], "references": {"full": "empowerite/tools/example#7"}, "web_url": "https://gitlab.com/empowerite/tools/example/-/issues/7"}]; null; {"approved_by": null})
