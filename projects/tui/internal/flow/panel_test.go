@@ -74,7 +74,7 @@ func TestSlashGivesTheSearchTheKeyboardAndTypingNarrowsTheRowsAndTheCount(t *tes
 	if m.stage != 0 || m.stages[0].src.Loading || !strings.Contains(raw(m), grid.Search+" NOUN2r▏") {
 		t.Errorf("a number or r in the search: stage %d\n%s", m.stage, view(m))
 	}
-	if !strings.Contains(view(m), "no row matches the panel") {
+	if !strings.Contains(view(m), `no row matches "NOUN2r"; esc clears`) {
 		t.Errorf("a search no row has:\n%s", view(m))
 	}
 	for range "NOUN2r" {
@@ -102,6 +102,29 @@ func TestSlashGivesTheSearchTheKeyboardAndTypingNarrowsTheRowsAndTheCount(t *tes
 			t.Errorf("%s: in panel %v, in rows %v, %q", k, m.inPanel, m.inRows, m.panel(m.stage).Query)
 		}
 		m = drive(m, typed("/")[0], tea.KeyPressMsg{Code: 'u', Mod: tea.ModCtrl}, esc)
+	}
+}
+
+// A search stays until it is cleared: esc, on the bar or in the rows, clears it before it goes back a level.
+func TestEscClearsASearchOnTheBarOrInTheRowsBeforeItGoesBack(t *testing.T) {
+	m := loaded(t, options(), typed("/NOUN")...)
+	m = drive(m, esc)
+	if q := m.panel(m.stage).Query; q != "NOUN" || m.inPanel || !m.inRows {
+		t.Fatalf("esc in the search: %q, in panel %v, in rows %v", q, m.inPanel, m.inRows)
+	}
+	m = drive(m, esc)
+	if q := m.panel(m.stage).Query; q != "" || !m.inRows || len(keys(m)) != 7 {
+		t.Errorf("esc in the rows: %q, in rows %v, rows %v", q, m.inRows, keys(m))
+	}
+	if m = drive(m, esc); m.inRows {
+		t.Error("esc with no search left the rows still")
+	}
+	m = drive(m, typed("/NOUN")...)
+	m = drive(m, esc)
+	m.inRows = false // the bar has the keyboard, the search kept
+	m = drive(m, esc)
+	if m.panel(m.stage).Query != "" || m.inRows || len(keys(m)) != 7 {
+		t.Errorf("esc on the bar: %q, rows %v", m.panel(m.stage).Query, keys(m))
 	}
 }
 

@@ -28,4 +28,5 @@ It stands at the right of the menu bar, on every screen.
 - On the [help](kittui:help): a command, its group, its description
 - On the [tutorials](kittui:tutorials): a title, an audience, a summary, an id
 
-To see everything again, clear the search with `⌃U`.
+To see everything again, clear the search with `⌃U`. On an app's tab, `esc` clears it too, from the tab bar or the
+rows, before it goes back a level.

@@ -887,6 +887,13 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case shell.Workspaces:
 		m.books = m.books.Opened()
 	case "esc":
+		if len(m.stages) > 0 && m.panel(m.stage).Query != "" {
+			// a search stays until it is cleared, so esc goes back a level only once there is none
+			p := m.panel(m.stage)
+			p.Query = ""
+			m.setPanel(p)
+			return m, nil
+		}
 		if m.inRows {
 			s := &m.stages[m.stage]
 			s.Cursor, s.Offset, m.inRows = 0, 0, false

@@ -375,7 +375,9 @@ func (m Model) allLines(i int) []table.Line {
 	case table.FoldedAway(rows):
 		return []table.Line{{Row: -1, Text: lead + style.Off("every row is folded away: "+table.Unfolds)}}
 	case len(rows) > 0:
-	case p.Query != "" || p.Filtering():
+	case p.Query != "":
+		return []table.Line{{Row: -1, Text: lead + style.Off(fmt.Sprintf("no row matches %q; esc clears", p.Query))}}
+	case p.Filtering():
 		return []table.Line{{Row: -1, Text: lead + style.Off("no row matches the panel")}}
 	default:
 		return []table.Line{{Row: -1, Text: lead + style.Off(empty(s))}}
