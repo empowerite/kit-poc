@@ -91,7 +91,7 @@ fast.
 | `kit tools` | What kit does |
 | --- | --- |
 | `install` | Locks again each tool whose entry changed, downloading it for every platform, then installs each tool this platform and profile take that is not installed at its locked digest. |
-| `update` | Moves each tool behind to its latest version in `kit.yml`, then locks and installs it. |
+| `update` | Moves each tool behind to its latest version in `kit.yml`, then locks and installs it. It rewrites the tool's `version:` line and no other line of the file, so comments and blank lines stay; a tool written on one line, in braces, it names and leaves for a person to edit. |
 | `--outdated` | For a release, a module, or an npm package, asks the pull path: the newest version the first source that answers serves, a pre-release passed by, so `update` never moves to one the path does not serve yet. For a URL, asks the latest tag of each GitHub release or source archive, through gh where it is installed; Node.js's latest LTS; Go's latest release; and the newest file a GNU mirror's directory lists. It names each tool whose source it cannot ask. |
 
 ## Where things are kept

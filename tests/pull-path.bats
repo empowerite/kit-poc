@@ -280,6 +280,23 @@ npm_config_registry=https://registry.npmjs.org' ]
   grep --quiet -E '^🔺 gh +· 2\.1\.0 +· 2\.1\.0 +· 2\.5\.0$' <<<"$output"
 }
 
+@test "behind a mirror, update moves a tool to the version the mirror serves, and writes that version alone" {
+  release 2.1.0 >/dev/null
+  pin-gh 2.1.0
+  "${kit_root}/bin/kit" tools install --toolchain=kit >/dev/null 2>&1
+  mkdir -p "${FAKE_RELEASES}/mirror.example"
+  printf '[{"tag_name": "v2.2.0", "draft": false}, {"tag_name": "v2.1.0", "draft": false}]\n' \
+    > "${FAKE_RELEASES}/mirror.example/releases?per_page=100"
+  route gh 'api repos/cli/cli/releases?per_page=100' 'tags'
+  printf '[{"tag_name": "v2.5.0", "draft": false}, {"tag_name": "v2.2.0", "draft": false}]\n' | fixture tags
+  export KIT_SOURCES='mirror=github-releases:https://mirror.example,off'
+  release 2.2.0 mirror.example >/dev/null
+  run "${kit_root}/bin/kit" tools update --toolchain=kit
+  [ "$status" -eq 0 ]
+  [ "$(yq '.tools.gh.version' kit.yml)" = 2.2.0 ]
+  [ "$(tool gh)" = "gh 2.2.0 mirror.example" ]
+}
+
 # stage-tool <name> <dir> makes a tarball at <dir>/<name>.tar.gz whose <name>/bin/<name> prints the name, and prints
 # the tarball's path.
 stage-tool() {

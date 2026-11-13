@@ -226,6 +226,44 @@ YAML
   [ -d "${KIT_HOME}/.kit/tools/beta/2.1.0/${platform}" ]
 }
 
+@test "update rewrites the one line that holds a tool's version, and every other line of kit.yml stays, the blank ones too" {
+  cat > kit.yml <<'YAML'
+# the repository's settings
+
+gate: just ci
+
+# the tools, pinned
+tools:
+
+  # beta, a desk's alone
+  beta:
+    url: https://github.com/acme/beta/releases/download/v{version}/beta-{version}-{platform}.tar.gz
+    version: "2.0.0"  # moved by kit tools update
+
+    bin: beta-{version}/bin
+    profile: desk
+
+answers:
+  ci_runner: ubuntu-latest
+YAML
+  cp kit.yml before.yml
+  route gh 'api repos/acme/beta/releases/latest --jq .tag_name' 'beta-tag'
+  printf '{"tag_name": "v2.1.0"}\n' | fixture beta-tag
+  releases 1.0.0 2.1.0
+  run "${kit_root}/bin/kit" tools update --toolchain=kit
+  [ "$status" -eq 0 ]
+  [ "$(yq '.tools.beta.version' kit.yml)" = 2.1.0 ]
+  run diff before.yml kit.yml
+  [ "$output" = $'11c11\n<     version: "2.0.0"  # moved by kit tools update\n---\n>     version: "2.1.0"  # moved by kit tools update' ]
+  # a tool written on one line has no version: line of its own: kit says so, and the file stays
+  printf 'tools:\n  beta: {version: "2.0.0", url: "https://github.com/acme/beta/releases/download/v{version}/beta-{version}-{platform}.tar.gz", bin: "beta-{version}/bin"}\n' > kit.yml
+  cp kit.yml before.yml
+  run "${kit_root}/bin/kit" tools update --toolchain=kit
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit.yml: the version of beta is not on a version: line of its own under tools:"* ]]
+  cmp --silent before.yml kit.yml
+}
+
 @test "{ext} is filled in from ext:, by the platform's os, so a tool can ship a zip for one and a tarball for another" {
   stage="${BATS_TEST_TMPDIR}/stage-gamma"
   mkdir -p "${stage}/gamma"

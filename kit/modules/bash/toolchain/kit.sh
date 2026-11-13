@@ -185,18 +185,56 @@ toolchain/kit:require() {
 
 toolchain/kit:roles() { printf 'project\n'; }
 
-# toolchain/kit:update moves each tool behind to its latest version in kit.yml, then locks and installs it. A tool
+# toolchain/kit:pin <tool> <current> <latest> writes the tool's version in kit.yml as text: <latest> in place of
+# <current> on the version: line of the tool's block under tools:, so every other byte of the file stays, its
+# comments and blank lines included, where yq would write the file again without its blank lines. The block is found
+# by its indentation: the tool's key, plain or quoted, among the first keys under tools:, and version: among the
+# lines under it. The result is read back with yq before it replaces the file. It fails, and kit.yml stays as it was,
+# when no such line holds the version as kit read it, as where the tool is written on one line, in braces.
+toolchain/kit:pin() {
+  local name=$1 current=$2 latest=$3 text found
+  text=$(awk -v tool="${name}" -v was="${current}" -v now="${latest}" '
+    function indent(line) { match(line, /^ */); return RLENGTH }
+    function key(line, name) {
+      sub(/^ +/, "", line)
+      return index(line, name ":") == 1 || index(line, "\"" name "\":") == 1 || index(line, "\047" name "\047:") == 1
+    }
+    written || $0 ~ /^ *(#.*)?$/ { print; next }
+    indent($0) == 0 { under = ($0 ~ /^tools:[ \t]*(#.*)?$/); level = 0; within = 0; print; next }
+    under && !level { level = indent($0) }
+    under && indent($0) == level { within = key($0, tool); print; next }
+    within && key($0, "version") {
+      at = index($0, "version") + length("version")
+      found = index(substr($0, at), was)
+      if (found) {
+        $0 = substr($0, 1, at + found - 2) now substr($0, at + found - 1 + length(was))
+        written = 1
+      }
+    }
+    { print }' kit.yml) || return 1
+  found=$(kit_tool=${name} yq '.tools[strenv(kit_tool)].version' <<<"${text}" 2>/dev/null) || found=''
+  if [[ "${found}" != "${latest}" ]]
+  then
+    error "kit.yml: the version of ${name} is not on a version: line of its own under tools:, so it was not" \
+      "rewritten; write ${latest} there by hand"
+    return 1
+  fi
+  file:replace kit.yml printf '%s\n' "${text}"
+}
+
+# toolchain/kit:update moves each tool behind to its latest version in kit.yml, then locks and installs it. It
+# rewrites the one line that holds each version, as toolchain/kit:pin does, and nothing else in the file. A tool
 # whose latest kit cannot read is left as it was, and the run fails once the others have moved.
 toolchain/kit:update() {
   local behind name current latest status=0
   toolchain/kit:require || return 1
   behind=$(toolchain/kit:outdated) || status=1
-  while IFS=$'\t' read -r name current latest
+  # A fourth field, the newest version tagged upstream, is not the one to move to.
+  while IFS=$'\t' read -r name current latest _
   do
     [[ -n "${name}" ]] || continue
     step "${name}: ${current} to ${latest}"
-    kit_tool=${name} kit_version=${latest} yq --inplace '.tools[strenv(kit_tool)].version = strenv(kit_version)' \
-      kit.yml || return 1
+    toolchain/kit:pin "${name}" "${current}" "${latest}" || return 1
   done <<<"${behind}"
   toolchain/kit:install || return 1
   return "${status}"
