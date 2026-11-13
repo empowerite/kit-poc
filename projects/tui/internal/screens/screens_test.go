@@ -55,7 +55,7 @@ func TestAScreenIsMadeWhenFirstShownAndKeptAsItWasLeft(t *testing.T) {
 	}
 	// Repositories is a screen of its own, beside Issues, on kit workspace's stages
 	m, _ = testkit.Drive(m, nil, shell.SwitchMsg{Screen: shell.Repositories})
-	if v := ansi.Strip(m.View().Content); m.here != shell.Repositories || !strings.Contains(v, "kit repositories") ||
+	if v := ansi.Strip(m.View().Content); m.here != shell.Repositories || !strings.Contains(v, "kit workspace") ||
 		!strings.Contains(v, "branches") {
 		t.Fatalf("the workspace is not shown:\n%s", v)
 	}
@@ -102,7 +102,7 @@ func TestAJumpShowsTheAppAndGivesItTheJump(t *testing.T) {
 	if m.here != shell.Repositories {
 		t.Fatalf("shown: %s", m.here)
 	}
-	if v := ansi.Strip(m.View().Content); !strings.Contains(v, "kit repositories · ") || selectedTab(m) != "2" {
+	if v := ansi.Strip(m.View().Content); !strings.Contains(v, "kit workspace · ") || selectedTab(m) != "2" {
 		t.Errorf("the jump did not select remotes, the second tab:\n%s", v)
 	}
 	m, _ = testkit.Drive(m, nil, shell.JumpMsg{Screen: "nowhere", To: "x/y"})

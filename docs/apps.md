@@ -26,7 +26,8 @@ of every stage. `kit tutorials` teaches the screens, and `kit help <verb>` lists
 - The Flow app shows the stages that the `flow` setting in `kit.yml` names, in that order. `kit help flow` describes
   what `kit flow` prints. The rest of this page is about the other eight verbs.
 - Two apps are not named for their verbs. The verb of Trust is `kit audit`, because `kit trust` is the verb that
-  trusts a clone. The verb of Repositories is `kit workspace`.
+  trusts a clone. The verb of Repositories is `kit workspace`. The title line of each app names its verb, so Trust
+  reads `kit audit` and Repositories `kit workspace`.
 
 ## The shape every app verb shares
 
