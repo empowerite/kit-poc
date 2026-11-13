@@ -68,10 +68,6 @@ def unknown_word($alts; $st):
 # word, an operand takes the next word (a repeated one every word left), a flag or option must have been given, and
 # a group walks the alternative the words select, or is skipped when optional and nothing selects it; a group that
 # repeats is walked again for as long as a walk takes a word.
-#
-# choose($alts; $s) picks the alternative the words select: the one a literal opens when the next word is that
-# literal, itself or through a required group it opens with; else the one that holds a given flag or option, two holding different ones and neither all being a refusal, as is a word left for an operand
-# that opens another alternative; else the first whose walk completes, the one that takes the most words winning a tie. It gives {index}, {refusal}, or {} when nothing selects.
 def walk_sequence($nodes; $st):
   # opens($alt; $next) says whether the alternative opens with the literal $next: as its first node, or as a word of
   # a required group it opens with, so (select | add | remove) <package>… opens with each of its three words; an
@@ -84,6 +80,12 @@ def walk_sequence($nodes; $st):
          or ($alt[0].kind == "group" and $alt[0].optional
              and ([$alt[0] | .. | objects | select(.kind == "literal" or .kind == "operand")] | length) == 0
              and opens($alt[1:]; $next)));
+  # choose($alts; $s) picks the alternative the words select, and gives {index}, {refusal}, or {} when nothing selects.
+  # In this order:
+  #   1. the alternative a literal opens, when the next word is that literal, itself or through a required group;
+  #   2. the alternative that holds a given flag or option. Two alternatives that hold different ones, with none holding
+  #      all of them, are a refusal, and so is a word left over for an operand that opens another alternative;
+  #   3. the first alternative whose walk completes, and where two take the most words, the first of them.
   def choose($alts; $s):
     ($s.pos[0].word) as $next
     | [range($alts | length) | select(opens($alts[.]; $next))] as $by_literal
@@ -219,7 +221,19 @@ def absorb($by_key):
       | .used += $taken | .wild += $taken
     else . end;
 
-# match($words) judges a command line against the spec's syntax, as the loader's guard:arguments does. It gives
+# spelled($syntax; $refusal) names the long spelling in a refusal of an unknown flag that is one letter, as git's -m is:
+# when the verb has one flag or option whose name begins with that letter, in either case, the refusal says kit spells it
+# so. Any other refusal is as it was.
+def spelled($syntax; $refusal):
+  ($refusal | capture("^unknown flag '-(?<letter>[A-Za-z])'(?<rest>; run: .*)$")) as $c
+  | [$syntax | .. | objects | select((.kind == "flag" or .kind == "option") and (.wildcard | not)
+      and (.name[0:1] | ascii_downcase) == ($c.letter | ascii_downcase))] as $found
+  | if ($found | length) == 1 then
+      $found[0] as $f
+      | "unknown flag '-\($c.letter)'; kit spells it --\($f.name)\(if $f.kind == "option" then "=<\($f.value)>" else "" end)\($c.rest)"
+    else $refusal end;
+
+# match_words($words) judges a command line against the spec's syntax, as the loader's guard:arguments does. It gives
 # status 0 with literals, operands, options (each key to its values, a flag's being ["1"]), and values (every operand
 # and option key to its values) when the words complete the syntax; status 1 with missing, the keys that could come
 # next joined by " or ", and the literals so far, when a required literal, operand, or group is missing; and status 2
@@ -229,7 +243,7 @@ def absorb($by_key):
 # a --, and a flag or option the verb itself names. Only the walk knows which word is its first. So the words are
 # sorted and walked once to find it, as far as they sort, and then sorted again up to it. Each status has command,
 # the index of that word among $words, where the line holds a command.
-def match($words):
+def match_words($words):
   . as $spec
   | ($spec.syntax | [.. | objects | select(.kind == "flag" or .kind == "option")]) as $named
   | ([$named[] | select(.wildcard | not) | {key: key, value: .}] | from_entries) as $by_key
@@ -262,6 +276,12 @@ def match($words):
       end
       + if $command != null then {command: $command} else {} end
     end;
+
+# match($words) is match_words with the long spelling of a one-letter flag named in its refusal, as spelled gives it.
+def match($words):
+  . as $spec
+  | match_words($words)
+  | if .status == 2 then .refusal = (.refusal | spelled($spec.syntax; .) // .) else . end;
 
 # fields flattens a match for a shell to read, one string per record: status and its value; refusal and missing with
 # theirs (empty when absent); command with its index (empty when the line holds none); literals and operands, each as a

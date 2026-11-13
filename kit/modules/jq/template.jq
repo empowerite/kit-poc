@@ -15,9 +15,10 @@
 # template's own whole literal lines that has a letter or digit, such as a section's label: a label inside a section
 # would move where the section ends.
 #
-# A name is [a-z_]+, or a dotted path in kit.yml, such as answers.ci_runner, whose value fills it. path,
-# name, and stem, and a dotted name the settings set, are bound before anything else, so they are literal text. A name that appears once takes a string, and one that appears more than once takes an array, one element per
-# appearance in template order. The lines between a kit:generate directive and its kit:end line are a region: a
+# A name is [a-z_]+, or a dotted path in kit.yml, such as answers.ci_runner, whose value fills it. path, name, and stem,
+# and a dotted name the settings set, are bound before anything else, so they are literal text. A name that appears
+# once takes a string, and one that appears more than once takes an array, one element per appearance in template
+# order. The lines between a kit:generate directive and its kit:end line are a region: a
 # command owns them, so a file may hold anything there, and the template makes them as it has them.
 #
 # A template is matched in one pass, with no regular expression: each hole extends to the first place the literal

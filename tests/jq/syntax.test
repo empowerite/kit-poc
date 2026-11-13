@@ -38,6 +38,11 @@ import "syntax" as syntax; syntax::match(["run","bash","-c","echo hi"])
 {"verb":"toolchain","syntax":[[{"kind":"group","optional":false,"alternatives":[[{"kind":"literal","name":"list","repeat":false}],[{"kind":"literal","name":"run","repeat":false},{"kind":"operand","name":"command","repeat":true}]],"repeat":false}]]}
 {"status":0,"literals":["run"],"operands":["bash","-c","echo hi"],"options":{},"values":{"<command>":["bash","-c","echo hi"]},"command":1}
 
+# A git flag the verb spells long is refused with the long spelling named, once it is the one the letter begins.
+import "syntax" as syntax; . as $s | [($s | syntax::match(["-m", "x"]) | .refusal), ($s | syntax::match(["-a"]) | .refusal), ($s | syntax::match(["-z"]) | .refusal), ($s | syntax::match(["-F", "f"]) | .refusal)]
+{"verb":"commit","syntax":[[{"kind":"group","optional":true,"alternatives":[[{"kind":"flag","name":"all","repeat":false}]],"repeat":false},{"kind":"group","optional":false,"alternatives":[[{"kind":"option","name":"message","value":"text","repeat":true}],[{"kind":"option","name":"file","value":"path","repeat":false}]],"repeat":false}]]}
+["unknown flag '-m'; kit spells it --message=<text>; run: kit help commit","unknown flag '-a'; kit spells it --all; run: kit help commit","unknown flag '-z'; run: kit help commit","unknown flag '-F'; kit spells it --file=<path>; run: kit help commit"]
+
 # A group that repeats is walked again for each word it takes, so kit help [<verb> | <group>]… takes several names; it
 # stops at a word no alternative takes, and nothing given is nothing to walk.
 import "syntax" as syntax; . as $s | [($s | syntax::match(["tidy", "gate"]) | [.status, .operands]), ($s | syntax::match([]) | .status), ($s | syntax::match(["tidy", "--x"]) | .refusal)]
