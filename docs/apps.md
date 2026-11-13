@@ -159,6 +159,26 @@ Both readers accept a document that states no contract.
 `kit flow issues`, `kit flow changes`, `kit flow builds`, and `kit flow releases` print an array in one repository.
 An array has no place for the number. So over a workspace, kit reads the array of such a member without the check.
 
+## Moving between apps
+
+Some values in a row are links to a row in another app. Following one opens the app built around that row's thing,
+on the right tab, with the cursor on the row once the rows load. In Issues, the pull request of an underway issue opens
+Changes, and the checkout the issue is worked in opens the worktrees tab of Repositories. In any app except
+Repositories, a member's name over a group opens the repos tab of Repositories.
+
+A link to another app leaves a crumb on the title line of the app it opens. The crumb comes after the workspace menu,
+and after the maximized tab's name when a tab is maximized. It shows a dim `·` and `↩`, then the app and tab where you
+followed the link.
+
+- Click the crumb, or press `⌫` while the keys bar names it, to go back. kittui puts the view back as you left it: the
+  tab, whether it was maximized, the preset, the sort, the filters, the groups, the row under the cursor, and the
+  scroll.
+- That place keeps its own crumb, so crumbs chain, each one a level deep.
+- The workspace menu's Manage… leaves a crumb as a link does.
+- The app menu, `=`, opens an app with no crumb and drops the chain. Switching to another workspace does the same,
+  because it makes the apps anew there.
+- Switching tabs inside an app keeps its crumb. Crumbs last for the session.
+
 ## Tabs that show a stage of kit flow
 
 Issues, Changes, and Delivery each have a tab that shows a stage of `kit flow`. The app's verb takes the tab's name

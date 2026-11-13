@@ -748,7 +748,7 @@
     },
     "publish": {
       "type": "object",
-      "description": "The repository's own artifacts, by name: what the runner built, what each is on the pull path, and the targets kit publish pushes a release and a pre-release to, from a runner alone. See docs/features.md.",
+      "description": "The repository's own artifacts, by name: what the runner built, what each is on the pull path, and the targets kit publish pushes a release and a pre-release to, from a runner alone. See docs/publishing.md.",
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,

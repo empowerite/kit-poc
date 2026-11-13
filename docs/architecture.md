@@ -143,8 +143,7 @@ Work starts from an issue:
    - `kit lint` to run the pre-commit linters by hand,
    - `kit commit` to commit, with the checks its rule requires, and `kit submit` to push,
    - `kit rebase` to rebase the branch onto the default branch at the primary remote and push it.
-3. Mark the pull request ready for review once its body holds the report: `gh pr ready` on GitHub,
-   `glab mr update --ready` on GitLab.
+3. Mark the pull request ready for review once its body holds the report: `kit ready`, on any forge.
 4. A human merges, and `kit tidy` removes the worktree and the branch.
 
 The `workflow` package delivers these steps to agents as `.kit/workflow.md`, with the worker contract. The `kit`
@@ -158,6 +157,36 @@ every open issue with its status. One in the backlog, which no open pull request
 or, before there is one, the branch named for it, `<N>-<slug>`, on the desk or the primary remote. Backlog and underway
 are one stage, not two, so an issue is found wherever its work stands; kittui's presets show either alone, or the issues
 by milestone, iteration, or swimlane.
+
+### Remotes and their code forges
+
+A repository can have several remotes, such as a fork as `origin` and the shared repository as `upstream`. One remote
+is the primary. The `primary` setting in `kit.yml` names it, and `origin` is the default. kit reads these from the
+primary remote: ahead and behind, the default branch, pull requests, builds, releases, and issues. `kit rebase` and
+`kit release` also read it.
+
+A branch goes to the push remote. The `push` setting in `kit.yml` names it, as in `push: origin` for a fork, and the
+default is the primary. `kit work` and `kit submit` fetch from the push remote, look a branch up on it, fast-forward
+from it, and push to it. The pull request opens on the primary, from the branch there. kit refuses a `push` or a
+`primary` that names no remote.
+
+Each remote has a code forge, or none. kit takes the first of these that answers:
+
+1. The `forges` setting names it, as in `forges: {upstream: gitlab}`. For the primary, the `forge` setting comes
+   first.
+2. The remote's host names it: `github.com` is GitHub, `gitlab.com` is GitLab, and `dev.azure.com` is Azure DevOps.
+3. On a CI runner, the runner's own server names it when the server's host is the remote's host. `GITHUB_SERVER_URL`
+   names GitHub, `CI_SERVER_HOST` names GitLab, and `SYSTEM_COLLECTIONURI` names Azure DevOps.
+4. A host that `gh` or `glab` has logged in to names it. This and the runner's server are how kit tells a self-hosted
+   code forge apart.
+5. Otherwise the remote has no code forge. kit fetches it and counts its branches, and asks no code forge about it.
+
+The primary is an exception to the last rule. When nothing names the code forge of the primary's host, kit cannot tell
+it, and does not assume it has none. A read of its pull request fails, and the error names the `forge` setting. A
+primary that is a path on this machine has no code forge.
+
+`forge: none`, or `none` under `forges`, says that a remote has no code forge kit knows, as on Bitbucket or a plain git
+server. It wins over the host and over a runner's server.
 
 ### Code forges, seams, and providers
 
@@ -184,7 +213,7 @@ exists.
 | `kit/modules/bash/toolchain.sh` | `toolchain/kit.sh`, `toolchain/mise.sh`, `toolchain/nix.sh`, `toolchain/brew.sh`, `toolchain/docker.sh`, `toolchain/devcontainer.sh`, and for the system role `toolchain/apt.sh`, `toolchain/dnf.sh`, `toolchain/pacman.sh` | the one active or usable where kit runs, else the person's choice; see [toolchains.md](toolchains.md) |
 | `kit/modules/bash/dependencies.sh` | `dependencies/npm.sh`, `dependencies/uv.sh` | every one usable here at once: its tool on `PATH`, its manifest and its lock at the root; see [toolchains.md](toolchains.md#dependencies) |
 | `kit/modules/bash/sources.sh` | `sources/kit-packages.sh`, `sources/github-releases.sh`, `sources/goproxy.sh`, `sources/npm.sh`, `sources/dist.sh`, `sources/oci.sh`, `sources/artifactory.sh` | each entry's `kind` under `sources:`, on the pull path or as a package source; see [packages.md](packages.md#sources) |
-| `kit/modules/bash/targets.sh` | `targets/vcs-tag.sh`, `targets/github-release.sh`, `targets/artifactory-local.sh`, `targets/npm-publish.sh` | each target's kind under `publish:`; see [features.md](features.md) |
+| `kit/modules/bash/targets.sh` | `targets/vcs-tag.sh`, `targets/github-release.sh`, `targets/artifactory-local.sh`, `targets/npm-publish.sh` | each target's kind under `publish:`; see [publishing.md](publishing.md) |
 | `kit/modules/bash/policy.sh` | `policy/patterns.sh`, `policy/opa.sh` | `policy_engine: opa` or a `.rego` file under `.kit/policy/`, else patterns; see [policy.md](policy.md) |
 
 Every code forge call the workflow makes goes through `forge:` in `kit/modules/bash/forge.sh`: an issue's title, the

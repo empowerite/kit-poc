@@ -7,7 +7,7 @@
 # pre-release. kit release makes one and pushes it, which is how a release starts: the repository's release
 # workflow, if it has one, does the rest. The releases stage of kit flow lists what the forge made of them.
 #
-# see: kit/bin/kit-release, kit/bin/kit-flow, modules/jq/version.jq, docs/features.md
+# see: kit/bin/kit-release, kit/bin/kit-flow, modules/jq/version.jq, docs/publishing.md
 
 use git forge flow settings workspaces
 

@@ -32,7 +32,7 @@
 #
 # Exits 0 when every target took it, 1 on a refusal or a target that failed, and 2 on a usage error.
 #
-# see: modules/bash/targets.sh, modules/bash/visibility.sh, kit-release, docs/features.md
+# see: modules/bash/targets.sh, modules/bash/visibility.sh, kit-release, docs/publishing.md
 
 set -o errexit -o nounset -o pipefail
 # shellcheck source=modules/bash/1st.sh
