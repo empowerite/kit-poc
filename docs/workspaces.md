@@ -161,8 +161,9 @@ The `-` on every screen's title line drops down the workspaces to switch to: the
 the favorites, however many; every other group in the file; and the recent repositories, the one shown first, or the one
 a worktree shown belongs to, unless a favorite names it already. The one shown is dim, wherever it stands, as is a
 favorite repository with no checkout. **Open Repository…**, last, opens a dialog to type a repository's folder in: tab
-completes a folder, the folders it can complete to stand under it, and a plain click on one opens it. Enter, or a click
-on Open, asks kit; a folder in no git working tree is refused with one line in the dialog, which stays open.
+completes a folder, the folders it can complete to stand under it, and a plain click on one opens it. A path pasted
+there that starts with `/` or `~` takes the place of what is typed. Enter, or a click on Open, asks kit; a folder in no
+git working tree is refused with one line in the dialog, which stays open.
 
 Find clones, or `⌃F`, walks the folder typed for git working trees and shows them as a table, as kittui shows every
 list. Each repository found with its worktrees is a heading over its checkout and its worktrees, and the repositories

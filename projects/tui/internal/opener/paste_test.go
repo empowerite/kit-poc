@@ -7,12 +7,34 @@ import "testing"
 func TestOpenTypesAPasteAfterWhatIsTyped(t *testing.T) {
 	d := typedIn(newOpen("/", "/home"), "srv")
 	d.Refusal, d.At = "kit refused", 1
-	if d = d.Paste("/code"); d.Typed != "/srv/code" || d.Refusal != "" || d.At != 0 {
+	if d = d.Paste("-a/code"); d.Typed != "/srv-a/code" || d.Refusal != "" || d.At != 0 {
 		t.Errorf("a paste after /srv: %q, refusal %q, at %d", d.Typed, d.Refusal, d.At)
 	}
 	d.Refusal = "kit refused"
-	if d = d.Paste(""); d.Typed != "/srv/code" || d.Refusal != "kit refused" {
+	if d = d.Paste(""); d.Typed != "/srv-a/code" || d.Refusal != "kit refused" {
 		t.Errorf("a paste of nothing: %q, refusal %q", d.Typed, d.Refusal)
+	}
+}
+
+// A paste that starts with / or ~ is a whole path, which can mean nothing after what is typed, so it takes its place:
+// the dialog opens on ~/, and a pasted /srv/code is /srv/code there, never ~//srv/code. A / or a ~ further on in a
+// paste is typed as it is.
+func TestOpenTakesAPastedWholePathInPlaceOfWhatIsTyped(t *testing.T) {
+	for pasted, want := range map[string]string{
+		"/srv/code":   "/srv/code",
+		"~/Code/kit":  "~/Code/kit",
+		"~":           "~",
+		"Code/kit":    "~/Code/kit",
+		"Code/~/kit/": "~/Code/~/kit/",
+	} {
+		d := newOpen("", "/home")
+		d.Refusal, d.At = "kit refused", 1
+		if d = d.Paste(pasted); d.Typed != want || d.Refusal != "" || d.At != 0 {
+			t.Errorf("a paste of %q after ~/: %q, refusal %q, at %d", pasted, d.Typed, d.Refusal, d.At)
+		}
+	}
+	if d := typedIn(newOpen("/", "/home"), "srv").Paste("/code"); d.Typed != "/code" {
+		t.Errorf("a paste of /code after /srv: %q", d.Typed)
 	}
 }
 
