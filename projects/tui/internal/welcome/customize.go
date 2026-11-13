@@ -47,7 +47,8 @@ func whereOf(text string) (table.Value, string) {
 	return v, strings.TrimSpace(strings.Replace(text, line, "", 1))
 }
 
-// rooted gives the records with each link that is no page, as kit.yml, a path under the folder the welcome reads.
+// rooted gives the records with each link that is no page, as ../../kit.yml, a path from the folder dir, which holds the
+// page that wrote it.
 func rooted(records []table.Record, dir string) []table.Record {
 	for _, r := range records {
 		for id, v := range r.Values {

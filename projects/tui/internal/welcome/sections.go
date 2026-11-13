@@ -9,6 +9,7 @@ package welcome
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -209,7 +210,7 @@ func (m *Model) takeSheets() {
 			continue
 		}
 		sheet := table.NewSheet(s.schema, s.name, sheetColor, m.presets)
-		sheet.SetRecords(rooted(s.records(sections), m.runner.Dir))
+		sheet.SetRecords(rooted(s.records(sections), filepath.Join(m.runner.Dir, pagesDir)))
 		sheet.Settings(m.settings)
 		m.tabs[k].sheet, m.tabs[k].lead = &sheet, lead
 	}

@@ -62,10 +62,10 @@ func TestAPageIsReadAsItsParts(t *testing.T) {
 // A part's line of where to change it, → and its links, is its where: each link by its text, leading to its target, a
 // file of the folder the welcome reads, or a page; it is no part of what the part is about.
 func TestAPartsWhereLeadsToItsFileAndItsDoc(t *testing.T) {
-	md := "# Customize\n\n## Packages\n\n`packages:` lists them.\n\n→ [kit.yml](kit.yml) · " +
+	md := "# Customize\n\n## Packages\n\n`packages:` lists them.\n\n→ [kit.yml](../../kit.yml) · " +
 		"[docs/packages.md](https://x/docs/packages.md)\n\n`kit packages`\n"
 	_, sections := parseSections(md)
-	rs := rooted(partRecords(sections), "/repo")
+	rs := rooted(partRecords(sections), "/repo/.kit/welcome")
 	where := rs[0].Values["where"]
 	if !reflect.DeepEqual(where.Raw, []string{"kit.yml", "docs/packages.md"}) ||
 		!reflect.DeepEqual(where.Links, []string{"/repo/kit.yml", "https://x/docs/packages.md"}) {
@@ -80,6 +80,11 @@ func TestAPartsWhereLeadsToItsFileAndItsDoc(t *testing.T) {
 		if len(v.Links) != 2 || !filepath.IsAbs(v.Links[0]) || !strings.HasPrefix(v.Links[1], "https://") {
 			t.Errorf("a part with no file and doc to change it: %+v", v)
 		}
+	}
+	// a link of the page is written from the page, so it reaches the file of the repository, not a path under .kit/welcome
+	first := m.sheet().Values("where")[0].Links[0]
+	if want := filepath.Join(m.runner.Dir, "kit.yml"); first != want {
+		t.Errorf("the first part's file is %q, want %q", first, want)
 	}
 }
 

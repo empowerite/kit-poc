@@ -60,7 +60,10 @@ do
     | awk -v out="${frontmatter}/examples/${name//\//-}" '{ print > (out "." NR ".json") }'
   ajv validate --spec=draft2020 --validate-formats=false -s "${schema}" -d "${frontmatter}/examples/${name//\//-}.*.json"
 done
-lychee --offline --include-fragments --no-progress README.md CONTRIBUTING.md AGENTS.md docs kit/packages .kit
+# The pages under kit/packages sit below hidden directories, which lychee skips, and the links of a delivered page are
+# written from where kit places it. So the placed pages are read where they lie, each by its path under .kit/.
+lychee --offline --include-fragments --no-progress README.md CONTRIBUTING.md AGENTS.md docs kit/packages \
+  .kit/*.md .kit/welcome/*.md .kit/rules/*.md .kit/styles/*.md
 # A tutorial's front matter is YAML between the two --- lines too, read the same way, from a directory of its own.
 mkdir "${frontmatter}/tutorials"
 while IFS= read -r file
