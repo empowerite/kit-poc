@@ -190,13 +190,19 @@ Each screen reads what it shows from kit as JSON. A form reads `kit syntax <verb
     letter alone does the same with the menu closed as choosing the line does with it open: r Refresh, w Watch, m
     Maximize or Restore, o Open Page, ⌃A Select All, and on issues n New… and a Assign to Me. With a menu open, a
     line's key chooses it before a letter moves to the next line starting with it.
-  - A row has a menu of its own, in `rowmenu.go`: ⏎ on a row drops it down under the row, or over it near the
-    screen's bottom. Its lines are Open Page, first, Select or Unselect, and, on issues and on packages, the stage's
-    actions; a line that cannot act stays, dim. It acts on its own row, or, where that row is among the selected, on
-    all of them. Esc or a click off it closes it, and a reload that takes its row away closes it too. The keys bar
-    names ⏎ while the rows have the keyboard.
     [ and ] move the cursor to the group heading before and after it, { and } to the first and the last, as they move
     between the palette's groups.
+  - A row has a menu of its own, in `rowmenu.go`: ⏎ on a row drops it down under the row, or over it near the
+    screen's bottom, and a plain click on the row under the cursor drops it down where the click fell. Its lines are
+    Open Page, first, Select or Unselect, and, on issues and on packages, the stage's actions; a line that cannot act
+    stays, dim. It acts on its own row, or, where that row is among the selected, on all of them. Esc or a click off
+    it closes it, and a reload that takes its row away closes it too. The keys bar names ⏎ while the rows have the
+    keyboard.
+  - Every action on rows has a path of plain clicks. A click on a row puts the cursor on it, and a click on the row
+    under the cursor opens its menu, so one click moves, as an arrow does, and the next opens, as ⏎ does. A click on
+    the box in a row's gutter, the two cells before its ▸, selects the row or unselects it, as space does, and a
+    heading's box selects its group. The row under the cursor draws the box, a dim □, while it is not selected, and
+    the legend names it.
   - The search stands at the menu bar's right end, every screen's, and ⏎ or esc there gives the rows focus. No sidebar:
     the rows take the screen's width. While the person groups by no column, a value every row shares moves into one
     heading over them, the column grouping on its own; a group the person chooses overrides that, and the rows then

@@ -278,7 +278,7 @@ func TestAfterShowMoreTheRowsHaveTheKeyboardAndThePinnedLineCloses(t *testing.T)
 	m := tall()
 	pinned := func(m Model) int { return m.rowLine(m.stages[m.stage].Cursor) }
 	if s := m.stages[m.stage]; !m.inRows || s.Offset == 0 || pinned(m) != m.headerTop()+2 ||
-		!strings.HasPrefix(lines(m)[pinned(m)], "  "+style.Opened) {
+		!strings.HasPrefix(lines(m)[pinned(m)], grid.Unchosen+" "+style.Opened) {
 		t.Fatalf("after show more and the wheel: in rows %v, offset %d:\n%s", m.inRows, s.Offset, view(m))
 	}
 	opened := openRows(m)
@@ -387,8 +387,9 @@ func TestRowsAreSelectedSeveralAtOnceForTheTabsMenuToActOn(t *testing.T) {
 	if marked, _ := style.In(stageColors["issues"]); !strings.Contains(m.View().Content, marked(grid.Chosen)) {
 		t.Error("the selection's mark is not in the tab's group's color")
 	}
-	if m = drive(m, press(tea.KeySpace)); m.selected() != 0 || gutter(0) != " " {
-		t.Errorf("space again: %d selected", m.selected())
+	// unselected, the row under the cursor offers its box again
+	if m = drive(m, press(tea.KeySpace)); m.selected() != 0 || gutter(0) != grid.Unchosen {
+		t.Errorf("space again: %d selected, the gutter %q", m.selected(), gutter(0))
 	}
 	m = drive(m, tea.KeyPressMsg{Code: tea.KeyDown, Mod: tea.ModShift})
 	if m.selected() != 2 || m.stages[0].Cursor != 2 || gutter(1) != grid.Chosen {

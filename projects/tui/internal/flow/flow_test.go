@@ -265,13 +265,14 @@ func lines(m Model) []string {
 // band is what opens the faint band the grid draws the cursor's row on.
 var band, _, _ = strings.Cut(style.Band("x", 1), "x")
 
-// cursor gives the first line the cursor's row is drawn on, without its escapes and its gutter, or nothing when no row
-// is under the cursor.
+// cursor gives the first line the cursor's row is drawn on, without its escapes and its gutter, the box it offers
+// there too, or nothing when no row is under the cursor.
 func cursor(m Model) string {
 	for _, l := range strings.Split(m.View().Content, "\n") {
 		// under the headings of groups, the rows stand in
 		if strings.HasPrefix(strings.TrimLeft(l, " "), band) {
-			return strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(ansi.Strip(l)), style.Focus+style.Opened))
+			return strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(ansi.Strip(l)),
+				style.Focus+style.Opened+grid.Unchosen+" "))
 		}
 	}
 	return ""
@@ -361,7 +362,8 @@ func TestLeftAndRightMoveAlongTheBarOnlyWhileItHasTheKeyboard(t *testing.T) {
 }
 
 // A click on a row puts the cursor there and gives the rows the keyboard, and opens nothing, so space then selects it;
-// a click on its ▸ opens it, and on its ▾ closes it. A click on a … line, on the legend, or off the pane does nothing.
+// a click on the row under the cursor drops its menu down, and opens no row; a click on its ▸ opens it, and on its ▾
+// closes it. A click on a … line, on the legend, or off the pane does nothing.
 func TestAClickOnARowSelectsItAndAgainOpensOrClosesIt(t *testing.T) {
 	click := testkit.Click
 	m := flat(t, bare(), tabsTo("builds")...)
@@ -372,9 +374,10 @@ func TestAClickOnARowSelectsItAndAgainOpensOrClosesIt(t *testing.T) {
 	if m = drive(m, click(6, m.rowsTop()+1)); !m.inRows || m.find("builds").Cursor != 2 {
 		t.Fatalf("a click on the second row: in rows %v, cursor %d", m.inRows, m.find("builds").Cursor)
 	}
-	if m = drive(m, click(6, m.rowsTop()+1)); openRows(m) != 0 {
-		t.Errorf("a click on the row under the cursor opened it:\n%s", view(m))
+	if m = drive(m, click(6, m.rowsTop()+1)); openRows(m) != 0 || !m.rowMenu.Open {
+		t.Errorf("a click on the row under the cursor opened it, or dropped no menu:\n%s", view(m))
 	}
+	m = drive(m, esc)
 	if m = drive(m, click(table.FoldCell, m.rowsTop()+1)); !strings.Contains(view(m), "bats tests/status.bats") {
 		t.Errorf("a click on the row's ▸ did not open it:\n%s", view(m))
 	}
@@ -1316,8 +1319,10 @@ func TestPageDownScrollsThroughAnOpenRowTallerThanThePaneBeforeMovingOn(t *testi
 	if m.stage != 2 || m.find("builds").Cursor != 1 || !strings.Contains(view(m), pane.Down) {
 		t.Fatalf("the open row does not overflow the pane:\n%s", view(m))
 	}
+	// a line without its gutter: its fold, and the box the row under the cursor offers
 	bare := func(s string) string {
-		return strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(ansi.Strip(s)), style.Focus+style.Opened))
+		return strings.TrimSpace(strings.TrimLeft(strings.TrimSpace(ansi.Strip(s)),
+			style.Focus+style.Opened+grid.Unchosen+" "))
 	}
 	head := "release/0.1.0"
 	seen := map[string]bool{}

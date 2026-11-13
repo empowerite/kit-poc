@@ -3,8 +3,9 @@
 // keyboard, tab and shift-tab move along it, as they move between the stops on any line; a stage's number, or a click on the bar, selects it from anywhere and gives
 // the bar the keyboard. Down enters a stage's rows and up on the first row leaves them; in the rows, right opens a row
 // and left closes it, enter drops the row's menu down, which rowmenu.go describes, space selects it as one of
-// several, shift with up or down selects as it moves, and ctrl+a selects every row, and a click on a row puts the
-// cursor there, and on the row under it opens or closes it; = drops the app's
+// several, shift with up or down selects as it moves, and ctrl+a selects every row; a click on a row puts the cursor
+// there, one on the row under the cursor drops its menu down, as enter does, and one on the box in a row's gutter
+// selects the row; = drops the app's
 // menu down, as a click on = or the screen's name does, - the workspace menu, and : or ; the selected tab's, as a click
 // anywhere on the tab does; F1 or ? shows the legend over the rows, and again hides it; / or a click on the search,
 // always on the screen's top right, gives the search the keyboard. A click on a linked glyph, as an issue's before its
@@ -1367,13 +1368,17 @@ func (m *Model) clamp(i int) {
 	}
 }
 
-// click takes a left click on the pane's rows: the cursor goes to the row clicked, and the rows have the keyboard, so
-// space then selects it; a click on a linked glyph of a row's first line, as an issue's before its title, opens its
-// page in the browser; one on the ▸ or ▾ of a row's first line, or of a heading, as foldAt says, and there alone,
-// opens it, or closes it, as one on that first line pinned on top, once the row has scrolled it away, does. With
-// subtree, as option asks, a click on a ▸ opens one level more under the node, as grow says, and one on a ▾ closes the
-// deepest open level under it, as peel says, a level each click, as option with right or left does. A click on a …
-// line, or on a line about the stage, does nothing.
+// click takes a left click on the pane's rows: the cursor goes to the row clicked, and the rows have the keyboard. A
+// click on the box in the gutter of a row's first line, or of a heading's, which table.BoxAt finds, selects the row,
+// or the heading's group, or unselects it, the same as space; the box is drawn on the row under the cursor, and the
+// click is taken on any row. A click on the row already under the cursor, off its box, its links, and its fold,
+// drops the row's menu down where the click fell, the same as enter, so every action on a row has a path of plain
+// clicks: one click moves the cursor and the next opens the menu. A click on a linked glyph of a row's first line,
+// as an issue's before its title, opens its page in the browser; one on the ▸ or ▾ of a row's first line, or of a
+// heading, as foldAt says, and there alone, opens it, or closes it, as one on that first line pinned on top, once
+// the row has scrolled it away, does. With subtree, as option asks, a click on a ▸ opens one level more under the
+// node, as grow says, and one on a ▾ closes the deepest open level under it, as peel says, a level each click, as
+// option with right or left does. A click on a … line, or on a line about the stage, does nothing.
 func (m *Model) click(x, y int, subtree bool) tea.Cmd {
 	if len(m.stages) == 0 || x >= m.paneWidth() {
 		return nil
@@ -1383,8 +1388,12 @@ func (m *Model) click(x, y int, subtree bool) tea.Cmd {
 		return nil
 	}
 	s, rows := &m.stages[m.stage], m.rows(m.stage)
+	under := m.inRows && s.Cursor == row
 	s.Cursor, m.inRows, m.inPanel, m.onPreset = row, true, false, false
 	switch {
+	case table.BoxAt(m, x, y):
+		m.selectRow(false)
+		m.fit()
 	case strings.HasPrefix(link, jumps):
 		m.fit()
 		return m.jump(strings.TrimPrefix(link, jumps))
@@ -1400,6 +1409,8 @@ func (m *Model) click(x, y int, subtree bool) tea.Cmd {
 	case fold:
 		table.Disclose(m, !s.Open.Unfolds(rows[row]))
 		m.fit()
+	case under:
+		return m.openRowMenu(x)
 	default:
 		m.fit()
 	}

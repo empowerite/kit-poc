@@ -39,7 +39,8 @@ func HeaderNames(p grid.Panel, columns []string) []string {
 // Drawing is what a table's rows are drawn with, besides the rows: the names its header stands over them, the cells
 // they are laid out in, the pane's width, the cells they stand in by under the headings of their groups, which stand
 // open, which are selected, by key, the table's color, which marks them, and the columns its view has scrolled past,
-// as grid.Scroll says.
+// as grid.Scroll says; which rows can be selected, where only some can; and whether the row under the cursor offers
+// its box, where every row can be selected and so none is marked for it.
 type Drawing struct {
 	Names  []string
 	Width  int
@@ -50,14 +51,21 @@ type Drawing struct {
 	Picked map[string]bool
 	Color  string
 	Picks  func(key string) bool
+	Offers bool
 }
 
 // Draw draws a table's rows as the grid does, the one under the cursor, chosen, on a band the pane's width; -1 for
 // none. A selected row has the grid's mark in the table's color, and a group's heading the mark of how many of its
 // rows are, all or some; every line but an aside's stands in by the indent. Where Picks says which rows can be
 // selected, one that can and is not, and a group's heading with such a row and none selected, has grid.Unchosen, dim.
+// Where the drawing offers the box, the row under the cursor has it while the row is not selected, a row of the
+// table or a group's heading, so the gutter shows where a click selects, which BoxAt takes on any row.
 func (d Drawing) Draw(rows []grid.Row, chosen int) []Line {
 	marked, _ := style.In(d.Color)
+	offered := ""
+	if d.Offers && chosen >= 0 && (grid.Heads(rows[chosen]) || !rows[chosen].Aside) {
+		offered = rows[chosen].Key
+	}
 	every := grid.Every(rows)
 	groups := GroupMarks(every, d.Picked)
 	pickable := func(r grid.Row) bool {
@@ -77,7 +85,7 @@ func (d Drawing) Draw(rows []grid.Row, chosen int) []Line {
 				return marked(groups[r.Key])
 			case d.Picked[r.Key] && !r.Aside:
 				return marked(grid.Chosen)
-			case pickable(r):
+			case pickable(r), offered != "" && r.Key == offered:
 				return style.Off(grid.Unchosen)
 			}
 			return ""

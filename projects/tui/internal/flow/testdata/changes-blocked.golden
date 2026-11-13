@@ -22,7 +22,7 @@
          🚦 queued: a check is still running; 0 of 2 passed
          💬 comments:open: a review thread is unresolved; 2 threads
          closes no issue
-    ▾ 🔀 #4   Lint every    bob     🔥     25h  ❌                      4-lint-
+  □ ▾ 🔀 #4   Lint every    bob     🔥     25h  ❌                      4-lint-
               module                                                    every- 
                                                                         module 
          🔥 failing:gate: a check failed; lint, 1 of 2 passed                  

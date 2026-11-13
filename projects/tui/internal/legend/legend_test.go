@@ -197,7 +197,7 @@ func TestTheFramesPartsAreTheMenuBarsTheTabsAndTheTables(t *testing.T) {
 	if !bar[0].On(0) || !bar[0].On(1) || bar[0].On(2) || bar[1].On(0) || !bar[1].On(1) {
 		t.Error("the tab menu stands on the bar and, maximized, on the menu bar; the other tab glyphs on the bar alone")
 	}
-	if got := Table(Rows{Header: onLine(1), Control: onLine(2), Rule: onLine(3), Rows: onLine(4)}); len(got) != 13 ||
+	if got := Table(Rows{Header: onLine(1), Control: onLine(2), Rule: onLine(3), Rows: onLine(4)}); len(got) != 14 ||
 		!got[0].On(1) || !got[3].On(2) || !got[6].On(3) || !got[1].On(4) || !slices.Contains(got[0].Glyphs, grid.Before) {
 		t.Errorf("the table's parts: %v", glyphs(got))
 	}

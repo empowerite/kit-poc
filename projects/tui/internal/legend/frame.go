@@ -70,6 +70,7 @@ func Table(r Rows) []Part {
 		One(table.GatherGlyph, "flattened: click to gather", r.Rule),
 		One(grid.Chosen, "group selected", r.Rows),
 		One(grid.Partly, "group partly selected", r.Rows),
+		One(grid.Unchosen, "not selected: click to select", r.Rows),
 	}
 }
 

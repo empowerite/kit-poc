@@ -407,11 +407,12 @@ func (m Model) drawnFor(i int, rows []row, chosen int) string {
 }
 
 // draw draws a stage's rows as allLines says, the one under the cursor, chosen, on a band; -1 for none: as a
-// table.Drawing draws them, in the stage's color.
+// table.Drawing draws them, in the stage's color, the row under the cursor offering its box, which a click selects
+// it by.
 func (m Model) draw(i int, rows []row, chosen int) []table.Line {
 	s := m.stages[i]
 	d := table.Drawing{Names: m.names(i), Width: m.gridWidth(i), Shift: s.Shift, Pane: m.paneWidth(), Indent: m.indent(i),
-		Open: s.Open, Picked: s.Picked, Color: stageColors[s.name]}
+		Open: s.Open, Picked: s.Picked, Color: stageColors[s.name], Offers: true}
 	return d.Draw(rows, chosen)
 }
 

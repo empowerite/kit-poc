@@ -493,11 +493,13 @@ func TestAGroupsHeadingFoldsAndUnfoldsItsRows(t *testing.T) {
 	if m = drive(m, right); len(m.rows(m.stage)) != rows {
 		t.Fatalf("right on the heading: %d rows", len(m.rows(m.stage)))
 	}
-	// a click on the heading's ▾ folds it, and another, on its ▸, unfolds it; one on its value folds nothing
+	// a click on the heading's ▾ folds it, and another, on its ▸, unfolds it; one on its value folds nothing: the
+	// heading is under the cursor, so it drops the heading's menu down
 	fold := table.FoldAt(m.rows(m.stage)[1])
-	if m = drive(m, testkit.Click(fold+3, m.rowsTop())); len(m.rows(m.stage)) != rows {
-		t.Fatalf("a click on the heading's value: %d rows of %d", len(m.rows(m.stage)), rows)
+	if m = drive(m, testkit.Click(fold+3, m.rowsTop())); len(m.rows(m.stage)) != rows || !m.rowMenu.Open {
+		t.Fatalf("a click on the heading's value: %d rows of %d, menu %v", len(m.rows(m.stage)), rows, m.rowMenu.Open)
 	}
+	m = drive(m, esc)
 	if m = drive(m, testkit.Click(fold, m.rowsTop())); len(m.rows(m.stage)) != 2 || m.pop.Open {
 		t.Fatalf("a click on the heading's ▾: %d rows, card %v\n%s", len(m.rows(m.stage)), m.pop.Open, view(m))
 	}

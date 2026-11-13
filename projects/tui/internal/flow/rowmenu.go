@@ -1,9 +1,9 @@
-// A row's menu: what enter drops down from the row under the cursor, so one row is acted on without selecting it
-// first. Its lines, top to bottom: the row's page opened; the row selected, or no longer; and, a rule apart, on a
-// stage with actions, those the tab's menu lists on rows. A line that cannot act now stays, dim. It hangs under the
-// row's first line, or over it where the room under it is too little, and takes the keyboard while it is open, the
-// way the tab's menu does: up and down move, a line's key chooses it, enter and space choose the line under the
-// keyboard, and esc closes it; a click on a line chooses it, and a click anywhere else closes it.
+// A row's menu: what enter drops down from the row under the cursor, and a click on that row, so one row is acted on
+// without selecting it first. Its lines, top to bottom: the row's page opened; the row selected, or no longer; and, a
+// rule apart, on a stage with actions, those the tab's menu lists on rows. A line that cannot act now stays, dim. It
+// hangs under the row's first line, or over it where the room under it is too little, and takes the keyboard while
+// it is open, the way the tab's menu does: up and down move, a line's key chooses it, enter and space choose the line
+// under the keyboard, and esc closes it; a click on a line chooses it, and a click anywhere else closes it.
 //
 // What an action acts on is the same from the tab's menu, a row's menu, and a key: the rows selected, or, with none
 // selected, the row under the cursor. A row's menu acts on its own row alone where that row is not among the
