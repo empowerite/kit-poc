@@ -30,7 +30,8 @@ group-has() {
   done
   group-has WORKFLOW tidy 'removes merged worktrees and gone branches'
   group-has INSTALLATION install 'mirrors the release'
-  [[ "$output" == *$'USAGE\n  kit <verb> [<argument>…]\n'* ]]
+  [[ "$output" == *$'USAGE\n  kit [<kit-option>…] <verb> [<argument>…]\n'* ]]
+  [[ "$output" == *$'\nKIT OPTIONS\n  -h, --help '*'--workspace=<workspace>'*'kit help kit'* ]]
   [[ "$output" == *$'\nEXAMPLES\n'* && "$output" == *$'\nLEARN MORE\n'* ]]
   [[ "$output" == *$'\nLEARN MORE\n  • kit help <verb>… '* ]]
   [[ "$output" != *$'\nOTHER\n'* ]]
@@ -41,6 +42,20 @@ group-has() {
   run "${kit_root}/bin/kit" -h
   [ "$status" -eq 0 ]
   [ "$output" = "${page}" ]
+}
+
+@test "kit help kit prints the loader's options as its page, read from the loader's header, and never opens the palette" {
+  run "${kit_root}/bin/kit" help kit
+  [ "$status" -eq 0 ]
+  [[ "$output" == "kit - "* ]]
+  [[ "$output" == *$'\nUsage\n  kit [<kit-option>…] [<verb> [<argument>…]]\n'* ]]
+  [[ "$output" == *$'\nKit options\n  -h, --help '*'--version=<release>'*'--workspace=<workspace>'*'--  '*"ends the kit options"* ]]
+  [[ "$output" == *"takes its value after =, never as the next word"* ]]
+  # every option the page lists is one the loader's header lists, since the page is read from it
+  [ "$(grep -c -e '--workspace=<workspace>' "${kit_root}/bin/kit")" -ge 1 ]
+  run "${kit_root}/bin/kit" help kit rebase
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"kit rebase - "* ]]
 }
 
 @test "every verb names one of the groups in its banner, and its page names the group and the verbs beside it" {
@@ -66,7 +81,7 @@ group-has() {
   [ "${count}" -ge 6 ]
   run "${kit_root}/bin/kit" help
   [ "$status" -eq 0 ]
-  [[ "$output" == *$'\nPLUMBING\n  '"${count}"$' verbs that scripts, hooks, and the TUI call; kit help plumbing lists them\n\nEXAMPLES\n'* ]]
+  [[ "$output" == *$'\nPLUMBING\n  '"${count}"$' verbs that scripts, hooks, and the TUI call; kit help plumbing lists them\n\nKIT OPTIONS\n'* ]]
   [[ "$output" != *$'\n  region '* && "$output" != *$'\n  usage '* ]]
   run "${kit_root}/bin/kit" help plumbing
   [ "$status" -eq 0 ]

@@ -316,6 +316,33 @@ help:listing() {
   done
 }
 
+# help:kit-options [--all] prints the kit options the loader's header lists, as bin/kit writes them, a line at a time
+# without the comment marker: the list alone, or with --all the paragraph after it. It is read from the header so the
+# loader, the one place that knows them, is the only place that states them.
+help:kit-options() {
+  awk -v all="${1:-}" '
+    /^# The kit options:/ { on = 1; next }
+    on && /^# What the loader chose/ { exit }
+    on { sub(/^# ?/, "") }
+    on && /^$/ { blank++; if (!all && blank > 1) exit; if (blank == 1) next }
+    on && sub(/^  /, "") { print "  " $0; next }
+    on && all && NF { if (!gap) print ""; gap = 1; print }
+  ' "${kit_root}/bin/kit"
+}
+
+# help:kit prints the page of kit itself, the loader: what it is, its usage, and the kit options.
+help:kit() {
+  local bold='' plain=''
+  if help:styled
+  then
+    bold=$'\x1b[1m' plain=$'\x1b[0m'
+  fi
+  printf '%skit%s - runs the release a clone asks for, then the verb in it\n\n' "${bold}" "${plain}"
+  printf '%sUsage%s\n  kit [<kit-option>…] [<verb> [<argument>…]]\n\n' "${bold}" "${plain}"
+  printf '%sKit options%s\n' "${bold}" "${plain}"
+  help:kit-options --all
+}
+
 # help:overview prints kit help's page: what kit is, its usage, each verb's name and purpose under its group, the
 # plumbing summed up in one line, a few examples, and where to learn more, as gh help lays itself out. Headings are
 # bold as help:styled says. The banners are read once, and each verb goes under its group, or under other when its
@@ -336,7 +363,7 @@ help:overview() {
     members_of[${group}]+="${verb} "
   done < <(help:banners)
   printf 'kit keeps the rules a repository asks its agents to follow, and the checks that\nhold the work to them.\n\n'
-  printf '%sUSAGE%s\n  kit <verb> [<argument>…]\n' "${bold}" "${plain}"
+  printf '%sUSAGE%s\n  kit [<kit-option>…] <verb> [<argument>…]\n' "${bold}" "${plain}"
   for group in "${help_groups[@]}" other
   do
     read -r -a members <<<"${members_of[${group}]:-}"
@@ -354,6 +381,9 @@ help:overview() {
       printf '  %-12s %s\n' "${verb}" "${purposes[${verb}]}"
     done
   done
+  printf '\n%sKIT OPTIONS%s\n' "${bold}" "${plain}"
+  help:kit-options
+  printf '  kit help kit prints them as a page\n'
   printf '\n%sEXAMPLES%s\n' "${bold}" "${plain}"
   printf '  kit work 42\n  kit context src/main.sh\n  kit commit --message=%s\n' "'#42 area: subject'"
   printf '\n%sLEARN MORE%s\n' "${bold}" "${plain}"

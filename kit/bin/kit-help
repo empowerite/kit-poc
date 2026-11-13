@@ -10,6 +10,7 @@
 #
 #   - With no argument, it prints what kit is, and every verb's purpose under its group. The plumbing, the verbs
 #     that scripts, hooks, and the TUI call, is summed up in one line; kit help plumbing lists them.
+#   - The name kit prints the page of the loader: its usage and the kit options, such as --workspace=<workspace>.
 #   - A name that matches one verb prints that verb's page: its usage, its description, and the verbs beside it.
 #   - A name that matches several verbs prints each one's usage and purpose.
 #   - A group's name, when no verb starts with it, prints the group's verbs with their purposes.
@@ -44,14 +45,15 @@ set -- ${syntax_operands[@]+"${syntax_operands[@]}"}
 for word in "$@"
 do
   # shellcheck disable=SC2154  # help_groups is set by modules/bash/help.sh
-  if [[ -z "$(help:verbs "${word}")" && " ${help_groups[*]} " != *" ${word} "* ]]
+  if [[ "${word}" != kit && -z "$(help:verbs "${word}")" && " ${help_groups[*]} " != *" ${word} "* ]]
   then
     guard:unknown-verb "${word}" || exit $?
   fi
 done
 # On a terminal, one name or none opens the palette, which runs this kit: on the verb when the name matches one, on
 # the group when it names one. Without a kittui, the help prints, as it does without a terminal.
-if [[ "${text}" == false ]] && (( $# <= 1 )) && [[ -t 0 && -t 1 && -t 2 ]] && tui:binary --probe >/dev/null
+if [[ "${text}" == false && " $* " != *" kit "* ]] && (( $# <= 1 )) && [[ -t 0 && -t 1 && -t 2 ]] \
+  && tui:binary --probe >/dev/null
 then
   target=''
   if (( $# == 1 ))
@@ -82,6 +84,11 @@ for word in "$@"
 do
   [[ "${first}" == true ]] || printf '\n'
   first=false
+  if [[ "${word}" == kit ]]
+  then
+    help:kit
+    continue
+  fi
   readarray -t verbs < <(help:verbs "${word}")
   if (( ${#verbs[@]} == 1 ))
   then
