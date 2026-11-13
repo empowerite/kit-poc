@@ -140,72 +140,8 @@ are `kit work`, `kit commit`, `kit submit`, `kit rebase`, `kit tidy`, `kit flow`
 `kit context`, `kit new file`, `kit lint`, `kit gate`, and `kit hydrate`. Run them exactly as written here, and in
 no other way.
 
-Everything the release delivers belongs to a package. A repository activates the packages it wants:
-
-- `kit install github/ci hooks/lefthook agents/claude` activates packages when the kit is installed.
-- `kit packages add agents/claude` activates a package later.
-- `kit packages remove` deactivates a package.
-- `kit uninstall` takes everything the kit placed out of the repository.
-
-A package of the repository's own lives under `.kit/packages/` and is activated the same way.
-
-How a delivered file is placed depends on its destination:
-
-- A `.json` file, other than a schema, is merged by key. The kit owns only the entries it writes.
-- A region inside a file the repository owns starts at a `kit:generate` directive and ends at a `kit:end` line.
-  `kit generate` fills it with the output of the directive's command, or of `kit region` when it names none.
-- Every other file under `.kit/` is a link to its source when the source is inside the worktree, and otherwise a
-  copy without the write bit. Every other file outside `.kit/` is copied. A package's `templates/` files have their
-  `@key@` placeholders filled from `answers:` first.
-
-The packages:
-
-- `kit`: this file, `.kit/README.md` for the person at the desk, the pages of `kit welcome`, the kinds, the rules,
-  `.kit/kit.schema.json`, and a region that `kit region` fills: the `/worktrees/` entry in the repository's
-  `.gitignore`.
-- `workflow`: `.kit/workflow.md`, the workflow from an issue to a merged pull request: a worktree per issue, a
-  draft pull request, the report in its body, plans as prose, and the worker contract. "The workflow" above points
-  to it.
-- `style/bash`, `style/markdown`, `style/just`, `style/workflows`, `style/yaml`, `style/json`, and
-  `style/gitignore`: the style for one kind of file each, under `.kit/styles/`, and the kind's templates (JSON has
-  none). `style/markdown` also delivers `.kit/markdownlint.jsonc`, the settings its linter reads. A repository takes
-  the ones it agrees with, or writes its own.
-- `style/prose`: `.kit/styles/prose.md`, the style of prose in every text file, documents and comments alike.
-  `kit context` prints it after the rule and the style for the file's kind.
-- `hooks/lefthook`: `.kit/lefthook.yml`, a pre-commit hook that runs `kit lint` and `kit generate --check` over the
-  staged paths. A repository's `lefthook.yml` includes it with `extends` and adds its own commands. `kit lint`
-  does not need a hook manager: it runs each rule's linter over the paths the rule governs.
-- `github/ci`: `.github/workflows/kit-ci.yml`, one GitHub Actions job. The job runs `kit ci`, which runs four
-  checks, on the runner or on any machine; before the branch has a pull request, `kit linked` fails and the other
-  three run without one. On a runner it installs the gate's tools with `kit tools install` after the first two
-  checks, never before. In order:
-  - `kit linked`, which refuses a pull request not linked to an open issue
-  - `kit policy`, which refuses a branch name, worktree, commit subject, or pull request title that breaks the
-    repository's policy
-  - the repository's gate
-  - `kit check`
-- `policy/opa`: `.kit/policy/kit.rego`, the naming policy in Rego. With it, `kit policy` runs on Open Policy
-  Agent, and a rule can express what a pattern cannot.
-- `policy/conventional`: no file, but policy rules that hold commit subjects and pull request titles to Conventional
-  Commits. The issue's reference moves out of the subject into a `Refs: #7` trailer, which `kit commit` supplies.
-- `agents/generic`: support for any agent that reads `AGENTS.md`. Every `agents/<harness>` package below depends
-  on it. It delivers a region in the repository's `AGENTS.md`, filled by `kit region`, that points to this file.
-- `agents/claude`: support for Claude Code, which reads `AGENTS.md` only when it finds no `CLAUDE.md`. It delivers:
-  - a region in `.claude/CLAUDE.md` that imports `AGENTS.md`, so Claude Code reads `AGENTS.md` in every case
-  - the deny list above, merged into `.claude/settings.json`
-  - a hook that runs `kit context` before each Write, Edit, and MultiEdit, so the agent is told the file's rules
-    without asking; a write through the shell does not reach it
-- `agents/cursor`: support for Cursor, which reads `AGENTS.md` on its own. It delivers a rule under `.cursor/rules/`
-  for each kit rule, attached by the rule's paths, whose body sends the agent to `.kit/rules/<kind>.md`.
-- `agents/copilot`: support for GitHub Copilot, which reads `AGENTS.md` on its own. It delivers an instruction file
-  under `.github/instructions/` for each kit rule, applied to the rule's paths, whose body sends the agent to the rule.
-- `agents/gemini`: support for Gemini CLI, which reads `GEMINI.md` unless told otherwise. It merges `AGENTS.md` into
-  the context files and the deny list above into `.gemini/settings.json`.
-- `empowerite`: a bundle, with no file of its own. It includes every style package, `github/ci`,
-  `agents/claude`, `hooks/lefthook`, and `workflow`, which is what Empowerite's repositories take.
-
-Any file may also contain a `kit:generate` directive of the repository's own, naming any command. `kit check` fails
-when any region differs from what its command produces.
+A repository activates the packages it wants with `kit packages add <package>`. `kit packages` lists every package and
+what it delivers, and `.kit/README.md` says how kit places each file.
 
 ## Changing what kit adds
 

@@ -25,6 +25,16 @@ names every placed file, so git never sees one. Each placed file is one of:
   A change at the source shows in `git status` and reaches a commit. A change through the link is that change.
 - a copy without the write bit, when the source is the installed release, outside the worktree.
 
+A placed file lands by its destination:
+
+- A `.json` file, other than a schema, is merged by key. The kit owns only the entries it writes.
+- A region inside a file the repository owns starts at a `kit:generate` directive and ends at a `kit:end` line.
+  `kit generate` fills it with the output of the directive's command, or of `kit region` when it names none. Any
+  file may hold a directive of the repository's own, naming any command, and `kit check` fails when a region differs
+  from what its command produces.
+- Every other file outside `.kit/` is copied. A package's `templates/` files have their `@key@` placeholders filled
+  from `answers:` first.
+
 `manifest` records the digest of every placed file, so `kit update` can tell the release's file from one that was
 edited. It and `.gitignore` are kit's too, and have no write bit either.
 
