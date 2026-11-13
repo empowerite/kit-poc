@@ -195,20 +195,14 @@ server. It wins over the host and over a runner's server.
 ### Code forges, seams, and providers
 
 A code forge is the service that hosts a repository with its issues and pull requests, such as GitHub or GitLab.
-The word forge comes from SourceForge, the first widely used site of this kind, in 1999. GitLab, Gitea, and Forgejo
-still use it for the category. kit says code forge rather than GitHub because the workflow runs on more than one.
+kit says code forge rather than GitHub because the workflow runs on more than one. Below, forge means code forge.
 
-Seven files each define a seam. The word is Michael Feathers', from *Working Effectively with Legacy Code* (2004). He
-took it from tailoring: a seam is where two pieces of cloth join, and where a garment is let out or taken in without
-recutting either piece. In code, a seam is a place where behavior can change without editing the code at that place.
-Every seam has an enabling point, the spot that decides which behavior runs.
-
-kit says seam rather than interface because seam is the more precise word for these files. An interface is only a
-contract: the calls a provider must answer. It says nothing about who picks the provider, or when. A seam is the
-contract plus its enabling point, and each of these files holds both. Its header lists the calls. Its code picks the
-provider at run time, from a setting or the primary remote's host, by building the provider's function name from a
-string. Shell has no types, so there is no separate interface declaration to point at; the seam is the whole of what
-exists.
+Seven files each define a seam, a place where behavior can change without editing the code there. The word is
+Michael Feathers', from *Working Effectively with Legacy Code* (2004). A seam is more than an interface. An interface
+is the contract, the calls a provider must answer. A seam is the contract and the choice of provider. Each of these
+files holds both: its header lists the calls, and its code picks the provider at run time, from a setting or from the
+primary remote's host, by building the provider's function name from a string. Shell has no types, so there is no
+separate interface declaration to point at.
 
 | Seam | Providers | Chosen by |
 | --- | --- | --- |
@@ -228,25 +222,21 @@ forge is named in the `forge` or `forges` setting, or found from a CI runner's o
 - Every provider returns the same shape, so `kit flow` shows the same picture on either code forge.
 - Every call answers, answers none, fails with one line that says what could not be read, or is unsupported, and a
   list is whole or the call fails; the header of `kit/modules/bash/forge.sh` holds the contract.
-- A provider declares the contract's version it implements, 8 today, and the features its forge lacks: issues,
-  sub-issues, linked branches, drafts, closing issues, review threads, checks, quota, marks, releases, runs, labels,
-  milestones, iterations, reviewers, merged changes, artifacts, environments, deployments, collaborators, teams, bots,
-  attestations, code scanning, dependabot, secret scanning, rulesets, bypasses, check runs, swimlanes, bot
-  accounts (a GitHub App's JWT, installation, and narrowed token), and merge closing (a merge closes the forge's own
-  issues the change closes; where it does not, `kit settle` closes them). A call of a feature
-  the forge lacks, or one added after the provider's version, is unsupported: it exits 3 and runs nothing, and the
-  verb answers as for none, such as no releases to list or no rate limits to draw. `kit flow --capabilities` prints
-  the declaration for kittui.
-- A repository chooses a stand-in for a feature under `forge_settings.<forge>.stand_ins` in `kit.yml`, shared by
-  everyone who clones it, and the seam then answers the feature itself, whether the forge has it or not: a draft as a
-  label or a title prefix, the issues a change closes as its body names them, and marks on a timer. `kit ready` marks
-  a draft ready for review on every forge, its stand-in taken off. With `--report=` or `--report-file=`, it first
-  writes the report into the change's body, above the lines that close issues.
-- An open issue says its milestone, its iteration, and its swimlane, each a title or none. A forge gives the first two
-  where it has them; no forge kit reaches has a swimlane it reads the same way. A stand-in gives any of the three to
-  every forge alike: the rest of the issue's first label that starts with a prefix, else a default, as
-  `swimlanes: {label_prefix: "swimlane:", default: none}`. It answers the issue's field alone; the milestones and
-  iterations an Issues tab lists stay the forge's own.
+- A provider declares the contract's version it implements, 8 today, and the features its forge lacks. The features
+  are listed in `forge_features` in `kit/modules/bash/forge.sh`. A call of a feature the forge lacks, or one added
+  after the provider's version, is unsupported: it exits 3 and runs nothing, and the verb answers as for none, such as
+  no releases to list or no rate limits to draw. `kit flow --capabilities` prints the declaration for kittui.
+- A repository can choose a stand-in for a feature that a forge lacks, under `forge_settings.<forge>.stand_ins` in
+  `kit.yml`. Everyone who clones the repository shares it, and the seam then answers the feature itself, whether the
+  forge has it or not. A draft can be a label or a title prefix. The issues a change closes can be the ones its body
+  names. `kit ready` marks a draft ready for review on every forge, and takes its stand-in off. With `--report=` or
+  `--report-file=`, it first writes the report into the change's body, above the lines that close issues.
+- Each open issue has a milestone, an iteration, and a swimlane, and any of them can be empty. kit reads the milestone
+  and the iteration from a forge that has them. No forge that kit reaches has swimlanes in a form kit can read. A
+  repository can take any of the three from a label instead. With `swimlanes: {label_prefix: "swimlane:", default:
+  none}`, an issue labelled `swimlane:payments` is in the swimlane `payments`, and an issue with no such label is in
+  `none`. This changes only the field shown on an issue. The milestones and iterations that an Issues tab lists are
+  still the forge's own.
 - Each provider uses its code forge's own name for a change: pull request `#3` on GitHub, merge request `!3` on GitLab,
   pull request `!3` on Azure DevOps.
 - A repository with one origin has one code forge. A repository on two code forges is a mirror or a migration, and
