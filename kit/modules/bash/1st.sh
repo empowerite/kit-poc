@@ -325,9 +325,17 @@ kit:harden-git() {
 # kit:move-settings moves .kit/settings.yml to kit.yml at the root, where a release before kit.yml left it, and
 # points its schema modeline at .kit/kit.schema.json. Where kit.yml is there already, it leaves both alone. The trust
 # was judged of the file it moves: kit:trust-digest digests it as the kit.yml this writes, and kit trust shows what it
-# names, so the move runs nothing you were not shown and keeps the trust.
+# names, so the move runs nothing you were not shown and keeps the trust. A kit.yml that is a link to nothing is
+# refused, since the move would write through it; a link to a file is a kit.yml already there.
 kit:move-settings() {
-  [[ -f .kit/settings.yml && ! -e kit.yml ]] || return 0
+  [[ -f .kit/settings.yml ]] || return 0
+  if [[ -L kit.yml && ! -e kit.yml ]]
+  then
+    error "kit.yml is a link to nothing, which kit neither writes nor removes through; remove it, and kit moves" \
+      ".kit/settings.yml there"
+    return 1
+  fi
+  [[ ! -e kit.yml ]] || return 0
   # shellcheck disable=SC2016  # $schema is the modeline's own text, not the shell's
   sed 's#\$schema=settings\.schema\.json#$schema=.kit/kit.schema.json#' .kit/settings.yml > kit.yml || return 1
   rm -f .kit/settings.yml

@@ -154,7 +154,8 @@ kit runs nothing in a clone until you trust it.
   a folder with no `kit.yml`.
 - Where there is no `kit.yml`, kit reads the `.kit/settings.yml` an earlier release kept, and moves it to `kit.yml`.
   The trust judges that file, and `kit trust` shows what it names, before anything moves: a pull that brings one
-  withdraws the trust, and the move itself keeps it. The loader reads the release it pins the same way.
+  withdraws the trust, and the move itself keeps it. The loader reads the release it pins the same way. A `kit.yml`
+  that is a link to nothing stops the move, since kit writes nothing through a link; remove it first.
 - `kit trust --list` and `kit trust --revoke` read and change the records, which are plain lines in
   `~/.config/kit/trusted`. `kit trust --check` and `kit trust --asks` answer a screen that asks for the trust itself.
 

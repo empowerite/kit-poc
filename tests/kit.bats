@@ -713,6 +713,24 @@ tree-digest() {
   [ "$(declared packages)" = "kit agents/generic agents/claude" ]
 }
 
+@test "the settings are not moved through a kit.yml that is a dangling link: nothing is written where it points" {
+  "${kit_checkout}/bin/kit" install agents/claude
+  sed 's#\$schema=\.kit/kit\.schema\.json#$schema=settings.schema.json#' kit.yml > .kit/settings.yml && rm kit.yml
+  mkdir ../elsewhere
+  ln -s ../elsewhere/target.yml kit.yml
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit.yml is a link to nothing, which kit neither writes nor removes through; remove it, and kit moves .kit/settings.yml there"* ]]
+  [ ! -e ../elsewhere/target.yml ]
+  [ -f .kit/settings.yml ]
+  [ -L kit.yml ]
+  # a link to a file is a kit.yml already there: kept, and the settings beside it left alone
+  rm kit.yml && cp .kit/settings.yml ../elsewhere/target.yml && ln -s ../elsewhere/target.yml kit.yml
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 0 ]
+  [ -f .kit/settings.yml ]
+}
+
 @test "a kit.yml already there is kept, and .kit/settings.yml beside it is left alone" {
   "${kit_checkout}/bin/kit" install
   printf 'version: 0.0.1\n' > .kit/settings.yml
