@@ -11,9 +11,9 @@ from an issue, commit, open and update a [pull request](kittui:welcome/terms/pul
 - Agent harnesses: Claude Code, Cursor, GitHub Copilot, and Gemini CLI each read the same rules, in `.kit/`. The
   rules are not copied into each harness's own files, so there is nothing to regenerate or keep in sync.
 - [Code forges](kittui:welcome/terms/code%20forge): GitHub, GitLab, and Azure DevOps. The commands are the same on each.
-- [Trackers](kittui:welcome/terms/tracker): the forge's own issues, Azure DevOps work items, and others such as Jira
-  and Linear. One repository can
-  use more than one.
+- [Trackers](kittui:welcome/terms/tracker): the forge's own issues and Azure DevOps work items. One repository can
+  use more than one. kit only opens the pages of another tracker, such as Jira or Linear: it reads no issue there,
+  so `kit work` starts none and `kit linked` counts none.
 - [CI](kittui:welcome/terms/CI): `kit ci` runs the same checks on your machine and in any CI system.
 - Repositories: kit shows and acts on a group of repositories as one [workspace](kittui:welcome/terms/workspace).
 

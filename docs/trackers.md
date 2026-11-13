@@ -52,8 +52,9 @@ that matches no declared tracker is refused, and the error lists the known prefi
     pull request or merge request). GitHub's Azure Boards integration reads that line as a link.
 - `kit linked` passes when the code forge reports that the change closes an open issue of the repository. It also
   passes when the change's body names an open issue of a declared tracker with a closing keyword:
-  `Closes AB#4521`, `Fixes AB#4521`, or `Resolves AB#4521`. A change by a login under `linked_exempt` in
-  `kit.yml` passes without an issue, and the output says so.
+  `Closes AB#4521`, `Fixes AB#4521`, or `Resolves AB#4521`. An issue of a `web` tracker never counts, since kit
+  cannot read its state. A change by a login under `linked_exempt` in `kit.yml` passes without an issue, and the
+  output says so.
 - `kit work --title=<text> 7 AB#4521` gathers the issues under a new parent issue and starts the parent, as
   `kit gather` does without starting it: a forge issue is a sub-issue on GitHub, a linked item on GitLab; a work
   item is a task line in the parent's body.
@@ -88,8 +89,10 @@ that matches no declared tracker is refused, and the error lists the known prefi
 | `ado` | `az` with the `azure-devops` extension | `organization`, `project`, `type` (default `Task`), `closed_state` (default `Closed`), `removed_state` (default `Removed`) | Closed, Done, or Removed |
 | `web` | none: kit opens its pages | `new`, the page a new issue is filed at, `{title}` standing for the title; `url`, an issue's page, `{id}` standing for its number | never read |
 
-A `web` tracker is a ticket system kit has no command line for. kit opens its pages and does nothing else there: the
-calls that read or change an issue refuse, naming the issue's page.
+A `web` tracker is a ticket system kit has no command line for, such as Jira or Linear. kit opens its pages and does
+nothing else there: the calls that read or change an issue refuse, naming the issue's page. So `kit work LIN#12`
+refuses, since it cannot read the issue's title, and `kit linked` does not count a `Closes LIN#12` line: the change
+passes only when it also links an open issue of a tracker kit reads.
 
 ```yaml
 trackers:

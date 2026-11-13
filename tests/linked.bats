@@ -95,6 +95,34 @@ JSON
   grep --quiet 'could not be read' "${GITHUB_STEP_SUMMARY}"
 }
 
+@test "an issue of a tracker kit only opens the pages of never counts, as the introduction says; one kit reads does" {
+  # The delivered introduction names the trackers kit reads, then says what kit does with any other: a ticket system
+  # with no provider but web is named only there.
+  line=$(awk '/^- \[Trackers\]/ { on = 1; print; next } on && /^  / { print; next } { on = 0 }' \
+    "${kit_root}/packages/kit/files/repo/.kit/welcome/1-introduction.md" | tr '\n' ' ')
+  [[ "${line}" == *"opens the pages"*'`kit linked`'* ]]
+  [[ "${line%%opens the pages*}" != *Jira* && "${line%%opens the pages*}" != *Linear* ]]
+  fake-tools gh
+  printf 'trackers:\n  - prefix: "LIN#"\n    provider: web\n' > kit.yml
+  printf '    url: https://linear.app/example/issue/ENG-{id}\n' >> kit.yml
+  fixture repo.json <<<'{"nameWithOwner": "empowerite/example", "url": "https://github.com/empowerite/example"}'
+  fixture closing.json <<<'{"data": {"repository": {"pullRequest": {"closingIssuesReferences": {"nodes": []}}}}}'
+  fixture pr.json <<<'{"body": "Closes LIN#12"}'
+  route gh 'repo view*' repo.json
+  route gh 'api graphql*' closing.json
+  route gh 'pr view 3 --json *' pr.json
+  run "${kit_checkout}/bin/kit" linked 3
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit cannot read its state in the LIN# tracker, which it reaches through its pages alone"* ]]
+  [[ "$output" == *"LIN#12's state could not be read, so it does not count"* ]]
+  # with an open issue of the repository linked beside it, the change passes
+  fixture closing.json <<<'{"data": {"repository": {"pullRequest": {"closingIssuesReferences": {"nodes": [
+    {"number": 7, "state": "OPEN", "repository": {"nameWithOwner": "empowerite/example"}}]}}}}}'
+  run "${kit_checkout}/bin/kit" linked 3
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"LIN#12's state could not be read, so it does not count"* ]]
+}
+
 @test "on a branch, kit linked fails when the base is not here, since the logins it exempts cannot be read" {
   fake-tools gh
   git commit --quiet --allow-empty --message "#1 start: the first"
