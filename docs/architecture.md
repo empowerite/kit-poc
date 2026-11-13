@@ -152,7 +152,8 @@ package's entry file, `.kit/1st.md`, holds what every repository keeps: the inte
 commands that replace raw git commands.
 
 `kit flow` draws where the work stands in five stages: issues, changes, builds, incoming, and releases. On a terminal
-the picture is interactive; without one, or with `--text`, it prints. `kit flow <stage>` prints one stage. issues lists
+the picture is interactive; without one, or with `--text`, it prints. `kit flow <stage>` opens one stage at a terminal,
+and prints it as text or, with `--json`, as JSON, where there is none. issues lists
 every open issue with its status. One in the backlog, which no open pull request closes and no branch names, is the next
 `kit work <N>`, a pick, not a search. One underway shows who works on it, and where: the pull request that closes it,
 or, before there is one, the branch named for it, `<N>-<slug>`, on the desk or the primary remote. Backlog and underway
