@@ -207,7 +207,7 @@ see: [forges.md](forges.md), [../workspaces.md](../workspaces.md), `kit/modules/
 | Bring the shared index up to a commit | `GIT_INDEX_FILE=${shared} git read-tree -m -i "${base}" "${target}"`, the two-tree merge, under git's lock; `GIT_INDEX_FILE=${shared} git update-index -z --index-info` when it refuses; the target built with `GIT_INDEX_FILE=${work}/index git read-tree "${commit}"`, `git update-index -z --index-info`, and `git write-tree`; `git hash-object -t tree -w /dev/null`, the empty tree, as the parent of a first commit |
 | Build the tree a commit would make | `GIT_INDEX_FILE=${index} git read-tree HEAD`, or `GIT_INDEX_FILE=${index} git read-tree --empty` before the first commit; `GIT_INDEX_FILE=${index} git update-index --add --remove --replace -z --stdin`; `GIT_INDEX_FILE=${index} git write-tree`; `git write-tree` for the index itself |
 | Rebase | `git -C "${worktree}" rebase --quiet "${target}"`, with `--gpg-sign` under `require_signing` |
-| Undo a rebase that conflicts | `git -C "${worktree}" rebase --abort`; `git -C "${worktree}" reset --quiet --hard "${before}"` |
+| Name the paths of a rebase that conflicts, then undo it | `git -C "${worktree}" diff --name-only --diff-filter=U -z`; `git -C "${worktree}" rebase --abort`; `git -C "${worktree}" reset --quiet --hard "${before}"` |
 | Sweep the desk's work | `git -C "${root}" stash push --include-untracked --message "${message}"`; `git -C "${wt}" stash apply "${stash}"`; `git -C "${root}" stash apply --index "${stash}"` to put it back; `git -C "${root}" stash drop "${slot}"` |
 | Fast-forward the desk | `git -C "${root}" merge --ff-only "origin/${default}"` |
 | Tag a release | `git tag --annotate --message "release ${version}" "${tag}"`, with `--sign` under `require_signing` |

@@ -78,9 +78,22 @@ commit-in() {
   before=$(git -C ../wt rev-parse HEAD)
   run "${kit_checkout}/bin/kit" rebase ../wt
   [ "$status" -eq 1 ]
-  [[ "$output" == *"conflicts with origin/main"* ]]
+  [[ "$output" == *"conflicts with origin/main in a; the rebase was aborted"* ]]
   [ "$(git -C ../wt rev-parse HEAD)" = "${before}" ]
   [ -z "$(git -C ../wt status --porcelain)" ]
+}
+
+@test "rebase says a target that does not exist is no conflict, and names the command that records the default branch" {
+  worktree
+  commit-in ../wt b two
+  git -C ../origin.git branch --move main trunk
+  git remote set-head origin --delete
+  before=$(git -C ../wt rev-parse HEAD)
+  run "${kit_checkout}/bin/kit" rebase ../wt
+  [ "$status" -eq 1 ]
+  [[ "$output" != *"conflicts"* ]]
+  [[ "$output" == *"origin/main does not exist"*"run: "*"git remote set-head origin --auto"* ]]
+  [ "$(git -C ../wt rev-parse HEAD)" = "${before}" ]
 }
 
 # other-commits <file> <content> commits the file on 1-x in a second clone, ../other, and pushes it, as another
@@ -112,7 +125,7 @@ other-commits() {
   theirs=$(git -C ../other rev-parse HEAD)
   run "${kit_checkout}/bin/kit" rebase ../wt
   [ "$status" -eq 1 ]
-  [[ "$output" == *"1-x conflicts with origin/1-x"* ]]
+  [[ "$output" == *"1-x conflicts with origin/1-x in a;"* ]]
   [ "$(git -C ../wt rev-parse HEAD)" = "${before}" ]
   [ -z "$(git -C ../wt status --porcelain)" ]
   [ "$(git -C ../origin.git rev-parse 1-x)" = "${theirs}" ]
@@ -130,7 +143,7 @@ other-commits() {
   run "${kit_checkout}/bin/kit" rebase ../wt
   [ "$status" -eq 1 ]
   [[ "$output" == *"taking 1 commit(s) origin/1-x has and this checkout lacks"* ]]
-  [[ "$output" == *"1-x conflicts with origin/main; the rebase was aborted and the worktree is as it was"* ]]
+  [[ "$output" == *"1-x conflicts with origin/main in a; the rebase was aborted and the worktree is as it was"* ]]
   [ "$(git -C ../wt rev-parse HEAD)" = "${before}" ]
   [ -z "$(git -C ../wt status --porcelain)" ]
   [ ! -e ../wt/theirs.txt ]

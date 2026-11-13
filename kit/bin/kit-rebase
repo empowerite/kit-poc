@@ -19,7 +19,9 @@
 #   - a worktree with uncommitted changes
 #   - with require_signing true, a git with no signing key
 #
-# On a conflict, kit rebase aborts and leaves the worktree as it was.
+# On a conflict, kit rebase aborts, names the paths that conflict, and leaves the worktree as it was. It says so apart
+# when git fails for another reason, and when the branch it rebases onto does not exist, with the command that records
+# the default branch.
 #
 # Arguments:
 #   <path>   the checkout whose branch to rebase; default: the current one

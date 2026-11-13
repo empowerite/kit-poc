@@ -564,7 +564,8 @@ git:push() {
 # push forces only over the tip it read, so a commit pushed after the fetch makes the push fail rather than vanish. On
 # a conflict it aborts the rebase and leaves the worktree as it was.
 git:rebase() {
-  local worktree=${1:-.} branch default_branch primary remote before theirs target targets=() sign=()
+  local worktree=${1:-.} branch default_branch primary remote before theirs target targets=() sign=() unmerged=()
+  local unmerged_names
   branch=$(git -C "${worktree}" symbolic-ref --quiet --short HEAD 2>/dev/null || true)  # detached is refused below
   if [[ -z "${branch}" ]]
   then
@@ -610,12 +611,31 @@ git:rebase() {
   targets+=("${primary}/${default_branch}")
   for target in "${targets[@]}"
   do
+    if ! git -C "${worktree}" rev-parse --quiet --verify "refs/remotes/${target}^{commit}" >/dev/null
+    then
+      error "${target} does not exist, so ${branch} cannot be rebased onto it; if ${primary} has no ${default_branch}," \
+        "run: git remote set-head ${primary} --auto"
+      return 1
+    fi
+  done
+  for target in "${targets[@]}"
+  do
     if ! git -C "${worktree}" rebase --quiet "${sign[@]}" "${target}"
     then
+      # Only a rebase stopped on unmerged paths is a conflict; any other failure says so in git's own words above.
+      list:read0 unmerged git -C "${worktree}" diff --name-only --diff-filter=U -z || unmerged=()
       # A rebase that stopped before it began has nothing to abort; the reset puts the worktree back either way.
       git -C "${worktree}" rebase --abort 2>/dev/null || true
       git -C "${worktree}" reset --quiet --hard "${before}"
-      error "${branch} conflicts with ${target}; the rebase was aborted and the worktree is as it was"
+      if (( ${#unmerged[@]} > 0 ))
+      then
+        printf -v unmerged_names '%s, ' "${unmerged[@]}"
+        error "${branch} conflicts with ${target} in ${unmerged_names%, }; the rebase was aborted and the worktree is" \
+          "as it was"
+      else
+        error "git could not rebase ${branch} onto ${target}, for a reason other than a conflict; the rebase was" \
+          "aborted and the worktree is as it was"
+      fi
       return 1
     fi
   done
