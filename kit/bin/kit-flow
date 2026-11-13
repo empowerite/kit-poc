@@ -268,10 +268,7 @@ then
     && -t 0 && -t 1 && -t 2 ]] && { [[ -n "${workspace}" ]] || workspaces:in-repository >/dev/null; } \
     && tui:binary --probe >/dev/null
   then
-    binary=$(tui:binary) || exit 1
-    terminal:export-probes
-    export KIT="${kit_root}/bin/kit"
-    exec "${binary}" flow ${workspace:+--workspace="${workspace}"} "$@"
+    tui:exec flow ${workspace:+--workspace="${workspace}"} "$@"
   fi
   # the filters are kittui's here: kit issues backlog takes none, and kit flow issues takes them for both statuses
   for option in --fresh --all --mine --others --owner
@@ -299,10 +296,7 @@ if [[ -n "${workspace}" && -z "${syntax_literals[0]:-}${syntax_options[--text]+x
   && -z "${syntax_options[--quota]+x}${syntax_options[--me]+x}" && -t 0 && -t 1 && -t 2 ]] \
   && tui:binary --probe >/dev/null
 then
-  binary=$(tui:binary) || exit 1
-  terminal:export-probes
-  export KIT="${kit_root}/bin/kit"
-  exec "${binary}" flow --workspace="${workspace}" "$@"
+  tui:exec flow --workspace="${workspace}" "$@"
 fi
 if [[ -n "${workspace}" ]]
 then
@@ -370,10 +364,7 @@ fi
 if [[ "${pictured}" == true && -z "${syntax_options[--text]+x}${syntax_options[--json]+x}" && -t 0 && -t 1 && -t 2 ]] \
   && workspaces:in-repository >/dev/null && tui:binary --probe >/dev/null
 then
-  binary=$(tui:binary) || exit 1
-  terminal:export-probes
-  export KIT="${kit_root}/bin/kit"
-  exec "${binary}" flow "$@"
+  tui:exec flow "$@"
 fi
 
 flow:render "$@"

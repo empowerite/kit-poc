@@ -67,10 +67,7 @@ then
   fi
   if (( $# == 0 )) || [[ -n "${target}" ]]
   then
-    binary=$(tui:binary) || exit 1
-    terminal:export-probes
-    export KIT="${kit_root}/bin/kit"
-    exec "${binary}" help ${target:+"${target}"}
+    tui:exec help ${target:+"${target}"}
   fi
 fi
 

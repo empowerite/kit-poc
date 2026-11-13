@@ -152,10 +152,7 @@ if [[ -z "${syntax_options[--text]+x}${syntax_options[--json]+x}${syntax_options
   && -t 0 && -t 1 && -t 2 ]] && { [[ -n "${workspace}" ]] || workspaces:in-repository >/dev/null; } \
   && tui:binary --probe >/dev/null
 then
-  binary=$(tui:binary) || exit 1
-  terminal:export-probes
-  export KIT="${kit_root}/bin/kit"
-  exec "${binary}" workspace ${workspace:+--workspace="${workspace}"} "$@"
+  tui:exec workspace ${workspace:+--workspace="${workspace}"} "$@"
 fi
 
 # A bare repository, or a .git directory, has no working tree to read, so it is outside a repository too.

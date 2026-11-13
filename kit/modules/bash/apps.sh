@@ -37,7 +37,7 @@ apps_forge_marks='{}' apps_forge_served=''
 # named. A tab kit flow draws is printed as apps:tab prints it. It returns 2 outside a repository with no workspace,
 # and 1 when a stage could not be read, after what was.
 apps:main() {
-  local verb=$1 workspace stage form command status=0 doc each first=true
+  local verb=$1 workspace stage form status=0 doc each first=true
   local -a named=() fresh=()
   shift
   use "apps/${verb}" || return 2
@@ -57,10 +57,7 @@ apps:main() {
   if [[ -z "${form}" && -t 0 && -t 1 && -t 2 ]] && { [[ -n "${workspace}" ]] || workspaces:in-repository >/dev/null; } \
     && tui:binary --probe >/dev/null
   then
-    command=$(tui:binary) || return 1
-    terminal:export-probes
-    export KIT="${kit_root}/bin/kit"
-    exec "${command}" "${verb}" ${workspace:+--workspace="${workspace}"} "$@"
+    tui:exec "${verb}" ${workspace:+--workspace="${workspace}"} "$@"
   fi
   # A bare repository, or a .git directory, has no working tree to read, so it is outside a repository too.
   if [[ -z "${workspace}" ]] && ! workspaces:in-repository >/dev/null

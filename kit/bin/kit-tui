@@ -69,10 +69,7 @@ then
   esac
   exit 2
 fi
-binary=$(tui:binary) || exit 1
-terminal:export-probes
-export KIT="${kit_root}/bin/kit"
 # the workspace kit --workspace= named goes before the words, which may be a verb's own after a --
-exec "${binary}" ${KIT_WORKSPACE:+"--workspace=${KIT_WORKSPACE}"} "$@"
+tui:exec ${KIT_WORKSPACE:+"--workspace=${KIT_WORKSPACE}"} "$@"
 
 # ----------------------------------------------------------------------------------------------------------------------

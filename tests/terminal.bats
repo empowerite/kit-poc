@@ -720,14 +720,17 @@ EOF
   [ "$output" = $'truecolor\ntruecolor\n256\n256\ntruecolor\nfewer\ntruecolor\n256\ntruecolor' ]
 }
 
-@test "every verb that hands the terminal to kittui asks it first" {
-  local file missing=''
+@test "every hand-off to kittui is tui:exec, which asks the terminal first and names this kit, and no other file runs kittui" {
+  local file other=''
   for file in "${kit_root}"/bin/* "${kit_root}"/modules/bash/*.sh
   do
-    grep -q '=\$(tui:binary)' "${file}" || continue
-    grep -q 'terminal:export-probes' "${file}" || missing+=" ${file#"${kit_root}"/}"
+    [[ "${file}" != */modules/bash/tui.sh ]] || continue
+    ! grep -q '=\$(tui:binary)\|exec "\${binary}"' "${file}" || other+=" ${file#"${kit_root}"/}"
   done
-  [ -z "${missing}" ] || { echo "hands kittui an unasked terminal:${missing}"; return 1; }
+  [ -z "${other}" ] || { echo "hands kittui over without tui:exec:${other}"; return 1; }
+  run grep -A4 '^tui:exec()' "${kit_root}/modules/bash/tui.sh"
+  [[ "$output" == *'terminal:export-probes'* ]]
+  [[ "$output" == *'export KIT='* ]]
 }
 
 @test "inside WSL, a reg.exe that hangs makes the window unknown within a second or so" {

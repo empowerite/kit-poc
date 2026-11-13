@@ -62,17 +62,14 @@ done
 # screen [<tutorial>] puts kittui's tutorials screen in this process's place, on the tutorial's card when one is named,
 # the tags given filtering its cards: on a terminal, with no form chosen, with a kittui to run; else it returns.
 screen() {
-  local binary tag
+  local tag
   local -a args=()
   [[ -z "${form}" && -t 0 && -t 1 && -t 2 ]] && tui:binary --probe >/dev/null || return 0
-  binary=$(tui:binary) || exit 1
-  terminal:export-probes
-  export KIT="${kit_root}/bin/kit"
   for tag in "${tags[@]}"
   do
     args+=("--tag=${tag}")
   done
-  exec "${binary}" tutorials "${args[@]}" "$@"
+  tui:exec tutorials "${args[@]}" "$@"
 }
 
 # A tutorial named opens kittui's screen on its card. Without it, one in the kit prints its title and its page; one

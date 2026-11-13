@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# tui.sh - finds kittui, the binary kit tui runs: the release's own, one on PATH, or one built from projects/tui/
+# tui.sh - finds kittui, the binary kit tui runs, and hands the terminal to it (tui:exec); a verb never does it itself
 # ----------------------------------------------------------------------------------------------------------------------
 # shellcheck disable=SC2154  # kit_root is exported by modules/bash/1st.sh
 #
@@ -7,7 +7,7 @@
 # the kit installs kittui at the same version. A checkout of the kit has projects/tui/ instead, and kittui is built from
 # it, once per change to its sources or to go, into the cache; a kittui on PATH is the last resort.
 
-use file
+use file terminal
 
 # tui:platform prints this machine's platform as Go names it: linux-amd64, darwin-arm64. It returns 1 on an
 # operating system or architecture no release builds for.
@@ -105,6 +105,19 @@ tui:binary() {
     error "this copy of kit carries no kittui, and none is on PATH; run: kit help tui"
   fi
   return 1
+}
+
+# tui:exec <argument>… puts kittui in this process's place, with the arguments. It finds kittui as tui:binary does and
+# ends the verb with the remedy where none can be had, though the caller's tui:binary --probe has judged that already.
+# It asks the terminal first, as terminal:export-probes does, so kittui never reads the terminal it holds, and names this
+# kit to kittui in KIT, so what kittui runs is this kit. The arguments are the caller's: the app, and the workspace kit
+# --workspace= named, which kittui reads on each call.
+tui:exec() {
+  local binary
+  binary=$(tui:binary) || exit 1
+  terminal:export-probes
+  export KIT="${kit_root}/bin/kit"
+  exec "${binary}" "$@"
 }
 
 # ----------------------------------------------------------------------------------------------------------------------
