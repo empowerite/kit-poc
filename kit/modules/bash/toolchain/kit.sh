@@ -129,12 +129,18 @@ toolchain/kit:outdated() {
     then
       error "${name}: the latest version could not be read for ${url}"
       status=1
-    elif [[ "${latest}" != "${version}" ]]
+    elif toolchain/kit:newer "${latest}" "${version}"
     then
       printf '%s\t%s\t%s%s\n' "${name}" "${version}" "${latest}" "${tagged:+$'\t'${tagged}}"
     fi
   done
   return "${status}"
+}
+
+# toolchain/kit:newer <latest> <pin> succeeds when <latest> is a newer version than the pin, a pre-release, as
+# 2.0.0-rc1, older than its release. A pin newer than the latest, as a release candidate of the next, is not behind.
+toolchain/kit:newer() {
+  [[ "$1" != "$2" && "$(printf '%s\n%s\n' "${1//-/\~}" "${2//-/\~}" | sort --version-sort | tail -n 1)" == "${1//-/\~}" ]]
 }
 
 toolchain/kit:path() {
@@ -224,10 +230,18 @@ toolchain/kit:pin() {
 
 # toolchain/kit:update moves each tool behind to its latest version in kit.yml, then locks and installs it. It
 # rewrites the one line that holds each version, as toolchain/kit:pin does, and nothing else in the file. A tool
-# whose latest kit cannot read is left as it was, and the run fails once the others have moved.
+# whose latest kit cannot read is left as it was, and the run fails once the others have moved. When the install
+# fails, kit.yml and tools.lock are put back as they were, so the one never moves without the other.
 toolchain/kit:update() {
-  local behind name current latest status=0
+  local behind name current latest status=0 kept_yml kept_lock=''
   toolchain/kit:require || return 1
+  file:temp kept_yml kit.yml || return 1
+  cp kit.yml "${kept_yml}" || return 1
+  if [[ -f tools.lock ]]
+  then
+    file:temp kept_lock tools.lock || return 1
+    cp tools.lock "${kept_lock}" || return 1
+  fi
   behind=$(toolchain/kit:outdated) || status=1
   # A fourth field, the newest version tagged upstream, is not the one to move to.
   while IFS=$'\t' read -r name current latest _
@@ -236,7 +250,17 @@ toolchain/kit:update() {
     step "${name}: ${current} to ${latest}"
     toolchain/kit:pin "${name}" "${current}" "${latest}" || return 1
   done <<<"${behind}"
-  toolchain/kit:install || return 1
+  if ! toolchain/kit:install
+  then
+    [[ -z "${behind}" ]] && return 1
+    warn "kit.yml and tools.lock are put back as they were, since the install failed"
+    cp "${kept_yml}" kit.yml || return 1
+    if [[ -n "${kept_lock}" ]]
+    then cp "${kept_lock}" tools.lock
+    else rm -f tools.lock
+    fi
+    return 1
+  fi
   return "${status}"
 }
 

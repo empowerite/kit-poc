@@ -226,6 +226,32 @@ YAML
   [ -d "${KIT_HOME}/.kit/tools/beta/2.1.0/${platform}" ]
 }
 
+@test "a pin newer than the latest is not behind, and update leaves it" {
+  sed -i.bak '/^  alpha:/,/^  beta:/{/^  beta:/!d;}' kit.yml
+  sed -i.bak 's/version: "2.0.0"/version: "3.0.0-rc1"/' kit.yml
+  route gh 'api repos/acme/beta/releases/latest --jq .tag_name' 'beta-tag'
+  printf '{"tag_name": "v2.1.0"}\n' | fixture beta-tag
+  run "${kit_root}/bin/kit" tools --outdated --toolchain=kit
+  [ "$status" -eq 0 ]
+  [[ "$output" != *beta* ]]
+  # a release candidate of the latest is behind it
+  sed -i.bak 's/version: "3.0.0-rc1"/version: "2.1.0-rc1"/' kit.yml
+  run "${kit_root}/bin/kit" tools --outdated --toolchain=kit
+  grep --quiet -E '^🔺 beta +· 2\.1\.0-rc1 +· +· 2\.1\.0$' <<<"$output"
+}
+
+@test "update that fails to install leaves kit.yml and tools.lock as they were" {
+  sed -i.bak '/^  alpha:/,/^  beta:/{/^  beta:/!d;}' kit.yml
+  "${kit_root}/bin/kit" tools install --toolchain=kit >/dev/null 2>&1
+  cp kit.yml before.yml && cp tools.lock before.lock
+  route gh 'api repos/acme/beta/releases/latest --jq .tag_name' 'beta-tag'
+  printf '{"tag_name": "v2.1.0"}\n' | fixture beta-tag
+  run "${kit_root}/bin/kit" tools update --toolchain=kit
+  [ "$status" -ne 0 ]
+  cmp --silent before.yml kit.yml
+  cmp --silent before.lock tools.lock
+}
+
 @test "update rewrites the one line that holds a tool's version, and every other line of kit.yml stays, the blank ones too" {
   cat > kit.yml <<'YAML'
 # the repository's settings
