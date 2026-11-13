@@ -50,7 +50,7 @@
 #     true for the desk and false for a worktree; branch is the folder's branch; and kit is the kit version its
 #     kit.yml declares. Each is null where there is none, and for a machine check.
 #
-# A folder's check has the same id in every folder: kit welcome --fix kit-hydrated --folder=<path> names one.
+# A folder's check has the same id in every folder: kit welcome --fix=kit-hydrated --folder=<path> names one.
 #
 # A missing tool's fix comes from the toolchains kit found, and never from one it assumes:
 #

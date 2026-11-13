@@ -114,8 +114,13 @@ spans() {
 # status 0 passes, 2 is its refusal, but inline where the last word is an option without its value, as prose names
 # one, and 1 passes inline, as prose names a beginning, and in a fence is refused, naming what it stops before.
 commands() {
+  spans "$@" | judged
+}
+
+# judged reads spans' lines and judges each as commands says; it prints what it refuses, and fails when it printed.
+judged() {
   local found
-  found=$(spans "$@" | jq --raw-input --raw-output -L "${kit_root}/modules/jq" \
+  found=$(jq --raw-input --raw-output -L "${kit_root}/modules/jq" \
     --slurpfile specs "${BATS_FILE_TMPDIR}/specs.json" '
     import "syntax" as syntax;
     def words:
@@ -286,6 +291,60 @@ EOF
   [[ "${lines[5]}" == 'page.md:12: `kit work --title hi 7`: --title takes its value after =: --title=<text>; run: '* ]]
   [ "${lines[6]}" = 'page.md:15: the fence is never closed' ]
   [ "${#lines[@]}" -eq 7 ]
+}
+
+# script-commands <file>… judges each kit command the lines of a workflow or a shell's file run, as commands judges a
+# fence's line. A line's commands are apart at &&, ||, and ;, each less a leading run: and spaces, or what precedes
+# its last $( and follows that one's ), and one counts when it starts with kit or with a path that ends in /kit, read
+# as kit. A line that is a comment has none.
+script-commands() {
+  awk '
+    /^[[:space:]]*#/ { next }
+    {
+      count = split($0, parts, /&&|\|\||;/)
+      for (i = 1; i <= count; i++) {
+        text = parts[i]
+        if (sub(/^.*\$\(/, "", text)) sub(/\).*$/, "", text)
+        sub(/^[[:space:]]*(-[[:space:]]+)?(run:[[:space:]]*)?/, "", text)
+        sub(/[[:space:]]+$/, "", text)
+        if (text ~ /^([^[:space:]]*\/)?kit[[:space:]]/) {
+          sub(/^[^[:space:]]*/, "kit", text)
+          print FILENAME "\t" FNR "\tfence\t" text
+        }
+      }
+    }
+  ' "$@" | judged
+}
+
+@test "every kit command a workflow or .envrc runs is one its verb takes: this repository's, and what a package delivers" {
+  local -a scripts
+  # the judge reads the lines: a value as the next word is refused, and the = form and a form pass
+  cat > flow.yml <<'EOF'
+      - name: tools
+        run: |
+          # kit tools install --toolchain kit, in a comment, is not run
+          kit/bin/kit tools install --toolchain kit
+          kit tools install --toolchain=kit && kit tools path --toolchain kit >> "${GITHUB_PATH}"
+          kit/bin/kit trust --yes "${GITHUB_WORKSPACE}"
+      - name: kit
+        run: kit nosuch
+          if dirs=$(kit tools path --toolchain kit) && [[ -n "${dirs}" ]]
+          dirs=$(kit tools path --toolchain=kit)
+EOF
+  run script-commands flow.yml
+  [ "$status" -eq 1 ]
+  [[ "${lines[0]}" == 'flow.yml:4: `kit tools install --toolchain kit`: --toolchain takes its value after =: '* ]]
+  [[ "${lines[1]}" == 'flow.yml:5: `kit tools path --toolchain kit >> "${GITHUB_PATH}"`: --toolchain takes its value'* ]]
+  [ "${lines[2]}" = 'flow.yml:8: `kit nosuch`: kit nosuch is not a verb' ]
+  [[ "${lines[3]}" == 'flow.yml:9: `kit tools path --toolchain kit`: --toolchain takes its value after =: '* ]]
+  [ "${#lines[@]}" -eq 4 ]
+  cd "${root}"
+  readarray -t scripts < <(git ls-files '.envrc' '.github/workflows/*.yml' '.github/workflows/*.yaml' \
+    'kit/packages/**/workflows/*.yml' 'kit/packages/**/.envrc')
+  [ "${#scripts[@]}" -gt 4 ]
+  run script-commands "${scripts[@]}"
+  cd "${BATS_TEST_TMPDIR}"
+  [ "$status" -eq 0 ] || { printf '%s\n' "${output}"; return 1; }
 }
 
 @test "every command the pages name is one its verb takes" {

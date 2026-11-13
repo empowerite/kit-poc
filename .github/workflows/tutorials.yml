@@ -72,8 +72,8 @@ jobs:
       - name: tools
         run: |
           set -o errexit -o nounset -o pipefail
-          kit/bin/kit tools install --toolchain kit
-          kit/bin/kit tools path --toolchain kit >> "${GITHUB_PATH}"
+          kit/bin/kit tools install --toolchain=kit
+          kit/bin/kit tools path --toolchain=kit >> "${GITHUB_PATH}"
 
       - name: site
         id: site
