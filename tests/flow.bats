@@ -878,30 +878,70 @@ the desk its first row; run: cd "*" && kit workspace worktrees" ]]
 # ----------------------------------------------------------------------------------------------------------------------
 
 @test "shape gives every key path; same-keys and fields-hold name what a fixture, a catalog, and kit do not share" {
+  local fixture=${BATS_TEST_TMPDIR}/fixture.json catalog=${BATS_TEST_TMPDIR}/catalog.json agree
   run shape <<<'{"a": [{"b": 1}, {"c": null}], "d": []}'
   [ "$output" = $'.a\n.a[]\n.a[].b\n.a[].c\n.d' ]
-  printf '%s\n' '{"rows": [{"a": 1, "pr": null, "gone": 0, "sometimes": 1}]}' > "${BATS_TEST_TMPDIR}/fixture.json"
+  printf '%s\n' '{"rows": [{"a": 1, "pr": null, "gone": 0, "sometimes": 1}]}' > "${fixture}"
   # a key under one kit leaves null is no difference; one the fixture lacks, or only it has, is
-  run same-keys "${BATS_TEST_TMPDIR}/fixture.json" .rows[].sometimes <<<'{"rows": [{"a": 2, "pr": {"n": 1}, "new": 0}]}'
+  run same-keys "${fixture}" .rows[].sometimes <<<'{"rows": [{"a": 2, "pr": {"n": 1}, "new": 0}]}'
   [ "$status" -eq 1 ]
   [ "${lines[0]}" = 'fixture.json: only kit prints: .rows[].new' ]
   [ "${lines[1]}" = 'fixture.json: only the fixture has: .rows[].gone' ]
-  [ "${#lines[@]}" -eq 2 ]
+  agree="fixture.json: kit and the fixture must agree: change ${fixture} by hand, or kit, then run:"
+  [ "${lines[2]}" = "${agree} kit tools run go -C projects/tui test ./internal/flow; see docs/testing.md, Contracts" ]
+  [ "${#lines[@]}" -eq 3 ]
   printf '%s\n' '{"stages": [{"stage": "s", "record": ".rows[]", "key": ".id?", "carries": ["kept", "gone"],' \
     '"fields": [{"path": ".a, .b.c"}, {"path": ".member"}, {"path": "t:.x"}, {"path": ".no"}, {"path": ".rare"}]}]}' \
-    > "${BATS_TEST_TMPDIR}/catalog.json"
-  run fields-hold --catalog="${BATS_TEST_TMPDIR}/catalog.json" s .rare \
+    > "${catalog}"
+  run fields-hold --catalog="${catalog}" s .rare \
     <<<'{"rows": [{"id": 1, "a": 1, "b": {"c": 2}, "kept": "k", "links": {}, "extra": 0}]}'
   [ "$status" -eq 1 ]
   [ "${lines[0]}" = "s: declared and never printed: .no" ]
   [ "${lines[1]}" = "s: printed and not declared: extra" ]
   [ "${lines[2]}" = "s: carried and never printed: gone" ]
-  [ "${#lines[@]}" -eq 3 ]
-  run fields-hold --catalog="${BATS_TEST_TMPDIR}/catalog.json" s <<<'{"rows": []}'
+  agree="s: kit and the catalog must agree: change the fields or the carries of the stage in"
+  [ "${lines[3]}" = "${agree} ${catalog}, or kit; see docs/testing.md, Contracts" ]
+  [ "${#lines[@]}" -eq 4 ]
+  run fields-hold --catalog="${catalog}" s <<<'{"rows": []}'
   [ "$status" -eq 1 ]
   [ "$output" = "s: no record" ]
-  run fields-hold --catalog="${BATS_TEST_TMPDIR}/catalog.json" nosuch <<<'{"rows": []}'
+  run fields-hold --catalog="${catalog}" nosuch <<<'{"rows": []}'
   [ "$status" -eq 1 ]
+}
+
+@test "same-keys names a value kit prints of a JSON type the fixture never has there, and passes one only it has" {
+  local fixture=${BATS_TEST_TMPDIR}/fixture.json other
+  printf '%s\n' '{"rows": [{"id": 7, "n": 1, "list": [], "at": null, "pr": {"n": 1}},' \
+    '{"id": "x", "n": null, "list": [1], "at": 5, "pr": null}]}' > "${fixture}"
+  # id is a number or a text in the fixture, and at and pr are null in a row of each: none is a difference
+  same-keys "${fixture}" <<<'{"rows": [{"id": 7, "n": 2, "list": [2], "at": null, "pr": {"n": 3}}]}'
+  run same-keys "${fixture}" <<<'{"rows": [{"id": true, "n": "2", "list": {}, "at": null, "pr": {"n": 3}}]}'
+  [ "$status" -eq 1 ]
+  other='.rows[].id (boolean, not number or string) .rows[].list (object, not array) .rows[].n (string, not number)'
+  [ "${lines[0]}" = "fixture.json: kit prints another type: ${other}" ]
+  [[ "${lines[1]}" == "fixture.json: kit and the fixture must agree: change ${fixture} by hand, or kit, then run: "* ]]
+  [ "${#lines[@]}" -eq 2 ]
+}
+
+@test "same-keys and fields-hold fail on a stage that printed nothing, and on what is not JSON" {
+  local fixture=${BATS_TEST_TMPDIR}/fixture.json catalog=${BATS_TEST_TMPDIR}/catalog.json
+  printf '%s\n' '{"rows": [{"a": 1}]}' > "${fixture}"
+  printf '%s\n' '{"stages": [{"stage": "s", "record": ".rows[]", "fields": [{"path": ".a"}]}]}' > "${catalog}"
+  run same-keys "${fixture}" </dev/null
+  [ "$status" -eq 1 ]
+  [ "$output" = 'fixture.json: kit printed no JSON document' ]
+  run same-keys "${fixture}" <<<'❌ no forge'
+  [ "$status" -eq 1 ]
+  [ "$output" = 'fixture.json: kit printed no JSON document' ]
+  run same-keys "${BATS_TEST_TMPDIR}/nosuch.json" <<<'{"rows": []}'
+  [ "$status" -eq 1 ]
+  [ "$output" = "nosuch.json: no fixture at ${BATS_TEST_TMPDIR}/nosuch.json" ]
+  run fields-hold --catalog="${catalog}" s </dev/null
+  [ "$status" -eq 1 ]
+  [ "$output" = 's: kit printed no JSON document' ]
+  run fields-hold --catalog="${catalog}" s <<<'❌ no forge'
+  [ "$status" -eq 1 ]
+  [ "$output" = 's: kit printed no JSON document' ]
 }
 
 @test "each stage prints the keys of the fixture kittui's tests decode, and the fields its catalog declares" {

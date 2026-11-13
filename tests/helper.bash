@@ -332,13 +332,17 @@ snapshot() {
 }
 
 # helper_shapes is the jq both same-keys and fields-hold judge a document's keys by. keypath writes a path as shape
-# prints it; shape gives every key path a document holds; and unshown($shape) gives the paths of the input list that
-# the shape does not show. A path is shown when the shape holds it, or holds a part of it, as .pr of .pr.number, that
-# it shows nothing under: a key that is null, or a list that is empty, in every row there, holds no keys to compare.
+# prints it; shape gives every key path a document holds; kinds gives, for each of those paths, the JSON types of the
+# values there, null left out; and unshown($shape) gives the paths of the input list that the shape does not show. A
+# path is shown when the shape holds it, or holds a part of it, as .pr of .pr.number, that it shows nothing under: a
+# key that is null, or a list that is empty, in every row there, holds no keys to compare.
 # shellcheck disable=SC2016  # a jq program, whose $ names are jq's
 helper_shapes='
   def keypath: map(if type == "number" then "[]" else "." + . end) | join("");
   def shape: [paths | keypath] | unique;
+  def kinds:
+    reduce (paths(. != null) as $p | [($p | keypath), (getpath($p) | type)]) as [$path, $type]
+      ({}; .[$path] |= ((. // []) + [$type] | unique));
   def unshown($shape):
     ($shape | map({key: ., value: true}) | from_entries) as $has
     | map(select(. as $p | $has[$p] | not)
@@ -352,20 +356,39 @@ shape() {
 }
 
 # same-keys <fixture> [<path>…] reads kit's JSON on stdin and succeeds when it holds the key paths of the fixture, a
-# file as snapshot takes one, and no other, as shape writes them. Otherwise it prints, after the fixture's name, the
-# paths only kit prints and those only the fixture has, and fails. A path under a key that one side leaves null or
-# empty in every row is no difference, as unshown says, and neither is a path named after the fixture, one kit prints
-# only sometimes, which the fixture holds and the world of the test does not reach.
+# file as snapshot takes one, and no other, as shape writes them, and each value it holds is of a JSON type the
+# fixture has at that path. Otherwise it prints, after the fixture's name, the paths only kit prints, those only the
+# fixture has, and those where kit prints another type, with both; then what to change and what to run; and fails. A
+# path under a key that one side leaves null or empty in every row is no difference, as unshown says, and neither is
+# a path named after the fixture, one kit prints only sometimes, which the fixture holds and the world of the test
+# does not reach. A type only the fixture has is no difference either: a fixture may hold more cases than that world
+# reaches. No document on stdin, or what is not JSON, fails, so a stage whose command failed is never passed, and so
+# does a fixture that is not there.
 same-keys() {
-  local path=$1 found
+  local given=$1 path=$1 found
   shift
   [[ "${path}" == /* ]] || path=${kit_root}/../${path}
-  found=$(jq --raw-output --slurpfile fixture "${path}" --arg name "${path##*/}" --args "${helper_shapes}"'
-    shape as $kit | ($fixture[0] | shape) as $fixture
-    | ($kit | unshown($fixture)) as $kit_only | ($fixture | unshown($kit) - $ARGS.positional) as $fixture_only
-    | if ($kit_only | length) > 0 then "\($name): only kit prints: \($kit_only | join(" "))" else empty end,
-      if ($fixture_only | length) > 0 then "\($name): only the fixture has: \($fixture_only | join(" "))"
-      else empty end' "$@")
+  [[ -f "${path}" ]] || { echo "${path##*/}: no fixture at ${given}"; return 1; }
+  found=$(jq --raw-output --slurp --slurpfile fixture "${path}" --arg name "${path##*/}" --arg given "${given}" \
+    --args "${helper_shapes}"'
+    if length != 1 then "\($name): kit printed no JSON document"
+    else
+      .[0] | shape as $kit | kinds as $kit_kinds | ($fixture[0] | shape) as $fixture_shape
+      | ($fixture[0] | kinds) as $fixture_kinds
+      | ($kit | unshown($fixture_shape)) as $kit_only
+      | ($fixture_shape | unshown($kit) - $ARGS.positional) as $fixture_only
+      | [$kit_kinds | to_entries | sort_by(.key)[] | .key as $p | select($fixture_kinds[$p] != null)
+          | (.value - $fixture_kinds[$p]) | select(length > 0)
+          | "\($p) (\(join(" or ")), not \($fixture_kinds[$p] | join(" or ")))"] as $mistyped
+      | [ if ($kit_only | length) > 0 then "\($name): only kit prints: \($kit_only | join(" "))" else empty end,
+          if ($fixture_only | length) > 0 then "\($name): only the fixture has: \($fixture_only | join(" "))"
+          else empty end,
+          if ($mistyped | length) > 0 then "\($name): kit prints another type: \($mistyped | join(" "))"
+          else empty end ]
+      | if length == 0 then empty
+        else .[], "\($name): kit and the fixture must agree: change \($given) by hand, or kit, then run: "
+          + "kit tools run go -C projects/tui test ./internal/flow; see docs/testing.md, Contracts" end
+    end' "$@" 2>/dev/null) || found="${path##*/}: kit printed no JSON document"
   [[ -z "${found}" ]] || { printf '%s\n' "${found}"; return 1; }
 }
 
@@ -377,35 +400,45 @@ same-keys() {
 # workspace's rows hold, a part another stage's, written <stage>:, *, a screen's own gathering, and each path named
 # after the stage, one kit prints only sometimes, as a declared path the world of the test does not reach, are passed
 # over. Otherwise it prints, each where it has any, what is declared and never printed, what is printed and not
-# declared, and what is carried and never printed, and fails; and so it does for a stage whose JSON holds no record.
+# declared, and what is carried and never printed, then what to change, and fails; and so it does for a stage whose
+# JSON holds no record, and for no document on stdin, or what is not JSON.
 fields-hold() {
-  local catalog=${kit_root}/../projects/tui/internal/flow/fields.json stage record found
-  [[ "$1" != --catalog=* ]] || { catalog=${1#--catalog=}; shift; }
+  local catalog=${kit_root}/../projects/tui/internal/flow/fields.json given=projects/tui/internal/flow/fields.json
+  local stage record found
+  [[ "$1" != --catalog=* ]] || { catalog=${1#--catalog=}; given=${catalog}; shift; }
   stage=$1
   shift
   record=$(jq --raw-output --arg stage "${stage}" '.stages[] | select(.stage == $stage) | .record' "${catalog}")
   [[ -n "${record}" ]] || { echo "${stage}: no stage of that name in ${catalog}"; return 1; }
-  found=$(jq --raw-output --arg stage "${stage}" --slurpfile catalog "${catalog}" --args "${helper_shapes}"'
-    [ '"${record}"' ] as $records
-    | ($catalog[0].stages[] | select(.stage == $stage)) as $schema
-    | ([$schema.fields[].path, ($schema.key // empty) | split(",")[] | ltrimstr(" ") | rtrimstr(" ") | rtrimstr("?")
-        | select(. != "*" and . != ".member" and (contains(":") | not))] | unique) as $declared
-    | ([$records[] | paths | keypath] | unique) as $printed
-    | ([$records[] | keys[]] | unique) as $keys
-    | ([$declared[] | capture("^\\.(?<key>[^.\\[]+)").key] + ($schema.carries // []) + ["key", "links", "member"])
-      as $named
-    | if ($records | length) == 0 then "\($stage): no record"
-      else
-        ($declared | unshown($printed) - $ARGS.positional) as $missing
-        | ([$keys[] | select(. as $k | $named | index($k) | not)]
-           | if any($schema.fields[]; .path == "*") then [] else . end) as $undeclared
-        | ([($schema.carries // [])[] | select(. as $k | $keys | index($k) | not)]) as $uncarried
-        | if ($missing | length) > 0 then "\($stage): declared and never printed: \($missing | join(" "))" else empty end,
-          if ($undeclared | length) > 0 then "\($stage): printed and not declared: \($undeclared | join(" "))"
-          else empty end,
-          if ($uncarried | length) > 0 then "\($stage): carried and never printed: \($uncarried | join(" "))"
-          else empty end
-      end' "$@")
+  found=$(jq --raw-output --slurp --arg stage "${stage}" --arg given "${given}" --slurpfile catalog "${catalog}" \
+    --args "${helper_shapes}"'
+    if length != 1 then "\($stage): kit printed no JSON document"
+    else
+      .[0] | [ '"${record}"' ] as $records
+      | ($catalog[0].stages[] | select(.stage == $stage)) as $schema
+      | ([$schema.fields[].path, ($schema.key // empty) | split(",")[] | ltrimstr(" ") | rtrimstr(" ")
+          | rtrimstr("?") | select(. != "*" and . != ".member" and (contains(":") | not))] | unique) as $declared
+      | ([$records[] | paths | keypath] | unique) as $printed
+      | ([$records[] | keys[]] | unique) as $keys
+      | ([$declared[] | capture("^\\.(?<key>[^.\\[]+)").key] + ($schema.carries // []) + ["key", "links", "member"])
+        as $named
+      | if ($records | length) == 0 then "\($stage): no record"
+        else
+          ($declared | unshown($printed) - $ARGS.positional) as $missing
+          | ([$keys[] | select(. as $k | $named | index($k) | not)]
+             | if any($schema.fields[]; .path == "*") then [] else . end) as $undeclared
+          | ([($schema.carries // [])[] | select(. as $k | $keys | index($k) | not)]) as $uncarried
+          | [ if ($missing | length) > 0 then "\($stage): declared and never printed: \($missing | join(" "))"
+              else empty end,
+              if ($undeclared | length) > 0 then "\($stage): printed and not declared: \($undeclared | join(" "))"
+              else empty end,
+              if ($uncarried | length) > 0 then "\($stage): carried and never printed: \($uncarried | join(" "))"
+              else empty end ]
+          | if length == 0 then empty
+            else .[], "\($stage): kit and the catalog must agree: change the fields or the carries of the stage in "
+              + "\($given), or kit; see docs/testing.md, Contracts" end
+        end
+    end' "$@" 2>/dev/null) || found="${stage}: kit printed no JSON document"
   [[ -z "${found}" ]] || { printf '%s\n' "${found}"; return 1; }
 }
 
