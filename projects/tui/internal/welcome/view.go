@@ -3,6 +3,7 @@
 package welcome
 
 import (
+	"cmp"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -157,8 +158,9 @@ func (m Model) booksAt() int { return m.menuBar().WorkspaceAt() }
 
 // keys gives the path to the keyboard, which the keys bar is drawn from: the screen; the steps' bar, whose down enters
 // the step's checks, its table, which the table's name names, or its page; and the pane while it has the keyboard, the
-// part of the step's table that has it, or the search, which takes every press while it has it. An open menu takes
-// every press, and is the path alone, as a layer of the step's table is.
+// part of the step's table that has it, or the search, which takes every press while it has it. Where the step shows
+// none of its checks, as enters says, the bar names no down, and the search's Enter is named by the tabs it leads to.
+// An open menu takes every press, and is the path alone, as a layer of the step's table is.
 func (m Model) keys() shell.Path {
 	if m.appMenu.Open || m.recent.Open || m.books.Open || m.tabMenu.Open {
 		return shell.Path{shell.MenuKeys()}
@@ -172,6 +174,8 @@ func (m Model) keys() shell.Path {
 	switch {
 	case m.gridded():
 		down = m.sheet().Name()
+	case !m.enters():
+		down = "" // the step shows none of its checks, so down on the bar has no row to enter
 	case m.hasRows():
 		down = "checks"
 	}
@@ -183,7 +187,7 @@ func (m Model) keys() shell.Path {
 	path := shell.Path{shell.WorkspaceScreenKeys(shell.CrumbOf(m.appMenu.Crumb)...), bar}
 	switch {
 	case m.search().Focused:
-		search := shell.SearchKeys(down, m.search().Query, m.recalls())
+		search := shell.SearchKeys(cmp.Or(down, "tabs"), m.search().Query, m.recalls())
 		search.Owns = true
 		return append(path, search)
 	case m.inPane && m.gridded():

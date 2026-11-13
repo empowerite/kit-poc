@@ -199,6 +199,31 @@ func TestASearchThatShowsNoCheckLeavesTheKeyboardOnTheBar(t *testing.T) {
 	}
 }
 
+// The keys bar names what Enter in the search and down on the bar lead to, so where a search shows none of a step's
+// checks it names no checks: Enter in the search leads to the tabs, and the bar offers no down. With a check shown,
+// both name the checks.
+func TestTheKeysBarNamesNoChecksWhereTheSearchShowsNone(t *testing.T) {
+	bar := func(m Model) string { return m.keys().String() }
+	m, _ := loaded(t, stepKey(chains), down, press('/'))
+	if got := bar(m); !strings.Contains(got, "⏎ checks") {
+		t.Fatalf("the search, every check shown: %q", got)
+	}
+	m = drive(m, testkit.Typed("zzzz")...)
+	if got := bar(m); len(m.rows(m.step)) != 0 || !strings.Contains(got, "⏎ tabs") || strings.Contains(got, "checks") {
+		t.Errorf("the search, no check shown: %q", got)
+	}
+	if m = drive(m, enter); m.inPane || m.search().Focused {
+		t.Fatalf("Enter left the keyboard off the bar: in the pane %v, in the search %v", m.inPane, m.search().Focused)
+	}
+	if got := bar(m); !strings.Contains(got, "⇥·⇧⇥ tab") || strings.Contains(got, "↓") || strings.Contains(got, "checks") {
+		t.Errorf("the bar, no check shown: %q", got)
+	}
+	m = drive(m, press('/'), tea.KeyPressMsg{Code: 'u', Mod: tea.ModCtrl}, enter, esc)
+	if got := bar(m); m.inPane || !strings.Contains(got, "↓ checks") {
+		t.Errorf("the bar, every check shown: in the pane %v, %q", m.inPane, got)
+	}
+}
+
 // The pane can hold the keyboard with no row under it, where the checks are read again and none of the step's comes
 // back. The page keys do nothing there, and up gives the bar the keyboard.
 func TestThePageKeysDoNothingInAPaneLeftWithNoRow(t *testing.T) {

@@ -620,6 +620,10 @@ func (m Model) find(step int, key string) int {
 // hasRows says whether the selected step shows checks, whose rows the cursor moves over.
 func (m Model) hasRows() bool { return m.tabs[m.step].checked }
 
+// enters says whether the pane of the selected step can take the keyboard from the bar or the search: a page can, and
+// a step with checks can while it shows one, whose row takes it. The keys bar names down and Enter by it.
+func (m Model) enters() bool { return !m.hasRows() || len(m.rows(m.step)) > 0 }
+
 // setTabs takes the steps the pages make. The selected step, and each step's place and offset, go with its id; when
 // the selected step's id has no page, the first step is selected.
 func (m *Model) setTabs(tabs []tab) {
@@ -710,7 +714,7 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case shell.Left:
 			m.recent = m.recent.Remember(s.Query)
-			m.inPane = !m.hasRows() || len(m.rows(m.step)) > 0
+			m.inPane = m.enters()
 		}
 		m.setSearch(s)
 		if did == shell.Left && m.gridded() {
