@@ -285,3 +285,39 @@ func TestTheFormsSearchFieldIsThePalettes(t *testing.T) {
 			alone.hasPalette)
 	}
 }
+
+// The root model follows a runner kittui's root gives it, so a form opened later reads and runs there: the palette
+// always; a form open already only a runner of the folder it read its choices in, as one that names a group there.
+func TestTheModelFollowsARunnerUnlessAFormReadItsChoicesInAnotherFolder(t *testing.T) {
+	r := testkit.Runner(t, "kit")
+	there := r
+	there.Dir, there.NoGroup = t.TempDir(), true
+	m, err := Open(r, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Runner() != r {
+		t.Fatalf("the palette's runner: %+v", m.Runner())
+	}
+	moved, ok := m.Over(there)
+	if !ok || moved.Runner() != there {
+		t.Errorf("the palette did not follow: %v, %+v", ok, moved.Runner())
+	}
+	// a form opened after reads its choices, and runs, with the runner followed
+	moved = drive(moved, palette.OpenMsg{Verb: "version"}, tea.KeyPressMsg{Code: tea.KeyEnter, Mod: tea.ModShift})
+	if run, verb, _ := moved.Result(); !run || verb != "version" || moved.Runner() != there {
+		t.Errorf("a form opened after: ran %v %q, with %+v", run, verb, moved.Runner())
+	}
+	form := drive(m, palette.OpenMsg{Verb: "version"})
+	if !form.InForm() {
+		t.Fatalf("no form:\n%s", form.View().Content)
+	}
+	if stays, ok := form.Over(there); ok || stays.Runner() != r || !stays.InForm() {
+		t.Errorf("a form followed to another folder: %v, %+v", ok, stays.Runner())
+	}
+	grouped := r
+	grouped.Group = "core"
+	if follows, ok := form.Over(grouped); !ok || follows.Runner() != grouped || !follows.InForm() {
+		t.Errorf("a form did not follow to a group in its folder: %v, %+v", ok, follows.Runner())
+	}
+}

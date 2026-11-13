@@ -15,7 +15,9 @@ It has six screens:
   one opened from the palette, esc, or a click on ‹ verbs, goes back. A click on a field gives it the keyboard. A
   click on a flag's name flips it, and one on a name in a row of options chooses or flips that option, as the space
   does. A click on a row of the list that has the keyboard picks it. A click on the command line gives it the
-  keyboard, and a second click there runs it, as ⏎ does, so no single click runs a command.
+  keyboard, and a second click there runs it, as ⏎ does, so no single click runs a command. The verb runs where the
+  form read its choices: in the folder kittui started in, or, after a switch in the workspace menu, in the checkout
+  of the repository shown, or over the group shown, as `kit --workspace=<group> <verb>`.
 - **The flow picture.** `kit flow` at a terminal draws its stages here. Over a group, `kit --workspace=<group> flow`
   or one picked from the 📚 workspace menu, every tab gathers every cloned member's rows, grouped by member as they
   load. An action acts on the rows selected, or, with none selected, on the row under the cursor, and runs in each

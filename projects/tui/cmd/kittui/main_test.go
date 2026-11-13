@@ -18,6 +18,7 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/fix"
 	"github.com/empowerite/kit/projects/tui/internal/flow"
 	"github.com/empowerite/kit/projects/tui/internal/kit"
+	"github.com/empowerite/kit/projects/tui/internal/palette"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/testkit"
 	"github.com/empowerite/kit/projects/tui/internal/tutorials"
@@ -119,7 +120,7 @@ func TestCtrlCIsSilent(t *testing.T) {
 		}
 		m = drive(m, tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
 		var stderr bytes.Buffer
-		if code := finish(m, &stderr, nil); code != 130 || stderr.Len() != 0 {
+		if code := finish(m, &stderr, "", nil); code != 130 || stderr.Len() != 0 {
 			t.Errorf("%q: exit %d, stderr %q", verb, code, stderr.String())
 		}
 	}
@@ -129,7 +130,7 @@ func TestEscIsSilent(t *testing.T) {
 	m, _ := app.Open(testkit.Runner(t, "kit"), "commit", nil)
 	m = drive(m, tea.KeyPressMsg{Code: tea.KeyEscape})
 	var stderr bytes.Buffer
-	if code := finish(m, &stderr, nil); code != 1 || stderr.Len() != 0 {
+	if code := finish(m, &stderr, "", nil); code != 1 || stderr.Len() != 0 {
 		t.Errorf("exit %d, stderr %q", code, stderr.String())
 	}
 }
@@ -144,7 +145,7 @@ func TestEscFromThePaletteEndsZero(t *testing.T) {
 		m, _ := app.OpenHelp(testkit.Runner(t, "kit"), "commit")
 		m = drive(m, keys...)
 		var stderr bytes.Buffer
-		if code := finish(m, &stderr, nil); code != 0 || stderr.Len() != 0 {
+		if code := finish(m, &stderr, "", nil); code != 0 || stderr.Len() != 0 {
 			t.Errorf("after %d keys: exit %d, stderr %q", len(keys), code, stderr.String())
 		}
 	}
@@ -154,7 +155,9 @@ func TestAVerbThatCannotRunIsKittuisLine(t *testing.T) {
 	m, _ := app.Open(testkit.Runner(t, "kit"), "commit", []string{"--message=hi"})
 	m = drive(m, tea.KeyPressMsg{Code: tea.KeyEnter, Mod: tea.ModShift})
 	var stderr bytes.Buffer
-	code := finish(m, &stderr, func(string, []string) error { return errors.New("no such file") })
+	code := finish(m, &stderr, m.Runner().Dir, func(kit.Runner, string, []string) error {
+		return errors.New("no such file")
+	})
 	if code != 1 || !strings.Contains(stderr.String(), "❌ kittui could not run kit commit: no such file") {
 		t.Errorf("exit %d, stderr %q", code, stderr.String())
 	}
@@ -297,7 +300,7 @@ func TestRunPrintsTheTranscriptThenExecs(t *testing.T) {
 	m = drive(m, tea.KeyPressMsg{Code: tea.KeyEnter, Mod: tea.ModShift})
 	var stderr bytes.Buffer
 	var ran []string
-	code := finish(m, &stderr, func(verb string, args []string) error {
+	code := finish(m, &stderr, m.Runner().Dir, func(_ kit.Runner, verb string, args []string) error {
 		ran = append([]string{verb}, args...)
 		return nil
 	})
@@ -457,5 +460,84 @@ func TestAnAppsVerbOpensItOnTheTabNamed(t *testing.T) {
 			t.Errorf("kit %s %q opens on %q, maximized %v; want %q, %v", c.verb, c.words, name, banner, c.spot, c.maximized)
 		}
 		f.Close()
+	}
+}
+
+// switched makes kittui believe it runs on a terminal, as onTerminal does, over a kit that knows the repository
+// github.com/o/a, where kittui starts, the repository github.com/o/b, and the group w of both; the program is stood
+// in for by the messages given, sent after its start, and kit's exec by a record of the runner it would run with.
+// It gives that record, the folder kittui starts in, and b's checkout.
+func switched(t *testing.T, msgs ...tea.Msg) (ran *kit.Runner, home, b string) {
+	t.Helper()
+	onTerminal(t, func(m tea.Model) (tea.Model, error) {
+		m, _ = testkit.Drive(m, nil, testkit.Start(m, append([]tea.Msg{tea.WindowSizeMsg{Width: 120, Height: 30}},
+			msgs...)...)...)
+		return m, nil
+	})
+	ran = &kit.Runner{}
+	execKit = func(r kit.Runner, _ string, _ []string) error {
+		*ran = r
+		return nil
+	}
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	home, b = os.Getenv("kit_invoked_in"), t.TempDir()
+	dir := t.TempDir()
+	t.Setenv("FAKE_WORKSPACES", dir)
+	repo := func(name, checkout string) string {
+		return `{"kind":"repository","name":"github.com/o/` + name + `","member":"github.com/o/` + name +
+			`","checkout":"` + checkout + `","why":"repository","members":[],"groups":[{"name":"w","members":2}],` +
+			`"favorites":[]}`
+	}
+	group := `{"kind":"group","name":"w","member":null,"checkout":null,"why":"given","members":[` +
+		`{"repository":"github.com/o/a","checkout":"` + home + `"},{"repository":"github.com/o/b","checkout":"` + b +
+		`"}],"groups":[],"favorites":[]}`
+	for name, text := range map[string]string{"current.json": repo("a", home), "github.com_o_a.json": repo("a", home),
+		"github.com_o_b.json": repo("b", b), "w.json": group} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return ran, home, b
+}
+
+// A form's verb runs where the screens read, and its transcript says so: started in one repository, after a pick of
+// another, the verb runs in the other's checkout, whether the help was opened after the pick or before it; and over
+// a group picked, it runs where kittui started, over the group.
+func TestAFormsVerbRunsInTheWorkspaceTheScreensShow(t *testing.T) {
+	run0 := tea.KeyPressMsg{Code: tea.KeyEnter, Mod: tea.ModShift}
+	help, form := shell.SwitchMsg{Screen: shell.Help}, palette.OpenMsg{Verb: "version"}
+	pick := func(workspace string) tea.Msg { return shell.PickMsg{Workspace: workspace} }
+	for name, c := range map[string]struct {
+		args  []string
+		msgs  []tea.Msg
+		group string
+		in    func(home, b string) string
+		says  func(home, b string) string
+	}{
+		"with no pick": {[]string{"help"}, []tea.Msg{form, run0}, "",
+			func(home, _ string) string { return home },
+			func(string, string) string { return "kit version\n" }},
+		"the help opened after the pick": {[]string{"welcome"},
+			[]tea.Msg{pick("github.com/o/b"), help, form, run0}, "",
+			func(_, b string) string { return b },
+			func(_, b string) string { return fix.In(b, "kit --workspace=none version\n") }},
+		"the help opened before the pick": {[]string{"help"}, []tea.Msg{pick("github.com/o/b"), form, run0}, "",
+			func(_, b string) string { return b },
+			func(_, b string) string { return fix.In(b, "kit --workspace=none version\n") }},
+		"a group picked": {[]string{"help"}, []tea.Msg{pick("w"), form, run0}, "w",
+			func(home, _ string) string { return home },
+			func(string, string) string { return "kit --workspace=w version\n" }},
+	} {
+		ran, home, b := switched(t, c.msgs...)
+		var stderr bytes.Buffer
+		if code := run(c.args, &stderr); code != 0 {
+			t.Errorf("%s: exit %d, stderr %q", name, code, stderr.String())
+		}
+		if want := c.in(home, b); ran.Dir != want || ran.Group != c.group {
+			t.Errorf("%s: the verb ran in %q over %q, want in %q over %q", name, ran.Dir, ran.Group, want, c.group)
+		}
+		if want := c.says(home, b); stderr.String() != want {
+			t.Errorf("%s: the transcript %q, want %q", name, stderr.String(), want)
+		}
 	}
 }

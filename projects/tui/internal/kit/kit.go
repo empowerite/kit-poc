@@ -695,7 +695,14 @@ func (r Runner) Root() (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// Exec replaces this process with kit <verb> <args>…, run where the command was typed. It returns only on failure.
+// Line gives the words after kit that Exec runs a verb with: the verb and its words, after the kit option that names
+// the workspace while the runner names one, as a read's words are, so the verb runs over the workspace the reads
+// span.
+func (r Runner) Line(verb string, args []string) []string {
+	return r.over(append([]string{verb}, args...)...)
+}
+
+// Exec replaces this process with kit and the words Line gives, run in Dir. It returns only on failure.
 func (r Runner) Exec(verb string, args []string) error {
 	path, err := exec.LookPath(r.Kit)
 	if err != nil {
@@ -704,7 +711,7 @@ func (r Runner) Exec(verb string, args []string) error {
 	if err := os.Chdir(r.Dir); err != nil {
 		return err
 	}
-	return syscall.Exec(path, append([]string{path, verb}, args...), os.Environ())
+	return syscall.Exec(path, append([]string{path}, r.Line(verb, args)...), os.Environ())
 }
 
 // withAnswers appends the answers after a -- when there are any.

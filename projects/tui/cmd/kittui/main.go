@@ -82,7 +82,7 @@ func run(args []string, stderr io.Writer) int {
 	root = final.(screens.Model)
 	root.Close()
 	if shown, ok := root.Shown().(app.Model); ok {
-		return finish(shown, stderr, func(verb string, args []string) error { return execKit(r, verb, args) })
+		return finish(shown, stderr, r.Dir, execKit)
 	}
 	return ended(root.Shown())
 }
@@ -212,9 +212,11 @@ func ended(m tea.Model) int {
 }
 
 // finish ends as the screen ended: 130 and nothing printed on ctrl-c; 0 and nothing printed when ctrl-q leaves the
-// palette, as kit help ends; 1 and nothing printed when ctrl-q cancels a form; and on run the command line to stderr, and
-// the verb exec'd in its place, where the command was typed.
-func finish(m app.Model, stderr io.Writer, exec func(verb string, args []string) error) int {
+// palette, as kit help ends; 1 and nothing printed when ctrl-q cancels a form; and on run the command line to stderr,
+// and the verb exec'd in its place with the runner the form read its choices with: in the folder and over the
+// workspace the screens showed, which the command line says, after a cd where that folder is not typed, the one the
+// command was typed in.
+func finish(m app.Model, stderr io.Writer, typed string, exec func(kit.Runner, string, []string) error) int {
 	if m.Interrupted() {
 		return 130
 	}
@@ -225,8 +227,12 @@ func finish(m app.Model, stderr io.Writer, exec func(verb string, args []string)
 	if !ran {
 		return 1
 	}
-	fmt.Fprint(stderr, transcript.Render(verb, args))
-	if err := exec(verb, args); err != nil {
+	r, folder := m.Runner(), ""
+	if r.Dir != typed {
+		folder = r.Dir
+	}
+	fmt.Fprint(stderr, transcript.Render(folder, r.Line(verb, args)))
+	if err := exec(r, verb, args); err != nil {
 		fmt.Fprintf(stderr, "❌ kittui could not run kit %s: %v\n", verb, err)
 		return 1
 	}

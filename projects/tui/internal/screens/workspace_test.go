@@ -1,5 +1,6 @@
 // kittui's root reads the workspace from kit once it starts, tells every screen made, and switches on a pick: a pick
-// that moves the place the screens read remakes them there, all but the tutorials and the help.
+// that moves the place the screens read remakes them there, all but the tutorials, and the help, which is told where
+// its forms now read and run.
 package screens
 
 import (
@@ -11,8 +12,10 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/empowerite/kit/projects/tui/internal/app"
 	"github.com/empowerite/kit/projects/tui/internal/kit"
 	"github.com/empowerite/kit/projects/tui/internal/opener"
+	"github.com/empowerite/kit/projects/tui/internal/palette"
 	"github.com/empowerite/kit/projects/tui/internal/pane"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/testkit"
@@ -111,6 +114,72 @@ func TestPickingAGroupRemembersItAndRemakesTheScreens(t *testing.T) {
 	m = drive(m, shell.SwitchMsg{Screen: shell.Help})
 	if v := ansi.Strip(m.View().Content); !strings.Contains(v, shell.Find+" com") {
 		t.Errorf("the help was made anew:\n%s", v)
+	}
+}
+
+// helped gives the root as workspaced does, over a kit that knows the repository github.com/o/b too, at a checkout of
+// its own, and the groups w and x, with the help shown after the messages given; and b's checkout.
+func helped(t *testing.T, msgs ...tea.Msg) (Model, string) {
+	t.Helper()
+	b := t.TempDir()
+	other := strings.ReplaceAll(strings.ReplaceAll(repoJSON, "o/a", "o/b"), "CHECKOUT", `"`+b+`"`)
+	m, _, _ := workspaced(t, map[string]string{"current.json": repoJSON, "github.com_o_a.json": repoJSON,
+		"github.com_o_b.json": other, "w.json": groupJSON,
+		"x.json": strings.ReplaceAll(groupJSON, `"name":"w"`, `"name":"x"`)})
+	return drive(m, append(msgs, shell.SwitchMsg{Screen: shell.Help})...), b
+}
+
+// The help's forms read their choices and run where the screens read. A pick tells the help the runner: its palette
+// stays as it was left, and a form opened after reads and runs in the repository picked.
+func TestAPickTellsTheHelpWhereItsFormsReadAndRun(t *testing.T) {
+	m, b := helped(t)
+	m = drive(m, typed("/ver")...)
+	was := m.epochs[shell.Help]
+	m = drive(m, shell.PickMsg{Workspace: "github.com/o/b"})
+	help := m.made[shell.Help].(app.Model)
+	if v := ansi.Strip(m.View().Content); m.epochs[shell.Help] != was || !strings.Contains(v, shell.Find+" ver") {
+		t.Errorf("the help was made anew:\n%s", v)
+	}
+	if help.Runner().Dir != b || m.runner.Dir != b {
+		t.Errorf("the help reads %q, the root %q, want %q", help.Runner().Dir, m.runner.Dir, b)
+	}
+	m = drive(m, palette.OpenMsg{Verb: "version"})
+	if help = m.made[shell.Help].(app.Model); !help.InForm() || help.Runner().Dir != b ||
+		!strings.Contains(title(m), "o/b") {
+		t.Errorf("a form opened after the pick: in a form %v, reads %q, titled %q", help.InForm(),
+			help.Runner().Dir, title(m))
+	}
+}
+
+// A form open at a pick read its choices in the folder before, so the help is made anew where the screens now read,
+// on its palette; over another group, where the folder stays the one kittui started in, the form is kept, and runs
+// over the group.
+func TestAFormOpenAtAPickIsKeptOnlyWhereItsFolderStays(t *testing.T) {
+	m, b := helped(t)
+	m = drive(m, palette.OpenMsg{Verb: "version"})
+	was := m.epochs[shell.Help]
+	if help := m.made[shell.Help].(app.Model); !help.InForm() {
+		t.Fatalf("no form:\n%s", ansi.Strip(m.View().Content))
+	}
+	m = drive(m, shell.PickMsg{Workspace: "github.com/o/b"})
+	help := m.made[shell.Help].(app.Model)
+	if m.here != shell.Help || help.InForm() || help.Runner().Dir != b || m.epochs[shell.Help] != was+1 {
+		t.Errorf("after the pick: on %s, in a form %v, reads %q, made %d times more", m.here, help.InForm(),
+			help.Runner().Dir, m.epochs[shell.Help]-was)
+	}
+	// a help not shown, with a form open, is closed, and made anew when it is next shown
+	m = drive(m, palette.OpenMsg{Verb: "version"}, shell.SwitchMsg{Screen: shell.Welcome},
+		shell.PickMsg{Workspace: "github.com/o/a"})
+	if _, made := m.made[shell.Help]; made || m.here != shell.Welcome {
+		t.Errorf("the help with a form open was kept, on %s", m.here)
+	}
+	// over a group the screens read where kittui started, and so does a form opened there: another group keeps it
+	m, _ = helped(t, shell.PickMsg{Workspace: "w"})
+	m = drive(m, palette.OpenMsg{Verb: "version"}, shell.PickMsg{Workspace: "x"})
+	help = m.made[shell.Help].(app.Model)
+	if r := help.Runner(); !help.InForm() || r.Group != "x" || r.Dir != m.home {
+		t.Errorf("over another group: in a form %v, over %q, reads %q, want %q", help.InForm(), r.Group, r.Dir,
+			m.home)
 	}
 }
 

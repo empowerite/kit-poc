@@ -165,6 +165,12 @@ completes a folder, the folders it can complete to stand under it, and a plain c
 there that starts with `/` or `~` takes the place of what is typed. Enter, or a click on Open, asks kit; a folder in no
 git working tree is refused with one line in the dialog, which stays open.
 
+A verb's form runs in the workspace shown. After a switch to a repository, a form opened from the help reads its
+choices and runs its verb in that repository's checkout. After a switch to a group, it runs in the folder kittui
+started in, as `kit --workspace=<group> <verb>`. The command line kittui leaves in the scrollback says both: the
+workspace, and a `cd` first when the verb ran in another folder than the one kittui started in. A form that is open
+at the switch is closed, since its choices were read in the folder before, and the help shows its palette there.
+
 Find clones, or `⌃F`, walks the folder typed for git working trees and shows them as a table, as kittui shows every
 list. Each repository found with its worktrees is a heading over its checkout and its worktrees, and the repositories
 found alone stand under one heading, no worktrees, last. A ▸ or ▾ opens or closes a heading, and `<` and `>` close or

@@ -72,6 +72,22 @@ func OpenHelp(r kit.Runner, name string) (Model, error) {
 // InForm says whether a form is on the screen.
 func (m Model) InForm() bool { return m.inForm }
 
+// Runner gives the runner a form reads its choices with, which its command line runs with, so a verb runs where its
+// form read.
+func (m Model) Runner() kit.Runner { return m.runner }
+
+// Over gives the model reading and running where the runner says, as kittui's root says once the workspace moved, and
+// whether it could follow. The palette reads kit alone, so it stays as it was left, and a form opened later reads
+// there. A form open already read its choices in the folder it was made in: it follows a runner of that folder, as
+// one that names a group there, and no other, the model then left as it was for the root to make anew.
+func (m Model) Over(r kit.Runner) (Model, bool) {
+	if m.inForm && r.Dir != m.runner.Dir {
+		return m, false
+	}
+	m.runner = r
+	return m, true
+}
+
 // Result says whether a command line was accepted, and its verb and words after kit <verb>.
 func (m Model) Result() (bool, string, []string) {
 	if !m.inForm {

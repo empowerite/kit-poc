@@ -95,26 +95,35 @@ func TestExtendBeforeAndAfterTheAnswers(t *testing.T) {
 }
 
 // TestExecArgsAndDir observes Exec through a helper process, since Exec replaces the process that calls it: the
-// helper execs fake-kit, which records its arguments and working directory.
+// helper execs fake-kit, which records its arguments and working directory. A runner that names a group runs the
+// verb over it, the kit option before the verb, which the fake hands to the verb's words at their end; one whose
+// workspace is no group says none.
 func TestExecArgsAndDir(t *testing.T) {
-	record := filepath.Join(t.TempDir(), "record")
-	dir := t.TempDir()
-	cmd := exec.Command(os.Args[0], "-test.run=TestHelperExec")
-	cmd.Env = append(os.Environ(), "KIT_TEST_HELPER=1", "FAKE_KIT_RECORD="+record, "kit_invoked_in="+dir)
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("helper: %v\n%s", err, out)
-	}
-	got, err := os.ReadFile(record)
-	if err != nil {
-		t.Fatal(err)
-	}
-	lines := strings.Split(strings.TrimSpace(string(got)), "\n")
-	if len(lines) != 2 || lines[0] != "commit --message=a b x.txt" {
-		t.Errorf("argv: %q", lines)
-	}
-	want, _ := filepath.EvalSymlinks(dir)
-	if len(lines) == 2 && lines[1] != want {
-		t.Errorf("cwd %q, want %q", lines[1], want)
+	for group, argv := range map[string]string{
+		"":     "commit --message=a b x.txt",
+		"core": "commit --message=a b x.txt --workspace core",
+		"none": "commit --message=a b x.txt --workspace none",
+	} {
+		record := filepath.Join(t.TempDir(), "record")
+		dir := t.TempDir()
+		cmd := exec.Command(os.Args[0], "-test.run=TestHelperExec")
+		cmd.Env = append(os.Environ(), "KIT_TEST_HELPER=1", "KIT_TEST_GROUP="+group, "FAKE_KIT_RECORD="+record,
+			"kit_invoked_in="+dir)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("helper: %v\n%s", err, out)
+		}
+		got, err := os.ReadFile(record)
+		if err != nil {
+			t.Fatal(err)
+		}
+		lines := strings.Split(strings.TrimSpace(string(got)), "\n")
+		if len(lines) != 2 || lines[0] != argv {
+			t.Errorf("over %q, argv: %q, want %q", group, lines, argv)
+		}
+		want, _ := filepath.EvalSymlinks(dir)
+		if len(lines) == 2 && lines[1] != want {
+			t.Errorf("over %q, cwd %q, want %q", group, lines[1], want)
+		}
 	}
 }
 
@@ -126,6 +135,11 @@ func TestHelperExec(t *testing.T) {
 	path, _ := filepath.Abs("testdata/fake-kit")
 	os.Setenv("KIT", path)
 	r := New()
+	if group := os.Getenv("KIT_TEST_GROUP"); group == "none" {
+		r.NoGroup = true
+	} else {
+		r.Group = group
+	}
 	if err := r.Exec("commit", []string{"--message=a b", "x.txt"}); err != nil {
 		t.Fatalf("Exec: %v", err)
 	}

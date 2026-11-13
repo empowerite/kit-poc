@@ -9,7 +9,8 @@
 // The root reads the workspace from kit once kittui starts, and tells every screen made, as it tells the settings. A
 // screen's workspace menu asks for another; the root asks kit for it, keeping a group as the last used, and tells every
 // screen again. When the place the screens read moves, to another repository or onto or off a group, the screens made
-// are made anew there, all but the tutorials, the help, and the workspaces' screen, which read kit alone. Only the latest ask lands. The menu's
+// are made anew there, all but the tutorials and the workspaces' screen, which read kit alone, and the help, which is
+// told where its forms now read and run. Only the latest ask lands. The menu's
 // Open Repository… opens a dialog over the screen shown, where a repository's folder is typed: kit keeps it among the
 // recent and says the workspace, which is switched to as a pick's is, or says why not, in the dialog. A link from one
 // screen to another leaves a crumb back, which crumb.go keeps.
@@ -218,7 +219,9 @@ func (m Model) opened(msg openedMsg) (tea.Model, tea.Cmd) {
 
 // answered takes kit's answer to the latest ask for the workspace, dropping an earlier one's: kit's line, when it could
 // not say, told to every screen made, the workspace as it was; else the workspace, which the runner then reads, the
-// screens made anew when it moved the place they read, then told it. At kittui's start, the screen open is made anew
+// screens made anew when it moved the place they read, then told it. The help is told the runner then, and kept, its
+// palette as it was left; with a form open that read its choices in another folder, it is made anew as the apps are,
+// on its palette. At kittui's start, the screen open is made anew
 // only over a group, since inside a repository, or outside every one, it already reads where kit says.
 func (m Model) answered(msg workspaceMsg) (tea.Model, tea.Cmd) {
 	if msg.gen != m.asked {
@@ -247,9 +250,17 @@ func (m Model) answered(msg workspaceMsg) (tea.Model, tea.Cmd) {
 		return m.tellWorkspace()
 	}
 	m = m.dropped()
+	// the help follows where it can: its forms read and run where the runner now says
+	followed := false
+	if help, ok := m.made[shell.Help].(app.Model); ok {
+		if help, followed = help.Over(m.runner); followed {
+			m.made[shell.Help] = help
+		}
+	}
+	kept := func(s shell.Screen) bool { return readsKitAlone(s) || s == shell.Help && followed }
 	// the screen shown is made anew first, so one that cannot open there gives way to the welcome, which always opens,
 	// kit's line on the last line, before anything is closed
-	here, remade := m.here, !readsKitAlone(m.here)
+	here, remade := m.here, !kept(m.here)
 	var shown tea.Model
 	if remade {
 		var err error
@@ -259,7 +270,7 @@ func (m Model) answered(msg workspaceMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 	for to, s := range m.made {
-		if readsKitAlone(to) {
+		if kept(to) {
 			continue
 		}
 		if c, ok := s.(interface{ Close() }); ok {
@@ -277,9 +288,10 @@ func (m Model) answered(msg workspaceMsg) (tea.Model, tea.Cmd) {
 }
 
 // readsKitAlone says whether a screen reads kit alone, not the place the screens read, so a move leaves it as it was:
-// the tutorials, the help, and the workspaces' screen.
+// the tutorials and the workspaces' screen. The help's palette reads kit alone too, and its forms read and run in the
+// place, so a move tells the help the runner, as answered does, and leaves it only where it could follow.
 func readsKitAlone(s shell.Screen) bool {
-	return s == shell.Tutorials || s == shell.Help || s == shell.Manage
+	return s == shell.Tutorials || s == shell.Manage
 }
 
 // regrouped asks kit for the workspace again once a screen had it change the groups: the group shown, or the one it was
