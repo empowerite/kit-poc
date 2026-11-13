@@ -251,58 +251,19 @@ func (d *drawer) nested(row int) []int {
 	return out
 }
 
-// vertical says whether a row is drawn one name per line: when its chosen alternative has fields of its own, which
-// nest under the name, or when the names side by side would not fit the width.
+// vertical says whether a row is drawn one name per line: when an alternative of its group, which its path finds in
+// the grammar, has fields of its own, which nest under the name once it is chosen, or when the names side by side
+// would not fit the width.
 func (d *drawer) vertical(row int) bool {
 	f := d.fields[row]
 	if f.Kind == OneOf {
-		for _, alternative := range d.alternatives(row) {
+		for _, alternative := range alternatives(d.spec, f.Path) {
 			if len(alternative) > 1 || (len(alternative) == 1 && alternative[0].Kind != "literal" && alternative[0].Kind != "flag") {
 				return true
 			}
 		}
 	}
 	return gutter+ansi.StringWidth(strings.Join(f.Options, sep))+gap > d.width-20
-}
-
-// alternatives finds the group node a one-of row came from, by walking the grammar in the same order Fields did.
-func (d *drawer) alternatives(row int) [][]syntax.Node {
-	ordinal := 0
-	for i := 0; i < row; i++ {
-		if d.fields[i].Kind == OneOf {
-			ordinal++
-		}
-	}
-	found := [][]syntax.Node(nil)
-	count := 0
-	var walk func(nodes []syntax.Node)
-	walk = func(nodes []syntax.Node) {
-		for _, n := range nodes {
-			if n.Kind != "group" || found != nil {
-				continue
-			}
-			if len(n.Alternatives) > 1 {
-				if count == ordinal {
-					found = n.Alternatives
-					return
-				}
-				count++
-			}
-			for _, alternative := range n.Alternatives {
-				walk(alternative)
-			}
-		}
-	}
-	if len(d.spec.Syntax) > 1 {
-		if ordinal == 0 {
-			return d.spec.Syntax
-		}
-		count = 1
-	}
-	for _, alternative := range d.spec.Syntax {
-		walk(alternative)
-	}
-	return found
 }
 
 // block draws one field at the margin: its label, tagged while a required field wants an answer, its description

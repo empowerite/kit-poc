@@ -126,3 +126,26 @@ func TestARowsAlternativesAreFoundByItsPath(t *testing.T) {
 		t.Errorf("an alternative of no node: %+v, cursor %d, valued %v", f, m.cursor, m.valued(f))
 	}
 }
+
+// A row is drawn by its own alternatives, found by its path, whatever groups the usage lines not chosen hold. In kit
+// tools' form, the second usage line chosen and run in its row, the row is drawn one name per line, since run has a
+// field of its own, and <command>… is drawn under run, in the row, not at the top margin under the last usage line.
+func TestARowIsDrawnByItsOwnAlternativesWhateverTheOtherUsageLinesHold(t *testing.T) {
+	spec := specs(t)["tools"]
+	fields, _ := Fields(spec, Answers{Chosen: map[string]int{"": 1, "1/1": 3}})
+	if kinds(fields) != "OneOf Text OneOf Lines" || fields[2].Key != "install | update | path | run" ||
+		fields[3].Group != 2 {
+		t.Fatalf("kit tools run: %s %+v", kinds(fields), fields)
+	}
+	lines := strings.Split(RenderStatic(spec, fields, 100), "\n")
+	at := func(prefix string) int {
+		return slices.IndexFunc(lines, func(line string) bool { return strings.HasPrefix(line, prefix) })
+	}
+	heading, install, run := at("     one of"), at("     install "), at("     *run*")
+	command, sources := at("     <command>… required"), at("   sources")
+	if heading < 0 || install != heading+1 || run < install || command != run+2 || sources < command ||
+		at("   <command>") >= 0 {
+		t.Errorf("one of at %d, install at %d, run at %d, <command>… at %d, sources at %d:\n%s", heading, install, run,
+			command, sources, strings.Join(lines, "\n"))
+	}
+}
