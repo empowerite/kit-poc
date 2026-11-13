@@ -170,11 +170,11 @@
             },
             "closed_state": {
               "type": "string",
-              "description": "The state a work item closed as completed is set to. Default: Closed."
+              "description": "The state a work item closed as completed is set to. Default: Closed, and Done for a work item type that has no Closed, as in the Basic and Scrum processes."
             },
             "removed_state": {
               "type": "string",
-              "description": "The state a work item closed as not planned or a duplicate is set to. Default: Removed."
+              "description": "The state a work item closed as not planned or a duplicate is set to. Default: Removed; a type without that state, as those of the Basic process, needs one named here."
             },
             "stand_ins": {
               "type": "object",
@@ -394,11 +394,11 @@
           },
           "closed_state": {
             "type": "string",
-            "description": "ado: the state kit close --completed sets. Default: Closed."
+            "description": "ado: the state a work item closed as completed is set to. Default: Closed, and Done for a work item type that has no Closed, as in the Basic and Scrum processes."
           },
           "removed_state": {
             "type": "string",
-            "description": "ado: the state a work item closed as not planned or a duplicate is set to. Default: Removed."
+            "description": "ado: the state a work item closed as not planned or a duplicate is set to. Default: Removed; a type without that state, as those of the Basic process, needs one named here."
           },
           "new": {
             "type": "string",

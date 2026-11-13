@@ -193,6 +193,43 @@ added='"milestones","bots","attestations","code-scanning","dependabot","secret-s
   [ "$(grep -o -- '--state [A-Za-z]*' "${FAKE_DIR}/az.calls")" = $'--state Done\n--state Removed' ]
 }
 
+@test "a close Azure Boards refuses names the setting and what az said, and Done closes a type that has no Closed" {
+  # the Basic process, which a new organization gets, closes a work item to Done, and has no Closed and no Removed
+  fixture refused.txt <<<"ERROR: The field 'State' contains a value that is not in the list of supported values"
+  grep --invert-match 'work-item update --id 7 ' "${FAKE_DIR}/az.routes" > "${FAKE_DIR}/kept"
+  mv "${FAKE_DIR}/kept" "${FAKE_DIR}/az.routes"
+  az-route 'boards work-item update --id 7 --state Done --output none' '!0'
+  az-route 'boards work-item update --id 7 --state * --output none' '!1 refused.txt'
+  az-route 'boards work-item update --id 7 --discussion * --output none' '!0'
+  : > "${FAKE_DIR}/az.calls"
+  run --separate-stderr call issue-close 7 completed
+  [ "$status" -eq 0 ]
+  [ -z "$output$stderr" ]
+  [ "$(grep -o -- '--state [A-Za-z]*' "${FAKE_DIR}/az.calls")" = $'--state Closed\n--state Done' ]
+  # the removed state has no second default: the refusal names its setting, the state tried, and az's reason
+  run --separate-stderr call issue-close 7 not-planned
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+  said="❌ set forge_settings.ado.removed_state in kit.yml to a state of the work item's type, if Azure Boards"
+  said+=" refuses this one (#7 could not be set to Removed: ERROR: The field 'State' contains a value that is not"
+  said+=" in the list of supported values)"
+  [ "$stderr" = "${said}" ]
+  # a state the repository names is the only one tried
+  printf 'forge_settings:\n  ado:\n    closed_state: Resolved\n' > kit.yml
+  : > "${FAKE_DIR}/az.calls"
+  run --separate-stderr call issue-close 7 completed
+  [ "$status" -eq 1 ]
+  [[ "$stderr" == *"set forge_settings.ado.closed_state in kit.yml to a state"* ]]
+  [[ "$stderr" == *"(#7 could not be set to Resolved: ERROR:"* ]]
+  [ "$(grep -o -- '--state [A-Za-z]*' "${FAKE_DIR}/az.calls")" = '--state Resolved' ]
+  # kit close says the provider's line before its own
+  rm kit.yml
+  run "${kit_root}/bin/kit" close --not-planned 7
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"set forge_settings.ado.removed_state in kit.yml"*"could not be set to Removed: ERROR:"* ]]
+  [[ "$output" == *"#7 could not be closed"* ]]
+}
+
 @test "the provider finds, opens, and reads a pull request by its branch, as the others do" {
   run call branch-for-issue 7
   [ "$output" = 7-fix-the-thing ]

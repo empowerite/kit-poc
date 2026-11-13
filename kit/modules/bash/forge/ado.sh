@@ -33,8 +33,10 @@
 # it links the work item.
 #
 # A work item opens as the type forge_settings.ado.type names (default: Task), closes completed to
-# forge_settings.ado.closed_state (default: Closed), and otherwise to forge_settings.ado.removed_state (default:
-# Removed). The caller (me) is the identity az is signed in as.
+# forge_settings.ado.closed_state, and otherwise to forge_settings.ado.removed_state (default: Removed). Without a
+# closed_state it closes to Closed, and to Done where its type has no Closed: the Agile and CMMI processes close a
+# work item to Closed, and the Basic process, which a new organization gets, and the Scrum process to Done. The
+# caller (me) is the identity az is signed in as.
 #
 # Only this file requires az, with its azure-devops extension. Every call names the organization, the project, and
 # the repository, and never lets az detect them from git, and shapes every result with jq, so a fake az can drive it
@@ -188,8 +190,10 @@ forge/ado:issue-assignees() {
   forge/ado:fold "the assignees of #$1" "${item}" --raw-output 'import "forge" as forge; forge::ado_assignees | join(" ")'
 }
 
-# forge/ado:issue-close sets the work item's closing state. Azure Boards keeps no reason, so a work item not planned
-# or a duplicate is set to the removed state, and a duplicate also gets a comment naming the original.
+# forge/ado:issue-close sets the work item's closing state, as the file header says which. Azure Boards keeps no
+# reason, so a work item not planned or a duplicate is set to the removed state, and a duplicate also gets a comment
+# naming the original. A state Azure Boards refuses fails the call with one line: the setting that names the state,
+# and then the states tried and what az said last.
 # forge/ado:issue-body prints the work item's description, which Azure Boards keeps as HTML, as the text a Markdown
 # reader would take from it: a heading as ## and its text, a list item as - and its text, a paragraph or a line break as
 # a new line, other tags dropped, and the entities read. An empty description prints nothing.
@@ -201,20 +205,29 @@ forge/ado:issue-body() {
 }
 
 forge/ado:issue-close() {
-  local state
+  local setting=removed_state state said='' tried
+  local -a states=(Removed)
   if [[ "$2" == completed ]]
   then
-    state=$(forge:setting ado closed_state)
-    state=${state:-Closed}
-  else
-    state=$(forge:setting ado removed_state)
-    state=${state:-Removed}
+    setting=closed_state
+    states=(Closed Done)
   fi
+  state=$(forge:setting ado "${setting}")
+  [[ -z "${state}" ]] || states=("${state}")
   if [[ "$2" == duplicate ]]
   then
     forge/ado:issue-comment "$1" "Duplicate of #$3" || return 1
   fi
-  forge/ado:az boards work-item update --id "$1" --state "${state}" --output none >/dev/null 2>&1
+  for state in "${states[@]}"
+  do
+    said=$(forge/ado:az boards work-item update --id "$1" --state "${state}" --output none 2>&1 >/dev/null) \
+      && return 0
+  done
+  said=${said##*$'\n'}
+  tried=${states[0]}${states[1]:+ or ${states[1]}}
+  error "set forge_settings.ado.${setting} in kit.yml to a state of the work item's type, if Azure Boards refuses" \
+    "this one (#$1 could not be set to ${tried}${said:+: ${said}})"
+  return 1
 }
 
 forge/ado:issue-comment() {

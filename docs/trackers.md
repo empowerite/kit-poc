@@ -86,8 +86,16 @@ that matches no declared tracker is refused, and the error lists the known prefi
 | Provider | Tool | Fields | Closed when the state is |
 | --- | --- | --- | --- |
 | `forge` | the code forge's own, through `kit/modules/bash/forge.sh` | none; on Azure DevOps, `forge_settings.ado` gives `type`, `closed_state`, and `removed_state` | the code forge's closed state |
-| `ado` | `az` with the `azure-devops` extension | `organization`, `project`, `type` (default `Task`), `closed_state` (default `Closed`), `removed_state` (default `Removed`) | Closed, Done, or Removed |
+| `ado` | `az` with the `azure-devops` extension | `organization`, `project`, `type` (default `Task`), `closed_state` (default `Closed`, and `Done` where the type has no `Closed`), `removed_state` (default `Removed`) | Closed, Done, or Removed |
 | `web` | none: kit opens its pages | `new`, the page a new issue is filed at, `{title}` standing for the title; `url`, an issue's page, `{id}` standing for its number | never read |
+
+Azure Boards' states are those of the project's process, for each work item type. The Agile and CMMI processes
+close a work item to Closed. The Basic process, which a new organization gets, and the Scrum process close it to
+Done. So with no `closed_state`, kit sets Closed, and Done where the work item's type has no Closed. `removed_state`
+has one default, Removed, which the types of the Basic process do not have: name the state such a work item closes
+to. When Azure Boards refuses a state, the close fails with one line: the setting to change, the states kit tried,
+and what `az` said. The states of each process are read from Microsoft's documentation, not from a live
+organization.
 
 A `web` tracker is a ticket system kit has no command line for, such as Jira or Linear. kit opens its pages and does
 nothing else there: the calls that read or change an issue refuse, naming the issue's page. So `kit work LIN#12`

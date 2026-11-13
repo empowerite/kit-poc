@@ -114,7 +114,7 @@ rest. kit's `tracker/ado.sh` uses these commands.
 | --- | --- |
 | Assign | `az boards work-item update --id "${n}" --assigned-to "${login}" --org "${org}"` |
 | Unassign | `az boards work-item update --id "${n}" --assigned-to "" --org "${org}"` |
-| Close as completed | `az boards work-item update --id "${n}" --state Closed --org "${org}"` (`closed_state`) |
+| Close as completed | `az boards work-item update --id "${n}" --state Closed --org "${org}"` (`closed_state`); with no `closed_state`, kit tries `Closed`, then `Done`, and on a refusal says the setting, the states tried, and az's last line |
 | Close as not planned | `az boards work-item update --id "${n}" --state Removed --org "${org}"` (`removed_state`); `--reason` sets the process's reason |
 | Close as a duplicate | the comment `Duplicate of AB#${m}`, then the not-planned close; `az boards work-item relation add --relation-type "${type}"` can add a duplicate link, its name from `relation list-type` |
 | Comment | `az boards work-item update --id "${n}" --discussion "${text}" --org "${org}"` |
@@ -124,9 +124,11 @@ rest. kit's `tracker/ado.sh` uses these commands.
 | Set the iteration | `az boards work-item update --id "${n}" --iteration "${iteration_path}"` |
 
 Gaps: a work item has one assignee, and no milestone object; an iteration path or a tag stands in for one. A process
-template defines the states, so the closed states are settings (`closed_state`, `removed_state`). The
-[Azure Boards app for GitHub](https://learn.microsoft.com/en-us/azure/devops/boards/github/link-to-from-github) links
-`AB#` references, and `Fixes AB#${n}` moves the work item to its done state when the pull request merges.
+template defines the states, so the closed states are settings (`closed_state`, `removed_state`): the Agile and CMMI
+processes close a work item to Closed, and the Basic and Scrum processes to Done, by Microsoft's documentation, not
+checked against a live organization. The
+[Azure Boards app for GitHub](https://learn.microsoft.com/en-us/azure/devops/boards/github/link-to-from-github)
+links `AB#` references, and `Fixes AB#${n}` moves the work item to its done state when the pull request merges.
 
 ### Azure Boards schemas
 

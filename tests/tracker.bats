@@ -134,6 +134,37 @@ JSON
   [ "$output" = $'update --id 4521 --assigned-to  \nupdate --id 4521 --state Closed \nupdate --id 4521 --state Removed \nupdate --id 4521 --discussion Duplicate of AB#4522 \nupdate --id 4521 --state Removed ' ]
 }
 
+@test "a close an Azure Boards tracker refuses names the record's field and what az said, and Done closes for Closed" {
+  fixture active.json <<<'{"id": 4521, "fields": {"System.Title": "Fix it", "System.State": "Doing"}}'
+  fixture refused.txt <<<"ERROR: The field 'State' contains a value that is not in the list of supported values"
+  route az 'boards work-item show --id 4521 *' active.json
+  route az 'boards work-item update --id 4521 --state Done *' '!0'
+  route az 'boards work-item update --id 4521 --state *' '!1 refused.txt'
+  run --separate-stderr in_tracker tracker:of 'AB#4521' close completed
+  [ "$status" -eq 0 ]
+  [ -z "$output$stderr" ]
+  [ "$(grep -o -- '--state [A-Za-z]*' "${FAKE_DIR}/az.calls")" = $'--state Closed\n--state Done' ]
+  run --separate-stderr in_tracker tracker:of 'AB#4521' close not-planned
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+  said="❌ set removed_state in the AB# tracker's record in kit.yml to a state of the work item's type, if Azure"
+  said+=" Boards refuses this one (AB#4521 could not be set to Removed: ERROR: The field 'State' contains a value"
+  said+=" that is not in the list of supported values)"
+  [ "$stderr" = "${said}" ]
+  # a state the record names is the only one tried
+  printf '    closed_state: Resolved\n' >> kit.yml
+  : > "${FAKE_DIR}/az.calls"
+  run --separate-stderr in_tracker tracker:of 'AB#4521' close completed
+  [ "$status" -eq 1 ]
+  [[ "$stderr" == *"set closed_state in the AB# tracker's record"* ]]
+  [[ "$stderr" == *"(AB#4521 could not be set to Resolved: ERROR:"* ]]
+  [ "$(grep -o -- '--state [A-Za-z]*' "${FAKE_DIR}/az.calls")" = '--state Resolved' ]
+  run "${kit_root}/bin/kit" close --not-planned 'AB#4521'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"set removed_state in the AB# tracker's record in kit.yml"* ]]
+  [[ "$output" == *"AB#4521 could not be closed"* ]]
+}
+
 @test "each tracker gives the page a new issue is filed at, its title in the query, and a web tracker refuses the rest" {
   fixture repo.json <<<'{"url": "https://github.com/empowerite/example"}'
   route gh 'repo view*' repo.json

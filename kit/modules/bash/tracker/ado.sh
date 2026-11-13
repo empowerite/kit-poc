@@ -15,10 +15,13 @@
 # The provider needs the az CLI with its azure-devops extension. No other part of the kit needs az.
 #
 # A work item is CLOSED in the states Closed, Done, and Removed (the closing states of Azure DevOps' process
-# templates) and OPEN in every other state. Closing a work item sets the record's closed_state (default: Closed),
-# or, when it is not planned or a duplicate, its removed_state (default: Removed); a duplicate also gets a comment
-# naming the original, as Azure DevOps has no duplicate reason. The caller (me) is the identity az is signed in as, which can differ
-# from the login on the forge (GitHub or GitLab).
+# templates) and OPEN in every other state. Closing a work item sets the record's closed_state, or, when it is not
+# planned or a duplicate, its removed_state (default: Removed); a duplicate also gets a comment naming the original,
+# as Azure DevOps has no duplicate reason. Without a closed_state it closes to Closed, and to Done where its type has
+# no Closed: the Agile and CMMI processes close a work item to Closed, and the Basic process, which a new
+# organization gets, and the Scrum process to Done. A state Azure Boards refuses fails the close with one line: the
+# field of the record that names the state, and then the states tried and what az said last. The caller (me) is the
+# identity az is signed in as, which can differ from the login on the forge (GitHub or GitLab).
 
 tracker/ado:assign() {
   local org
@@ -37,18 +40,27 @@ tracker/ado:body() {
 }
 
 tracker/ado:close() {
-  local org state
+  local org setting=removed_state state said='' tried
+  local -a states=(Removed)
   org=$(tracker/ado:organization) || return 1
   if [[ "$2" == completed ]]
   then
-    state=$(tracker:field "${TRACKER_PREFIX}" closed_state)
-    state=${state:-Closed}
-  else
-    state=$(tracker:field "${TRACKER_PREFIX}" removed_state)
-    state=${state:-Removed}
+    setting=closed_state
+    states=(Closed Done)
   fi
+  state=$(tracker:field "${TRACKER_PREFIX}" "${setting}")
+  [[ -z "${state}" ]] || states=("${state}")
   [[ "$2" != duplicate ]] || tracker/ado:comment "$1" "Duplicate of ${TRACKER_PREFIX}$3" || return 1
-  az boards work-item update --id "$1" --state "${state}" --org "${org}" --output none 2>/dev/null
+  for state in "${states[@]}"
+  do
+    said=$(az boards work-item update --id "$1" --state "${state}" --org "${org}" --output none 2>&1 >/dev/null) \
+      && return 0
+  done
+  said=${said##*$'\n'}
+  tried=${states[0]}${states[1]:+ or ${states[1]}}
+  error "set ${setting} in the ${TRACKER_PREFIX} tracker's record in kit.yml to a state of the work item's type, if" \
+    "Azure Boards refuses this one (${TRACKER_PREFIX}$1 could not be set to ${tried}${said:+: ${said}})"
+  return 1
 }
 
 tracker/ado:comment() {
