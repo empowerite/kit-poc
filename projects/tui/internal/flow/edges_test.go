@@ -18,10 +18,16 @@ import (
 
 // With no stage in the picture, the keys that move, open, page, and drop the tab's menu down do nothing, and the pane
 // says so; = still drops the app's menu down.
+var (
+	shiftTab = tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift}
+	altRight = tea.KeyPressMsg{Code: tea.KeyRight, Mod: tea.ModAlt}
+	altLeft  = tea.KeyPressMsg{Code: tea.KeyLeft, Mod: tea.ModAlt}
+)
+
 func TestAPictureWithNoStageTakesEveryKeyQuietly(t *testing.T) {
 	m := New(runner(t), Options{})
 	for _, msg := range []tea.Msg{tea.WindowSizeMsg{Width: 120, Height: 24}, left, right, down, up, press(tea.KeyEnter),
-		press(tea.KeyPgDown), press(':')} {
+		press(tea.KeyPgDown), press(':'), press(tea.KeyTab), shiftTab, altRight, altLeft} {
 		next, cmd := m.Update(msg)
 		m = next.(Model)
 		if cmd != nil {

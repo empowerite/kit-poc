@@ -923,6 +923,9 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "pgdown":
 		m.page(1)
 	case "tab", "shift+tab":
+		if len(m.stages) == 0 {
+			return m, nil
+		}
 		// while the view hides columns, tab and shift-tab scroll them, as table.RowKeys names them
 		if _, before, after := table.Scrolled(&m); m.inRows && (before || after) {
 			d := 1
@@ -940,9 +943,13 @@ func (m Model) key(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "end":
 		m.end(1)
 	case "right", "alt+right":
-		table.Expand(&m, true, k.String() == "alt+right")
+		if len(m.stages) > 0 {
+			table.Expand(&m, true, k.String() == "alt+right")
+		}
 	case "left", "alt+left":
-		table.Expand(&m, false, k.String() == "alt+left")
+		if len(m.stages) > 0 {
+			table.Expand(&m, false, k.String() == "alt+left")
+		}
 	}
 	return m, nil
 }
