@@ -324,8 +324,12 @@ func Press(keys string) string {
 }
 
 // Shortcut gives the line that acts whose keys a press stands for, or -1. A line's keys do the same with its menu open
-// as with it closed, so a menu takes them before a letter moves to the next line that starts with it.
+// as with it closed, so a menu takes them before a letter moves to the next line that starts with it. The menu draws a
+// letter in capitals, as R, so a press of the capital, or one with Caps Lock on, is the letter's.
 func Shortcut(items []Item, enabled func(int) bool, press string) int {
+	if utf8.RuneCountInString(press) == 1 {
+		press = strings.ToLower(press)
+	}
 	for k, item := range items {
 		if item.Keys != "" && Press(item.Keys) == press && enabled(k) {
 			return k

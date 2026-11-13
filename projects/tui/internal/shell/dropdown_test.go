@@ -110,6 +110,10 @@ func TestALinesKeysChooseItWithTheDropdownOpen(t *testing.T) {
 	if _, chosen := d.Key(tea.KeyPressMsg{Code: 'a', Mod: tea.ModCtrl}, items, acting); chosen != 3 {
 		t.Errorf("ctrl+a chose %d, not Select All", chosen)
 	}
+	// the menu draws R, so the capital, or a letter typed with Caps Lock on, is the letter's
+	if _, chosen := d.Key(key("R"), items, acting); chosen != 0 {
+		t.Errorf("R chose %d, not Refresh", chosen)
+	}
 	if d, chosen := d.Key(key("s"), items, acting); chosen != -1 || d.At != 3 {
 		t.Errorf("s, no line's key, chose %d and moved to %d, not to Select All", chosen, d.At)
 	}
