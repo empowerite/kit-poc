@@ -130,7 +130,7 @@ func TestTheSettingsDialogFlipsASettingAndSavesIt(t *testing.T) {
 	if !s.KeysBar {
 		t.Fatal("with no file, the keys bar is hidden")
 	}
-	d := SettingsDialog{Open: true}
+	d := SettingsDialog{Open: true, At: 2} // the settings are alphabetical: Key hints is the third
 	if d, s = d.Key(key("space"), s); s.KeysBar || LoadSettings(path).KeysBar || !d.Open {
 		t.Errorf("space: shown %v, saved shown %v, open %v", s.KeysBar, LoadSettings(path).KeysBar, d.Open)
 	}
@@ -157,7 +157,6 @@ func TestTheSettingsDialogFlipsASettingAndSavesIt(t *testing.T) {
 		!strings.Contains(v, style.Picked+" Auto-hide") || !strings.Contains(v, style.Unpicked+" Repeated emoji") {
 		t.Errorf("the dialog's settings:\n%s", v)
 	}
-	d, s = d.Key(key("down"), s)
 	if d, s = d.Key(key("space"), s); s.FoldShared || LoadSettings(path).FoldShared {
 		t.Errorf("space on Auto-group: %v, saved %v", s.FoldShared, LoadSettings(path).FoldShared)
 	}
@@ -165,6 +164,7 @@ func TestTheSettingsDialogFlipsASettingAndSavesIt(t *testing.T) {
 	if d, s = d.Key(key("space"), s); s.HideBlank || LoadSettings(path).HideBlank {
 		t.Errorf("space on Auto-hide: %v, saved %v", s.HideBlank, LoadSettings(path).HideBlank)
 	}
+	d, s = d.Key(key("down"), s) // Key hints
 	d, s = d.Key(key("down"), s)
 	if _, s = d.Key(key("space"), s); !s.SharedEmoji || !LoadSettings(path).SharedEmoji {
 		t.Errorf("space on Repeated emoji: %v, saved %v", s.SharedEmoji, LoadSettings(path).SharedEmoji)
@@ -175,7 +175,7 @@ func TestTheSettingsDialogFlipsASettingAndSavesIt(t *testing.T) {
 // the name alone.
 func TestTheSettingsDialogsDescriptionsStandInOneColumn(t *testing.T) {
 	s := LoadSettings(filepath.Join(t.TempDir(), "kittui.json"))
-	box := (SettingsDialog{Open: true}).box(s, 200)
+	box := (SettingsDialog{Open: true, At: 2}).box(s, 200)
 	at := map[int]bool{}
 	for k, set := range settings {
 		at[strings.Index(ansi.Strip(box[k+1]), set.says)] = true
@@ -183,9 +183,9 @@ func TestTheSettingsDialogsDescriptionsStandInOneColumn(t *testing.T) {
 	if len(at) != 1 {
 		t.Errorf("the descriptions start at %v:\n%s", at, ansi.Strip(strings.Join(box, "\n")))
 	}
-	if !strings.Contains(box[1], style.Selected(style.Unpicked+" Key hints")+"     ") &&
-		!strings.Contains(box[1], style.Selected(style.Picked+" Key hints")+"     ") {
-		t.Errorf("Key hints: %q", box[1])
+	if !strings.Contains(box[3], style.Selected(style.Unpicked+" Key hints")+"     ") &&
+		!strings.Contains(box[3], style.Selected(style.Picked+" Key hints")+"     ") {
+		t.Errorf("Key hints: %q", box[3])
 	}
 }
 
@@ -197,11 +197,11 @@ func TestAClickOnTheSettingsDialogFlipsASettingOrClosesIt(t *testing.T) {
 	box := d.box(s, 120)
 	top, left := d.place(box, 30, 120)
 	click := func(x, y int, b tea.MouseButton) tea.MouseClickMsg { return tea.MouseClickMsg{X: x, Y: y, Button: b} }
-	if d, s = d.Click(click(left+3, top+2, tea.MouseLeft), s, 30, 120); d.At != 1 || s.FoldShared ||
+	if d, s = d.Click(click(left+3, top+1, tea.MouseLeft), s, 30, 120); d.At != 0 || s.FoldShared ||
 		LoadSettings(path).FoldShared {
 		t.Errorf("a click on Auto-group: at %d, fold %v", d.At, s.FoldShared)
 	}
-	if d, s = d.Click(click(left+3, top+2, tea.MouseRight), s, 30, 120); s.FoldShared || !d.Open {
+	if d, s = d.Click(click(left+3, top+1, tea.MouseRight), s, 30, 120); s.FoldShared || !d.Open {
 		t.Errorf("a right click flipped: fold %v", s.FoldShared)
 	}
 	if d, s = d.Click(click(left+3, top, tea.MouseLeft), s, 30, 120); !d.Open || s.FoldShared {
@@ -257,7 +257,7 @@ func TestWithNoHomeTheSettingsAreTheSessionsAlone(t *testing.T) {
 		t.Errorf("the files: %q, %q", RecentFile(), SettingsFile())
 	}
 	s := LoadSettings(SettingsFile())
-	if _, s = (SettingsDialog{Open: true}).Key(key("space"), s); s.KeysBar {
+	if _, s = (SettingsDialog{Open: true, At: 2}).Key(key("space"), s); s.KeysBar {
 		t.Error("space did not flip Key hints")
 	}
 	if entries, _ := os.ReadDir("."); len(entries) != 0 {

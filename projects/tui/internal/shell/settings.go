@@ -74,17 +74,17 @@ type setting struct {
 	flip       func(Settings) Settings
 }
 
-// settings are the Settings dialog's lines, in order.
+// settings are the Settings dialog's lines, in alphabetical order.
 var settings = []setting{
-	{"Key hints", "shows the keys you can press now on the status bar, the bottom line",
-		func(s Settings) bool { return s.KeysBar },
-		func(s Settings) Settings { s.KeysBar = !s.KeysBar; return s }},
 	{"Auto-group", "groups a table as it opens by each column whose value is the same on every row",
 		func(s Settings) bool { return s.FoldShared },
 		func(s Settings) Settings { s.FoldShared = !s.FoldShared; return s }},
 	{"Auto-hide", "hides a column while no row has a value in it",
 		func(s Settings) bool { return s.HideBlank },
 		func(s Settings) Settings { s.HideBlank = !s.HideBlank; return s }},
+	{"Key hints", "shows the keys you can press now on the status bar, the bottom line",
+		func(s Settings) bool { return s.KeysBar },
+		func(s Settings) Settings { s.KeysBar = !s.KeysBar; return s }},
 	{"Repeated emoji", "shows an emoji in a column even where every row has the same one",
 		func(s Settings) bool { return s.SharedEmoji },
 		func(s Settings) Settings { s.SharedEmoji = !s.SharedEmoji; return s }},

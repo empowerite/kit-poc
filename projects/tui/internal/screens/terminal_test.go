@@ -162,7 +162,7 @@ func TestWithNoColorTheLineUnderTheKeyboardIsInReverseVideo(t *testing.T) {
 	}
 	m, _ = testkit.Drive(m, nil, shell.SwitchMsg{Screen: shell.SettingsScreen}, testkit.Press("down"))
 	got := reversed(sent(t, colorprofile.Ascii, m))
-	if len(got) != 2 || !strings.HasPrefix(got[0], "◼ Auto-group") {
+	if len(got) != 2 || !strings.HasPrefix(got[0], "◼ Auto-hide") {
 		t.Errorf("the Settings dialog's line under the keyboard, over the selector: %q", got)
 	}
 }
