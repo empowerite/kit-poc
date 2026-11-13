@@ -18,6 +18,7 @@ package screens
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -29,6 +30,7 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/flow"
 	"github.com/empowerite/kit/projects/tui/internal/kit"
 	"github.com/empowerite/kit/projects/tui/internal/opener"
+	"github.com/empowerite/kit/projects/tui/internal/pane"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/style"
 	"github.com/empowerite/kit/projects/tui/internal/tutorials"
@@ -310,13 +312,37 @@ func (m Model) regrouped(msg shell.ChangedMsg) (tea.Model, tea.Cmd) {
 	return m, m.ask(given)
 }
 
-// refusalLine gives kit's line for a screen that could not open, or the error's.
+// refusalLine gives kit's line for a screen that could not open, or the error's; where kit said nothing, that it
+// exited and how.
 func refusalLine(err error) string {
-	if line, _, ok := app.Refusal(err); ok {
+	if line, code, ok := app.Refusal(err); ok {
+		if line == "" {
+			return fmt.Sprintf("kit exited %d with nothing on stderr", code)
+		}
 		return line
 	}
 	return err.Error()
 }
+
+// refusalBlock gives kit's line drawn over the last lines of the screen: wrapped to the width, so a long line shows
+// its remedy at the end, and at most refusalLines long, its last line cut with … where there is more.
+func refusalBlock(refusal string, width int) []string {
+	text := style.Excluded + " " + refusal
+	if width < 1 {
+		return []string{" " + style.Refusal(text)}
+	}
+	wrapped := pane.Wrap(text, width-1)
+	if len(wrapped) > refusalLines {
+		wrapped = append(wrapped[:refusalLines-1], pane.Clip(strings.Join(wrapped[refusalLines-1:], " "), width-1))
+	}
+	for k, l := range wrapped {
+		wrapped[k] = " " + style.Refusal(l)
+	}
+	return wrapped
+}
+
+// refusalLines is the most lines kit's line takes at the screen's foot.
+const refusalLines = 3
 
 // tellWorkspace tells every screen made the workspace, or kit's line, and gives what they start.
 func (m Model) tellWorkspace() (tea.Model, tea.Cmd) {
@@ -594,7 +620,12 @@ func (m Model) View() tea.View {
 		}
 	}
 	if m.refusal != "" {
-		lines[len(lines)-1] = " " + style.Refusal(style.Excluded+" "+m.refusal)
+		block := refusalBlock(m.refusal, width)
+		for k, l := range block {
+			if at := len(lines) - len(block) + k; at >= 0 {
+				lines[at] = l
+			}
+		}
 	}
 	v.Content = strings.Join(lines, "\n")
 	return v

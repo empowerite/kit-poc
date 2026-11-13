@@ -65,8 +65,11 @@ type ExitError struct {
 	Stdout []byte
 }
 
-// Error gives kit's line without the ❌ kit prints before it, so whatever shows the line adds the glyph once.
-func (e *ExitError) Error() string { return strings.TrimPrefix(strings.TrimSpace(e.Stderr), "❌ ") }
+// Error gives kit's line, the last one marked failed or else the last, without the ❌ kit prints before it, so whatever
+// shows the line adds the glyph once. Whatever git or a tool said before it stays in Stderr.
+func (e *ExitError) Error() string {
+	return strings.TrimPrefix(strings.TrimSpace(refusal(e.Stderr)), "❌ ")
+}
 
 // Choice is one row of kit syntax --choices: the value, its description, its state (active, excluded, or empty), and
 // the line the verb would print about it given the answers so far, empty when there is none.
@@ -331,7 +334,7 @@ func partial(out []byte, err error) ([]byte, error) {
 
 // waitDelay is how long Status waits, once ctx has ended, for kit to die and its pipes to close before the pipes
 // are closed for it.
-const waitDelay = 2 * time.Second
+var waitDelay = 2 * time.Second
 
 // Status gives one stage's JSON, as kit flow <stage> --json <args>… prints it, as Rows reads it, over the group the
 // runner spans; the args are the stage's own flags. A stage of another verb's picture is named after the verb and a
@@ -401,7 +404,7 @@ func (r Runner) Act(ctx context.Context, words ...string) (string, error) {
 	err := cmd.Run()
 	var exit *exec.ExitError
 	switch {
-	case err == nil:
+	case err == nil || errors.Is(err, exec.ErrWaitDelay):
 		return out.String(), nil
 	case ctx.Err() == nil && limited.Err() != nil:
 		return out.String(), fmt.Errorf("kit %s took longer than %s; it was stopped", strings.Join(words, " "),
@@ -409,11 +412,21 @@ func (r Runner) Act(ctx context.Context, words ...string) (string, error) {
 	case errors.As(err, &exit):
 		return out.String(), &ExitError{Code: exit.ExitCode(), Stderr: refusal(out.String())}
 	default:
-		return out.String(), fmt.Errorf("%s: %w", r.Kit, err)
+		return out.String(), r.failed(err)
 	}
 }
 
-// refusal gives the line of kit's output that says why it failed: the last marked ❌, or else the last.
+// failed gives the error of a kit that could not start: that the folder it runs in is gone where it is, since Go's
+// error for a working directory that is not there names the program, else that the program could not run.
+func (r Runner) failed(err error) error {
+	if _, gone := os.Stat(r.Dir); r.Dir != "" && gone != nil {
+		return fmt.Errorf("%s is gone; Open Repository or the workspace menu picks another folder", r.Dir)
+	}
+	return fmt.Errorf("%s: %w", r.Kit, err)
+}
+
+// refusal gives the line of kit's output that says why it failed: the last marked ❌, or else the last, or nothing
+// where kit printed nothing.
 func refusal(out string) string {
 	lines := strings.Split(strings.TrimSpace(out), "\n")
 	for k := len(lines) - 1; k >= 0; k-- {
@@ -790,12 +803,13 @@ func (r Runner) outputTold(cmd *exec.Cmd, told func(Progress)) ([]byte, error) {
 	cmd.Stdout, cmd.Stderr = &stdout, stderr
 	err := cmd.Run()
 	stderr.rest.Write(stderr.partial)
-	if err != nil {
+	// a kit that exited 0 while a child it left holds its pipes has succeeded: its stdout stands
+	if err != nil && !errors.Is(err, exec.ErrWaitDelay) {
 		var exit *exec.ExitError
 		if errors.As(err, &exit) {
 			return nil, &ExitError{Code: exit.ExitCode(), Stderr: stderr.rest.String(), Stdout: stdout.Bytes()}
 		}
-		return nil, fmt.Errorf("%s: %w", r.Kit, err)
+		return nil, r.failed(err)
 	}
 	return stdout.Bytes(), nil
 }

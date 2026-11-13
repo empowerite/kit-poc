@@ -256,8 +256,8 @@ func TestAScreenThatCannotOpenOverTheNewWorkspaceGivesWayToTheWelcome(t *testing
 		t.Fatalf("shown: %T on %s", m.Shown(), m.here)
 	}
 	lines := strings.Split(ansi.Strip(m.View().Content), "\n")
-	if last := lines[len(lines)-1]; !strings.Contains(last, "❌") {
-		t.Errorf("kit's line is not said: %q", last)
+	if foot := strings.Join(lines[len(lines)-3:], "\n"); !strings.Contains(foot, "❌") {
+		t.Errorf("kit's line is not said: %q", foot)
 	}
 }
 

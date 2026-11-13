@@ -944,3 +944,62 @@ func TestAnActionThatHangsIsStoppedAtItsLimit(t *testing.T) {
 		t.Errorf("an action whose screen ended: %v", err)
 	}
 }
+
+// A kit that exits 0 while a child it left behind holds its pipes has succeeded: its stdout stands, and no call
+// reports that kit could not run.
+func TestAKitThatSucceedsWhileAChildHoldsItsPipesHasSucceeded(t *testing.T) {
+	delay0 := waitDelay
+	t.Cleanup(func() { waitDelay = delay0 })
+	waitDelay = 100 * time.Millisecond
+	r := script(t, "echo '{\"workspaces\": []}'\n(sleep 2) &\nexit 0")
+	if out, err := r.Rows(context.Background(), []string{"flow", "x"}, false); err != nil || !strings.Contains(string(out), "workspaces") {
+		t.Errorf("Rows: %q, %v", out, err)
+	}
+	if _, err := r.Act(context.Background(), "assign", "#7"); err != nil {
+		t.Errorf("Act: %v", err)
+	}
+	if _, err := r.Workspaces(context.Background()); err != nil {
+		t.Errorf("Workspaces: %v", err)
+	}
+	// a kit that fails while a child holds its pipes is still its refusal
+	r = script(t, "echo '❌ no' >&2\n(sleep 2) &\nexit 3")
+	var exit *ExitError
+	if _, err := r.Rows(context.Background(), []string{"flow", "x"}, false); !errors.As(err, &exit) || exit.Code != 3 {
+		t.Errorf("a failing kit: %v", err)
+	}
+}
+
+// A folder that is gone is said to be gone, with what to do, not as a kit that is missing.
+func TestAFolderThatIsGoneIsSaidToBeGone(t *testing.T) {
+	r := script(t, "exit 0")
+	r.Dir = filepath.Join(t.TempDir(), "gone")
+	_, err := r.Rows(context.Background(), []string{"flow", "x"}, false)
+	want := r.Dir + " is gone; Open Repository or the workspace menu picks another folder"
+	if err == nil || err.Error() != want {
+		t.Errorf("Rows: %v", err)
+	}
+	if _, err = r.Act(context.Background(), "assign"); err == nil || err.Error() != want {
+		t.Errorf("Act: %v", err)
+	}
+	// a kit that is missing in a folder that is there stays a missing kit
+	r = Runner{Kit: filepath.Join(t.TempDir(), "no-kit"), Dir: t.TempDir()}
+	if _, err = r.Act(context.Background(), "assign"); err == nil || !strings.Contains(err.Error(), "no-kit") {
+		t.Errorf("a missing kit: %v", err)
+	}
+}
+
+// Kit's line is its last line marked failed, else its last line, however much else was printed before it, and a kit
+// that printed nothing has no line.
+func TestAnExitErrorIsKitsLineAndNotAllOfStderr(t *testing.T) {
+	for stderr, want := range map[string]string{
+		"warning: a git line\n❌ kit refuses\n": "kit refuses",
+		"❌ first\n❌ second\nrun: kit x\n":      "second",
+		"warning: one\nwarning: two\n":         "warning: two",
+		"  \n":                                 "",
+		"":                                     "",
+	} {
+		if got := (&ExitError{Code: 1, Stderr: stderr}).Error(); got != want {
+			t.Errorf("%q: %q, want %q", stderr, got, want)
+		}
+	}
+}

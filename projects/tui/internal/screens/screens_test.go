@@ -14,6 +14,7 @@ import (
 
 	"github.com/empowerite/kit/projects/tui/internal/app"
 	"github.com/empowerite/kit/projects/tui/internal/flow"
+	"github.com/empowerite/kit/projects/tui/internal/kit"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/testkit"
 	"github.com/empowerite/kit/projects/tui/internal/tutorials"
@@ -452,5 +453,36 @@ func TestQQuitsWhileTheTabBarHasTheKeyboard(t *testing.T) {
 	// back on the tab bar, q quits again
 	if !quits(shell.Welcome, testkit.Press("down"), testkit.Press("esc")) {
 		t.Error("q did not quit once esc gave the tab bar the keyboard back")
+	}
+}
+
+// Kit's line stands at the screen's foot, wrapped to the width so its remedy at the end is in sight, never wider than
+// the screen; a line of several screens' worth is cut at the third line with …, and a kit that printed nothing is
+// said to have exited.
+func TestKitsLineAtTheFootIsWrappedAndNeverWiderThanTheScreen(t *testing.T) {
+	m := help(t)
+	line := strings.Repeat("kit cannot find the thing it was asked for ", 5) + "run: kit fix"
+	m.refusal = refusalLine(&kit.ExitError{Code: 1, Stderr: "git: warning\n❌ " + line})
+	lines := strings.Split(ansi.Strip(m.View().Content), "\n")
+	if len(lines) != 30 || !strings.HasSuffix(lines[29], "run: kit fix") || !strings.HasPrefix(lines[28], " ❌ kit cannot") {
+		t.Fatalf("the wrapped line:\n%s", strings.Join(lines[24:], "\n"))
+	}
+	for _, l := range lines {
+		if ansi.StringWidth(l) > 120 {
+			t.Errorf("%d cells: %q", ansi.StringWidth(l), l)
+		}
+	}
+	long := &kit.ExitError{Code: 1, Stderr: "❌ " + strings.Repeat("word ", 100)}
+	m.refusal = refusalLine(long)
+	lines = strings.Split(ansi.Strip(m.View().Content), "\n")
+	if len(lines) != 30 || !strings.HasSuffix(lines[29], "…") {
+		t.Errorf("a line of many screens' worth:\n%s", strings.Join(lines[24:], "\n"))
+	}
+	m.refusal = refusalLine(&kit.ExitError{Code: 4})
+	if v := ansi.Strip(m.View().Content); !strings.Contains(v, "❌ kit exited 4 with nothing on stderr") {
+		t.Errorf("a silent exit:\n%s", v)
+	}
+	if got := ansi.Strip(strings.Join(refusalBlock("kit said no", 0), "\n")); got != " ❌ kit said no" {
+		t.Errorf("before the screen has a size: %q", got)
 	}
 }
