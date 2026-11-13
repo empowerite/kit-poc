@@ -2,8 +2,8 @@
 
 **Status, 2026-11-12:** The review of 2026-11-12 read this plan against commit `0e76266c`, where it found none of the
 6 tasks built. Commits after that one, under #74, #289, and #351, added `bin/contracts`, the snapshots under
-`tests/snapshots/`, and `tests/claims.bats`; nobody has counted the tasks again since. [The review's
-page](../reviews/2026-11-12-review-plans.md) has each task's evidence.
+`tests/snapshots/`, and `tests/claims.bats`. Of those, Task 3 is built (#289); nobody has counted the others again
+since. [The review's page](../reviews/2026-11-12-review-plans.md) has each task's evidence.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -30,10 +30,11 @@ here by area and number: Serve 8 is item 8 under its Serve heading.
    `kit lint` is not one of `kit ci`'s four, and most of what the test holds is this repository's alone.
 2. The syntax snapshots stay in `projects/tui/internal/syntax/testdata/`, owned by `tests/syntax.bats`: `go test`
    reuses a cached result without rechecking a file outside the module. The others go in `tests/snapshots/`.
-3. A record's keys that are no column are declared in a `carries` list on the stage in `fields.json`, 34 keys over
-   13 stages, not in the test. It costs one field on `table.Schema`, whose reader refuses unknown keys.
-4. `pr.source` in an underway row, which kittui reads to key a GitLab merge request as `!<number>` and kit never
-   prints, becomes `pr.ref`: kit prints the reference the changes row carries as `ref`, and kittui reads that.
+3. A record's keys that are no column are declared in a `carries` list on the stage in `fields.json`, 20 keys over
+   the stages that have any of the 33, not in the test. It costs one field on `table.Schema`, whose reader refuses
+   unknown keys.
+4. `pr.source` in an underway row, which kittui reads to key a GitLab merge request as `!<number>`, was not printed by
+   kit; it is now (#289), so the row keeps `source`, and no `pr.ref` was added.
 5. Two names: `KIT_SNAPSHOTS=write`, and the comment `<!-- kit:claims skip -->`, `{/* kit:claims skip */}` in MDX.
 
 ## Global Constraints
@@ -150,23 +151,34 @@ file instead, making its directory, and returns 0.
 
 ## Task 3: The JSON kittui reads
 
+- **Status, 2026-11-12:** built in #289 (17167167), with these differences from the text below. The helpers `shape`,
+  `same-keys`, and `fields-hold` are in `tests/helper.bash`, with their test in `tests/flow.bats`, "shape gives every
+  key path; …", not in `tests/snapshot.bats`. `same-keys <fixture> [<path>…]` and `fields-hold [--catalog=<file>]
+  <stage> [<path>…]` take the paths that kit prints only sometimes. The world is `forge-world`, there is no
+  `contract-world`, and the test is not in `tests/flow.bats` alone: each app verb's bats file runs every stage of its
+  verb in its world, 33 stages in all, five of them flow's (`issues changes builds releases incoming`, and incoming
+  without a fetch). An underway row's `pr` keeps `source`, and gains none named `ref`. `Carries` is built as the text
+  says. The fixtures and the goldens moved as the commit's message lists them.
+
 **Files:** modify `tests/helper.bash`, `tests/snapshot.bats`, `tests/flow.bats`, `tests/workspace.bats`,
 `docs/testing.md`, `kit/modules/jq/underway.jq:20`, `projects/tui/internal/table/catalog.go:15-20`, and, under
 `projects/tui/internal/flow/`, `rows.go:56,597,637-647`, `fields.json`, and `testdata/`'s `backlog.json`,
 `underway.json`, `changes.json`, and `incoming-no-fetch.json`.
 
-**Interfaces:** produces `table.Schema.Carries []string`, tagged `json:"carries"`; an underway row's `pr.ref`; and:
+**Interfaces:** produces `table.Schema.Carries []string`, tagged `json:"carries"`; and:
 
 - `shape` reads JSON on stdin and prints each key path once, sorted, a list's items under `[]`:
   `jq -r '[paths | map(if type == "number" then "[]" else "." + . end) | join("")] | unique[]'`.
-- `same-keys <fixture>` reads kit's JSON on stdin, `<fixture>` a path as `snapshot` takes one. Where the two shapes
-  differ it prints `only kit prints: <paths>` and `only <fixture> has: <paths>`, each when it has any, and returns 1.
-- `fields-hold <stage> [<catalog>]` reads a stage's JSON on stdin; the catalog is kittui's `fields.json` unless
-  given. Over the records at the stage's `record`, it prints the three lines the test shows, each when it has any,
-  and returns 1 when it printed. A field's `path` is split at each comma; a part after a `<stage>:`, and `.member`,
-  which only a workspace's rows have, are passed over. A path's first key, or one in `carries`, is declared.
+- `same-keys <fixture> [<path>…]` reads kit's JSON on stdin, `<fixture>` a path as `snapshot` takes one. Where the
+  two shapes differ it prints `only kit prints: <paths>` and `only <fixture> has: <paths>`, each when it has any, and
+  returns 1.
+- `fields-hold [--catalog=<file>] <stage> [<path>…]` reads a stage's JSON on stdin; the catalog is kittui's
+  `fields.json` unless given. Over the records at the stage's `record`, it prints the three lines the test shows, each
+  when it has any, and returns 1 when it printed. A field's `path` is split at each comma; a part after a `<stage>:`,
+  and `.member`, which only a workspace's rows have, are passed over. A path's first key, or one in `carries`, is
+  declared.
 
-- [ ] **Step 1: Write the helpers' failing test** in `tests/snapshot.bats`, then the helpers in `tests/helper.bash`:
+- [x] **Step 1: Write the helpers' failing test** in `tests/snapshot.bats`, then the helpers in `tests/helper.bash`:
 
 ```bash
 @test "shape gives every key path of every row, and fields-hold names what a catalog and a stage do not share" {
@@ -180,7 +192,7 @@ file instead, making its directory, and returns 0.
 }
 ```
 
-- [ ] **Step 2: Write `contract-world`** in `tests/flow.bats`, after `empty-forge`: `forge-world`, then a value under
+- [x] **Step 2: Write `contract-world`** in `tests/flow.bats`, after `empty-forge`: `forge-world`, then a value under
   every key a stage prints, as it ran in scratch. Issue 11 in `issues.json` gains a label, a `name` and a `color`.
   Change 3 in `open-prs.json` is edited with jq, as `tests/underway.bats:115-117` edits one: `labels: {nodes: [that
   label]}`, and the same on its closing issue; `isCrossRepository: true`; `headRepositoryOwner: {login: "cy"}`; and a
@@ -189,7 +201,7 @@ file instead, making its directory, and returns 0.
   answers as `tests/builds.bats:48-52` does, a step failed. The desk, and a worktree made from `origin/9-other`, each
   have a commit not pushed and a file not committed; a branch `old` has lost its upstream. Last, with no fetch after,
   a second clone pushes a commit as `main main:feature main:7-fix-the-thing HEAD:refs/tags/v2` and deletes `9-other`.
-- [ ] **Step 3: Write the stages' failing tests**: the one below in `tests/flow.bats`, and one of its name in
+- [x] **Step 3: Write the stages' failing tests**: the one below in `tests/flow.bats`, and one of its name in
   `tests/workspace.bats`, where, after `history-at "${BATS_TEST_TMPDIR}/code/kit" github.com/empowerite/kit` and `cd`
   there, each of `repos remotes branches worktrees commits tags` goes from `kit workspace <stage> --json` to
   `same-keys …/workspace-<stage>.json` and `fields-hold workspace/<stage>`.
@@ -208,13 +220,10 @@ file instead, making its directory, and returns 0.
 }
 ```
 
-- [ ] **Step 4: Run `bats flow` and `bats workspace`.** Expected: `same-keys` fails for backlog, underway, changes,
-  and incoming without a fetch, on the paths Step 5 names; `fields-hold` then fails for all thirteen stages.
-- [ ] **Step 5: Bring the two sides together.**
-  - `underway.jq:20`: `pr` gains `ref: $pr.ref` after `number`. `rows.go:56`: `Source string`, tagged `source`,
-    becomes `Ref string`, tagged `ref`; `pullKey(member, ref string, number int)` gives `m.keyOf(member, ref)` when
-    no changes row matches and `ref` is given, else the key of `#<number>`; `rows.go:597` passes `u.PR.Ref`. In
-    `underway.json`, each `pr`'s `"source": "github"`, which kit never printed, becomes `"ref": "#<its number>"`.
+- [x] **Step 4: Run `bats flow` and `bats workspace`.** Expected: `same-keys` failed on the paths Step 5 names, and
+  `fields-hold` then failed for the stages, 33 in all with the other app verbs.
+- [x] **Step 5: Bring the two sides together.**
+  - Built otherwise: `pr` in an underway row keeps `source`, which kit prints, and the fixture's `pr` has it too.
   - Kit prints, and a fixture gains: in `backlog.json`, each row's `"ref": "#<its number>"` and `"createdAt"`; in
     `changes.json`, each row's `"fork": null` and `"pushed": {"age": 3600, "by": "<its author>"}`, and each closed
     issue's `"labels"`, one not empty, `"source"`, `"organization"`, and `"repository"`, as `backlog.json` has
@@ -223,9 +232,10 @@ file instead, making its directory, and returns 0.
     `"record"`. `workspace/repos`: checkouts, error, host, path. `backlog`: createdAt, ref. `underway`: worktree.
     `desk` and `worktrees`: changes, commits, detached. `changes`: closes, createdAt, fork, pushed. `builds`:
     attempt, id, jobs, url. `releases`: at, name, tag. The other five `workspace/` stages: key, links.
-- [ ] **Step 6: Run** `bats flow`, `bats workspace`, `bats underway`, `bats jq`, and the Go tests. An assertion that
-  pins `pr`'s keys gains `ref`, and a golden that moves is rewritten with `go test ./internal/flow -update`.
-  **Commit**, subject `#74 kit, kittui: each stage's JSON is held to kittui's fixtures and fields.json`.
+- [x] **Step 6: Run** `bats flow`, `bats workspace`, `bats issues-underway`, `bats jq`, and the Go
+  tests. An assertion that pins `pr`'s keys gains `source`, and a golden that moves is rewritten with
+  `go test ./internal/flow -update`. **Commit**, subject `#74 kit, kittui: each stage's JSON is held to kittui's
+  fixtures and fields.json`.
 
 ## Task 4: The commands the docs name
 
