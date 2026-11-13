@@ -492,30 +492,18 @@ func TestThePalettesSearchIsRememberedAndRecalled(t *testing.T) {
 	}
 }
 
-// The menu bar names the workspace kittui says, as every screen's does; - drops its menu down while the rows have
-// focus, and is typed while the search has it; a click on it drops it down too.
-func TestThePalettesMenuBarHasTheWorkspaceMenu(t *testing.T) {
+// The menu bar has no workspace menu: kit help names none, and - is typed in the search or does nothing on the rows.
+func TestThePalettesMenuBarHasNoWorkspaceMenu(t *testing.T) {
 	ws := shell.WorkspaceMsg{Workspace: kit.Workspace{Kind: "repository", Member: "github.com/o/r"}}
 	m, _ := drive(open(t), tea.WindowSizeMsg{Width: 100, Height: 30}, ws, slash)
-	if first := strings.Split(screen(m), "\n")[0]; !strings.HasPrefix(first,
-		"  "+shell.App+" kit help · "+shell.Workspaces+" o/r ") {
+	if first := strings.Split(screen(m), "\n")[0]; strings.Contains(first, shell.Workspaces) || !strings.Contains(first, "kit help") {
 		t.Errorf("the menu bar: %q", first)
 	}
-	if m, _ = drive(m, testkit.Typed("-")...); m.books.Open || m.search.Query != "-" {
-		t.Errorf("- in the search: open %v, %q", m.books.Open, m.search.Query)
+	if m, _ = drive(m, testkit.Typed("-")...); m.search.Query != "-" {
+		t.Errorf("- in the search: %q", m.search.Query)
 	}
-	if m, _ = drive(m, ctrlU, esc, testkit.Typed("-")[0]); !m.books.Open || !strings.Contains(last(m), "esc close") {
-		t.Errorf("- in the rows: open %v, keys %q", m.books.Open, last(m))
-	}
-	m, _ = drive(m, esc)
-	if m, _ = drive(m, testkit.Click(m.booksAt(), shell.Top)); !m.books.Open {
-		t.Error("a click on the workspace menu did not drop it down")
-	}
-	// a click on Open Repository… asks kittui for the Open Repository… dialog, and closes the menu
-	x, y := at(m, "Open Repository…", shell.Top+1)
-	if m, produced := drive(m, testkit.Click(x, y)); m.books.Open ||
-		!slices.Contains(produced, tea.Msg(shell.OpenMsg{})) {
-		t.Errorf("a click on Open Repository… at %d, %d: open %v, %v", x, y, m.books.Open, produced)
+	if m, _ = drive(m, ctrlU, esc, testkit.Typed("-")[0]); strings.Contains(last(m), "esc close") {
+		t.Errorf("- in the rows opened a menu: keys %q", last(m))
 	}
 }
 

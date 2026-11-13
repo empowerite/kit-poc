@@ -126,11 +126,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyboardEnhancementsMsg:
 		m.keyboard = msg
 	case shell.WorkspaceMsg:
-		// the workspace reaches the palette under an open form too, and the form, which names it as the palette does
 		m.workspace = msg
-		if m.inForm && m.hasPalette {
-			m.palette = m.palette.Told(msg)
-		}
 	case palette.OpenMsg:
 		return m.open(msg.Verb)
 	case openedMsg:
@@ -167,7 +163,6 @@ func (m Model) find() (tea.Model, tea.Cmd) {
 			next, _ := m.palette.Update(tea.WindowSizeMsg{Width: m.width, Height: m.height})
 			m.palette = next.(palette.Model)
 		}
-		m.palette = m.palette.Told(m.workspace)
 	}
 	m.inForm, m.palette = false, m.palette.Find()
 	return m, nil

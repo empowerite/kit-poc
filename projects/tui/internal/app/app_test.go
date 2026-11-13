@@ -255,8 +255,8 @@ func TestCtrlCIsAnInterruptInThePaletteAndInTheForm(t *testing.T) {
 }
 
 // The form's search field asks for the palette's search: from a form the palette opened, the palette comes back with
-// its search focused, told the workspace that came while the form was open; a form that stood alone gets a palette
-// made then, told the workspace, its search focused, and stays when kit cannot list the verbs for one.
+// its search focused; a form that stood alone gets a palette
+// made then, its search focused, and stays when kit cannot list the verbs for one.
 func TestTheFormsSearchFieldIsThePalettes(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir()) // no searches remembered, here or in the person's file
 	ws := shell.WorkspaceMsg{Workspace: kit.Workspace{Kind: "repository", Member: "github.com/o/r"}}
@@ -266,13 +266,13 @@ func TestTheFormsSearchFieldIsThePalettes(t *testing.T) {
 	}
 	m = drive(m, tea.WindowSizeMsg{Width: 100, Height: 30}, ws, form.FindMsg{})
 	if v := ansi.Strip(m.View().Content); m.InForm() || !m.hasPalette || !strings.Contains(v, "🔎 ▏") ||
-		!strings.Contains(v, "kit help · - o/r") || len(m.palette.Visible()) == 0 {
+		!strings.Contains(v, "kit help") || strings.Contains(v, "o/r") || len(m.palette.Visible()) == 0 {
 		t.Errorf("a form that stood alone, then its search field: in form %v, palette %v\n%s", m.InForm(), m.hasPalette, v)
 	}
 	moved := shell.WorkspaceMsg{Workspace: kit.Workspace{Kind: "repository", Member: "github.com/o/s"}}
 	m = drive(m, press(tea.KeyEnter), press(tea.KeyEnter), moved, form.FindMsg{})
 	if v := ansi.Strip(m.View().Content); m.InForm() || !strings.Contains(v, "🔎 ▏") ||
-		!strings.Contains(v, "kit help · - o/s") {
+		!strings.Contains(v, "kit help") || strings.Contains(v, "o/s") {
 		t.Errorf("a form the palette opened, then its search field:\n%s", v)
 	}
 	alone, err := Open(testkit.Runner(t, "kit"), "commit", nil)

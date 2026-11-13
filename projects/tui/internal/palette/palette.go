@@ -97,9 +97,8 @@ type Model struct {
 	width, height int
 	cancelled     bool
 	interrupted   bool
-	appMenu       shell.Menu      // the app's menu, internal/shell's, which has the keyboard while it is open
-	books         shell.BooksMenu // the menu bar's workspace menu, which has the keyboard while it is open
-	clicked       *string         // the verb whose name a click fell on, the table's link, until click takes it
+	appMenu       shell.Menu // the app's menu, internal/shell's, which has the keyboard while it is open
+	clicked       *string    // the verb whose name a click fell on, the table's link, until click takes it
 }
 
 // New opens the palette on the verbs, leaving out tui itself, the person's presets of its table read from the presets
@@ -361,12 +360,6 @@ func (m *Model) focusSearch() {
 	m.sheet.Blur()
 }
 
-// Told gives the palette what kittui says of the workspace, which its menu bar names.
-func (m Model) Told(msg shell.WorkspaceMsg) Model {
-	m.books = m.books.Told(msg)
-	return m
-}
-
 // Interrupted says whether ctrl-c ended the palette.
 func (m Model) Interrupted() bool { return m.interrupted }
 
@@ -431,8 +424,6 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			delete(m.failed, msg.verb)
 		}
 		m.lay()
-	case shell.WorkspaceMsg:
-		m = m.Told(msg)
 	case shell.SettingsMsg:
 		m.sheet.Settings(msg.Settings)
 	case shell.FadedMsg:
@@ -440,7 +431,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseClickMsg:
 		return m.click(msg)
 	case tea.MouseWheelMsg:
-		if !m.appMenu.Open && !m.books.Open && !m.recent.Open {
+		if !m.appMenu.Open && !m.recent.Open {
 			m.sheet.Wheel(msg)
 		}
 	case tea.KeyPressMsg:
@@ -456,7 +447,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // the rows, it types nothing.
 func (m *Model) paste(text string) {
 	switch {
-	case m.appMenu.Open || m.books.Open || m.recent.Open:
+	case m.appMenu.Open || m.recent.Open:
 	case m.search.Focused && !m.sheet.Layered():
 		m.typed(m.search.Query + text)
 	default:
@@ -477,12 +468,6 @@ func (m Model) click(msg tea.MouseClickMsg) (tea.Model, tea.Cmd) {
 		var c shell.Choice
 		m.appMenu, c = m.appMenu.Click(msg.X, msg.Y, m.width)
 		return m, m.chose(c)
-	case m.books.Open:
-		var picked string
-		m.books, picked = m.books.Click(msg.X, msg.Y, m.booksAt(), m.width)
-		return m, shell.Pick(picked)
-	case m.books.On(msg.X, msg.Y, m.booksAt()):
-		m.books = m.books.Opened()
 	case m.recent.Open:
 		var query string
 		if m.recent, query = m.recent.Click(msg.X, msg.Y, m.recallAt(), m.width); query != "" {
@@ -521,10 +506,6 @@ func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		var c shell.Choice
 		m.appMenu, c = m.appMenu.Key(msg)
 		return m, m.chose(c)
-	case m.books.Open && key != "ctrl+c":
-		var picked string
-		m.books, picked = m.books.Key(msg)
-		return m, shell.Pick(picked)
 	case m.recent.Open && key != "ctrl+c":
 		var query string
 		if m.recent, query = m.recent.Key(msg); query != "" {
@@ -575,10 +556,6 @@ func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch key {
 	case "=":
 		m.appMenu = m.appMenu.Opened()
-	case shell.Workspaces:
-		if !m.search.Focused {
-			m.books = m.books.Opened()
-		}
 	case "/":
 		m.focusSearch()
 	case "?", "f1":

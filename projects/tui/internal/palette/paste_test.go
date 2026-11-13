@@ -33,11 +33,7 @@ func TestAPasteIsTypedInTheSearchWithFocus(t *testing.T) {
 		under.search.Query != "" {
 		t.Errorf("a paste under the kit menu: open %v, %q", under.appMenu.Open, under.search.Query)
 	}
-	m.books = m.books.Opened()
-	if m, _ = drive(m, tea.PasteMsg{Content: "cont"}); m.search.Query != "" {
-		t.Errorf("a paste under the workspace menu: %q", m.search.Query)
-	}
-	m.books.Open, m.recent.Open = false, true
+	m.recent.Open = true
 	if m, _ = drive(m, tea.PasteMsg{Content: "cont"}); m.search.Query != "" {
 		t.Errorf("a paste under the searches remembered: %q", m.search.Query)
 	}

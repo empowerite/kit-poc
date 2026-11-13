@@ -14,17 +14,14 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/table"
 )
 
-// menuBar gives the menu bar, as internal/shell draws every screen's: the kit menu's = before kit help; the workspace
-// menu, which names the workspace; and the search field.
+// menuBar gives the menu bar, as internal/shell draws every screen's: the kit menu's = before kit help, and the search
+// field; kit help stands on no workspace, so the menu bar has no workspace menu.
 func (m Model) menuBar() shell.MenuBar {
-	return shell.MenuBar{Screen: appLabel, Open: m.appMenu.Open, Workspace: m.books.Label(), Crumb: m.appMenu.Crumb, Search: m.searchLine()}
+	return shell.MenuBar{Screen: appLabel, Open: m.appMenu.Open, Crumb: m.appMenu.Crumb, Search: m.searchLine()}
 }
 
 // searchAt gives the column the search starts at on the menu bar, as internal/shell puts every screen's.
 func (m Model) searchAt() int { return m.menuBar().SearchAt(m.width) }
-
-// booksAt gives the column the menu bar's workspace menu starts at.
-func (m Model) booksAt() int { return m.menuBar().WorkspaceAt() }
 
 // recallAt gives the screen column of the search's Recall glyph.
 func (m Model) recallAt() int { return shell.RecallAt(m.searchAt()) }
@@ -56,7 +53,6 @@ func (m Model) View() tea.View {
 	drawn = m.sheet.Over(drawn)
 	drawn = m.recent.Overlay(drawn, m.recallAt(), m.width)
 	drawn = m.appMenu.Overlay(drawn, m.width)
-	drawn = m.books.Overlay(drawn, m.booksAt(), m.width)
 	return shell.View(drawn, m.height, m.bottom())
 }
 
@@ -88,7 +84,7 @@ func (m Model) bottom() string {
 // keyboard, its esc giving the search the keyboard, and on a verb, ⏎ opening its form. An open menu, or a layer of the
 // table, takes every press, and is the path alone.
 func (m Model) keys() shell.Path {
-	if m.appMenu.Open || m.recent.Open || m.books.Open {
+	if m.appMenu.Open || m.recent.Open {
 		return shell.Path{shell.MenuKeys()}
 	}
 	if seg, layer := m.sheet.Keys(); layer {
