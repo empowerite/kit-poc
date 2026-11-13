@@ -42,10 +42,11 @@ terminal/wt:settings() {
     return 1
   fi
   if ! terminal/wt:jsonc < "${file}" | jq --compact-output --arg id "${WT_PROFILE_ID:-}" '
-      (.profiles | if type == "array" then . else .list // [] end) as $list
+      (.defaultProfile // "") as $default
+      | (.profiles | if type == "array" then . else .list // [] end) as $list
       | (.profiles | if type == "object" then .defaults // {} else {} end) as $defaults
       | (first($list[] | select($id != "" and ((.guid // "") | ascii_downcase) == ($id | ascii_downcase)))
-         // first($list[] | select(((.guid // "") | ascii_downcase) == ((.defaultProfile // "") | ascii_downcase)))
+         // first($list[] | select(((.guid // "") | ascii_downcase) == ($default | ascii_downcase)))
          // $list[0] // {}) as $p
       | def get($key; $default): if $p | has($key) then $p[$key] elif $defaults | has($key) then $defaults[$key]
                                   else $default end;

@@ -559,7 +559,9 @@ esac' wslpath 'printf "%s\n" "${WIN_LOCAL}"'
   [ "$(found <<<"$output")" = '["terminal-wt-kitty-keyboard","terminal-wt-force-vt"]' ]
   run kit-bash 'WT_SESSION=1 terminal:settings wt'
   [ "$(jq -c '[.profile, .kitty_keyboard, .force_vt, .text_measurement]' <<<"$output")" = \
-    '["Windows PowerShell",null,true,"graphemes"]' ]
+    '["Ubuntu",false,true,"graphemes"]' ]
+  run kit-bash 'WT_SESSION=1 WT_PROFILE_ID="{61C54BBD-C2C6-5271-96E7-009A87FF44BF}" terminal:settings wt'
+  [ "$(jq -c '[.profile, .kitty_keyboard]' <<<"$output")" = '["Windows PowerShell",null]' ]
 }
 
 @test "the JSONC reader takes out a comma that only comments and blank lines keep from its closing brace" {
