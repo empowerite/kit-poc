@@ -10,6 +10,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/empowerite/kit/projects/tui/internal/pane"
 	"github.com/empowerite/kit/projects/tui/internal/style"
 )
 
@@ -157,7 +158,25 @@ func (d SettingsDialog) Overlay(lines []string, s Settings, width int) []string 
 	}
 	box := d.box(s, width)
 	top, left := d.place(box, len(lines), width)
+	d.release(lines, left)
 	return Over(lines, box, top, left)
+}
+
+// release clears the menu's keyboard from its Settings… line, as the dialog now has it: the cells of that line before
+// column left, where the dialog's box starts, come back as plain text, from the one after the menu's edge. The menu is
+// still open under the dialog, on Settings…, for esc to close back to.
+func (d SettingsDialog) release(lines []string, left int) {
+	if d.From == nil || d.From.Y < 0 || d.From.Y >= len(lines) {
+		return
+	}
+	// the name starts after the box's edge, a cell, the glyph's two cells, and a cell, as Menu.choice says
+	from := d.From.X - 4
+	if from >= left {
+		return
+	}
+	line := lines[d.From.Y]
+	lines[d.From.Y] = pane.Cells(line, 0, from) + ansi.Strip(pane.Cells(line, from, left)) +
+		pane.Cells(line, left, ansi.StringWidth(line))
 }
 
 // box gives the dialog's lines, as Overlay draws them on a screen so wide: each setting's name, then what it says, in

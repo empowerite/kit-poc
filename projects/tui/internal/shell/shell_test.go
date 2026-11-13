@@ -5,6 +5,7 @@ package shell
 
 import (
 	"image"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -139,6 +140,17 @@ func TestTheMenuHangsFromTheTitlesGlyphAndAClickChooses(t *testing.T) {
 		Settings{}, 60), "╭─ Settings…").Add(image.Point{X: 3}) != *c.From {
 		t.Errorf("the dialog over the menu:\n%s", ansi.Strip(strings.Join(d.Overlay(m.Overlay(slices.Clone(screen), 60),
 			Settings{}, 60), "\n")))
+	} else {
+		// the menu's keyboard is the dialog's now: no cell of the Settings… line is left inverse beside the box
+		row := d.Overlay(m.Overlay(slices.Clone(screen), 60), Settings{}, 60)[c.From.Y]
+		if regexp.MustCompile("\x1b\\[7[0-9;]*m[^\x1b]").MatchString(strings.Split(row, "╭")[0]) {
+			t.Errorf("a relic of the menu's selection beside the dialog: %q", row)
+		}
+	}
+	// a dialog clamped off the menu's own column, or from nowhere, or off the screen, leaves the lines as they were
+	for _, from := range []*image.Point{nil, {X: 3, Y: -1}, {X: 3, Y: 99}, {X: 40, Y: 0}} {
+		d := SettingsDialog{Open: true, From: from}
+		_ = d.Overlay(slices.Clone(screen), Settings{}, 60)
 	}
 	// = and the name after it, "kit", take the click, on the title line alone
 	if !OnApp(At, Top, "kit") || !OnApp(0, Top, "kit") || !OnApp(At+4, Top, "kit") || OnApp(At+5, Top, "kit") ||
