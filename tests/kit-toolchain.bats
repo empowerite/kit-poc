@@ -85,7 +85,7 @@ downloads() {
   t=$'\t'
   grep --quiet -E "^beta${t}2\.0\.0${t}linux-x64${t}desk${t}file:beta-2\.0\.0-linux-x64\.tar\.gz${t}sha256:[0-9a-f]{64}\
 ${t}beta-2\.0\.0/bin$" tools.lock
-  run ! grep --quiet 'https://' tools.lock
+  run -1 grep --quiet 'https://' tools.lock
   run "${kit_root}/bin/kit" tools path --toolchain=kit
   [ "$status" -eq 0 ]
   [ "$(wc -l <<<"$output" | tr -d ' ')" -eq 2 ]

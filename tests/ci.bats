@@ -240,7 +240,7 @@ run-job() {
   [ "$(yq '.on.pull_request_target.types | join(",")' "${workflow}")" = "closed" ]
   [ "$(yq '.jobs.Settle.if' "${workflow}")" = "github.event_name == 'pull_request_target'" ]
   # the checkout is the base's, so the step names no ref and no repository of the pull request's head
-  run ! grep --quiet 'github.event.pull_request.head' "${workflow}"
+  run -1 grep --quiet 'github.event.pull_request.head' "${workflow}"
 }
 
 @test "the CI job stops after the minutes the ci_timeout_minutes answer gives, 30 by default" {
@@ -263,9 +263,9 @@ run-job() {
   [ "$(yq '.jobs.CI.steps[-1].run' "${workflow}")" = "kit ci" ]
   # the only directory a step puts on the job's PATH is kit's own
   [ "$(grep -c 'GITHUB_PATH' <<<"$(yq '.jobs.CI.steps[].run // ""' "${workflow}")")" -eq 2 ]
-  run ! grep --quiet 'kit tools path' "${workflow}"
+  run -1 grep --quiet 'kit tools path' "${workflow}"
   # a step runs by the toolchain the answer names, never by which files are here
-  run ! grep --quiet 'if: .*hashFiles' "${workflow}"
+  run -1 grep --quiet 'if: .*hashFiles' "${workflow}"
   grep --quiet "^        if: \${{ env.KIT_TOOLCHAIN == 'kit' }}$" "${workflow}"
   grep --quiet "^          key: kit-tools-\${{ runner.os }}-\${{ runner.arch }}-\${{ hashFiles('tools.lock') }}$" "${workflow}"
 }

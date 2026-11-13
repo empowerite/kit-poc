@@ -257,7 +257,8 @@ YAML
   run in_tracker tracker:of 'BZ#3' assign ada
   [ "$status" -eq 3 ]
   run in_tracker tracker:of 'LIN#12' state
-  [ "$status" -eq 3 ] && [ -z "$output" ]
+  [ "$status" -eq 3 ]
+  [ -z "$output" ]
   [[ "$(in_tracker tracker:pages-only 'LIN#12')" == "LIN#12 is in the LIN# tracker, which kit reaches through its pages alone, so its state is not judged here; open https://linear.app/example/issue/ENG-12" ]]
   run in_tracker tracker:of 'BZ#3' assign ada
   [[ "$output" == *"kit cannot assign it in the BZ# tracker"*"open its tracker's page"* ]]

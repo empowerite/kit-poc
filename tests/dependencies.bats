@@ -82,7 +82,8 @@ TOML
   run kit-bash 'use dependencies && dependencies:usable && echo --- && dependencies:unlocked'
   [ "$output" = $'npm\nuv\n---' ]
   # neither is run to find it
-  [ ! -e "${FAKE_DIR}/npm.calls" ] && [ ! -e "${FAKE_DIR}/uv.calls" ]
+  [ ! -e "${FAKE_DIR}/npm.calls" ]
+  [ ! -e "${FAKE_DIR}/uv.calls" ]
   rm "${FAKE_DIR}/bin/npm"
   path-without npm
   run kit-bash 'use dependencies && dependencies:usable'
@@ -128,7 +129,7 @@ $(pwd -P)/node_modules/.bin" ]
   : > "${FAKE_DIR}/uv.calls"
   run kit-bash 'use dependencies && dependencies:call uv pins'
   [ "$output" = $'ruff\t0.14.3\t\npyyaml\t6.0.3\t' ]
-  run ! grep --quiet 'pip list' "${FAKE_DIR}/uv.calls"
+  run -1 grep --quiet 'pip list' "${FAKE_DIR}/uv.calls"
 }
 
 @test "uv pins what uv sync would have in .venv: no package a marker or an extra leaves out, and one of two versions" {

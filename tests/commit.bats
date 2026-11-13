@@ -419,8 +419,8 @@ forge-world() {
   printf 'x\n' > x && git add x
   run kit commit --message='#9 x: a file' x
   [ "$status" -eq 0 ]
-  run ! grep --quiet '^pr edit' "${FAKE_DIR}/gh.calls"
-  run ! grep --quiet '^issue edit' "${FAKE_DIR}/gh.calls"
+  run -1 grep --quiet '^pr edit' "${FAKE_DIR}/gh.calls"
+  run -1 grep --quiet '^issue edit' "${FAKE_DIR}/gh.calls"
 }
 
 @test "kit commit with a Refs: trailer for another issue closes it in the branch's change, as a subject's would" {
@@ -460,7 +460,7 @@ forge-world() {
   run kit commit --message='#9 x: a file' x
   [ "$status" -eq 0 ]
   [[ "$output" == *"could not be added to change 3's body"* ]]
-  run ! grep --quiet '^pr edit' "${FAKE_DIR}/gh.calls"
+  run -1 grep --quiet '^pr edit' "${FAKE_DIR}/gh.calls"
 }
 
 @test "with a primary that names no remote, kit commit refuses, since the default branch could not be read" {
@@ -849,7 +849,8 @@ EOF
   [ "$(git log -1 --format=%s)" = "#7 notes: mine" ]
   [[ "$output" == *"⚠️ notes.txt is staged as it was before $(git rev-parse --short HEAD)"* ]]
   [[ "$output" == *"git restore --staged -- 'notes.txt'"* ]]
-  [ -e "${lock}" ] && [ ! -s "${lock}" ]
+  [ -e "${lock}" ]
+  [ ! -s "${lock}" ]
   rm "${lock}"
   [ "$(git show :notes.txt)" = notes ]
 }

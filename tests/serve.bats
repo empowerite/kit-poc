@@ -108,9 +108,9 @@ call() {
     answer "${id}" | jq --exit-status '.error | .code == -32602 and (.message | contains("holds a NUL"))'
     grep --quiet "id=${id} .*outcome=error=-32602$" .kit/logs/mcp-*.log
   done
-  run ! grep --quiet 'kit help version' .kit/logs/mcp-*.log
-  run ! grep --quiet ' kit version' .kit/logs/mcp-*.log
-  run ! grep --quiet 'ignored null byte' "${BATS_TEST_TMPDIR}/err"
+  run -1 grep --quiet 'kit help version' .kit/logs/mcp-*.log
+  run -1 grep --quiet ' kit version' .kit/logs/mcp-*.log
+  run -1 grep --quiet 'ignored null byte' "${BATS_TEST_TMPDIR}/err"
 }
 
 @test "a raw NUL byte on a line is a parse error, never served, and the server goes on" {
@@ -260,7 +260,8 @@ call() {
   done
   # nothing ran: kit.yml, the choice, and the command's file are as they were, and mise was only asked to list
   [ "$(cksum kit.yml)" = "${before}" ]
-  [ ! -e .git/kit/toolchain ] && [ ! -e ran ]
+  [ ! -e .git/kit/toolchain ]
+  [ ! -e ran ]
   if grep -E 'install|upgrade|outdated' "${FAKE_DIR}/mise.calls"; then false; fi
   answer 7 | jq --exit-status '.result | .isError == false and (.content[0].text | contains("jq"))'
   answer 8 | jq --exit-status '.result | .isError == false and (.content[0].text | contains("mise"))'
@@ -329,7 +330,7 @@ call() {
   answer 1 | jq --exit-status '.result.tools[] | select(.name == "work")
     | (.inputSchema.properties | has("sweep") or has("no-sweep") | not) and (.description | contains("sweep") | not)'
   [ "$(grep --count ' kit work 7 --no-sweep$' .kit/logs/mcp-*.log)" -eq 1 ]
-  run ! grep --quiet ' kit work .*--sweep' .kit/logs/mcp-*.log
+  run -1 grep --quiet ' kit work .*--sweep' .kit/logs/mcp-*.log
   answer 3 | jq --exit-status '.error.code == -32602 and (.error.message | contains("unknown argument sweep"))'
   answer 4 | jq --exit-status '.error.code == -32602 and (.error.message | contains("unknown argument no-sweep"))'
 }
@@ -434,7 +435,7 @@ call() {
   answer 5 | jq --exit-status '.error | .code == -32602 and (.message | contains("unknown argument worktree"))'
   # a worktree outside the desk is a checkout of the repository too, named by its absolute path
   answer 7 | jq --exit-status '.result | .isError == false and (.content[0].text | contains("bash"))'
-  run ! grep --quiet 'kit lint' .kit/logs/mcp-*.log
+  run -1 grep --quiet 'kit lint' .kit/logs/mcp-*.log
 }
 
 @test "check, lint, toolchains, and tools say they run the repository's commands; a tool that reads only leaves it" {
@@ -498,7 +499,7 @@ call() {
     # the same shape, short, is inside: the length alone refuses the long one
     answer 4 | jq --exit-status 'has("result")'
   done
-  run ! grep --quiet 'bad.sh' .kit/logs/mcp-*.log
+  run -1 grep --quiet 'bad.sh' .kit/logs/mcp-*.log
 }
 
 @test "a .. after a link is judged as the kernel reads it and as a shell does, and refused unless both are inside" {
@@ -508,7 +509,9 @@ call() {
   ln -s sub/inner deep
   ln -s kit.yml alias.yml
   printf '#!/usr/bin/env bash\necho $1\n' > "${BATS_TEST_TMPDIR}/secret.sh"
-  [ -f ../secret.sh ] && [ ! -e secret.sh ] && [ ! -e beside.sh ]
+  [ -f ../secret.sh ]
+  [ ! -e secret.sh ]
+  [ ! -e beside.sh ]
   for tool in context kinds lint
   do
     serve "$(call 1 "${tool}" '{"path":["deep/../../secret.sh"]}')" \
@@ -526,7 +529,7 @@ call() {
       answer "${id}" | jq --exit-status 'has("result")'
     done
   done
-  run ! grep --quiet 'secret.sh' .kit/logs/mcp-*.log
+  run -1 grep --quiet 'secret.sh' .kit/logs/mcp-*.log
 }
 
 @test "a path whose last part is .. is judged as a verb reads it too, and a dangling link is refused" {
@@ -666,7 +669,7 @@ call() {
 
 @test "the workflow package's file is a resource beside the entry file when the package is active, and not before" {
   serve "$(modern 1 resources/list)"
-  run ! grep --quiet 'kit://workflow.md' "${BATS_TEST_TMPDIR}/out"
+  run -1 grep --quiet 'kit://workflow.md' "${BATS_TEST_TMPDIR}/out"
   "${kit_checkout}/bin/kit" packages add workflow >/dev/null 2>&1
   serve "$(modern 1 resources/list)" "$(modern 2 resources/read '{"uri":"kit://workflow.md"}')"
   [ "$(answer 1 | jq --raw-output '.result.resources[1].uri')" = "kit://workflow.md" ]
@@ -833,7 +836,7 @@ await() {
   exec 7>&-
   wait "${server}"
   grep --quiet '"method":"notifications/resources/list_changed"' "${BATS_TEST_TMPDIR}/out"
-  run ! grep --quiet 'notifications/tools/list_changed' "${BATS_TEST_TMPDIR}/out"
+  run -1 grep --quiet 'notifications/tools/list_changed' "${BATS_TEST_TMPDIR}/out"
 }
 
 @test "tools/list answers an internal error naming a tool whose header leaves the verb template, never a list without it" {

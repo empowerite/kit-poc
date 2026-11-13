@@ -47,7 +47,7 @@ setup() {
   [[ "$output" == *"2 finding(s)"* ]]
   run "${kit_checkout}/bin/kit" context .kit/1st.md
   [ "$status" -eq 0 ]
-  run ! grep --quiet '^edited$' .kit/rules/bash.md
+  run -1 grep --quiet '^edited$' .kit/rules/bash.md
   [ ! -w .kit/rules/bash.md ]
   [ -f .kit/rules/rogue.md ]
   rm .kit/rules/rogue.md
@@ -120,7 +120,7 @@ setup() {
   [[ "$output" == *".kit/rules/bash.md: a different file is there already"* ]]
   [[ "$output" == *"1 path(s) under .kit/ hold a file kit did not place"* ]]
   [[ "$output" != *"hydrated .kit/"* ]]
-  run ! grep --quiet 'rules/bash.md' .kit/manifest
+  run -1 grep --quiet 'rules/bash.md' .kit/manifest
   grep --quiet '  .kit/rules/json.md$' .kit/manifest
   # the next verb warns again, and leaves the file as it is
   printf 'x\n' > x.md
@@ -134,12 +134,12 @@ setup() {
   [[ "$output" == *".kit/rules/bash.md: a different file is there already"* ]]
   [[ "$output" == *"1 file(s) need a hand"* ]]
   [ "$(cat .kit/rules/bash.md)" = "MY OWN RULE" ]
-  run ! grep --quiet 'rules/bash.md' .kit/manifest
+  run -1 grep --quiet 'rules/bash.md' .kit/manifest
   # without its write bit too, a verb that rewrites the manifest records nothing
   chmod a-w .kit/rules/bash.md
   run "${kit_checkout}/bin/kit" packages add style/json
   [ "$status" -eq 0 ]
-  run ! grep --quiet 'rules/bash.md' .kit/manifest
+  run -1 grep --quiet 'rules/bash.md' .kit/manifest
   run "${kit_checkout}/bin/kit" hydrate
   [ "$status" -eq 1 ]
   [ "$(cat .kit/rules/bash.md)" = "MY OWN RULE" ]
@@ -163,7 +163,7 @@ setup() {
   run "${kit_checkout}/bin/kit" hydrate
   [ "$status" -eq 1 ]
   # the path is written as an exception, and every path kit placed as before
-  run ! grep --quiet --line-regexp '/rules/bash.md' .kit/.gitignore
+  run -1 grep --quiet --line-regexp '/rules/bash.md' .kit/.gitignore
   grep --quiet --line-regexp '!/rules/bash.md' .kit/.gitignore
   grep --quiet --line-regexp '/rules/json.md' .kit/.gitignore
   run git check-ignore --quiet .kit/rules/bash.md
@@ -197,7 +197,7 @@ setup() {
   run "${kit_checkout}/bin/kit" hydrate
   [ "$status" -eq 0 ]
   grep --quiet --line-regexp '/rules/bash.md' .kit/.gitignore
-  run ! grep --quiet '^!' .kit/.gitignore
+  run -1 grep --quiet '^!' .kit/.gitignore
   git check-ignore --quiet .kit/rules/bash.md
 }
 
@@ -235,7 +235,7 @@ setup() {
   run env KIT_BASE="${kit_checkout}" "${repo}.later/bin/kit" update
   [ "$status" -eq 0 ]
   [ ! -e .kit/rules/just.md ]
-  run ! grep --quiet '/rules/just.md' .kit/.gitignore
+  run -1 grep --quiet '/rules/just.md' .kit/.gitignore
   [ ! -w .kit/rules/bash.md ]
   run "${repo}.later/bin/kit" check
   [ "$status" -eq 0 ]
@@ -292,8 +292,8 @@ setup() {
   [ "$status" -eq 0 ]
   [ ! -e .kit/styles/yaml.md ]
   [ ! -e .kit/templates/yaml ]
-  run ! grep --quiet 'styles/yaml.md' .kit/.gitignore
-  run ! grep --quiet 'styles/yaml.md' .kit/manifest
+  run -1 grep --quiet 'styles/yaml.md' .kit/.gitignore
+  run -1 grep --quiet 'styles/yaml.md' .kit/manifest
   printf '  - style/json\n' >> kit.yml
   run "${kit_checkout}/bin/kit" hydrate
   [ "$status" -eq 0 ]
@@ -309,7 +309,7 @@ setup() {
   chmod u+w .kit/rules/bash.md && printf 'edited\n' >> .kit/rules/bash.md
   run "${kit_checkout}/bin/kit" hydrate
   [ "$status" -eq 0 ]
-  run ! grep --quiet '^edited$' .kit/rules/bash.md
+  run -1 grep --quiet '^edited$' .kit/rules/bash.md
   [ ! -e .kit/rules/bash.md.kit-new ]
 }
 

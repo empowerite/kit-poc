@@ -14,7 +14,7 @@ setup() {
 @test "policy/opa is described by the names its rules judge, and its Rego reads no file of the tree" {
   [ "$(yq '.description' "${kit_checkout}/packages/policy/opa/package.yml")" \
     = "The policy as Rego on Open Policy Agent, covering the names of branches, worktrees, commits, and pull requests" ]
-  run ! grep --quiet 'input.tree' "${kit_checkout}/packages/policy/opa/files/repo/.kit/policy/kit.rego"
+  run -1 grep --quiet 'input.tree' "${kit_checkout}/packages/policy/opa/files/repo/.kit/policy/kit.rego"
 }
 
 @test "select adds and removes to reach exactly the named set, keeps what the set needs, and says so" {
@@ -183,7 +183,7 @@ setup() {
   run "${kit_checkout}/bin/kit" packages add kit
   [ "$status" -eq 0 ]
   [ -e .kit/1st.md ]
-  run ! grep --quiet '^excludes:' kit.yml
+  run -1 grep --quiet '^excludes:' kit.yml
 }
 
 @test "with the kit package removed no active package delivers a kind, so nothing is governed, and the verbs that ask still run" {
@@ -246,7 +246,8 @@ setup() {
   [ "$status" -eq 0 ]
   [ "$(jq -c 'keys' <<<"$output")" = '["packages"]' ]
   before=$(jq -r .packages <<<"$output")
-  [ -n "${before}" ] && [ "${before}" != null ]
+  [ -n "${before}" ]
+  [ "${before}" != null ]
   "${kit_checkout}/bin/kit" packages add style/bash >/dev/null 2>&1
   run --separate-stderr "${kit_checkout}/bin/kit" packages --marks
   [ "$(jq -r .packages <<<"$output")" != "${before}" ]

@@ -52,9 +52,9 @@ setup() {
   [ ! -e .kit/workflow.md ]
   grep --quiet '^## Integrity$' .kit/1st.md
   grep --quiet '^## Kit commands instead of git commands$' .kit/1st.md
-  run ! grep --quiet 'The worker contract' .kit/1st.md
-  run ! grep --quiet 'Plans are prose' .kit/1st.md
-  run ! grep --quiet 'gh pr ready' .kit/1st.md
+  run -1 grep --quiet 'The worker contract' .kit/1st.md
+  run -1 grep --quiet 'Plans are prose' .kit/1st.md
+  run -1 grep --quiet 'gh pr ready' .kit/1st.md
   # the entry file names the file the workflow package delivers, so an agent knows where to look when it is there
   grep --quiet '^## The workflow$' .kit/1st.md
   grep --quiet 'workflow.md' .kit/1st.md
@@ -70,7 +70,7 @@ setup() {
   grep --quiet 'what was left out, and why' .kit/workflow.md
   # every forge marks a change ready the one way, the draft's stand-in with it
   grep --quiet 'kit ready' .kit/workflow.md
-  run ! grep --quiet 'glab mr update --ready' .kit/workflow.md
+  run -1 grep --quiet 'glab mr update --ready' .kit/workflow.md
   # the report the workflow asks for has a command that writes it, in the workflow's step and in the worker's
   [ "$(grep --count 'kit ready --report-file=<path>' .kit/workflow.md)" -eq 2 ]
   run "${kit_checkout}/bin/kit" packages remove workflow

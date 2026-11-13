@@ -1057,7 +1057,7 @@ COMMAND
   [ "$status" -eq 0 ]
   grep --quiet 'GH_TOKEN=ghs_two' "${FAKE_DIR}/gh.calls"
   [ -s "${FAKE_DIR}/jq.calls" ]
-  run ! grep --quiet ghs_ "${FAKE_DIR}/jq.calls" "${FAKE_DIR}/curl.calls"
+  run -1 grep --quiet ghs_ "${FAKE_DIR}/jq.calls" "${FAKE_DIR}/curl.calls"
 }
 
 @test "a run inside a run of another bot gives its command its own token, not the outer's" {

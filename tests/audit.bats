@@ -93,7 +93,8 @@ JSON
     = '["W/\"m1\" W/\"m1\"","W/\"m1\" W/\"m1\" W/\"m1\" W/\"m1\"",null,null,null]' ]
   printf 'policy:\n  branch: "^[0-9]+-"\n' > kit.yml
   first=$("${kit_root}/bin/kit" audit --marks | jq -r .policy)
-  [ -n "${first}" ] && [ "${first}" != null ]
+  [ -n "${first}" ]
+  [ "${first}" != null ]
   printf 'policy:\n  branch: "^x-"\n' > kit.yml
   [ "$("${kit_root}/bin/kit" audit --marks | jq -r .policy)" != "${first}" ]
 }
@@ -104,7 +105,8 @@ JSON
   printf 'package x\n' > real/house.rego
   ln -s ../../real/house.rego .kit/policy/house.rego
   first=$("${kit_root}/bin/kit" audit --marks | jq -r .policy)
-  [ -n "${first}" ] && [ "${first}" != null ]
+  [ -n "${first}" ]
+  [ "${first}" != null ]
   printf 'deny[1]\n' >> real/house.rego
   [ "$("${kit_root}/bin/kit" audit --marks | jq -r .policy)" != "${first}" ]
 }
@@ -475,7 +477,8 @@ rows() { jq -c '.rows[] | [.harness, .mechanism, .status, .evidence]' <<<"$1"; }
 '["repository","required review","active"]]' ]
   # the mark moves with the files the local rows read, and with no forge read
   first=$("${kit_root}/bin/kit" audit --marks | jq -r .enforcement)
-  [ -n "${first}" ] && [ "${first}" != null ]
+  [ -n "${first}" ]
+  [ "${first}" != null ]
   printf '#!/bin/sh\nlefthook run pre-commit\n' > .git/hooks/pre-commit
   [ "$("${kit_root}/bin/kit" audit --marks | jq -r .enforcement)" != "${first}" ]
 }

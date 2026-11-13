@@ -99,7 +99,7 @@ retire-world() {
   run env GITHUB_ACTIONS=true "${repo_bin}/release" retire
   [ "$status" -eq 0 ]
   [[ "$output" == *"keeping release/1.0.0-rc.1"* ]]
-  run ! grep -q '^release delete' "${fakes}/gh.calls"
+  run -1 grep -q '^release delete' "${fakes}/gh.calls"
 }
 
 @test "retire fails, and deletes nothing, when the releases cannot be listed" {
@@ -273,7 +273,7 @@ install-lines() {
   [ "$(wc -l < "${fakes}/go.calls" | tr -d ' ')" -eq 4 ]
   # the tag must exist already: gh would otherwise make one at the default branch's head
   grep -q '^release create release/9\.9\.9 /[^ ]*/kit-9\.9\.9\.tar\.gz /[^ ]*/kit-9\.9\.9\.tar\.gz\.sha256 --verify-tag --title' "${fakes}/gh.calls"
-  run ! grep -q 'kittui' "${fakes}/gh.calls"
+  run -1 grep -q 'kittui' "${fakes}/gh.calls"
   grep -q '^kit-9\.9\.9/libexec/kittui-darwin-arm64$' "${fakes}/listing"
 }
 

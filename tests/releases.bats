@@ -214,7 +214,8 @@ JSON
     line=${line%  ⭐ latest}
     widths+=("${#line}")
   done
-  [ "${widths[0]}" -eq "${widths[1]}" ] && [ "${widths[1]}" -eq "${widths[2]}" ]
+  [ "${widths[0]}" -eq "${widths[1]}" ]
+  [ "${widths[1]}" -eq "${widths[2]}" ]
   run "${kit_root}/bin/kit" flow releases --json
   [ "$(jq -r 'map("\(.key) \(.kind) \(.latest)") | join(", ")' <<<"$output")" \
     = "release/0.1.0-rc.7 draft null, release/0.1.0-rc.6 pre-release null, release/0.0.9 release latest" ]

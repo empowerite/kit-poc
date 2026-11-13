@@ -428,7 +428,7 @@ asked() {
   [ -f worktrees/7-fix-the-thing/x ]
   git show-ref --verify --quiet refs/heads/7-fix-the-thing
   # it never forces: git is never asked to remove a worktree by force
-  run ! grep -rq -- 'worktree remove --force\|worktree remove -f' "${kit_root}/modules/bash/git.sh"
+  run -1 grep -rq -- 'worktree remove --force\|worktree remove -f' "${kit_root}/modules/bash/git.sh"
 }
 
 @test "ctrl-c stops kit tidy --wait, which removes nothing and exits 130" {

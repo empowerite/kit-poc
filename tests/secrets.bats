@@ -105,7 +105,7 @@ only-secret-tool() {
   [ "$status" -eq 0 ]
   [ "$output" = "${PEM}" ]
   grep -q 'store' "${FAKE_DIR}/secret-tool.calls"
-  run ! grep -F -e MIIEow -e "$(printf '%s\n' "${PEM}" | base64 | tr -d '\n' | cut -c1-40)" "${FAKE_DIR}/secret-tool.calls"
+  run -1 grep -F -e MIIEow -e "$(printf '%s\n' "${PEM}" | base64 | tr -d '\n' | cut -c1-40)" "${FAKE_DIR}/secret-tool.calls"
   PATH="${lean}" run kit-bash 'secrets:foreign kit-bot github.com/12'
   [ "$output" = "$(printf '%s\n' "${PEM}" | base64 | tr -d '\n')" ]
   PATH="${lean}" run kit-bash 'secrets:delete kit-bot github.com/12 && ! secrets:get kit-bot github.com/12'

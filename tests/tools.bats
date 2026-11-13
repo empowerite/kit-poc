@@ -222,14 +222,14 @@ JSON
   [ "$status" -eq 0 ]
   [[ "$output" == *"brew installed the tools Brewfile pins that mise does not"* ]]
   grep --quiet --line-regexp 'install --quiet user/tap/direnv' "${FAKE_DIR}/brew.calls"
-  run ! grep --quiet 'bundle install' "${FAKE_DIR}/brew.calls"
+  run -1 grep --quiet 'bundle install' "${FAKE_DIR}/brew.calls"
   run "${kit_root}/bin/kit" tools --outdated
   grep --quiet -E '^🔺 bash ' <<<"$output"
   [[ "$output" != *"🔺 jq"* ]]
   run "${kit_root}/bin/kit" tools update
   [ "$status" -eq 0 ]
   grep --quiet --line-regexp 'upgrade bash' "${FAKE_DIR}/brew.calls"
-  run ! grep --quiet 'upgrade jq' "${FAKE_DIR}/brew.calls"
+  run -1 grep --quiet 'upgrade jq' "${FAKE_DIR}/brew.calls"
 }
 
 @test "brew filling in fails when the Brewfile's tools cannot be read" {
@@ -241,7 +241,7 @@ JSON
   run "${kit_root}/bin/kit" tools install
   [ "$status" -eq 1 ]
   [[ "$output" == *"could not be read"* && "$output" != *"✅ brew installed"* ]]
-  run ! grep --quiet '^install' "${FAKE_DIR}/brew.calls"
+  run -1 grep --quiet '^install' "${FAKE_DIR}/brew.calls"
 }
 
 @test "mise installs, reports, updates, and puts its bin paths first" {
@@ -259,7 +259,7 @@ JSON
   [ "$status" -eq 0 ]
   [[ "$output" == *"mise: installing from mise.toml"* ]]
   # whether mise trusts the clone's mise.toml is the person's call, never kit's
-  run ! grep --quiet '^trust' "${FAKE_DIR}/mise.calls"
+  run -1 grep --quiet '^trust' "${FAKE_DIR}/mise.calls"
   run "${kit_root}/bin/kit" tools --outdated
   [ "$status" -eq 0 ]
   grep --quiet -E '^🔺 jq +· 1\.8 +· 1\.8\.0 +· 1\.8\.1$' <<<"$output"
@@ -281,7 +281,7 @@ JSON
   run "${kit_root}/bin/kit" tools install
   [ "$status" -eq 1 ]
   [[ "$output" == *"if mise does not trust mise.toml yet, read it, and trust it yourself: mise trust mise.toml"* ]]
-  run ! grep --quiet '^trust' "${FAKE_DIR}/mise.calls"
+  run -1 grep --quiet '^trust' "${FAKE_DIR}/mise.calls"
 }
 
 @test "nix installs the dev shell, puts its PATH first, and lists the flake's inputs" {

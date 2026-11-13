@@ -126,8 +126,8 @@ compressed() {
   grep --quiet --line-regexp '  - "\*\*/\*.sh"' .kit/kinds/bash.yml
   for file in .kit/rules/*.md .kit/styles/*.md
   do
-    run ! grep --quiet --line-regexp 'paths:' "${file}"
-    run ! grep --quiet --line-regexp 'content:' "${file}"
+    run -1 grep --quiet --line-regexp 'paths:' "${file}"
+    run -1 grep --quiet --line-regexp 'content:' "${file}"
     grep --quiet --line-regexp 'kind:' "${file}"
   done
   grep --quiet --line-regexp '  - bash' .kit/kinds/just.yml

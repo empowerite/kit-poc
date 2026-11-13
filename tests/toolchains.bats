@@ -100,7 +100,9 @@ probes() {
   [ "$(grep -e '^apt' -e '^dnf' -e '^pacman' <<<"$output")" = \
     $'apt\tsystem\tyes\tno\ndnf\tsystem\tyes\tno\npacman\tsystem\tyes\tno' ]
   # none is ever run to find it
-  [ ! -e "${FAKE_DIR}/apt-get.calls" ] && [ ! -e "${FAKE_DIR}/dnf.calls" ] && [ ! -e "${FAKE_DIR}/pacman.calls" ]
+  [ ! -e "${FAKE_DIR}/apt-get.calls" ]
+  [ ! -e "${FAKE_DIR}/dnf.calls" ]
+  [ ! -e "${FAKE_DIR}/pacman.calls" ]
   # beside brew, brew is offered first
   run kit-bash 'use toolchain && toolchain:usable system'
   [ "$output" = $'brew\napt\ndnf\npacman' ]

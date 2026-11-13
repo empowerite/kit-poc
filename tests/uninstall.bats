@@ -23,7 +23,9 @@ tree() {
 
 @test "uninstall takes out every file, entry, and region the kit placed, keeps the repository's own, and drops the declaration" {
   "${kit_checkout}/bin/kit" install agents/claude github/ci >/dev/null 2>&1
-  [ -f .github/workflows/kit-ci.yml ] && [ -f .kit/1st.md ] && grep --quiet 'kit:generate' AGENTS.md
+  [ -f .github/workflows/kit-ci.yml ]
+  [ -f .kit/1st.md ]
+  grep --quiet 'kit:generate' AGENTS.md
   run "${kit_checkout}/bin/kit" uninstall
   [ "$status" -eq 0 ]
   [[ "$output" == *"kit is uninstalled;"* ]]
@@ -59,7 +61,8 @@ tree() {
 @test "uninstall removes a JSON file of the kit's entries alone, and names what is left in lefthook.yml and the hook" {
   rm .claude/settings.json
   "${kit_checkout}/bin/kit" install agents/claude hooks/lefthook >/dev/null 2>&1
-  [ -f .claude/settings.json ] && [ -f .mcp.json ]
+  [ -f .claude/settings.json ]
+  [ -f .mcp.json ]
   printf '# lefthook.yml - the git hooks\nextends: [.kit/lefthook.yml]\n' > lefthook.yml
   mkdir -p .git/hooks
   printf '#!/bin/sh\nlefthook run pre-commit\n' > .git/hooks/pre-commit
@@ -78,7 +81,8 @@ tree() {
 @test "uninstall takes out what toolchain detection cached in .kit/cache/" {
   "${kit_checkout}/bin/kit" install >/dev/null 2>&1
   kit-bash 'use toolchain && toolchain:detect' >/dev/null
-  [ -f .kit/cache/toolchains.tsv ] && [ -f .kit/cache/toolchains.key ]
+  [ -f .kit/cache/toolchains.tsv ]
+  [ -f .kit/cache/toolchains.key ]
   run "${kit_checkout}/bin/kit" uninstall
   [ "$status" -eq 0 ]
   [ ! -e .kit ]

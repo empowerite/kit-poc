@@ -73,7 +73,8 @@ JSON
   [[ "${lines[2]}" == "🏃  nightly  #12  schedule  main           8e817bf                                "*"d       …" ]]
   [[ "${lines[3]}" == "🛑  kit      #39  manual    9-other        5d376dd                                "*"d     42s" ]]
   # the rows end in one column
-  [ "${#lines[0]}" -eq "${#lines[1]}" ] && [ "${#lines[2]}" -eq "${#lines[0]}" ]
+  [ "${#lines[0]}" -eq "${#lines[1]}" ]
+  [ "${#lines[2]}" -eq "${#lines[0]}" ]
 }
 
 @test "kit flow builds --json keeps a push on main or a tag, a schedule, and a manual run, never a pull request's" {

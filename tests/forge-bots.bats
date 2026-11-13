@@ -88,7 +88,8 @@ without() {
   [ "$(jq -r .iss <<<"${payload}")" = 12345 ]
   [ "$(jq '.exp - .iat' <<<"${payload}")" = 600 ]
   back=$(( $(date +%s) - $(jq .iat <<<"${payload}") ))
-  [ "${back}" -ge 60 ] && [ "${back}" -le 62 ]
+  [ "${back}" -ge 60 ]
+  [ "${back}" -le 62 ]
 }
 
 @test "forge/github:jwt fails, and prints no key, for a file that is no key or is missing" {

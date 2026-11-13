@@ -99,7 +99,8 @@ ambient-system() {
     printf '⏳ checked %s' "$(pwd -P)")" ]
   # without it, the checks say nothing on stderr
   run --separate-stderr checks
-  [ "$status" -eq 0 ] && [ -z "$stderr" ]
+  [ "$status" -eq 0 ]
+  [ -z "$stderr" ]
   # it goes with --checks alone
   run --separate-stderr "${kit_root}/bin/kit" welcome --text --progress
   [ "$status" -eq 2 ]
@@ -124,13 +125,13 @@ ambient-system() {
   for page in "${kit_root}/packages/kit/files/repo/.kit/1st.md" "${kit_root}/packages/kit/files/repo/.kit/welcome/"*.md \
     "${kit_root}/packages/workflow/files/repo/.kit/workflow.md"
   do
-    run ! grep --ignore-case --quiet --extended-regexp "harness|adapter|stand-in" "${page}"
+    run -1 grep --ignore-case --quiet --extended-regexp "harness|adapter|stand-in" "${page}"
   done
 }
 
 @test "the workflow lists kit ready among its commands, says how to file an issue and what no gate means" {
   grep --quiet 'kit ready' "${kit_root}/packages/kit/files/repo/.kit/1st.md"
-  run ! grep --quiet 'exactly as written' "${kit_root}/packages/kit/files/repo/.kit/1st.md"
+  run -1 grep --quiet 'exactly as written' "${kit_root}/packages/kit/files/repo/.kit/1st.md"
   grep --quiet 'kit work --title=<text>' "${kit_root}/packages/workflow/files/repo/.kit/workflow.md"
   grep --quiet 'report "no gate"' "${kit_root}/packages/workflow/files/repo/.kit/workflow.md"
 }

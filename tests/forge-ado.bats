@@ -330,7 +330,7 @@ added+='"bot-accounts","merge-closing"'
   said="open the pull request from https://ada@dev.azure.com/ada/empowerite/_git/example's 7-fix-the-thing by hand,"
   said+=" at https://dev.azure.com/acme/empowerite/_git/example/pullrequestcreate (az opens none from a fork)"
   [[ "$output" == *"${said}"* ]]
-  run ! grep -q 'repos pr create' "${FAKE_DIR}/az.calls"
+  run -1 grep -q 'repos pr create' "${FAKE_DIR}/az.calls"
 }
 
 @test "a completed pull request is merged, with its merge commit, and an abandoned one closed" {
@@ -381,7 +381,7 @@ added+='"bot-accounts","merge-closing"'
   : > "${FAKE_DIR}/az.calls"
   run "${kit_root}/bin/kit" settle 4
   [ "$status" -eq 0 ]
-  run ! grep --quiet 'work-item update' "${FAKE_DIR}/az.calls"
+  run -1 grep --quiet 'work-item update' "${FAKE_DIR}/az.calls"
 }
 
 @test "on Azure DevOps kit linked counts a work item the body's closing line names, and one it also links once" {

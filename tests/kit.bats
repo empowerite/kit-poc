@@ -279,7 +279,7 @@ tree-digest() {
   [ "$(cat "${KIT_HOME}/.kit/claude")" = "user level" ]
   grep --quiet '^version 9.9.9$' "${KIT_HOME}/.kit/manifest"
   grep --quiet '  .kit/claude$' "${KIT_HOME}/.kit/manifest"
-  run ! grep --quiet '  .kit/claude$' .kit/manifest
+  run -1 grep --quiet '  .kit/claude$' .kit/manifest
   run "${repo}.later/bin/kit" check
   [ "$status" -eq 0 ]
   printf 'edited\n' >> "${KIT_HOME}/.kit/claude"
@@ -563,7 +563,7 @@ tree-digest() {
   [[ "$output" == *"AGENTS.md: placed, the region regenerated"* ]]
   [ "$(sed -n '1p' AGENTS.md)" = "# Ours" ]
   grep --quiet 'Read .kit/1st.md' AGENTS.md
-  run ! grep --quiet 'something else' AGENTS.md
+  run -1 grep --quiet 'something else' AGENTS.md
 }
 
 @test "a package's expected include is named at install, refused by check until it is there, and never written" {
@@ -647,9 +647,9 @@ tree-digest() {
   grep --quiet '^require_signing: true$' kit.yml
   [ "$(declared version)" = unreleased ]
   [ "$(declared packages)" = "kit agents/generic agents/claude" ]
-  run ! grep --quiet '^excludes' kit.yml
-  run ! grep --quiet '^version' .kit/manifest
-  run ! grep --quiet '^packages' .kit/manifest
+  run -1 grep --quiet '^excludes' kit.yml
+  run -1 grep --quiet '^version' .kit/manifest
+  run -1 grep --quiet '^packages' .kit/manifest
   grep --quiet '  .kit/1st.md$' .kit/manifest
   # a later write replaces the declaration in place, once
   run "${kit_checkout}/bin/kit" packages add hooks/lefthook
@@ -670,7 +670,7 @@ tree-digest() {
   run env KIT_BASE="${kit_checkout}" "${repo}.later/bin/kit" update
   [ "$status" -eq 0 ]
   [ "$(declared version)" = "9.9.9" ]
-  run ! grep --quiet '^# JSON (ours)$' .kit/rules/json.md
+  run -1 grep --quiet '^# JSON (ours)$' .kit/rules/json.md
   grep --quiet '^## Added in 9.9.9$' .kit/rules/json.md
   [ ! -w .kit/rules/json.md ]
   grep --quiet '^name: ours$' .github/workflows/kit-ci.yml
@@ -713,7 +713,7 @@ tree-digest() {
   [ "$status" -eq 0 ]
   [ "$(declared version)" = unreleased ]
   [ "$(declared packages)" = "kit agents/generic agents/claude" ]
-  run ! grep --quiet '^version ' .kit/manifest
+  run -1 grep --quiet '^version ' .kit/manifest
   git add --force .kit/manifest
   run "${kit_checkout}/bin/kit" check
   [ "$status" -eq 1 ]
@@ -808,7 +808,7 @@ tree-digest() {
   [[ "$output" == *".kit/rules/toml.md: a different file is there already"* ]]
   [ "$(cat .kit/rules/toml.md)" = "mine" ]
   # the path kit did not place has no record, so the next verb leaves it too
-  run ! grep --quiet 'rules/toml.md' .kit/manifest
+  run -1 grep --quiet 'rules/toml.md' .kit/manifest
   printf 'x\n' > x.md
   run "${repo}.later/bin/kit" context x.md
   [ "$status" -eq 0 ]
@@ -961,7 +961,7 @@ tree-digest() {
   [ -e .github/workflows/kit-ci.yml ]
   [[ "$output" == *".kit/rules/gitignore.md: retired in 9.9.9, removed"* ]]
   [[ "$output" == *".github/workflows/kit-ci.yml: retired in 9.9.9, but edited"* ]]
-  run ! grep --quiet 'rules/gitignore.md' .kit/manifest
+  run -1 grep --quiet 'rules/gitignore.md' .kit/manifest
   run "${repo}.later/bin/kit" check
   [ "$status" -eq 0 ]
 }
@@ -1009,7 +1009,7 @@ tree-digest() {
   [ "$status" -eq 0 ]
   [[ "$output" == *".github/workflows/kit-ci.yml: retired in 9.9.9, removed"* ]]
   [ ! -e .github/workflows/kit-ci.yml ]
-  run ! grep --quiet 'kit-ci.yml' .kit/manifest
+  run -1 grep --quiet 'kit-ci.yml' .kit/manifest
   # a path kit packages remove takes out of what is delivered keeps no record, taken out or left as edited, so no
   # later update retires it
   run "${repo}.later/bin/kit" packages add agents/cursor
@@ -1020,7 +1020,7 @@ tree-digest() {
   [ "$status" -eq 0 ]
   [[ "$output" == *".cursor/rules/kit-bash.mdc: edited since the kit placed it; it is left as it is"* ]]
   [ -f .cursor/rules/kit-bash.mdc ]
-  run ! grep --quiet '\.cursor/' .kit/manifest
+  run -1 grep --quiet '\.cursor/' .kit/manifest
   run "${repo}.later/bin/kit" update
   [ "$status" -eq 0 ]
   [[ "$output" != *"retired"* ]]
@@ -1098,7 +1098,7 @@ tree-digest() {
   [[ "$output" == *".github/workflows/kit-ci.yml cannot be updated without the base release 9.9.9"* ]]
   [ "$(declared version)" = "9.9.9" ]
   # whole or not at all: the file that needed no base was not written either
-  run ! grep --quiet 'Added in 9.9.10' .kit/rules/json.md
+  run -1 grep --quiet 'Added in 9.9.10' .kit/rules/json.md
 }
 
 @test "update without the base release replaces every file still as it was placed, where none is merged by key" {

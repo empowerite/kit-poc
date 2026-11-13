@@ -75,7 +75,7 @@ desk-world() {
   : > "${FAKE_DIR}/gh.calls"
   run "${kit_checkout}/bin/kit" work 7
   [ "$status" -eq 0 ]
-  run ! grep --quiet '^pr edit 3 --body' "${FAKE_DIR}/gh.calls"
+  run -1 grep --quiet '^pr edit 3 --body' "${FAKE_DIR}/gh.calls"
 }
 
 @test "kit work takes the issue's lease for the paths it lists under Paths, pushes it to origin, and ** for none" {
@@ -321,7 +321,7 @@ desk-world() {
   run "${kit_checkout}/bin/kit" work --title='A new thing'
   [ "$status" -eq 1 ]
   [[ "$output" == *"refusing to start work: main on the desk has uncommitted work"* ]]
-  run ! grep --quiet --extended-regexp 'add-assignee|^issue create' "${FAKE_DIR}/gh.calls"
+  run -1 grep --quiet --extended-regexp 'add-assignee|^issue create' "${FAKE_DIR}/gh.calls"
   [ ! -e worktrees ]
   [ "$(git status --porcelain | sort)" = "$(printf ' M notes.txt\n?? scratch.txt')" ]
   [ -z "$(git stash list)" ]
@@ -390,7 +390,7 @@ desk-world() {
   [ "$(git status --porcelain)" = " M notes.txt" ]
   [ -z "$(git stash list)" ]
   [[ "$output" == *"refusing to start #7: its branch 7-fix-the-thing is checked out on the desk"* ]]
-  run ! grep --quiet 'add-assignee' "${FAKE_DIR}/gh.calls"
+  run -1 grep --quiet 'add-assignee' "${FAKE_DIR}/gh.calls"
   [ "$(git rev-parse HEAD)" = "${head}" ]
   [ "$(git -C "${repo}.origin.git" rev-parse 7-fix-the-thing)" = "${origin_head}" ]
 }
@@ -496,7 +496,7 @@ SHIM
   [[ "$output" == *"its address, where its report goes: "*"/pull/3"* ]]
   [[ "$output" == *"next: kit commit and kit submit there; when the work is done, kit gate, then kit ready"* ]]
   # the forge links no branch on upstream, so the change's body is what says it closes the issue
-  run ! grep -q '^issue develop' "${FAKE_DIR}/gh.calls"
+  run -1 grep -q '^issue develop' "${FAKE_DIR}/gh.calls"
   run grep -A1 '^pr edit 3 --body' "${FAKE_DIR}/gh.calls"
   [ "${lines[1]}" = 'Closes #7' ]
   # the branch is the fork's, with the start commit, and upstream has none
@@ -679,7 +679,7 @@ issue-call() {
   [[ "$output" == *"refusing to check 7-fix-the-thing out: the worktree kit work makes, worktree"* ]]
   [[ "$output" == *"'worktrees/7-fix-the-thing' does not match policy.worktree: ^wt/; set policy.worktree"* ]]
   [ ! -e worktrees/7-fix-the-thing ]
-  run ! grep --quiet 'add-assignee' "${FAKE_DIR}/gh.calls"
+  run -1 grep --quiet 'add-assignee' "${FAKE_DIR}/gh.calls"
 }
 
 @test "a draft whose title policy.change_title refuses is opened, with a warning that names the pattern" {
@@ -711,7 +711,7 @@ issue-call() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"refusing to start #7: the start commit kit work makes, commit subject '#7 start: Fix the thing'"* ]]
   [[ "$output" == *"does not match policy.commit_subject: ^never; set policy.commit_subject in kit.yml to allow it"* ]]
-  run ! grep --quiet 'add-assignee' "${FAKE_DIR}/gh.calls"
+  run -1 grep --quiet 'add-assignee' "${FAKE_DIR}/gh.calls"
   [ ! -e worktrees/7-fix-the-thing ]
 }
 

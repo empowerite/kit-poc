@@ -217,7 +217,7 @@ YAML
     > "${XDG_CONFIG_HOME}/kit/workspaces.yml"
   run "${kit_root}/bin/kit" tools install --toolchain=kit
   [ "$status" -eq 0 ]
-  run ! grep --quiet 'other.example' "${FAKE_RELEASES}/curl.calls"
+  run -1 grep --quiet 'other.example' "${FAKE_RELEASES}/curl.calls"
   [ "$(awk -F '\t' '$1 == "lint" { print $5 "\t" $6 }' tools.lock)" = "npm:@acme/lint@1.0.0"$'\t'"${integrity}" ]
   [ "$(tool lint)" = "lint 1.0.0" ]
   run "${kit_root}/bin/kit" tools --outdated --toolchain=kit
@@ -346,7 +346,7 @@ YAML
     > "${XDG_CONFIG_HOME}/kit/workspaces.yml"
   run "${kit_root}/bin/kit" tools install --toolchain=kit
   [ "$status" -eq 0 ]
-  run ! grep --quiet 'gnu.example' "${FAKE_RELEASES}/curl.calls"
+  run -1 grep --quiet 'gnu.example' "${FAKE_RELEASES}/curl.calls"
   grep --quiet --line-regexp "https://mirror.example/node/v24.22.2/node-v24.22.2-${os/macos/darwin}-${arch}.tar.gz" \
     "${FAKE_RELEASES}/curl.calls"
   [ "$(tool node)" = node ]
