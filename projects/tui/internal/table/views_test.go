@@ -7,7 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/empowerite/kit/projects/tui/internal/grid"
@@ -140,14 +142,15 @@ func TestThePersonsPresetsAreKeptInAFileOfTheirOwn(t *testing.T) {
 			t.Errorf("%s: %v", content, err)
 		}
 	}
-	// the file cannot be written beside, as a directory stands where it would be; or replaced, as it is a directory;
-	// nor its directory made, as a file stands where it would be
-	blocked := filepath.Join(dir, "blocked.json")
-	if err := os.MkdirAll(filepath.Join(blocked+".new", "x"), 0o755); err != nil {
+	// the file cannot be written beside, as its folder takes no new file; or replaced, as it is a directory; nor its
+	// directory made, as a file stands where it would be
+	shut := filepath.Join(dir, "shut")
+	if err := os.MkdirAll(shut, 0o500); err != nil {
 		t.Fatal(err)
 	}
-	if WritePresets(blocked, nil) == nil {
-		t.Error("a file written where a directory stands")
+	t.Cleanup(func() { _ = os.Chmod(shut, 0o700) })
+	if WritePresets(filepath.Join(shut, "presets.json"), nil) == nil {
+		t.Error("a file written in a folder that takes none")
 	}
 	if err := os.MkdirAll(filepath.Join(dir, "taken.json", "x"), 0o755); err != nil {
 		t.Fatal(err)
@@ -155,7 +158,48 @@ func TestThePersonsPresetsAreKeptInAFileOfTheirOwn(t *testing.T) {
 	if WritePresets(filepath.Join(dir, "taken.json"), nil) == nil {
 		t.Error("a directory replaced by the file")
 	}
+	if left, _ := filepath.Glob(filepath.Join(dir, "taken.json.*.new")); len(left) != 0 {
+		t.Errorf("a file left beside it: %q", left)
+	}
 	if WritePresets(filepath.Join(file, "under-a-file", "presets.json"), nil) == nil {
 		t.Error("a directory made under a file")
+	}
+}
+
+// Writers of one file at once each keep what they wrote: the file stays whole, no write fails, and none loses another's
+// table.
+func TestWritersOfOneFileAtOnceKeepEachOthersWork(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "kit", "presets.json")
+	var wg sync.WaitGroup
+	errs := make(chan error, 4*50)
+	for w := range 4 {
+		wg.Go(func() {
+			for range 50 {
+				errs <- KeepLast(file, "table"+strconv.Itoa(w), Preset{Name: "Mine"})
+			}
+		})
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := ReadLast(file); len(got) != 4 {
+		t.Errorf("the tables kept: %d, not 4", len(got))
+	}
+	if left, _ := filepath.Glob(file + ".*.new"); len(left) != 0 {
+		t.Errorf("files left beside it: %q", left)
+	}
+	// a lock that cannot be made holds nothing, and the write goes on
+	if err := os.Remove(file + ".lock"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(file+".lock", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := KeepLast(file, "late", Preset{Name: "Mine"}); err != nil || len(ReadLast(file)) != 5 {
+		t.Errorf("a write with no lock: %v", err)
 	}
 }

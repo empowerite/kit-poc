@@ -640,9 +640,10 @@ func TestViewsJSONBecomesPresetsJSONOnce(t *testing.T) {
 		t.Errorf("a views.json that does not read: %v", err)
 	}
 	if err := os.WriteFile(filepath.Join(other, "views.json"), v1, 0o644); err != nil ||
-		os.Mkdir(filepath.Join(other, "presets.json.new"), 0o755) != nil {
+		os.Chmod(other, 0o500) != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { _ = os.Chmod(other, 0o700) })
 	if _, _, err := readPresets(filepath.Join(other, "presets.json")); err == nil ||
 		!strings.Contains(err.Error(), "presets.json could not be written from") {
 		t.Errorf("a presets.json that cannot be written: %v", err)
@@ -779,14 +780,7 @@ func TestRenameAndDeleteRefuseWhatTheyCannotDo(t *testing.T) {
 	if m.managedPreset(table.ManageDo{Act: table.ManageDelete, Name: "Mine"}); !strings.Contains(m.note.Text, "could not be deleted") || m.stages[0].ViewName != "Mine" {
 		t.Errorf("delete, unwritable: %q", m.note.Text)
 	}
-	// the file cannot be written beside, as a directory stands where it would be; or replaced, as it is a directory
-	blocked := filepath.Join(dir, "blocked.json")
-	if err := os.MkdirAll(filepath.Join(blocked+".new", "x"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := table.WritePresets(blocked, nil); err == nil {
-		t.Error("a file written where a directory stands")
-	}
+	// the file cannot be replaced, as it is a directory
 	if err := os.MkdirAll(filepath.Join(dir, "taken.json", "x"), 0o755); err != nil {
 		t.Fatal(err)
 	}

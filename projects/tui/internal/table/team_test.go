@@ -183,3 +183,28 @@ func TestThePresetsDialogSharesAndCopies(t *testing.T) {
 		t.Errorf("a click on a dim Share with team: %+v", do)
 	}
 }
+
+// A folder is read as a folder, never as a pattern: one with a [ in its path holds its presets as any other does; a
+// folder that does not read is the error, and what is not a preset's file, a folder or another suffix, is passed over.
+func TestATeamsFolderIsReadWhateverItsPathHolds(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "my [old] repo", TeamDir)
+	if err := WriteTeam(dir, "issues", Preset{Name: "Triage"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"notes.txt", "folder.json"} {
+		path := filepath.Join(dir, "issues", name)
+		if name == "folder.json" {
+			if err := os.Mkdir(path, 0o755); err != nil {
+				t.Fatal(err)
+			}
+		} else if err := os.WriteFile(path, nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if ps, err := ReadTeam(dir, "issues"); err != nil || len(ps) != 1 || ps[0].Name != "Triage" {
+		t.Errorf("read back: %+v %v", ps, err)
+	}
+	if ps, err := ReadTeam(filepath.Join(dir, "issues", "notes.txt"), "x"); err == nil || ps != nil {
+		t.Errorf("a folder that is a file: %+v %v", ps, err)
+	}
+}

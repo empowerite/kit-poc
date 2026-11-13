@@ -46,15 +46,24 @@ func teamFile(dir, table, name string) string {
 }
 
 // ReadTeam gives a table's team presets, kept under dir, by their names' order; none for no folder named, nor for a
-// table with none. A file that does not read as a preset is the error, and the rest are given.
+// table with none. A folder that does not read, or a file that does not read as a preset, is the error, and the rest are
+// given.
 func ReadTeam(dir, table string) ([]Preset, error) {
 	if dir == "" {
 		return nil, nil
 	}
-	files, _ := filepath.Glob(filepath.Join(dir, filepath.FromSlash(table), "*.json"))
+	folder := filepath.Join(dir, filepath.FromSlash(table))
+	entries, err := os.ReadDir(folder)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, err
+	}
 	var out []Preset
 	var errs []error
-	for _, file := range files {
+	for _, entry := range entries {
+		file := filepath.Join(folder, entry.Name())
+		if entry.IsDir() || filepath.Ext(file) != ".json" {
+			continue
+		}
 		var p Preset
 		data, err := os.ReadFile(file)
 		if err == nil {
@@ -82,10 +91,7 @@ func WriteTeam(dir, table string, p Preset) error {
 	}
 	// presets are strings, numbers, and maps of them, which always marshal
 	data, _ := json.MarshalIndent(p, "", "  ")
-	if err := os.WriteFile(file+".new", append(data, '\n'), 0o644); err != nil {
-		return err
-	}
-	return os.Rename(file+".new", file)
+	return writeWhole(file, append(data, '\n'))
 }
 
 // RemoveTeam takes a team preset of a table, kept under dir, away, its file removed.

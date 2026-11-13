@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"syscall"
 )
 
 // PresetsVersion is the version of the presets file.
@@ -86,6 +87,7 @@ func readFile(path string) (presetsFile, error) {
 // WritePresets keeps the presets in the file, the favorites as it holds them, written whole beside it first, so a
 // reader never sees half of it; none for no file named.
 func WritePresets(path string, tables map[string][]Preset) error {
+	defer lock(path)()
 	file, _ := readFile(path)
 	file.Stages = tables
 	return writeFile(path, file)
@@ -109,11 +111,41 @@ func writeFile(path string, file presetsFile) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	tmp := path + ".new"
-	if err := os.WriteFile(tmp, append(data, '\n'), 0o644); err != nil {
+	return writeWhole(path, append(data, '\n'))
+}
+
+// writeWhole keeps a file whole: the data written to a file of its own beside it, whose name no other writer shares,
+// then renamed over it, so a reader never sees half of it and two writers never truncate each other's.
+func writeWhole(path string, data []byte) error {
+	tmp, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".*.new")
+	if err != nil {
 		return err
 	}
-	return os.Rename(tmp, path)
+	_, wrote := tmp.Write(data)
+	err = errors.Join(wrote, tmp.Close(), os.Chmod(tmp.Name(), 0o644))
+	if err == nil {
+		err = os.Rename(tmp.Name(), path)
+	}
+	if err != nil {
+		_ = os.Remove(tmp.Name())
+	}
+	return err
+}
+
+// lock holds the presets file against other writers, until the function it gives is called: an advisory lock on a file
+// beside it, so one writer's read, change, and write finish before the next one's read. Where the lock cannot be taken,
+// as on a file system that has none, the writer goes on without it.
+func lock(path string) (unlock func()) {
+	if path == "" {
+		return func() {}
+	}
+	_ = os.MkdirAll(filepath.Dir(path), 0o755)
+	f, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_RDWR, 0o644)
+	if err != nil {
+		return func() {}
+	}
+	_ = syscall.Flock(int(f.Fd()), syscall.LOCK_EX)
+	return func() { _ = f.Close() } // closing the file lets go of the lock
 }
 
 // Kept is one table's presets and its favorites, as a screen holds them.
@@ -131,6 +163,7 @@ type Kept struct {
 // file that is not there yet, or none named, holds nothing another kittui did: the table's lists are then as the
 // screen wants them, and the file is written new. A file that does not read is the error, and nothing is written.
 func KeepPresets(path, name string, was, now Kept) (map[string][]Preset, []string, error) {
+	defer lock(path)()
 	file, err := readFile(path)
 	switch {
 	case path == "" || errors.Is(err, os.ErrNotExist):
@@ -198,6 +231,7 @@ func ReadLast(path string) map[string]Preset {
 // KeepLast keeps the panel one table was last left as in the file, named by the view it was set as, the rest as the
 // file holds it; a file that does not read is the error, and nothing is written.
 func KeepLast(path, name string, last Preset) error {
+	defer lock(path)()
 	file, err := readFile(path)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
