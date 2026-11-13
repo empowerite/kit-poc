@@ -18,6 +18,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/empowerite/kit/projects/tui/internal/grid"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/source"
 	"github.com/empowerite/kit/projects/tui/internal/style"
@@ -660,5 +661,35 @@ func TestAnEnvironmentOfAnyBranchSaysAny(t *testing.T) {
 		return strings.Contains(l.Text, style.Off("any"))
 	}) {
 		t.Error("any is not dim")
+	}
+}
+
+// A jump to a row that a closed heading folds away opens the headings over it, and the cursor is on it; a jump to a
+// row that the search hides, or that is not there, says so, and the cursor stays.
+func TestAJumpOpensTheHeadingsOverItsRowAndSaysWhenTheRowIsNotShown(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	o := options()
+	o.App, o.Stages = shell.Changes, []string{"changes"}
+	m := loaded(t, o)
+	closed := 0
+	for _, r := range m.rows(0) {
+		if grid.Heads(r) && len(r.Folded) == 0 && !grid.OverGroups(r) {
+			m.stages[0].Open[r.Key] = false
+			closed++
+		}
+	}
+	m.rebuild()
+	if closed == 0 || slices.IndexFunc(m.rows(0), func(r row) bool { return r.Key == "#4" }) >= 0 {
+		t.Fatalf("closed %d headings, and #4 still shows", closed)
+	}
+	m = drive(m, shell.JumpMsg{Screen: shell.Changes, To: "changes/#4"})
+	k := slices.IndexFunc(m.rows(0), func(r row) bool { return r.Key == "#4" })
+	if k < 0 || m.stages[0].Cursor != k {
+		t.Errorf("the cursor on %d, #4 at %d", m.stages[0].Cursor, k)
+	}
+	at := m.stages[0].Cursor
+	m = drive(m, shell.JumpMsg{Screen: shell.Changes, To: "changes/#99"})
+	if m.stages[0].Cursor != at || !strings.Contains(m.note.Text, "#99 is not among the rows") {
+		t.Errorf("a jump to no row: the cursor on %d, the notice %q", m.stages[0].Cursor, m.note.Text)
 	}
 }

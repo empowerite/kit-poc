@@ -1518,10 +1518,40 @@ func (m *Model) land(name string, done bool) {
 		return
 	}
 	key := strings.TrimPrefix(m.landing, name+"/")
-	if k := slices.IndexFunc(m.rows(i), func(r row) bool { return r.Key == key }); k >= 0 {
+	at := func() int { return slices.IndexFunc(m.rows(i), func(r row) bool { return r.Key == key }) }
+	k := at()
+	for k < 0 && m.unfold(i, key) {
+		k = at()
+	}
+	if k >= 0 {
 		m.stages[i].Cursor, done = k, true
 	}
 	if done || (!m.stages[i].src.Loading && !m.stages[i].src.Stale) {
+		if k < 0 && !m.stages[i].src.Loading {
+			m.note.Text, m.note.Done = fmt.Sprintf("%s is not among the rows %s shows: the search or a filter hides it, or kit "+
+				"no longer has it", key, label(name)), false
+		}
 		m.landing = ""
 	}
+}
+
+// unfold opens the closed heading that folds a row away, the outermost first, and says whether it opened one: the row
+// is under a heading closed, or one a heading closed holds.
+func (m *Model) unfold(i int, key string) bool {
+	var walk func(rows []row) bool
+	walk = func(rows []row) bool {
+		for _, r := range rows {
+			// a heading already open folds nothing away by itself, so it is never opened again: the walk ends
+			if len(r.Folded) > 0 && !m.stages[i].Open.Open(r) && slices.ContainsFunc(grid.Every(r.Folded), func(f row) bool { return f.Key == key }) {
+				m.stages[i].Open[r.Key] = true
+				return true
+			}
+		}
+		return false
+	}
+	if !walk(m.rows(i)) {
+		return false
+	}
+	m.rebuild()
+	return true
 }
