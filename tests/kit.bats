@@ -27,6 +27,15 @@ tree-digest() {
   done < <(find . \( -path ./.git -o -path ./.kit/logs \) -prune -o \( -type f -o -type l \) -print | LC_ALL=C sort)
 }
 
+@test "install outside a git repository refuses, names git init, and writes nothing" {
+  local dir="${BATS_TEST_TMPDIR}/plain"
+  mkdir "${dir}" && cd "${dir}" && dir=$(pwd -P)
+  run "${kit_checkout}/bin/kit" install
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit install puts kit into a repository, and ${dir} is not one; run: cd "*" && git init"* ]]
+  [ -z "$(ls -A "${dir}")" ]
+}
+
 @test "install with no package writes the kit package and nothing else" {
   run "${kit_checkout}/bin/kit" install
   [ "$status" -eq 0 ]
