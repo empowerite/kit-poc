@@ -132,7 +132,7 @@ issues:documents() {
   printf '%s\n' "${doc}"
 }
 
-# issues:draw <rows-json> <choice> prints the rows, one each, to stderr. With none it says so in one dim line.
+# issues:draw <rows-json> <choice> prints the rows, one each. With none it says so in one dim line.
 # <choice> mine leaves the assignee column out, as a change's row drops the author column under --mine. The cells, in
 # columns:
 #
@@ -261,7 +261,7 @@ issues:draw() {
     row+=$(issues:cell "${iteration_w}" "${iteration}" Iteration)
     row+=$(issues:cell "${swimlane_w}" "${swimlane}" Swimlane)
     (( ${#title} > width )) && title="${title:0:width-1}…"
-    printf '%s%s%s %s\n' "${row}" "${flow_gap}" "${flow_glyphs[Issue]}" "${title}" >&2
+    printf '%s%s%s %s\n' "${row}" "${flow_gap}" "${flow_glyphs[Issue]}" "${title}"
   done
 }
 

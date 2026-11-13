@@ -52,8 +52,8 @@ changes:documents() {
   jq --slurp --compact-output . <<<"${prs}"
 }
 
-# changes:draw <changes-json> <choice> prints the changes, one block each, to stderr: the change's row, and under it
-# the issues it closes. With none it says so in one dim line. <choice> mine leaves the author column out.
+# changes:draw <changes-json> <choice> prints the changes, one block each: the change's row, and under it the issues
+# it closes. With none it says so in one dim line. <choice> mine leaves the author column out.
 changes:draw() {
   local doc=$1 choice=$2
   if [[ "$(jq 'length' <<<"${doc}")" == 0 ]]

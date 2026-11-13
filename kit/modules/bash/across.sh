@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 # across.sh - kit flow and kit workspace across a workspace: members, checkouts, and stages merged (sourced module)
 # ----------------------------------------------------------------------------------------------------------------------
-# shellcheck disable=SC2154  # flow_glyphs, settings_stages, and out_color are set by flow.sh, settings.sh, and 1st.sh
+# shellcheck disable=SC2154  # flow_glyphs and flow_color, settings_stages, and out_color: flow.sh, settings.sh, 1st.sh
 #
 # A workspace's stage is the stage as kit flow draws it in each member's checkout, each under that checkout's own
 # kit.yml, run at once, and merged into one document, {rows, errors}: every row, or every object of a stage that draws
@@ -366,8 +366,8 @@ across:branches() {
 
 # across:text <workspace> <stage> <word>… draws a stage, or with none the picture, as text across the workspace: each
 # cloned member's, as kit flow draws it in that checkout, under its member, as
-# flow:above draws each desk's under its path. With none cloned, one dim line says so. It returns 1 when a member's
-# kit flow did.
+# flow:above draws each desk's under its path: the picture on stdout, and what the member's kit said on stderr. With
+# none cloned, one dim line says so. It returns 1 when a member's kit flow did.
 across:text() {
   local workspace=$1 stage=$2 dir n member line failed=false first=true color=''
   local -a started=()
@@ -375,21 +375,22 @@ across:text() {
   file:scratch dir
   [[ -z "${stage}" ]] || set -- "${stage}" "$@"
   [[ "${out_color}" == 1 ]] && color=1
-  COLUMNS=$(flow:width) CLICOLOR_FORCE=${color} list:read started across:start "${workspace}" "${dir}" "$@" \
-    || return $?
+  COLUMNS=$(flow:width) CLICOLOR_FORCE=${color} kit_flow_color=${flow_color} \
+    list:read started across:start "${workspace}" "${dir}" "$@" || return $?
   if (( ${#started[@]} == 0 ))
   then
     printf '%s\n' "$(flow:paint 90 "none of ${workspace}'s members is cloned under the roots; run: kit workspaces \
---show=${workspace}")" >&2
+--show=${workspace}")"
     return 0
   fi
   for line in "${started[@]}"
   do
     IFS=$'\t' read -r n member <<<"${line}"
-    [[ "${first}" == true ]] || printf '\n' >&2
+    [[ "${first}" == true ]] || printf '\n'
     first=false
-    printf '%s %s\n' "${flow_glyphs[Workspace]}" "${member}" >&2
-    cat "${dir}/${n}.err" "${dir}/${n}.out" >&2
+    printf '%s %s\n' "${flow_glyphs[Workspace]}" "${member}"
+    cat "${dir}/${n}.err" >&2
+    cat "${dir}/${n}.out"
     [[ "$(<"${dir}/${n}.status")" == 0 ]] || failed=true
   done
   [[ "${failed}" == false ]]

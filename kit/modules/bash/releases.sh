@@ -175,8 +175,9 @@ releases:visible() {
     | map(. + {visibility: ($by[.version] // null | if . == [] then null else . end)})' <<<"${rows}"
 }
 
-# releases:draw <releases-json> prints the releases, one row each, to stderr: the version, the kind with its glyph
-# and the age, and the latest marked. With none it says so in one dim line.
+# releases:draw <releases-json> prints the releases, one row each: the version, the kind with its glyph and the age,
+# and the latest marked. With none it says so in one dim line. A release stuck on a pull source is a warning after
+# the rows, on stderr.
 releases:draw() {
   local doc=$1 width kind_width age_width version kind latest age glyph seen line
   local -a stuck
@@ -202,7 +203,7 @@ releases:draw() {
       "$(flow:cell "${kind}" "${kind_width}")" \
       "$(flow:paint 2 "$(flow:cell "$(flow:age "${age}")" "${age_width}" right)")" \
       "$([[ "${latest}" == latest ]] && printf '  %s latest' "${flow_glyphs[Latest]}")" \
-      "$([[ -z "${seen}" ]] || printf '  %s' "$(flow:paint 2 "${seen}")")" >&2
+      "$([[ -z "${seen}" ]] || printf '  %s' "$(flow:paint 2 "${seen}")")"
   done < <(jq --raw-output '.[] | [.version, .kind, .latest, .age, (.visibility // [] | if length == 0 then ""
       elif all(.state == "visible") then "pull: visible"
       else "pull: " + (map(select(.state != "visible") | "\(.state) on \(.source)") | join(", ")) end)]

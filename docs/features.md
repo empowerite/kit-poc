@@ -141,8 +141,9 @@ see: [the leases design](superpowers/specs/2026-11-12-leases-design.md)
 The desk and its worktrees are no stage of `kit flow`: `kit workspace worktrees` draws them, each with its commits
 and its uncommitted paths.
 
-On a terminal the picture is interactive. Elsewhere, or with `--text`, each stage prints under a heading with its
-glyph and its count. `kit flow <stage>` prints one stage, with that stage's flags: `kit flow issues --today`
+On a terminal the picture is interactive. Elsewhere, or with `--text`, each stage prints on stdout under a heading
+with its glyph and its count, so the picture can be piped, paged, and saved; a warning, or a stage's refusal, goes to
+stderr. `kit flow <stage>` prints one stage, with that stage's flags: `kit flow issues --today`
 keeps the issues opened in the last 24 hours. `--json` prints the picture as one object keyed by stage, or one stage's
 document. The `flow` setting in `kit.yml` names the stages drawn, in order.
 

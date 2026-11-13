@@ -30,6 +30,10 @@
 # Then every stage is drawn in order. A repository with no primary remote fetches nothing, asks no forge, and says so
 # once.
 #
+# The picture is the data a person asked for, so it prints on stdout, as its JSON does, where it can be piped, paged,
+# searched, and saved. What kit says of it goes to stderr: a warning, a stage's refusal under its heading, and the
+# line for a repository with no primary remote.
+#
 # Which pull requests and issues are shown:
 #
 #   --all              every one (the default)
@@ -72,6 +76,23 @@ flow_gap='  '
 # flow_issue_sgr and flow_change_sgr color an issue's number and a change's, in every table the kit draws.
 flow_issue_sgr=36
 flow_change_sgr=35
+
+# flow_color is 1 when the picture is painted and 0 when it is plain. The picture prints on stdout, so its color
+# follows stdout, not stderr, where the messages go: never under NO_COLOR, always under a CLICOLOR_FORCE that is set
+# and not 0, and otherwise when stdout is a terminal as this module loads. A kit flow that draws other checkouts'
+# pictures, above desks or over a workspace, collects each in a file, so it says its own answer in kit_flow_color.
+if [[ "${kit_flow_color:-}" == [01] ]]
+then
+  flow_color=${kit_flow_color}
+elif [[ -n "${NO_COLOR:-}" ]]
+then
+  flow_color=0
+elif [[ ( -n "${CLICOLOR_FORCE:-}" && "${CLICOLOR_FORCE}" != 0 ) || -t 1 ]]
+then
+  flow_color=1
+else
+  flow_color=0
+fi
 
 # The glyphs are modules/jq/glyphs.json's, which kit help flow's legend and kittui's are made from too.
 # kit:generate glyphs `k=$(command -v kit); jq -nr -L "${k%/bin/kit}/modules/jq" 'import "glyphs" as g; g::bash'`
@@ -225,23 +246,27 @@ flow:cell() {
   fi
 }
 
-# flow:paint <sgr> <text> prints <text> in the color when stderr is a terminal.
+# flow:paint <sgr> <text> prints <text> in the color when the picture is painted, as flow_color says, and plain
+# otherwise.
 flow:paint() {
-  printf '%s%s%s' "$(out:sgr "$1")" "$2" "$(out:sgr 0)"
+  if (( flow_color ))
+  then printf '\x1b[%sm%s\x1b[0m' "$1" "$2"
+  else printf '%s' "$2"
+  fi
 }
 
-# flow:heading <stage> [<count>] prints a stage's heading to stderr: its glyph, its name in capitals and bold, then
-# its count, dim, as kittui labels the stages on its line.
+# flow:heading <stage> [<count>] prints a stage's heading: its glyph, its name in capitals and bold, then its count,
+# dim, as kittui labels the stages on its line.
 flow:heading() {
   local glyph=${flow_stage_glyphs[$1]:-} line
   line="${glyph:+${glyph} }$(flow:paint 1 "${1^^}")"
   [[ -z "${2:-}" ]] || line+=" $(flow:paint 90 "$2")"
-  printf '%s\n' "${line}" >&2
+  printf '%s\n' "${line}"
 }
 
-# flow:none <text> prints one dim line to stderr, what an empty stage says instead of nothing.
+# flow:none <text> prints one dim line, what an empty stage says instead of nothing.
 flow:none() {
-  printf '%s\n' "$(flow:paint 90 "$1")" >&2
+  printf '%s\n' "$(flow:paint 90 "$1")"
 }
 
 # flow:state-sgr <state> prints the color code of a state's family.
@@ -497,9 +522,9 @@ flow:incoming-rows() {
     | jq --slurp --compact-output 'sort_by({remote: 0, commit: 1, branch: 2, tag: 3, tracking: 4}[.kind]) | .[]'
 }
 
-# flow:fetched-line <remote-json> prints, to stderr, a fetched remote's line: ❌ and git's line when the fetch
-# failed; 🛬 unchanged; or 🛬 fetched and what came, counted: new commits on the default branch, then branches
-# updated, new, and pruned, then new tags.
+# flow:fetched-line <remote-json> prints a fetched remote's line: ❌ and git's line when the fetch failed; 🛬
+# unchanged; or 🛬 fetched and what came, counted: new commits on the default branch, then branches updated, new,
+# and pruned, then new tags.
 flow:fetched-line() {
   local error default commits updated added pruned tags line part
   local -a parts=()
@@ -508,7 +533,7 @@ flow:fetched-line() {
       (.branches.gone | length), (.tags | length)] | map(tostring) | join("\u001f")' <<<"$1")
   if [[ -n "${error}" ]]
   then
-    printf '%s %s\n' "${flow_glyphs[Failed]}" "${error}" >&2
+    printf '%s %s\n' "${flow_glyphs[Failed]}" "${error}"
     return 0
   fi
   (( commits > 0 )) && parts+=("$(flow:plural "${commits}" 'new commit' 'new commits') on ${default}")
@@ -518,7 +543,7 @@ flow:fetched-line() {
   (( tags > 0 )) && parts+=("$(flow:plural "${tags}" 'new tag' 'new tags')")
   if (( ${#parts[@]} == 0 ))
   then
-    printf '%s unchanged\n' "${flow_glyphs[Fetched]}" >&2
+    printf '%s unchanged\n' "${flow_glyphs[Fetched]}"
     return 0
   fi
   line=${parts[0]}
@@ -526,10 +551,10 @@ flow:fetched-line() {
   do
     line+="${flow_sep}${part}"
   done
-  printf '%s fetched %s\n' "${flow_glyphs[Fetched]}" "${line}" >&2
+  printf '%s fetched %s\n' "${flow_glyphs[Fetched]}" "${line}"
 }
 
-# flow:incoming-text <incoming-json> prints flow:incoming's object to stderr: a block per remote, the primary
+# flow:incoming-text <incoming-json> prints flow:incoming's object as text: a block per remote, the primary
 # first, a blank line between blocks. A block's first line is 📡, the remote's name, its forge or no forge, and its
 # host, or its URL when it has none. Under it is the fetch's line, as flow:fetched-line draws it, or 🛬 not fetched,
 # dim. With no remote it says so in one dim line.
@@ -545,9 +570,9 @@ flow:incoming-text() {
     [[ -n "${host}" ]] || host=$(git remote get-url --end-of-options "${name}" 2>/dev/null || true)
     if [[ "${first}" == true ]]
     then first=false
-    else printf '\n' >&2
+    else printf '\n'
     fi
-    printf '%s %s%s\n' "${flow_glyphs[Remote]}" "${name}" "$(flow:paint 90 "${flow_sep}${forge}${host:+${flow_sep}${host}}")" >&2
+    printf '%s %s%s\n' "${flow_glyphs[Remote]}" "${name}" "$(flow:paint 90 "${flow_sep}${forge}${host:+${flow_sep}${host}}")"
     if [[ "${fetched}" == true ]]
     then flow:fetched-line "${remote}"
     else flow:none "${flow_glyphs[Fetched]} not fetched"
@@ -839,7 +864,7 @@ flow:issue-row() {
   fi
   (( width < 20 )) && width=20
   (( ${#title} > width )) && title="${title:0:width-1}…"
-  printf '%s%s%s %s\n' "${row}" "${flow_gap}" "${flow_glyphs[Issue]}" "${title}" >&2
+  printf '%s%s%s %s\n' "${row}" "${flow_gap}" "${flow_glyphs[Issue]}" "${title}"
 }
 
 # flow:pr-block <pr-json> <title-width> <owner-width> <state-width> <age-width> <with-branch> <issue-widths>
@@ -863,7 +888,7 @@ flow:pr-block() {
   [[ -n "${checks}" ]] && row+="${flow_gap}${checks}"
   (( unresolved > 0 )) && row+="${flow_gap}$(flow:paint 33 "${flow_glyphs[Threads]} ${unresolved} unresolved")"
   [[ -n "${worktree}" ]] && row+="${flow_gap}$(flow:paint 90 "${flow_glyphs[Branch]} ${branch}")"
-  printf '%s\n' "${row}" >&2
+  printf '%s\n' "${row}"
   while IFS= read -r issue
   do
     [[ -n "${issue}" ]] || continue
@@ -899,7 +924,7 @@ flow:pr-table() {
     [[ -n "${doc}" ]] || continue
     if [[ "${first}" == true ]]
     then first=false
-    else printf '\n' >&2
+    else printf '\n'
     fi
     flow:pr-block "${doc}" "${title_w}" "${owner_w}" "${state_w}" "${age_w}" yes "${issue_widths}"
   done <<<"${prs}"
@@ -1109,7 +1134,7 @@ flow:picture() {
     esac
     if [[ "${first}" == true ]]
     then first=false
-    else printf '\n' >&2
+    else printf '\n'
     fi
     code=$(<"${scratch}/${stage}.status")
     # A fetch that failed is drawn on its remote's line, beside the remotes that were fetched.
@@ -1193,8 +1218,9 @@ flow:render() {
 }
 
 # flow:above <argument>… draws every desk below the current directory, each under its path, as kit flow draws it
-# at that desk, with the same arguments. The desks run at once, each fetching on its own, and are drawn in path
-# order. It returns 1, after every desk is drawn, when a desk's kit flow did not exit 0.
+# at that desk, with the same arguments: its picture on stdout, and what its kit said on stderr. The desks run at
+# once, each fetching on its own, and are drawn in path order. It returns 1, after every desk is drawn, when a desk's
+# kit flow did not exit 0.
 flow:above() {
   local json=false arg desk index=0 color='' failed=false code
   local -a desks
@@ -1215,7 +1241,8 @@ flow:above() {
   do
     {
       code=0
-      ( cd "${desk}" && COLUMNS=$(flow:width) CLICOLOR_FORCE=${color} run kit flow "$@" ) \
+      ( cd "${desk}" && COLUMNS=$(flow:width) CLICOLOR_FORCE=${color} kit_flow_color=${flow_color} \
+        run kit flow "$@" ) \
         > "${scratch}/${index}.out" 2> "${scratch}/${index}.err" || code=$?
       printf '%s' "${code}" > "${scratch}/${index}.status"
     } &
@@ -1240,9 +1267,10 @@ flow:above() {
   fi
   for index in "${!desks[@]}"
   do
-    (( index == 0 )) || printf '\n' >&2
-    printf '%s\n' "$(flow:paint 1 "${flow_glyphs[Path]} $(flow:relative "${desks[${index}]}")")" >&2
-    cat "${scratch}/${index}.err" "${scratch}/${index}.out" >&2
+    (( index == 0 )) || printf '\n'
+    printf '%s\n' "$(flow:paint 1 "${flow_glyphs[Path]} $(flow:relative "${desks[${index}]}")")"
+    cat "${scratch}/${index}.err" >&2
+    cat "${scratch}/${index}.out"
   done
   [[ "${failed}" == false ]]
 }

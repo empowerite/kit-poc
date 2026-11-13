@@ -396,6 +396,39 @@ the desk its first row; run: cd "*" && kit workspace worktrees" ]]
   [ "$output" = "[]" ]
 }
 
+@test "the picture and a stage print on stdout, painted when stdout is a terminal; what kit says stays on stderr" {
+  local esc=$'\x1b' stage
+  forge-world
+  run --separate-stderr --keep-empty-lines "${kit_root}/bin/kit" flow --text --no-fetch
+  [ "$status" -eq 0 ]
+  [ -z "$stderr" ]
+  [[ "${lines[0]}" == *"ISSUES 3" && "${lines[16]}" == *"RELEASES 3" ]]
+  [ "${#lines[@]}" -eq 20 ]
+  for stage in issues changes builds releases 'incoming --no-fetch' incoming
+  do
+    # shellcheck disable=SC2086  # the stage and its flag are two words
+    run --separate-stderr "${kit_root}/bin/kit" flow ${stage}
+    [ "$status" -eq 0 ]
+    [[ -n "$output" && -z "$stderr" ]]
+  done
+  # the color follows stdout, where the picture goes: none into a pipe at a terminal, and some when stdout is one
+  run pty "env -u NO_COLOR '${kit_root}/bin/kit' flow --text --no-fetch | cat"
+  [[ "$output" == *"ISSUES 3"* && "$output" != *"${esc}["* ]]
+  run pty "env -u NO_COLOR '${kit_root}/bin/kit' flow --text --no-fetch 2>/dev/null"
+  [[ "$output" == *"${esc}[1mISSUES${esc}[0m ${esc}[90m3${esc}[0m"* ]]
+  # a stage that could not be read: its heading is the picture's, and its refusal is kit's line
+  PATH="$(shims gh)" run --separate-stderr "${kit_root}/bin/kit" flow --text --no-fetch --fresh
+  [ "$status" -eq 1 ]
+  [[ "${lines[0]}" == *"ISSUES" && "$output" != *"❌"* ]]
+  [[ "$stderr" == "❌ "* ]]
+  # with no primary remote, the one line is kit's, and there is no picture
+  git remote remove origin
+  run --separate-stderr "${kit_root}/bin/kit" flow --text
+  [ "$status" -eq 0 ]
+  [ -z "$output" ]
+  [[ "$stderr" == *"no origin: nothing fetched, no pull request shown" ]]
+}
+
 @test "a stage the forge cannot answer is drawn as its refusal under its heading, and the picture exits 1" {
   # the forge is named, and its tool fails every call
   commit-settings 'forge: github'
@@ -624,8 +657,9 @@ the desk its first row; run: cd "*" && kit workspace worktrees" ]]
   output=$("${kit_root}/bin/kit" flow --no-fetch --json 2>/dev/null)
   [ "$(jq -c 'map(.path)' <<<"$output")" = '["desk","group/deep/two"]' ]
   [ "$(jq -r '.[0].status.incoming.primary' <<<"$output")" = origin ]
-  run "${kit_root}/bin/kit" flow incoming --no-fetch
+  run --separate-stderr "${kit_root}/bin/kit" flow incoming --no-fetch
   in-order "$output" $'desk\n' 'origin'
+  [ -z "$stderr" ]
   output=$("${kit_root}/bin/kit" flow incoming --no-fetch --json 2>/dev/null)
   [ "$(jq -c 'map([.path, .status.primary])' <<<"$output")" = '[["desk","origin"],["group/deep/two","origin"]]' ]
   mkdir "${BATS_TEST_TMPDIR}/nowhere" && cd "${BATS_TEST_TMPDIR}/nowhere"

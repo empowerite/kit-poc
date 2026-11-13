@@ -319,17 +319,21 @@ local-desks() {
 @test "kit --workspace= flow as text draws each cloned member's picture under its name, and no member not cloned" {
   local-desks
   cd "${BATS_TEST_TMPDIR}"
-  run "${kit_root}/bin/kit" --workspace=w flow --no-fetch --text
+  run --separate-stderr "${kit_root}/bin/kit" --workspace=w flow --no-fetch --text
   [ "$status" -eq 0 ]
   [ "$(grep -c "^📚 github.com/o/[ab]$" <<<"$output")" -eq 2 ]
   [[ "$output" != *"github.com/o/c"* ]]
+  # the members' pictures are on stdout, as one repository's is, and kit says nothing
+  [ "$(grep -c "INCOMING" <<<"$output")" -eq 2 ]
+  [ -z "$stderr" ]
 }
 
 @test "kit --workspace= flow as text with no member cloned says so once" {
   workspaces-file <<<'workspaces: {w: {repos: [github.com/o/a]}}'
   cd "${BATS_TEST_TMPDIR}"
-  run "${kit_root}/bin/kit" --workspace=w flow --no-fetch --text
+  run --separate-stderr "${kit_root}/bin/kit" --workspace=w flow --no-fetch --text
   [ "$status" -eq 0 ]
+  [ -z "$stderr" ]
   [ "$(grep -c "none of w's members is cloned" <<<"$output")" -eq 1 ]
   [[ "$output" == *"none of w's members is cloned under the roots; run: kit workspaces --show=w"* ]]
 }

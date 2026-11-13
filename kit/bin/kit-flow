@@ -32,7 +32,8 @@
 #
 # The flow setting in kit.yml names the stages drawn, in order. On a terminal, kit flow opens the picture in
 # kittui, and kit flow <stage> opens it with that stage maximized. Without one, or with --text, --json, or --jq, it
-# prints the stages as text. Where it runs decides what changes draws:
+# prints the stages on stdout, as text or as JSON, and what kit says of them, a warning or a stage's refusal, on
+# stderr. The text is painted when stdout is a terminal. Where it runs decides what changes draws:
 #
 #   - at a desk: every open pull request
 #   - in a worktree: the pull request its branch holds

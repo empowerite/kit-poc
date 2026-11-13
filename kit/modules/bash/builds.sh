@@ -59,8 +59,8 @@ builds:event() {
   fi
 }
 
-# builds:draw <runs-json> prints the runs, one row each, to stderr: the state glyph, the workflow, the run's number,
-# how it began, the branch or tag, the commit's short hash, the run's title, the age, and how long the run took. The
+# builds:draw <runs-json> prints the runs, one row each: the state glyph, the workflow, the run's number, how it
+# began, the branch or tag, the commit's short hash, the run's title, the age, and how long the run took. The
 # number, how it began, and the hash are dim; the age and the time taken are numbers, so they are right-aligned and
 # dim. A title that only repeats the workflow is left out, and so is a column no run fills. The title gives way first
 # to what the terminal's width leaves, then the branch, then the workflow, none below 10, each clipped with an
@@ -118,7 +118,7 @@ builds:draw() {
     (( title_w > 0 )) && line+="${flow_gap}$(flow:cell "${title}" "${title_w}")"
     line+="${flow_gap}$(flow:paint 90 "$(flow:cell "$(flow:age "${age}")" "${age_w}" right)")"
     line+="${flow_gap}$(flow:paint 90 "$(flow:cell "$(builds:took "${took}")" "${took_w}" right)")"
-    printf '%s\n' "${line}" >&2
+    printf '%s\n' "${line}"
   done
 }
 
