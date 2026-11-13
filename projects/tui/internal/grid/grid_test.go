@@ -2,6 +2,7 @@ package grid
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -1807,5 +1808,13 @@ func TestValuesTheNaturalOrderTiesStandUnderAHeadingEach(t *testing.T) {
 	want = []string{"▾ v7 2", "#5", "#7", "▾ Bug 2", "#1", "#3", "▾ bug 2", "#2", "#4", "▾ v07 2", "#6", "#8"}
 	if got := texts(p); !slices.Equal(got, want) {
 		t.Errorf("given: %q, want %q", got, want)
+	}
+}
+
+// An outline without its levels keeps every other key: a heading's, a row's.
+func TestAnOutlineWithoutItsLevelsKeepsTheRest(t *testing.T) {
+	o := Outline{LevelKey(0): false, LevelKey(2): true, "a": true, "b": false}
+	if got := o.WithoutLevels(); !maps.Equal(got, Outline{"a": true, "b": false}) || len(o) != 4 {
+		t.Errorf("without levels: %v, from %v", got, o)
 	}
 }

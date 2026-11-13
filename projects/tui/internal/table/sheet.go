@@ -230,7 +230,7 @@ func (s *Sheet) Panel() grid.Panel {
 
 // SetPanel keeps what the panel became; the rows are let through again, and the cursor stays within them.
 func (s *Sheet) SetPanel(p grid.Panel) {
-	s.tbl.View = p
+	s.tbl.SetView(p)
 	s.rebuild()
 	s.Settle()
 }

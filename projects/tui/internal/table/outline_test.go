@@ -421,3 +421,14 @@ func TestTheHeadingOverTheGroupsOpensAndClosesTheirLevels(t *testing.T) {
 		t.Errorf("names in: %+v", got)
 	}
 }
+
+// Two groups whose columns carry one label each have a place in the heading: the second after the first.
+func TestTwoGroupsOfOneLabelEachHaveTheirOwnPlace(t *testing.T) {
+	text := " " + grid.Unfolded + " member " + grid.Unfolded + " member " + grid.Unfolded + " 3"
+	label := func(string) string { return "member" }
+	got := NamesIn(text, []string{"includes", "member"}, label)
+	want := []NameSpot{{"includes", BarLeft + 3, BarLeft + 9}, {"member", BarLeft + 12, BarLeft + 18}}
+	if !slices.Equal(got, want) {
+		t.Errorf("names in: %+v, want %+v", got, want)
+	}
+}

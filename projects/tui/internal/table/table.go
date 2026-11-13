@@ -1,7 +1,11 @@
 // A table's state, as a screen keeps it for each table, while another is shown too.
 package table
 
-import "github.com/empowerite/kit/projects/tui/internal/grid"
+import (
+	"slices"
+
+	"github.com/empowerite/kit/projects/tui/internal/grid"
+)
 
 // Table is one table's state: the row under the cursor and the first line its pane shows; which of its headings,
 // rows, and its header stand open, by key; the rows selected, by key, several at once; the preset its preset line was
@@ -25,4 +29,13 @@ type Table struct {
 	Grouped  *Preset
 	Shift    int
 	Blank    []string
+}
+
+// SetView gives the table the panel p. A level of the groups is kept by its depth, so when the groups change, the
+// levels' folds are dropped: a fold made on one grouping does not hide a level of the next.
+func (t *Table) SetView(p grid.Panel) {
+	if !slices.Equal(t.View.Groups(), p.Groups()) {
+		t.Open = t.Open.WithoutLevels()
+	}
+	t.View = p
 }

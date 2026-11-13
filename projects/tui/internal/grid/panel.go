@@ -830,6 +830,18 @@ func (o Outline) Open(r Row) bool {
 // is the rows'.
 func LevelKey(depth int) string { return "group\x01" + strconv.Itoa(depth) }
 
+// WithoutLevels gives the outline without which levels of the groups show, as LevelKey says, every other key as it
+// was: a level is a depth, so what is said of it holds for the groups it was said of and no others.
+func (o Outline) WithoutLevels() Outline {
+	next := Outline{}
+	for k, open := range o {
+		if !strings.HasPrefix(k, "group\x01") {
+			next[k] = open
+		}
+	}
+	return next
+}
+
 // Shows says whether a level of the groups shows, from 0 the outermost: open, and every level over it open too, as a
 // level closed hides everything under it. Each keeps its own state, so opening the levels over it again shows it as
 // it was.

@@ -654,7 +654,7 @@ func (m Model) filter(i int) grid.Panel {
 // setPanel keeps what the selected stage's panel became; the rows are let through again, and the cursor stays within
 // them.
 func (m *Model) setPanel(p grid.Panel) {
-	m.stages[m.stage].View = p
+	m.stages[m.stage].SetView(p)
 	m.rebuild()
 	m.clamp(m.stage)
 	m.fit()

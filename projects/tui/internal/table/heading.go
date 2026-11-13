@@ -44,12 +44,14 @@ func BarNames(h Host) []NameSpot {
 
 // NamesIn gives where the heading over the groups, its text plain, names each of the groups' columns on the control
 // line, from BarLeft, by the name label gives it, as the heading draws it: before the next level's fold, the count, or
-// the heading's end, so a value that holds a column's name is passed over. Each spot names its column by its id.
+// the heading's end, so a value that holds a column's name is passed over, and each after the one before, so two
+// columns of one label stand each in its own place. Each spot names its column by its id.
 func NamesIn(text string, groups []string, label func(id string) string) []NameSpot {
 	var out []NameSpot
+	past := 0 // the end of the name before, which the next is searched for after, as two columns may share a label
 	for _, column := range groups {
 		name := label(column)
-		for from := 0; ; {
+		for from := past; ; {
 			k := strings.Index(text[from:], " "+name)
 			if k < 0 {
 				break
@@ -63,6 +65,7 @@ func NamesIn(text string, groups []string, label func(id string) string) []NameS
 				unicode.IsDigit(rune(text[end+1])) {
 				x := BarLeft + ansi.StringWidth(text[:at])
 				out = append(out, NameSpot{column, x, x + ansi.StringWidth(name)})
+				past = end
 				break
 			}
 			from = at

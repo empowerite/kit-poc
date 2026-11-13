@@ -1399,3 +1399,19 @@ func TestTheKeyboardStaysOnAViewItStars(t *testing.T) {
 		t.Errorf("the dialog's keyboard is on %q after the star is taken back", name)
 	}
 }
+
+// A level of the groups is kept by its depth, so a fold made on one grouping ends when the groups change, and stays
+// while a panel keeps them.
+func TestALevelsFoldEndsWhenTheGroupsChange(t *testing.T) {
+	s := sheet("")
+	s.SetPanel(s.Panel().GroupedBy([]string{"kind"}))
+	s.Table().Open = grid.Outline{grid.LevelKey(1): false, "a": true}
+	s.SetPanel(s.Panel().Sorted("kind"))
+	if open, ok := s.Table().Open[grid.LevelKey(1)]; !ok || open {
+		t.Errorf("the groups kept, the level's fold: %v", s.Table().Open)
+	}
+	s.SetPanel(s.Panel().GroupedBy(nil))
+	if _, ok := s.Table().Open[grid.LevelKey(1)]; ok || !s.Table().Open["a"] {
+		t.Errorf("the groups changed: %v", s.Table().Open)
+	}
+}
