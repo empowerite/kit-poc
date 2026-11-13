@@ -171,3 +171,37 @@ func TestThePlainFormDrawsPickedValues(t *testing.T) {
 		t.Errorf("the picked values:\n%s", got)
 	}
 }
+
+// kit's parser takes a usage line with an alternative of no word, as kit x (a (b | ) | c) [<path>…], and gives the
+// group (b | ) an alternative of no node. Chosen in its row, it has no first node to describe the row by and no word
+// to answer kit with: the fields lay out, the list after the row is asked for with the words chosen alone, and the
+// command line holds none for it.
+func TestAChosenAlternativeOfNoNodeLaysOutAndAnswersNothing(t *testing.T) {
+	word := func(name string) syntax.Node { return syntax.Node{Kind: "literal", Name: name} }
+	spec := syntax.Spec{Verb: "x", Arguments: map[string]syntax.Argument{"<path>": {Choices: "closed"}},
+		Syntax: [][]syntax.Node{{
+			{Kind: "group", Alternatives: [][]syntax.Node{
+				{word("a"), {Kind: "group", Alternatives: [][]syntax.Node{{word("b")}, {}}}}, {word("c")}}},
+			{Kind: "group", Optional: true, Alternatives: [][]syntax.Node{{{Kind: "operand", Name: "path", Repeat: true}}}},
+		}}}
+	fields, err := Fields(spec, Answers{Chosen: map[string]int{"0/0": 0, "0/0/0/1": 1}})
+	if err != nil || kinds(fields) != "OneOf OneOf PickMany" || fields[1].Chosen != 1 || fields[1].Description != "" {
+		t.Fatalf("the fields: %v, %s, %+v", err, kinds(fields), fields)
+	}
+	fields, _ = Fields(spec, Answers{Chosen: map[string]int{"0/0": 0}})
+	m := New(spec, fields, testkit.Runner(t, "kit"), true)
+	if m.focus != 1 || m.fields[1].Chosen != -1 {
+		t.Fatalf("the keyboard is not on the row of b: focus %d, %+v", m.focus, m.fields[1])
+	}
+	m = send(m, key("tab"), key("space"))
+	if m.fields[1].Chosen != 1 || !slices.Equal(m.CommandLine(), []string{"a"}) {
+		t.Fatalf("the alternative of no node, chosen: %d, the line %q", m.fields[1].Chosen, m.CommandLine())
+	}
+	if got := m.answers(); !slices.Equal(got, []string{"a"}) {
+		t.Errorf("the answers kit is asked with: %q", got)
+	}
+	m, _ = drive(t, m, key("down"))
+	if m.focus != 2 || len(m.filtered()) == 0 {
+		t.Errorf("the list after the row: focus %d, %d rows", m.focus, len(m.filtered()))
+	}
+}

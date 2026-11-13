@@ -291,7 +291,8 @@ func (w *walker) group(n syntax.Node, parent int, required bool, path string) {
 	switch {
 	case f.Chosen >= 0 && f.Chosen == bare:
 		f.Description = w.spec.Purpose
-	case f.Chosen >= 0:
+	case f.Chosen >= 0 && len(n.Alternatives[f.Chosen]) > 0:
+		// an alternative of no node, as (b | ) gives, has no first node to describe the row by
 		first := n.Alternatives[f.Chosen][0]
 		f.Description, _ = w.describe(syntax.Key(first))
 	}

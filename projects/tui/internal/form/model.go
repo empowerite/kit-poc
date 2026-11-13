@@ -894,12 +894,12 @@ func (m Model) others(key string) []string {
 }
 
 // answers gives the answers kit syntax takes after a --: each <key>=<value>, and the subcommand words chosen, which a
-// verb's choices may depend on, as kit packages select's list does.
+// verb's choices may depend on, as kit packages select's list does. An alternative of no node has no word.
 func (m Model) answers() []string {
 	fields := m.viewFields()
 	out := answerList(Collect(fields))
 	for _, f := range fields {
-		if f.Kind == OneOf && f.Chosen >= 0 {
+		if f.Kind == OneOf && f.Chosen >= 0 && f.Options[f.Chosen] != "" {
 			if word := f.Options[f.Chosen]; !strings.ContainsAny(word[:1], "-<") && !strings.Contains(word, " ") {
 				out = append(out, word)
 			}
