@@ -7,7 +7,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/empowerite/kit/projects/tui/internal/fix"
 	"github.com/empowerite/kit/projects/tui/internal/kit"
 	"github.com/empowerite/kit/projects/tui/internal/syntax"
 	"github.com/empowerite/kit/projects/tui/internal/testkit"
@@ -215,14 +214,14 @@ func TestTheCommandLineShowsWhatKitSaysOfIt(t *testing.T) {
 	m := newForm(t, "template", Answers{}, true)
 	m.focus = len(m.fields)
 	m = send(m, key("enter"))
-	if !strings.Contains(m.refusal, "kit template new needs <path>; run: "+fix.Here("kit help template")) || m.focus != 0 {
+	if !strings.Contains(m.refusal, "kit template new needs <path>") || m.focus != 0 {
 		t.Errorf("a missing part: %q, focus %d", m.refusal, m.focus)
 	}
 	t.Setenv("FAKE_KIT_MATCH_LITERAL", "")
 	m = newForm(t, "generate", Answers{}, true)
 	t.Setenv("FAKE_KIT_MATCH_MISSING", "generate")
 	m.focus = len(m.fields)
-	if m = send(m, key("enter")); m.refusal != "kit generate needs <path>; run: "+fix.Here("kit help generate") ||
+	if m = send(m, key("enter")); m.refusal != "kit generate needs <path>" ||
 		m.focus != len(m.fields) {
 		t.Errorf("a missing part with no field required: %q, focus %d", m.refusal, m.focus)
 	}
@@ -271,5 +270,66 @@ func TestARowShowsItsStateAndASetsRowsShowThePlan(t *testing.T) {
 		if got := plan(row, c.picked); got != c.after {
 			t.Errorf("plan(%q, picked %v) = %q, not %q", c.state, c.picked, got, c.after)
 		}
+	}
+}
+
+// What kit said of the command line is about the line as it was: an answer changed, typed, or taken back clears it. It
+// says what is missing and no shell line to run, and a long one wraps under the command line, none of it cut.
+func TestTheCommandLinesRefusalGoesWhenTheAnswersChange(t *testing.T) {
+	t.Setenv("FAKE_KIT_MATCH_MISSING", "template")
+	t.Setenv("FAKE_KIT_MATCH_LITERAL", "new")
+	m := newForm(t, "template", Answers{}, true)
+	m, _ = drive(t, m, tea.WindowSizeMsg{Width: 24, Height: 40})
+	m.focus = len(m.fields)
+	m = send(m, key("enter"))
+	if m.refusal != "kit template new needs <path>" || strings.Contains(m.refusal, "run:") {
+		t.Fatalf("the refusal: %q", m.refusal)
+	}
+	view := stripANSI(m.View().Content)
+	if !strings.Contains(view, "❌ kit template new\n") || !strings.Contains(view, " needs <path>\n") {
+		t.Errorf("the refusal is not wrapped whole:\n%s", view)
+	}
+	m = newForm(t, "commit", Answers{}, true)
+	m.refusal = "stale"
+	if m = send(focusOn(m, 0), key("space")); m.refusal != "" {
+		t.Errorf("a changed answer left the refusal: %q", m.refusal)
+	}
+	m = send(m, key("down"), key("space"), key("enter"))
+	m.refusal = "stale"
+	if m = send(m, testkit.Typed("x")...); m.refusal != "" {
+		t.Errorf("typed text left the refusal: %q", m.refusal)
+	}
+}
+
+// A turn of the wheel moves the form as up and down do, a step each, and does nothing under an open menu or the
+// legend, or for a wheel turned sideways.
+func TestTheWheelMovesTheFormAsUpAndDownDo(t *testing.T) {
+	m := newForm(t, "commit", Answers{}, true)
+	m = focusOn(send(m, tea.WindowSizeMsg{Width: 100, Height: 40}), 0)
+	start := m.focus
+	if m = send(m, tea.MouseWheelMsg{Button: tea.MouseWheelDown}); m.focus != start+1 {
+		t.Errorf("down: focus %d, from %d", m.focus, start)
+	}
+	if m = send(m, tea.MouseWheelMsg{Button: tea.MouseWheelUp}); m.focus != start {
+		t.Errorf("up: focus %d, want %d", m.focus, start)
+	}
+	if m = send(m, tea.MouseWheelMsg{Button: tea.MouseWheelLeft}); m.focus != start {
+		t.Errorf("sideways: focus %d, want %d", m.focus, start)
+	}
+	m = send(m, tea.KeyPressMsg{Code: tea.KeyF1})
+	if !m.legend.Open {
+		t.Fatal("F1 shows no legend")
+	}
+	if m = send(m, tea.MouseWheelMsg{Button: tea.MouseWheelDown}); m.focus != start {
+		t.Errorf("under the legend: focus %d, want %d", m.focus, start)
+	}
+	m.legend.Open = false
+	m.appMenu.Open = true
+	if m = send(m, tea.MouseWheelMsg{Button: tea.MouseWheelDown}); m.focus != start {
+		t.Errorf("under a menu: focus %d, want %d", m.focus, start)
+	}
+	m.appMenu.Open, m.books.Open = false, true
+	if m = send(m, tea.MouseWheelMsg{Button: tea.MouseWheelDown}); m.focus != start {
+		t.Errorf("under the workspace menu: focus %d, want %d", m.focus, start)
 	}
 }

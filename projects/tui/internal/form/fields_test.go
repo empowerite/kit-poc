@@ -326,3 +326,20 @@ func TestAChosenRequiredFlagDrawsNoValueUnderItsName(t *testing.T) {
 		t.Errorf("--claude: %s, the first empty required field %d", kinds(fields), i)
 	}
 }
+
+// A literal after leading optional groups opens its alternative: kit tools run is the second usage line, which
+// starts with [--toolchain=<name>], and the word is consumed there.
+func TestLiteralAfterOptionalGroupOpensItsAlternative(t *testing.T) {
+	spec := specs(t)["tools"]
+	fields, _ := Fields(spec, Answers{Literals: []string{"run"}})
+	if fields[0].Chosen != 1 {
+		t.Fatalf("chose %d, want the second usage line", fields[0].Chosen)
+	}
+	if got := strings.Join(CommandLine(spec, fields), " "); got != "run" {
+		t.Errorf("command line %q, want run", got)
+	}
+	fields, _ = Fields(spec, Answers{Literals: []string{"run"}, Chosen: map[string]int{"": 1}})
+	if got := strings.Join(CommandLine(spec, fields), " "); got != "run" {
+		t.Errorf("chosen by hand: command line %q, want run", got)
+	}
+}

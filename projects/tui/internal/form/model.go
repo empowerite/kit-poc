@@ -1,13 +1,15 @@
 // The live form: a Bubble Tea model over the fields, the runner, and the keyboard. Up and down move between fields, as
 // tab and shift-tab do but along a row of options, whose options are the stops on its line: there they move between
-// the options, and on to the field after the last or before the first; space toggles, picks, or chooses the option
+// the options, and on to the field after the last or before the first, and on a row drawn one option under another
+// up and down move among its options too; a turn of the wheel is an up or a down; space toggles, picks, or chooses the option
 // under the cursor, which is the first of a one-of row with nothing chosen, and a character typed there chooses an
 // option that takes a value and starts the value; backspace erases, Enter takes the next
 // field or line and, on the command line, runs; shift-Enter runs from anywhere a terminal reports it, and the keys bar
 // names it only where the terminal said it does; esc goes back
 // to the palette and never quits; ctrl-q quits, and ctrl-c quits as interrupted. In a list, page down and page up move the cursor a page,
 // and home and end to the first and last row. Where a window hides rows, a dim line says how many. A paste is typed
-// where a key would be, as paste says. In a list of one value, Enter takes the row under the cursor, and backspace
+// where a key would be, as paste says. kit is asked off this loop for the arguments a verb adds, and what it said of
+// the command line goes when an answer changes. In a list of one value, Enter takes the row under the cursor, and backspace
 // with nothing typed takes an optional list's answer back; the keys bar names both for what they then do.
 //
 // The form stands in the frame every screen has: the menu bar first, kit help's, its kit menu, its workspace menu, the
@@ -29,7 +31,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/empowerite/kit/projects/tui/internal/fix"
 	"github.com/empowerite/kit/projects/tui/internal/kit"
 	"github.com/empowerite/kit/projects/tui/internal/legend"
 	"github.com/empowerite/kit/projects/tui/internal/pane"
@@ -92,6 +93,8 @@ type Model struct {
 	extOrder []string
 	ext      map[string]syntax.Argument
 	extSeen  map[string]bool
+	extAsked string // the answers kit is being asked the extension of, "" while it is asked none
+	fresh    bool   // the form has not moved: the extension, when it comes, may take the keyboard to its first need
 
 	initCmd                tea.Cmd
 	run, done, interrupted bool
@@ -103,14 +106,8 @@ func New(spec syntax.Spec, fields []Field, r kit.Runner, back bool) Model {
 	m := Model{spec: spec, runner: r, back: back, fields: fields, width: 80, lists: map[string][]kit.Choice{}, sets: map[string]bool{},
 		stale: map[string]bool{}, seeded: map[string]bool{}, failed: map[string]bool{}, extSeen: map[string]bool{},
 		appMenu: shell.Menu{Here: shell.Help}}
-	if spec.Extends {
-		m.refreshExtension()
-		m.rebuild(Collect(m.fields))
-	}
-	m.focus = FirstEmptyRequired(m.fields)
-	if m.focus < 0 {
-		m.focus = 0
-	}
+	m.focus = firstNeed(fields)
+	m.fresh = true
 	m.initCmd = m.enter()
 	return m
 }
@@ -144,6 +141,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.shift = msg.SupportsKeyDisambiguation()
 	case choicesMsg:
 		m.choices(msg)
+	case extendedMsg:
+		cmd := m.extended(msg)
+		return m, cmd
 	case matchedMsg:
 		cmd := m.matched(msg)
 		return m, cmd
@@ -151,6 +151,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.books = m.books.Told(msg)
 	case tea.MouseClickMsg:
 		return m, m.click(msg)
+	case tea.MouseWheelMsg:
+		return m, m.wheel(msg)
 	case tea.KeyPressMsg:
 		cmd := m.key(msg)
 		return m, cmd
@@ -158,6 +160,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.paste(msg.Content)
 	}
 	return m, nil
+}
+
+// wheel turns the form as up and down do: a turn moves the keyboard, or the cursor of the list or row that has it, one
+// step. Under an open menu, or a legend, it does nothing.
+func (m *Model) wheel(msg tea.MouseWheelMsg) tea.Cmd {
+	if m.appMenu.Open || m.books.Open || m.legend.Open {
+		return nil
+	}
+	switch msg.Button {
+	case tea.MouseWheelUp:
+		return m.key(tea.KeyPressMsg{Code: tea.KeyUp})
+	case tea.MouseWheelDown:
+		return m.key(tea.KeyPressMsg{Code: tea.KeyDown})
+	}
+	return nil
 }
 
 // menuBar gives the menu bar, as internal/shell draws every screen's: the kit menu's = before kit help, the workspace
@@ -500,20 +517,25 @@ func (m *Model) key(k tea.KeyPressMsg) tea.Cmd {
 
 // move takes the keyboard to the field d away, the command line after the last.
 func (m *Model) move(d int) tea.Cmd {
+	m.fresh = false
 	m.commitLine()
 	m.focus = min(max(m.focus+d, 0), len(m.fields))
+	step := 1
+	if d < 0 {
+		step = -1
+	}
+	for m.focus < len(m.fields) && m.fields[m.focus].Opening {
+		m.focus += step // the row's own flag is no stop: go on in the direction of the move
+	}
 	return m.enter()
 }
 
 // enter readies the focused field: its text, its cursor, its extension, and its list's rows.
 func (m *Model) enter() tea.Cmd {
 	m.input, m.note, m.cursor = "", "", 0
-	if m.spec.Extends {
-		m.refreshExtension()
-		m.rebuild(Collect(m.fields))
-	}
+	ext := m.extend()
 	if m.focus >= len(m.fields) {
-		return nil
+		return ext
 	}
 	f := m.fields[m.focus]
 	switch f.Kind {
@@ -526,10 +548,10 @@ func (m *Model) enter() tea.Cmd {
 		m.cursor = max(f.Chosen, 0)
 	case Pick, PickMany:
 		if m.lists[f.Key] == nil || m.stale[f.Key] {
-			return m.fetch(f.Key, "")
+			return tea.Batch(ext, m.fetch(f.Key, ""))
 		}
 	}
-	return nil
+	return ext
 }
 
 func (m *Model) toggle(s string) tea.Cmd {
@@ -555,7 +577,7 @@ func (m *Model) toggle(s string) tea.Cmd {
 // row takes a key on a row of options, whose options are the stops on its line: tab and shift-tab move the cursor
 // between them, and past the last or the first to the next field or the one before; space toggles the option under
 // the cursor, or chooses it on a one-of row, and enter chooses it too, where chooses says, and goes on; backspace
-// clears an optional one-of row, the cursor back on its first option; up and down move between fields. Moving the
+// clears an optional one-of row, the cursor back on its first option; up and down move between fields, or among the options of a row drawn one under another. Moving the
 // cursor never chooses, so tabbing through a row changes nothing. A character typed on a one-of row whose option
 // under the cursor takes a value, as valued says, chooses the option, gives its value the keyboard, and is typed
 // there, so a row the form opens on is answered by typing.
@@ -585,8 +607,16 @@ func (m *Model) row(k tea.KeyPressMsg, s string) tea.Cmd {
 		}
 		return m.move(1)
 	case "down":
+		if m.stacked() && m.cursor < len(f.Options)-1 {
+			m.cursor++ // the options are drawn one under another: down is the next one
+			return nil
+		}
 		return m.move(1)
 	case "up":
+		if m.stacked() && m.cursor > 0 {
+			m.cursor--
+			return nil
+		}
 		return m.move(-1)
 	default:
 		if k.Text != "" && k.Mod&(tea.ModCtrl|tea.ModAlt) == 0 && m.valued(*f) {
@@ -597,6 +627,12 @@ func (m *Model) row(k tea.KeyPressMsg, s string) tea.Cmd {
 		}
 	}
 	return nil
+}
+
+// stacked says whether the row with the keyboard draws its options one under another, where up and down move among
+// them, and leave the row past its ends.
+func (m Model) stacked() bool {
+	return (&drawer{spec: m.spec, fields: m.fields, width: m.width}).vertical(m.focus)
 }
 
 // chooses says whether Enter on the row chooses the option under the cursor before it goes on: on a one-of row, an
@@ -682,6 +718,7 @@ func (m *Model) paste(content string) {
 			m.commitLine()
 		}
 		m.input += lines[len(lines)-1]
+		m.refusal = ""
 	default:
 		m.input += strings.Join(lines, "")
 		m.cursor = 0
@@ -690,6 +727,7 @@ func (m *Model) paste(content string) {
 
 // typedText applies the text typed: a text field's value changes as it is typed.
 func (m *Model) typedText() {
+	m.refusal = "" // kit judged the line as it was
 	f := &m.fields[m.focus]
 	if f.Kind != Text {
 		return
@@ -946,8 +984,7 @@ func (m *Model) matched(msg matchedMsg) tea.Cmd {
 		if len(match.Literals) > 0 {
 			literals = " " + strings.Join(match.Literals, " ")
 		}
-		m.refusal = fmt.Sprintf("kit %s%s needs %s; run: %s", m.spec.Verb, literals, match.Missing,
-			fix.Here("kit help "+m.spec.Verb))
+		m.refusal = fmt.Sprintf("kit %s%s needs %s", m.spec.Verb, literals, match.Missing)
 		if i := FirstEmptyRequired(m.fields); i >= 0 {
 			m.focus = i
 			return m.enter()
@@ -960,6 +997,7 @@ func (m *Model) matched(msg matchedMsg) tea.Cmd {
 
 // changed rebuilds the fields from the answers after one of them changed.
 func (m *Model) changed(key string) {
+	m.refusal = "" // it judged the command line as it was
 	m.markStale(key)
 	m.rebuild(Collect(m.fields))
 }
@@ -1001,21 +1039,68 @@ func (m *Model) rebuild(a Answers) {
 	}
 }
 
-// refreshExtension asks kit for the arguments the answers add, once per set of answers kit answered; kit's refusal is
-// the focused field's note, and the next field asks again.
-func (m *Model) refreshExtension() {
+// firstNeed gives the field the keyboard starts on: the first required field with no answer, else the first.
+func firstNeed(fields []Field) int {
+	return max(FirstEmptyRequired(fields), 0)
+}
+
+// extendedMsg brings kit's extension for the answers it was asked about: the arguments they add, or why it cannot.
+type extendedMsg struct {
+	seen  string
+	order []string
+	args  map[string]syntax.Argument
+	err   error
+}
+
+// extend asks kit, off the update loop, for the arguments the answers add, once per set of answers kit answered;
+// extended takes the answer. A set of answers already asked, or being asked, is not asked again.
+func (m *Model) extend() tea.Cmd {
+	if !m.spec.Extends {
+		return nil
+	}
 	answers := m.answers()
 	seen := strings.Join(answers, "\x00")
-	if m.extSeen[seen] {
-		return
+	if m.extSeen[seen] || m.extAsked == seen {
+		return nil
 	}
-	order, args, err := m.runner.Extend(m.spec.Verb, answers)
-	if err != nil {
-		m.note = err.Error()
-		return
+	m.extAsked = seen
+	r, verb := m.runner, m.spec.Verb
+	return func() tea.Msg {
+		order, args, err := r.Extend(verb, answers)
+		return extendedMsg{seen: seen, order: order, args: args, err: err}
 	}
-	m.extSeen[seen] = true
-	m.extOrder, m.ext = order, args
+}
+
+// extended lays the fields out with the extension in place of the wildcard, the keyboard staying on its field, or
+// going to the first the form needs while the form has not moved. An answer about answers that changed since is
+// asked again. kit's refusal is the focused field's note, and the next field
+// asks again.
+func (m *Model) extended(msg extendedMsg) tea.Cmd {
+	if msg.seen == m.extAsked {
+		m.extAsked = ""
+	}
+	if msg.seen != strings.Join(m.answers(), "\x00") {
+		return m.extend() // the answers changed while kit was asked: ask again for what they are now
+	}
+	if msg.err != nil {
+		m.note = msg.err.Error()
+		return nil
+	}
+	m.extSeen[msg.seen] = true
+	m.extOrder, m.ext = msg.order, msg.args
+	key := ""
+	if m.focus < len(m.fields) {
+		key = m.fields[m.focus].Key
+	}
+	m.rebuild(Collect(m.fields))
+	switch i := m.fieldOf(key); {
+	case m.fresh && m.input == "":
+		m.focus = firstNeed(m.fields)
+	case key != "" && i >= 0:
+		m.focus = i
+		return nil
+	}
+	return m.enter()
 }
 
 // viewFields gives the fields with the line being typed counted, as the command line shows it.

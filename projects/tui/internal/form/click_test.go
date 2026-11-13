@@ -235,10 +235,10 @@ func TestAClickOnTheCommandLineGivesItTheKeyboardAndASecondRunsIt(t *testing.T) 
 	}
 }
 
-// A click gives the keyboard to the field it fell on, and flips or chooses only when that field is still there once
-// the keyboard has moved: where the move brings the verb's own arguments in the wildcard's place, the field at the
-// place clicked is another, and the click changes nothing of it.
-func TestAClickFlipsNothingWhereTheMoveReplacedTheField(t *testing.T) {
+// A click acts on the field drawn where it fell: kit is asked for the verb's own arguments off the update loop, so the
+// click flips the flag it fell on, and the arguments come in the wildcard's place after, the keyboard staying on that
+// flag by its key, not by its place.
+func TestAClickActsOnTheFieldDrawnAndTheExtensionKeepsTheKeyboardOnIt(t *testing.T) {
 	one := func(n syntax.Node, repeat bool) syntax.Node {
 		return syntax.Node{Kind: "group", Optional: true, Repeat: repeat, Alternatives: [][]syntax.Node{{n}}}
 	}
@@ -254,8 +254,7 @@ func TestAClickFlipsNothingWhereTheMoveReplacedTheField(t *testing.T) {
 	m = send(m, testkit.Typed("--x=y")...)
 	x, y := lineAt(t, m, "--up")
 	m = send(m, testkit.Click(x, y))
-	if m.focus != 1 || m.fields[1].Key != "--title" || m.input != "" || len(m.fields[0].Values) != 0 {
-		t.Errorf("the click: focus %d on %q, typed %q, --up %q", m.focus, m.fields[1].Key, m.input,
-			m.fields[0].Values)
+	if m.focus != 0 || m.fields[0].Key != "--up" || len(m.fields[0].Values) != 1 || m.fields[1].Key != "--title" {
+		t.Errorf("the click: focus %d, fields %+v", m.focus, m.fields)
 	}
 }

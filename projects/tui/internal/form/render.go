@@ -114,8 +114,8 @@ func lay(spec syntax.Spec, fields []Field, o Options) (*drawer, int) {
 	}
 	d.b.WriteString("\n")
 	for i := range fields {
-		if fields[i].Group >= 0 && d.vertical(fields[i].Group) {
-			continue // drawn under its option in the row
+		if fields[i].Opening || fields[i].Group >= 0 && d.vertical(fields[i].Group) {
+			continue // a row's own flag is named by the row; another field is drawn under its option in the row
 		}
 		d.block(i, gutter)
 	}
@@ -129,7 +129,9 @@ func lay(spec syntax.Spec, fields []Field, o Options) (*drawer, int) {
 	}
 	d.spots = append(d.spots, Spot{First: before, Last: d.count() - 1, Until: width, Field: len(fields), Option: -1})
 	if o.CommandRefusal != "" {
-		d.b.WriteString(" " + o.Styles.Refusal("❌ "+o.CommandRefusal) + "\n")
+		for _, line := range pane.Wrap("❌ "+o.CommandRefusal, width-1) {
+			d.b.WriteString(" " + o.Styles.Refusal(line) + "\n")
+		}
 	}
 	if o.CommandFocus {
 		d.first, d.last = before, d.count()-1
@@ -414,7 +416,7 @@ func (d *drawer) row(i int, lead string) {
 		apart := false // a blank line sets the alternative's own fields apart from its name, and each ends with one
 		for _, j := range nested {
 			g := d.fields[j]
-			if g.Key == option && g.Kind == Toggle {
+			if g.Opening {
 				continue // the name itself says it: a required flag has no value to show
 			}
 			if g.Key == option && g.Kind != AnyOf && g.Kind != OneOf {

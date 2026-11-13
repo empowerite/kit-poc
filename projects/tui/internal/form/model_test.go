@@ -107,7 +107,7 @@ func TestKeyboardLandsOnTheFirstEmptyRequiredField(t *testing.T) {
 		t.Errorf("focus = %d", m.focus)
 	}
 	m, _ = drive(t, m, keys("space")...)
-	m, _ = drive(t, m, keys("down")...)
+	m, _ = drive(t, m, keys("enter")...)
 	m, _ = drive(t, m, testkit.Typed("#1 tui: x")...)
 	if got := strings.Join(m.CommandLine(), "\x00"); got != "--message=#1 tui: x" {
 		t.Errorf("a line being typed counts: %q", got)
@@ -151,7 +151,8 @@ func TestOneOfTabsAndChoosesOnTheSpace(t *testing.T) {
 	}
 	// kit flow's owner row, under the picture's line, is optional, so backspace clears it.
 	m = newForm(t, "flow", Answers{Chosen: map[string]int{"": 0}}, false)
-	m, _ = drive(t, m, keys("down", "down", "down", "tab", "space")...)
+	m = focusOn(m, 3)
+	m, _ = drive(t, m, keys("tab", "space")...)
 	if m.fields[3].Chosen != 1 {
 		t.Fatalf("tab and the space on the owner row: %+v", m.fields[3])
 	}
@@ -172,7 +173,8 @@ func TestAnyOfSpace(t *testing.T) {
 	// flow's owner row, under the picture's line, its second alternative chosen, opens an any-of row of --mine and
 	// --others
 	m := newForm(t, "flow", Answers{Chosen: map[string]int{"": 0}}, false)
-	m, _ = drive(t, m, keys("down", "down", "down", "tab", "space", "down", "space", "tab", "space")...)
+	m = send(focusOn(m, 3), keys("tab", "space")...)
+	m = send(focusOn(m, 4), keys("space", "tab", "space")...)
 	if got := strings.Join(m.CommandLine(), " "); got != "--mine --others" {
 		t.Errorf("toggled: %q", got)
 	}
@@ -185,7 +187,7 @@ func TestAnyOfSpace(t *testing.T) {
 func TestJSONAndJQAreOneOrTheOther(t *testing.T) {
 	// the picture's output row is --text | --json | --jq: the space chooses along it, so one flag stands at a time
 	m := newForm(t, "flow", Answers{Chosen: map[string]int{"": 0}}, false)
-	m, _ = drive(t, m, keys("down", "down", "tab", "space")...)
+	m = send(focusOn(m, 2), keys("tab", "space")...)
 	if got := strings.Join(m.CommandLine(), " "); got != "--json" {
 		t.Errorf("the output row on --json: %q", got)
 	}
@@ -285,6 +287,10 @@ func TestNarrowWidthGoesVertical(t *testing.T) {
 func TestExtendedFieldsReplaceTheWildcard(t *testing.T) {
 	m := newForm(t, "new", FromMatch(syntax.Match{Literals: []string{"file"}, Operands: []string{"docs/x.md"},
 		Options: map[string][]string{"--rule": {"markdown"}}, Values: map[string][]string{"<path>": {"docs/x.md"}, "--rule": {"markdown"}}}), false)
+	// kit is asked off the update loop: the form opens with the wildcard, and the verb's arguments come after
+	if kinds(m.fields) == "" || m.initCmd == nil || slices.ContainsFunc(m.fields, func(f Field) bool { return f.Label == "«title»" }) {
+		t.Fatalf("the form opened with the extension in place: %s", kinds(m.fields))
+	}
 	m, _ = drive(t, m)
 	var labels []string
 	for _, f := range m.fields {
@@ -362,7 +368,7 @@ func TestHintsWrapAtFiftyColumns(t *testing.T) {
 		keys []string
 	}{
 		{"lint", Answers{}, []string{"down"}},
-		{"commit", Answers{}, []string{"space", "down"}},
+		{"commit", Answers{}, []string{"space", "enter"}},
 		{"packages", Answers{Literals: []string{"select"}, Chosen: map[string]int{"": 1}}, nil},
 	} {
 		m := newForm(t, c.verb, c.a, false)
@@ -481,8 +487,8 @@ func TestTheKeysBarIsTheLastLineWhereverTheKeyboardIs(t *testing.T) {
 			command bool   // the keyboard on the command line, with a long refusal under it
 			want    string // the bar, at 50 columns
 		}{
-			{"commit", Answers{}, []string{"space", "down"}, false, clipped}, // --message's lines, with their hint
-			{"lint", Answers{}, []string{"down"}, false, many},               // a list of 3000 rows, with its count
+			{"commit", Answers{}, []string{"space", "enter"}, false, clipped}, // --message's lines, with their hint
+			{"lint", Answers{}, []string{"down"}, false, many},                // a list of 3000 rows, with its count
 			{"packages", Answers{Literals: []string{"select"}, Chosen: map[string]int{"": 1}}, nil, false, many},
 			{"flow", Answers{}, nil, true, command},
 		} {
@@ -505,7 +511,7 @@ func TestTheKeysBarIsTheLastLineWhereverTheKeyboardIs(t *testing.T) {
 	// at 80 columns the bar is whole; a height not yet known draws the form, a gap, and the bar
 	m := newForm(t, "commit", Answers{}, true)
 	m, _ = drive(t, m, tea.WindowSizeMsg{Width: 80, Height: 0}, disambiguates)
-	m, _ = drive(t, m, keys("space", "down")...)
+	m, _ = drive(t, m, keys("space", "enter")...)
 	lines := screen(m)
 	if lines[len(lines)-1] != text || lines[len(lines)-2] != "" || !strings.Contains(lines[len(lines)-3], "kit commit") {
 		t.Errorf("with no height, the last lines: %q", lines[len(lines)-3:])
@@ -553,7 +559,7 @@ func TestTheKeysBarNamesOnlyTheKeysTheFieldTakes(t *testing.T) {
 
 func TestQIsTypedNotAQuit(t *testing.T) {
 	m := newForm(t, "commit", Answers{}, true)
-	m, _ = drive(t, m, keys("space", "down")...)
+	m, _ = drive(t, m, keys("space", "enter")...)
 	m, produced := drive(t, m, testkit.Typed("q")...)
 	if len(produced) != 0 || m.input != "q" {
 		t.Errorf("q: %v, input %q", produced, m.input)

@@ -68,7 +68,8 @@ func TestEnterOnAnOptionalRowWithNothingChosenOnlyGoesOn(t *testing.T) {
 	if bar := m.keys().String(); !strings.Contains(bar, "␣·⏎ choose") || strings.Contains(bar, "⏎ next") {
 		t.Errorf("the keys on an option the cursor was moved to: %q", bar)
 	}
-	if m = send(m, key("enter")); m.fields[2].Chosen != 1 || m.focus != 3 {
+	if m = send(m, key("enter")); m.fields[2].Chosen != 1 || m.focus != 4 {
+		// field 3 is --json's own flag, which the row names: it is no stop
 		t.Errorf("Enter on --json: chosen %d, focus %d", m.fields[2].Chosen, m.focus)
 	}
 	// a letter typed on a row of flags, one of or any of, chooses nothing and is typed nowhere
@@ -147,5 +148,55 @@ func TestARowIsDrawnByItsOwnAlternativesWhateverTheOtherUsageLinesHold(t *testin
 		at("   <command>") >= 0 {
 		t.Errorf("one of at %d, install at %d, run at %d, <command>… at %d, sources at %d:\n%s", heading, install, run,
 			command, sources, strings.Join(lines, "\n"))
+	}
+}
+
+// The flag that opens a chosen alternative is named by its row: the keyboard never stops on it, and a side-by-side row
+// does not draw it again below.
+func TestTheFlagOfAChosenOptionIsNoStopAndIsDrawnOnce(t *testing.T) {
+	m := newForm(t, "context", Answers{Chosen: map[string]int{"": 1}}, false)
+	if len(m.fields) != 2 || !m.fields[1].Opening {
+		t.Fatalf("kit context --claude: %+v", m.fields)
+	}
+	if m = send(m, key("down")); m.focus != 2 {
+		t.Errorf("down from the row: focus %d, want the command line at 2", m.focus)
+	}
+	if m = send(m, key("up")); m.focus != 0 {
+		t.Errorf("up from the command line: focus %d, want the row at 0", m.focus)
+	}
+	m = newForm(t, "audit", Answers{Chosen: map[string]int{"": 0, "0/0": 1}}, false)
+	view := RenderStatic(m.spec, m.fields, 100)
+	if n := strings.Count(view, "--json"); n != 2 { // the row's name, and the command line
+		t.Errorf("--json drawn %d times, want the row and the command line:\n%s", n, view)
+	}
+}
+
+// A row drawn one option under another, as kit commit's --message and --file, is walked by up and down, which leave
+// it past its ends; a row drawn on one line is left by them at once.
+func TestUpAndDownWalkTheOptionsOfAStackedRow(t *testing.T) {
+	m := newForm(t, "commit", Answers{}, false)
+	m = send(m, tea.WindowSizeMsg{Width: 100, Height: 40})
+	row := slices.IndexFunc(m.fields, func(f Field) bool { return f.Kind == OneOf })
+	m = focusOn(m, row)
+	if !m.stacked() {
+		t.Fatal("kit commit's row of --message and --file is not stacked")
+	}
+	if m = send(m, key("down")); m.focus != row || m.cursor != 1 {
+		t.Errorf("down on the first option: focus %d, cursor %d", m.focus, m.cursor)
+	}
+	if m = send(m, key("up")); m.focus != row || m.cursor != 0 {
+		t.Errorf("up on the second option: focus %d, cursor %d", m.focus, m.cursor)
+	}
+	if m = send(m, key("up")); m.focus != row-1 {
+		t.Errorf("up on the first option: focus %d, want %d", m.focus, row-1)
+	}
+	m = focusOn(m, row)
+	if m = send(m, key("down"), key("down")); m.focus != row+1 {
+		t.Errorf("down past the last option: focus %d, want %d", m.focus, row+1)
+	}
+	flow := newForm(t, "flow", Answers{}, false)
+	flow = send(flow, tea.WindowSizeMsg{Width: 100, Height: 40})
+	if flow = focusOn(flow, 2); flow.stacked() || send(flow, key("down")).focus != 3 {
+		t.Error("down on a row drawn on one line stays in it")
 	}
 }

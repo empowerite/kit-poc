@@ -51,6 +51,9 @@ type Field struct {
 	Required, Repeat        bool
 	Refusal                 string
 	Group                   int
+	// Opening marks the toggle of the flag that opens a row's chosen alternative: it keeps the choice by the flag's
+	// name, and the row draws and stops for the name, so the form draws and stops for it never.
+	Opening bool
 }
 
 // Answers is what the person has given so far: the sorted command line, as kit syntax --match gives it, and the
@@ -121,7 +124,7 @@ func Fields(spec syntax.Spec, a Answers) ([]Field, error) {
 	}
 	w := &walker{spec: spec, answers: a}
 	if len(spec.Syntax) == 1 {
-		w.sequence(spec.Syntax[0], -1, true, under("", 0))
+		w.sequence(spec.Syntax[0], -1, true, under("", 0), false)
 	} else {
 		w.group(syntax.Node{Kind: "group", Alternatives: spec.Syntax}, -1, true, "")
 	}
@@ -136,10 +139,16 @@ func (w *walker) describe(key string) (string, string) {
 
 // sequence walks one sequence, at its path in the grammar, folding runs of optional lone flags into one any-of row.
 // Its nodes are required when the command line needs the sequence: at the top, or in an alternative chosen, but not
-// inside [ ].
-func (w *walker) sequence(nodes []syntax.Node, group int, required bool, path string) {
+// inside [ ]. A row's chosen alternative is opened: a flag that starts it is a field that keeps the choice by the
+// flag's name, which the form neither draws nor stops on, as the row names it.
+func (w *walker) sequence(nodes []syntax.Node, group int, required bool, path string, opened bool) {
 	for i := 0; i < len(nodes); i++ {
 		n := nodes[i]
+		if opened && i == 0 && n.Kind == "flag" {
+			w.toggle(n, true, group)
+			w.fields[len(w.fields)-1].Opening = true
+			continue
+		}
 		if flag, ok := loneFlag(n); ok {
 			j := i
 			var flags []syntax.Node
@@ -271,7 +280,7 @@ func (w *walker) group(n syntax.Node, parent int, required bool, path string) {
 				return
 			}
 		}
-		w.sequence(n.Alternatives[0], parent, required, under(path, 0))
+		w.sequence(n.Alternatives[0], parent, required, under(path, 0), false)
 		return
 	}
 	bare := -1
@@ -299,7 +308,7 @@ func (w *walker) group(n syntax.Node, parent int, required bool, path string) {
 	index := len(w.fields)
 	w.fields = append(w.fields, f)
 	if f.Chosen >= 0 {
-		w.sequence(n.Alternatives[f.Chosen], index, true, under(path, f.Chosen))
+		w.sequence(n.Alternatives[f.Chosen], index, true, under(path, f.Chosen), true)
 	}
 }
 
@@ -319,8 +328,10 @@ func bareAlternative(alternatives [][]syntax.Node) int {
 // group's row to consume.
 func (w *walker) choose(alternatives [][]syntax.Node, path string) int {
 	if chosen, ok := w.answers.Chosen[path]; ok && chosen < len(alternatives) {
-		if chosen >= 0 && len(alternatives[chosen]) > 0 && alternatives[chosen][0].Kind == "literal" {
-			w.literals++
+		if chosen >= 0 {
+			if first, ok := firstRequired(alternatives[chosen]); ok && first.Kind == "literal" {
+				w.literals++
+			}
 		}
 		return chosen
 	}
@@ -328,7 +339,7 @@ func (w *walker) choose(alternatives [][]syntax.Node, path string) int {
 		next := w.answers.Literals[w.literals]
 		for i, alternative := range alternatives {
 			if opens(alternative, next) {
-				if alternative[0].Kind == "literal" {
+				if first, _ := firstRequired(alternative); first.Kind == "literal" {
 					w.literals++
 				}
 				return i
@@ -343,18 +354,29 @@ func (w *walker) choose(alternatives [][]syntax.Node, path string) int {
 	return -1
 }
 
+// firstRequired gives the first node of an alternative that is not an optional group, as the leading [--toolchain=<name>]
+// of kit tools' second line is not what opens it.
+func firstRequired(alternative []syntax.Node) (syntax.Node, bool) {
+	for _, n := range alternative {
+		if n.Kind != "group" || !n.Optional {
+			return n, true
+		}
+	}
+	return syntax.Node{}, false
+}
+
 // opens says whether a literal opens the alternative, as the matcher judges it: it is the alternative's first node,
 // or it opens an alternative of the required group the alternative starts with, as add opens
 // kit packages (select | add | remove) <package>….
 func opens(alternative []syntax.Node, literal string) bool {
-	if len(alternative) == 0 {
+	first, ok := firstRequired(alternative)
+	if !ok {
 		return false
 	}
-	first := alternative[0]
 	if first.Kind == "literal" {
 		return first.Name == literal
 	}
-	if first.Kind != "group" || first.Optional {
+	if first.Kind != "group" {
 		return false
 	}
 	for _, inner := range first.Alternatives {
