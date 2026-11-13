@@ -62,6 +62,15 @@ source-tarball() {
   [[ "$output" == *"the source bare has no digest"* ]]
 }
 
+@test "a source whose digest is not a digest is never read from the folder the digest points to" {
+  mkdir -p "${XDG_CACHE_HOME}/kit/sources" "${XDG_CACHE_HOME}/kit/elsewhere/packages/planted"
+  printf 'description: "planted outside any cache"\n' > "${XDG_CACHE_HOME}/kit/elsewhere/packages/planted/package.yml"
+  printf 'sources:\n  - name: team\n    url: file:///nowhere\n    digest: "sha256:../elsewhere"\n' >> kit.yml
+  run kit packages --text
+  [[ "$output" == *"the source team has no digest"* ]]
+  [[ "$output" != *"planted"* ]]
+}
+
 @test "of two sources with a package of one name, the later one's is the package" {
   IFS=$'\t' read -r one one_digest < <(source-tarball one guides first)
   IFS=$'\t' read -r two two_digest < <(source-tarball two guides second)

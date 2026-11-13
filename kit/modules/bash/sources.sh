@@ -176,7 +176,8 @@ sources:fetch-all() {
 
 # sources:roots [<settings>] prints "<name>\t<root>" for each package source in the cache, in the order of the
 # settings file, kit.yml by default: <root> is the directory that holds its packages/. A source not fetched yet is
-# left out; sources:fetch-all fetches it.
+# left out; sources:fetch-all fetches it. So is a source whose digest is not sha256:<64 hex digits>, since the cache
+# path is built from the digest as written.
 sources:roots() {
   local name url digest cache row
   local -a rows
@@ -184,7 +185,7 @@ sources:roots() {
   for row in "${rows[@]}"
   do
     IFS=$'\x1f' read -r name url digest <<<"${row}"
-    [[ -n "${name}" ]] || continue
+    [[ -n "${name}" && "${digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || continue
     sources:cache "${digest}" cache
     if [[ -d "${cache}/packages" ]]
     then
