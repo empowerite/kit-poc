@@ -246,7 +246,7 @@
       "description": "prints the stages, one per line, in order, the same over any workspace"
     },
     "--marks": {
-      "description": "prints a mark per stage, as one JSON object, which changes when what the stage draws does: the forge's own mark of its runs, as a run makes each; environments' and deployments' also hold the forge's mark of their own kind, as another tool may deploy and a person may edit one"
+      "description": "prints a mark per stage, as one JSON object, which changes when what the stage draws does"
     },
     "artifacts": {
       "description": "the artifacts the runs kept, the newest 100 at most"

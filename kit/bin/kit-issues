@@ -11,41 +11,24 @@
 #   kit issues backlog [--text | --json | --jq]
 #   kit issues underway [--text | --json | --jq]
 #
-# Draws the open issues and the planning the forge keeps, the tabs of Issues in kittui. It changes nothing. Its first
-# tab, issues, every open issue, in the backlog or underway, is kit flow's stage: kit issues issues prints it as kit
-# flow issues does, and kit issues backlog and kit issues underway print the issues of that status, as the tab's
-# Backlog and Underway presets show them. The other tabs are the stages the forge answers here, in order:
+# Lists the open issues of the repository and the planning the forge keeps, the tabs of Issues in kittui. It changes
+# nothing. Its stages, in order:
 #
 #   milestones → iterations
 #
-# kit --workspace=<workspace> issues, the kit option before the verb, draws each stage across a workspace's members
-# with checkouts, as kit workspace does: a group's name, or a repository's host and path, as kit workspaces names it;
-# none names no workspace. Without it, the workspace is the repository here, and outside one, the last group used, as
-# kit workspaces --current says. On a terminal, kit issues opens Issues in kittui, and kit issues <stage> opens it on
-# that tab, maximized; so does kit issues issues, and kit issues backlog and kit issues underway open it on its Backlog
-# or Underway preset. Without one, or with --text, it prints text; with --json or --jq, JSON: the stages where no tab
-# is named, and the tab named alone. kit issues with no tab prints its stages, not the issues.
+# The first tab, issues, is kit flow's stage: kit issues issues prints what kit flow issues prints, and kit issues backlog
+# and kit issues underway print the issues of that status, as the tab's Backlog and Underway presets show them. kit issues
+# with no tab prints its stages, not the issues.
 #
-# With --json, issues, backlog, and underway print what kit flow issues --json prints: an array of issues, and over a
-# workspace {contract, rows, errors}, each row with its member.
+# On a terminal, kit issues opens Issues in kittui, and kit issues <stage> opens it on that tab, maximized. Without a
+# terminal, or with --text, it prints text. With --json or --jq, it prints JSON: the stages where no tab is named, and the
+# tab named alone.
 #
-# With --json, a stage prints {contract, rows, errors}: contract is the number of the stage documents' contract, as
-# kit workspace's page says. A row is {key, …, links}: key is the row's own in its stage, and links gives where a
-# value leads, by its field. Every row says where it is from: organization and repository, the owner and the name of
-# the repository kit read it in, as its primary remote's URL names them past the host, no organization for a primary
-# on this machine; and source, the forge, as github or gitlab. Over a workspace, each row gains member, its host and
-# path, and a member that could not be read, or whose release prints another contract, is {member, error} under
-# errors, while every other member still draws. A repository with no forge, or a forge without the stage's feature,
-# gives no rows and no errors; a forge that has none for this repository, as a GitLab tier without iterations, gives
-# no rows and the error {feature, off: true}.
+# kit --workspace=<workspace> issues draws each stage across a workspace's members with checkouts, as kit workspace does.
+# Without it, the workspace is the repository here, and outside one, the last group used, as kit workspaces --current
+# says.
 #
-#   milestones          {number, title, state, due, open, closed}: state is open or closed, due is seconds since the
-#                       epoch or null for none, open and closed count the milestone's issues; the title links to its
-#                       page. Azure DevOps has no milestones
-#   iterations          {id, title, start, end, current}: start and end are seconds since the epoch, end the last
-#                       second of the last day, null where the iteration has no dates; current is true for the one
-#                       that holds now; the title links to the page of the project, the iteration, or the team's
-#                       sprints. A repository with no project linked on GitHub has none
+# With --json, a stage prints {contract, rows, errors}. The fields of each stage are in docs/apps.md.
 #
 # Legend
 #
@@ -72,13 +55,10 @@
 #                       null for one that could not be read
 #   --jq                the same JSON, formatted by jq for a person
 #   --stages            prints the stages, one per line, in order, the same over any workspace
-#   --marks             prints a mark per stage, as one JSON object, which changes when what the stage draws does:
-#                       the forge's own mark of its milestones for milestones, null for iterations, which has none
-#                       and is read again only on Refresh
+#   --marks             prints a mark per stage, as one JSON object, which changes when what the stage draws does; null
+#                       for a stage with none, as iterations
 #   milestones          each milestone of the repository, open and closed, by number
-#   iterations          each iteration, by start: GitHub's from the projects linked to the repository, GitLab's with
-#                       its groups', and Azure DevOps' of its team, the one forge_settings.ado.team names, else the
-#                       project's default team
+#   iterations          each iteration, by start
 #   issues              every open issue, in the backlog or underway, as kit flow issues prints it; on a terminal it
 #                       opens in kittui
 #   backlog             the open issues in the backlog, the issues tab's Backlog preset; on a terminal it opens in

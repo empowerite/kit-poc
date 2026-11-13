@@ -246,13 +246,13 @@
       "description": "prints the stages, one per line, in order, the same over any workspace"
     },
     "--marks": {
-      "description": "prints a mark per stage, as one JSON object, which changes when what the stage draws does: the forge's own mark of its milestones for milestones, null for iterations, which has none and is read again only on Refresh"
+      "description": "prints a mark per stage, as one JSON object, which changes when what the stage draws does; null for a stage with none, as iterations"
     },
     "milestones": {
       "description": "each milestone of the repository, open and closed, by number"
     },
     "iterations": {
-      "description": "each iteration, by start: GitHub's from the projects linked to the repository, GitLab's with its groups', and Azure DevOps' of its team, the one forge_settings.ado.team names, else the project's default team"
+      "description": "each iteration, by start"
     },
     "issues": {
       "description": "every open issue, in the backlog or underway, as kit flow issues prints it; on a terminal it opens in kittui"

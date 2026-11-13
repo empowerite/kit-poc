@@ -8,8 +8,7 @@
 
    --stages     prints the stages, one per line, in order, the same over any workspace
    --marks      prints a mark per stage, as one JSON object, which changes when what the stage draws
-                does: for each, the forge's own marks of its issues, which move with its changes,
-                and of its runs
+                does
    reviews      each open change's reviewers: those it asks, and those who reviewed it, by login
    checks       each open change's checks: the latest run of each on its head commit
    merged       the changes merged last, 50 at most, merged last first

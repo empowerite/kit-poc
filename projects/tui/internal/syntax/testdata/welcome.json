@@ -176,7 +176,7 @@
       "description": "the folder whose working tree holds <path>: --checks prints its checks alone, and --fix runs a folder's check there; with none, --fix runs it in the repository here"
     },
     "--progress": {
-      "description": "with --checks, says on stderr what is being checked as it goes: ⏳ checking <check>, then \" in <folder>\" for a folder's, as each check starts, and ⏳ checked, then \" <folder>\" for a folder, as the machine's checks or a folder's end; kittui shows them while the checks run"
+      "description": "with --checks, says on stderr what is being checked as it goes, for kittui to show while the checks run"
     },
     "<check>": {
       "description": "a check's id, as --checks --json names it: tool-yq, toolchain-project"

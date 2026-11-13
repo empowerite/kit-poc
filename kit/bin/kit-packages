@@ -8,28 +8,27 @@
 #   kit packages --marks
 #   kit packages packages [--text | --json | --jq]
 #
-# Alone, it lists every package in reach, one row each: a mark, its name, its origin, and its description. ✅ marks
-# an active package, ❌ one the repository excludes. The packages come from the release and from .kit/packages/.
-# On a terminal, kit packages alone opens Packages in kittui, whose actions run select, add, and remove, and kit
-# packages packages opens it on that tab, maximized; with a filter, or with --text, it lists them as text there too.
-# With a verb, it changes which are active:
+# Lists the packages in reach, and changes which are active. Alone, it lists every package, one row each: a mark, its
+# name, its origin, and its description. ✅ marks an active package, and ❌ one the repository excludes. The packages come
+# from the release and from .kit/packages/.
 #
-#   - add places the files the new packages deliver and rewrites the manifests. A different file already at a
-#     delivered path is named and left alone, and no manifest is written. A package named here is no longer excluded.
-#   - remove takes out the files, the kit's JSON entries, and the kit's regions, and rewrites the manifests. A
-#     copied file the repository edited is named and left. A member of a bundle that stays active is recorded as
-#     excluded, so kit update does not bring it back. Before it takes anything out, it judges every region it would
-#     take out: a region whose markers are out of order, doubled, or never closed is named, nothing is taken out,
-#     and it exits 1.
-#   - select is remove, then add, to reach the named set. It says what it kept for another package's sake. With
-#     nothing to change, it says the set.
+# On a terminal, kit packages alone opens Packages in kittui, whose actions run select, add, and remove, and kit packages
+# packages opens it on that tab, maximized. With a filter, or with --text, it lists the packages as text there too.
 #
-# Packages is an app verb, as kit platform is: kit packages packages is its one stage, which prints {contract, rows,
-# errors}, contract the number of the stage documents' contract, as kit workspace's page says, and kit
-# --workspace=<workspace> packages packages draws it across a workspace's members with checkouts, each row tagged with
-# its member. Each row says where it is from, as kit platform's do: organization and repository, the owner and the
-# name of the repository kit read it in, and source, kit. kit packages --json, with no stage, still prints one object
-# a package, of the repository here.
+# With a verb, it changes which packages are active:
+#
+#   - add places the files the new packages deliver and rewrites the manifests. A different file already at a delivered
+#     path is named and left alone, and no manifest is written. A package named here is no longer excluded.
+#   - remove takes out the files, the kit's JSON entries, and the kit's regions, and rewrites the manifests. A copied file
+#     the repository edited is named and left. A member of a bundle that stays active is recorded as excluded, so kit
+#     update does not bring it back. Before it takes anything out, it judges every region it would take out. If one is out
+#     of order, doubled, or never closed, remove names it, takes nothing out, and exits 1.
+#   - select is remove, then add, to reach the named set. It says what it kept for another package's sake. With nothing
+#     to change, it says the set.
+#
+# kit packages is an app verb, as kit platform is: kit packages packages is its one stage, and kit --workspace=<workspace>
+# packages packages draws it across a workspace's members with checkouts. kit packages --json, with no stage, prints one
+# object a package, of the repository here. The stage's fields are in docs/apps.md.
 #
 # Legend
 #
@@ -59,14 +58,15 @@
 #   select <package>…   makes exactly these, and what they need, the active set
 #   add <package>…      activates the packages, and what they depend on and include
 #   remove <package>…   deactivates the packages; refuses one an active package needs
-#   packages            the stage: a row per package in reach, {name, state, origin, depends, includes, dependents,
-#                       bundles, description}, keyed by its name; dependents are the active packages that depend on
-#                       it, and bundles the active ones that include it
+#   packages            the stage: a row per package in reach
 #   <package>…          a name, such as style/bash, or a glob, such as 'style/*'
 #
-# Exits 0 when it did it, 1 when it could not, as when a source in kit.yml cannot be fetched or has another digest, a
-# region is marked wrongly, or a path could not be taken out, or the stage could not be read, and 2 on a usage error
-# or a package name the kit does not know.
+# Exits 0 when it did it, 1 when it could not, and 2 on a usage error or a package name the kit does not know. It cannot
+# when:
+#   - a source in kit.yml cannot be fetched, or has another digest
+#   - a region is marked wrongly
+#   - a path could not be taken out
+#   - the stage could not be read
 #
 # see: modules/bash/package.sh, modules/bash/settings.sh, modules/bash/apps/packages.sh, docs/packages.md,
 # docs/apps.md

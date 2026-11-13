@@ -268,10 +268,10 @@
       "description": "shows a workspace's members, each with its checkout"
     },
     "--current": {
-      "description": "says which workspace kit starts on here, and why; under kit --workspace=<workspace>, the kit option before the verb, that one in place of where kit runs, none naming no workspace, and an absolute path the repository whose working tree holds it"
+      "description": "says which workspace kit starts on here, and why. Under kit --workspace=<workspace>, the kit option before the verb, it says that one in place of where kit runs: none names no workspace, and an absolute path names the repository whose working tree holds it"
     },
     "--use": {
-      "description": "remembers a group as the last used, which kit starts on outside a repository; given a <folder>, keeps the repository whose working tree holds it first among the recent ones, by its desk, a linked worktree's its repository's, ten at most, which the workspace menu offers"
+      "description": "remembers a group as the last one used, which kit starts on outside a repository. Given a <folder>, it puts that folder's repository first in the list of recent repositories, which the workspace menu offers. The list holds ten. A linked worktree counts as its repository's desk"
     },
     "--new": {
       "description": "makes a group, with the repositories given as its members"
@@ -307,7 +307,7 @@
       "description": "the name --rename gives the group, as a <name> is written and no other group's"
     },
     "<repository>": {
-      "description": "github.com/empowerite/edge, a git URL, or a checkout's directory; or a pattern, which holds *, ?, or [, as github.com/empowerite/homebrew-*: the repositories it matches among what --from printed, else, for --remove, the group's members, else the checkouts under the roots; one that matches none is refused"
+      "description": "github.com/empowerite/edge, a git URL, or a checkout's directory; or a pattern, which holds *, ?, or [, as github.com/empowerite/homebrew-*. A pattern matches the repositories --from printed, else, for --remove, the group's members, else the checkouts under the roots. One that matches none is refused"
     },
     "<folder>": {
       "description": "a folder in a git working tree, written as a path: it starts with /, ./, ../, or ~/, or is ., .., or ~"

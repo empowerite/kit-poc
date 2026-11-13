@@ -894,10 +894,10 @@
       "description": "prints the caller's login on the primary's forge, the login --mine and --others match"
     },
     "--quota": {
-      "description": "prints the caller's rate limits on the primary's forge, as one JSON array: each forge's {forge, limits}, each limit {name, limit, remaining, reset}; reading them costs a request at most. A forge without rate limits gives none, and asks nothing"
+      "description": "prints the caller's rate limits on the primary's forge, as one JSON array; reading them costs a request at most"
     },
     "--capabilities": {
-      "description": "prints what the primary's forge can do, as one JSON object: {contract, forge, provider, features}, each feature native or none, as modules/bash/forge.sh declares them; it asks nothing"
+      "description": "prints what the primary's forge can do, as one JSON object; it asks nothing"
     },
     "--marks": {
       "description": "prints a mark per stage, as one JSON object, which changes when what the stage draws does: read again, a mark that differs says the stage is stale; on GitHub, nothing changed costs no request"
@@ -930,10 +930,10 @@
       "description": "no stage of kit flow: kit workspace worktrees draws the linked worktrees"
     },
     "backlog": {
-      "description": "no stage of kit flow: issues lists them; on a terminal it opens issues on its Backlog preset"
+      "description": "no stage of kit flow: issues lists them; on a terminal it opens issues on its Backlog preset, and otherwise it prints what kit issues backlog prints"
     },
     "underway": {
-      "description": "no stage of kit flow: issues lists them; on a terminal it opens issues on its Underway preset"
+      "description": "no stage of kit flow: issues lists them; on a terminal it opens issues on its Underway preset, and otherwise it prints what kit issues underway prints"
     }
   }
 }

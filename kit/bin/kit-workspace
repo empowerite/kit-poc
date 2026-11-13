@@ -12,65 +12,31 @@
 #   kit workspace commits [--text | --json | --jq]
 #   kit workspace tags [--text | --json | --jq]
 #
-# Draws what git holds across a workspace: its members, then a stage for each of git's entities. It changes nothing,
-# and asks no remote: what a remote has is what the last fetch left. The stages, in order:
+# Shows what git holds across a workspace: its members, then a stage for each of git's entities. It changes nothing, and
+# asks no remote: what a remote has is what the last fetch left. The stages, in order:
 #
 #   repos → remotes → branches → worktrees → commits → tags
 #
-# HEAD is no stage of its own. A remote's HEAD is its default branch, ⚓ on its row and on the branch's; a worktree's
-# is its branch, or its commit where it is detached, and a commit's row names the worktrees whose HEAD it is.
+# HEAD is no stage of its own. A remote's HEAD is its default branch, ⚓ on its row and on the branch's. A worktree's is its
+# branch, or its commit where it is detached, and a commit's row names the worktrees whose HEAD it is.
 #
-# kit --workspace=<workspace> workspace, the kit option before the verb, draws each stage across a workspace's members
-# with checkouts: a group's name, or a repository's host and path, as kit workspaces names it; none names no
-# workspace. Without it, the workspace is the repository here, in its working tree, and outside one, a bare repository
-# or a .git directory too, the last group used, as kit workspaces --current says. The repository is read from its main
-# checkout, so a linked worktree draws what the desk draws, and repos lists it alone. On a terminal, kit workspace
-# opens the picture in kittui, and kit workspace <stage> opens it with that stage maximized. Without one, or with
-# --text, --json, or --jq, it prints the stages as text.
+# The workspace is the repository here, read from its main checkout, so a linked worktree draws what the desk draws, and
+# repos lists it alone. Outside a repository, or in a bare repository or a .git directory, it is the last group used, as
+# kit workspaces --current says. kit --workspace=<workspace> workspace, with the kit option before the verb, names another:
+# a group's name, or a repository's host and path, as kit workspaces names it. none names no workspace. Each stage is then
+# drawn across the workspace's members with checkouts.
 #
-# With --json, a stage prints {contract, rows, errors}. contract is the number of the stage documents' contract, 1 in
-# this release, which every stage of kit workspace and of the app verbs prints, and every picture beside stages. It
-# changes when a document changes so that a reader of the old one would misread it: a key renamed, removed, or given
-# another meaning; a key added does not change it. A row is {key, …, links}: key is the row's own in its stage, and
-# links gives where a value leads, by its field: a page on the forge, or row:<stage>/<key>, a row of another stage.
-# Every row says where it is from: organization and repository, the owner and the name of the repository kit read it
-# in, as its primary remote's URL names them past the host, no organization for a primary on this machine; and source,
-# git, kit for a member repos lists that is not cloned. A remote's row says the organization and the repository it is,
-# and repos' repository is the member, host and path. Over a workspace, each row gains member, its host and path, and
-# a member that could not be read is {member, error} under errors, while every other member still draws. --marks over
-# a workspace names such a member the same way, under errors beside the marks, and says its line. A member answers
-# with the release its own kit.yml pins: one whose document states another contract is not merged, and is {member,
-# error} too, its line saying both numbers and which side to update; for repos, the line is its row's error. A
-# document that states no contract is read.
+# On a terminal, kit workspace opens the picture in kittui, and kit workspace <stage> opens it with that stage maximized.
+# Without a terminal, or with --text, --json, or --jq, it prints the stages as text.
 #
-#   repos               {repository, host, path, forge, remotes, checkout, checkouts, by, branch, ahead, behind,
-#                       worktrees, branches, error}: remotes is [{name, url, forge}]; by is fixed for a group's member,
-#                       given for a repository named, and here for the one kit runs in; checkout is the clone, also
-#                       from one of its linked worktrees; branch, ahead, and behind are its desk's; worktrees is
-#                       [{branch, path}]; branches is the local branches no checkout has; each is null for a member not
-#                       cloned; error is the desk's line where it could not be read. Its rows have no key or links
-#   remotes             {remote, forge, organization, repository, host, url, push, default, branches, primary}:
-#                       organization and repository are the path the URL names past its host, up to its last segment
-#                       and that segment; push is null where it is the URL; primary is "primary" or null
-#   branches            {kind, branch, remote, local, upstream, default, commit, age, subject, worktree}: kind is
-#                       remote, gone, or local; local is the local branches; upstream is [ahead, behind] of the
-#                       first, or null; default is "default" for the remote's default branch, else null; worktree is
-#                       the paths
-#   worktrees           {kind, path, branch, detached, head, upstream, track, base, changes, untracked, locked,
-#                       prunable}: kind is desk or linked; track and base are [ahead, behind] of the upstream and of the
-#                       primary's default branch, or null
-#   commits             {commit, subject, author, age, issue, branches, pushed, worktrees}: issue is the #<number> the
-#                       subject starts with, or null; pushed is pushed or local; worktrees is the paths whose HEAD it is
-#   tags                {tag, kind, commit, tagger, age, subject}: kind is annotated or lightweight; tagger is null for
-#                       a lightweight tag
-#
-# An age is in seconds. commits lists at most 200, and tags the newest 100.
+# With --json, a stage prints {contract, rows, errors}, and kit workspace --json prints every stage under its name beside
+# contract. The fields of each stage are in docs/apps.md.
 #
 # Legend
 #
-# Each stage lists the glyphs it draws, one per line. A glyph can show under more than one stage. In kittui's legend,
-# a dim † after a meaning says a click on the glyph goes to its row in another stage, and a dim 🔗 that a click opens
-# the glyph's page.
+# Each stage lists the glyphs it draws, one per line. A glyph can show under more than one stage. In kittui's legend, a
+# dim † after a meaning says a click on the glyph goes to its row in another stage, and a dim 🔗 that a click opens the
+# glyph's page.
 #
 # kit:generate legend `k=$(command -v kit); jq -nr -L "${k%/bin/kit}/modules/jq" 'import "glyphs" as g; g::legend_for("workspace")'`
 #   📚  workspace: a group, in the workspace menu that drops down from - in kittui's title
@@ -145,12 +111,13 @@
 #                       one's branches, whether a remote has it, and the issue its subject starts with
 #   tags                the tags, the newest first: annotated or lightweight, their commit, and their tagger
 #
-# Exits 0 when the picture is drawn, 1 when a repository, a member, a member's desk, or the workspace file cannot be
-# read: what was read is still drawn, as text or with --json, and names what could not, a member under errors or a
-# repos row's error, as for a clone whose kit.yml does not parse. It exits 1, printing nothing, when --workspace=, or
-# kit workspace outside a repository with a group used last, meets a workspace file kit workspaces refuses, and 2 on a
-# usage error, or outside a repository's working tree, a bare repository or a .git directory too, with no workspace: no
-# group used, or --workspace=none.
+# Exits 0 when the picture is drawn, 1 when a read fails, and 2 on a usage error. A read fails when:
+#   - a repository, a member, a member's desk, or the workspace file cannot be read. What was read is still drawn, as text
+#     or with --json, and names what could not: a member under errors, or a repos row's error.
+#   - kit workspaces refuses the workspace file, which --workspace=, or kit workspace outside a repository with a group
+#     used last, reads. Nothing is printed.
+# A usage error includes running outside a repository's working tree, a bare repository or a .git directory too, with no
+# workspace: no group used, or --workspace=none.
 #
 # see: modules/bash/workspace.sh, modules/jq/workspace.jq, modules/bash/across.sh
 

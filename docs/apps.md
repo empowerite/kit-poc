@@ -1079,5 +1079,265 @@ teach the rows, the menus, and the keys: run `kit tutorials rows`.
 | the seam to the forge | `modules/bash/forge.sh` |
 | kittui's catalog of stages | `projects/tui/internal/flow/fields.json` |
 
+## The fields of kit flow, kit workspace, kit workspaces, and kit welcome
+
+The help pages of these verbs name this section for the JSON they print. One field a line.
+
+### Where a row is from, and the contract
+
+Every row of `kit flow`'s `issues`, `changes`, `builds`, `releases`, and `incoming`, and of every `kit workspace`
+stage, says where it is from:
+
+- `organization`: the owner of the repository kit read it in, as its primary remote's URL names it past the host. It is
+  `null` for a primary on this machine.
+- `repository`: that repository's name.
+- `source`: the forge, `github`, `gitlab`, or `ado`; `git` for `incoming`'s rows; `kit` for a member that `kit workspace
+  repos` lists and is not cloned.
+
+An issue keeps the `organization`, `repository`, and `source` of the tracker that holds it, and a change those of the
+repository its forge names it by. On GitHub, the organization is the owner and the repository the name. On GitLab, the
+organization is the group, with its subgroups, and the repository is the project. On Azure DevOps, they are the project
+and the repository, and a tracker's work item has none. Each is `null` where the tracker has none.
+
+Over a workspace, `kit flow` prints `{contract, rows, errors}` for a stage, and `{contract, stages, <stage>…}` for the
+picture. Each row, or each `incoming` object, gains `member`, its host and path. A member that cannot be read is
+`{member, error}` under `errors`, and every other member still draws. A member whose `incoming`, or whose picture,
+states another contract than this kit reads is `{member, error}` too, the line saying both numbers. A member's array
+states no contract and is read. As text, the picture draws each cloned member's picture under its name. `--marks` and
+`--quota` span the members: a member that cannot be read is `{member, error}` under `errors` beside the others' marks,
+and its rate limits are left out. kit flow exits 1 after the rest. A member with no checkout draws nothing: `kit
+workspace repos` lists every member, cloned or not. A pull request's number names one repository's, and is refused.
+
+Above desks, `kit flow --json` prints an array with one `{path, status}` per desk.
+
+### kit flow: issues
+
+`kit flow issues --json` prints an array, oldest issue first. Each row is:
+
+- `number`, `ref`: the issue's number, and its reference, `#7` or `AB#4521`, its tracker's prefix first
+- `tracker`: that prefix
+- `title`, `assignees`, `labels`, `age`
+- `source`, `organization`, `repository`: where the issue is, as above
+- `milestone`, `iteration`, `swimlane`: each a name, or `null`. The forge's own, or what a stand-in in `kit.yml` chooses,
+  as `modules/bash/forge.sh` says.
+- `status`: `underway` or `backlog`
+- `branch`: the pull request's branch, or the branch named for an issue that no pull request closes, a checked-out one
+  first, then the desk's, then the primary's. `null` in the backlog.
+- `pr`: `null` for an issue no pull request closes, else the pull request, `{number, source, title, author, state,
+  branch, fork, pushed, url}`
+- `here`: true when a checkout on this desk has the branch. `null` in the backlog.
+- `local`: true when the desk has the branch and no checkout has it. `null` in the backlog.
+- `worktree`: the path of the checkout that has the branch, or `null`. `null` in the backlog.
+- `url`: the issue's page, as the forge's provider or the tracker gives it, another repository's for an issue there, or
+  `null` where neither gives one
+
+A pull request's fields:
+
+- `source`: the forge the change is on, `github`, `gitlab`, or `ado`
+- `fork`: the owner of the repository the branch lives in when that is not the base repository, a login on GitHub and a
+  namespace's path on GitLab, or `null`
+- `pushed`: `{age, by}` of the branch's last push, or `null` when the forge does not say it cheaply. `age` is in
+  seconds, `by` a login or `null`. GitHub's is the head commit's, and GitLab's the head pipeline's.
+- `url`: the change's page, as the forge's provider gives it, or `null`
+
+No page is built from a remote's URL by what reads the JSON: the provider gives each.
+
+An issue's status:
+
+- It lists every open issue of every tracker, the oldest first: the forge's own, and those of each tracker `kit.yml`
+  declares under `trackers`, as its provider lists them. A web tracker lists none. A tracker that cannot be read fails
+  the stage.
+- An issue is `underway`, with a row for each pull request that closes it. It is `underway` too, with no pull request,
+  when no open pull request closes it and a branch is named for it: its key and a dash, such as `9-other` or
+  `ab4521-fix`, on the desk or the primary as of the last fetch. Otherwise it is `backlog`.
+- The forge closes no issue of another tracker on a merge, so kit stands in. A pull request closes an issue when its
+  branch starts with the issue's key and a dash, or a closing keyword in its body names it, `Closes AB#4521`. An issue
+  that one of the 50 pull requests merged last names is closed and left out, whether or not its tracker closed it.
+- The owner flags match the issue's assignees.
+- A pull request closes an issue where that issue is. An issue of another repository that a pull request here closes is
+  a row of its own, which its `organization` and `repository` tell from the issue of that number here, and that issue
+  keeps its own status. `kit flow changes <number>` lists the changes that close the issue of that number here.
+
+### kit flow: changes
+
+`kit flow changes --json` prints an array of pull requests. Each carries the `source`, `fork`, `pushed`, and `url` above,
+and `named`, the references a closing keyword names in its body. Each issue a change closes says its own `url`, `source`,
+`organization`, and `repository`.
+
+### kit flow: incoming
+
+`kit flow incoming --json` prints `{contract, fetched, primary, remotes, rows}`.
+
+- Each remote is `{name, forge, host, default, commits, branches, tags}`. `forge` and `host` are `null` when it has none.
+  `branches` is `{new, updated, gone}`.
+- A remote whose fetch failed adds `error`, git's line, and the stage exits 1.
+- With `--no-fetch`, `fetched` is false and each remote is `{name, forge, host}`. Each remote's row says `not fetched`,
+  and the tracking rows stand as the last fetch left them.
+- `rows` is everything incoming, flat, one row a thing, every remote's, the primary's first. Each row is `{key, remote,
+  primary, forge, host, url, default, kind, change, ref, sha, old, commits, author, age, subject, local, worktrees,
+  ahead, behind, issues}`, `null` or an empty list where a row has no value. A row may carry keys this list does not
+  name; kittui shows them under more.
+- `kind` is one of:
+  - `remote`: a remote. Its `change` is `fetched`, `unchanged`, `not fetched`, or `failed`, and its `subject` is git's
+    line when it failed.
+  - `commit`: a commit new on the default branch.
+  - `branch`: a branch that is `new`, `updated`, `forced`, or `gone`. `commits` is how far it moved or, for a new one,
+    how many commits are not on the default branch.
+  - `tag`: a tag that is `new` or `moved`.
+  - `tracking`: a local branch whose upstream is ahead of it. `change` is `behind`, with `ahead` and `behind`.
+- `issues` are the issues a branch's name starts with and a subject names, as `#12`.
+- `local` is the local branches on a branch, and `worktrees` the linked worktrees they are checked out in.
+
+### kit flow: builds
+
+`kit flow builds --json` prints an array of the 20 newest runs that no pull request owns: pushes to the default branch or
+a tag, and scheduled or manual runs.
+
+- `id`, `number`, `attempt`, `workflow`, `branch`, `tag`, `event`, `sha`, `title`, `state`, `age`, `took`, `url`, `jobs`
+- `number` is the forge's count of the workflow's runs, or `null`. `attempt` is 1 for a first run.
+- `tag` is true for a run on a tag.
+- `sha` is the commit's short hash, and `title` the forge's headline for the run. Each is empty when the forge gives none.
+- `state` is `running`, `passed`, `failed`, or `cancelled`.
+- `took` is `null` while the run runs.
+- `jobs` is empty when the forge does not report them cheaply. Each is `{name, state, took, step}`, `step` the failed
+  step's name, or `null`.
+
+### kit flow: releases
+
+`kit flow releases --json` prints an array of the forge's releases, newest first, one flat row a release.
+
+- `key`: its tag. `version`: the tag without `release/`. `tag`, `name`.
+- `kind`: `release`, `pre-release`, or `draft`
+- `latest`: `"latest"` for the forge's latest release, else `null`
+- `at`: when it was published, or made, for a draft. `age`.
+- `url`: its page. `notes`: its text, empty for none.
+- `assets`: the name of each file it offers. `downloads`: where each downloads, in the same order.
+- `links`: where a value leads, by its field. `kind` and `url` lead to the page, and `assets` and `downloads`, each a
+  list, each lead to its download.
+
+### kit flow: the other forms
+
+- `--stages` prints the stages the picture draws, one per line, in order.
+- `--me` prints the caller's login on the primary's forge. `--mine` and `--others` match it. It takes no workspace.
+- `--quota` prints the caller's rate limits on the primary's forge as one JSON array. Each forge's entry is `{forge,
+  limits}`, and each limit `{name, limit, remaining, reset}`. Reading them costs a request at most. A forge without rate
+  limits gives none, and asks nothing.
+- `--capabilities` prints what the primary's forge can do as one JSON object: `{contract, forge, provider, features,
+  stand_ins}`. `provider` is the version the provider implements, each feature is `native`, `none`, or `stand-in`, and
+  `stand_ins` is the repository's choices. A primary with no forge has every feature `none`. It asks nothing, and takes
+  no workspace.
+- `--marks` prints a mark per stage as one JSON object. A mark changes when what the stage draws does: read again, a mark
+  that differs says the stage is stale. On GitHub, nothing changed costs no request. When the forge cannot answer, its
+  stages' marks are `null` beside every local stage's, and kit flow exits 1.
+
+### kit workspace: the stages
+
+`kit workspace --json` prints `{contract, stages, <stage>…}`. Each stage is `{contract, rows, errors}`, a row is
+`{key, …, links}`, and an age is in seconds. `commits` lists at most 200, and `tags` the newest 100. A remote's row
+says the organization and the repository it is, and `repos`' repository is the member, host and path. The row's `links`
+give where a value leads, by its field: a page on the forge, or `row:<stage>/<key>`, a row of another stage.
+
+- `repos`: `{repository, host, path, forge, remotes, checkout, checkouts, by, branch, ahead, behind, worktrees, branches,
+  error}`. Its rows have no `key` or `links`.
+  - `remotes` is `[{name, url, forge}]`.
+  - `by` is `fixed` for a group's member, `given` for a repository named, and `here` for the one kit runs in.
+  - `checkout` is the clone, also from one of its linked worktrees.
+  - `branch`, `ahead`, and `behind` are its desk's.
+  - `worktrees` is `[{branch, path}]`.
+  - `branches` is the local branches no checkout has.
+  - Each is `null` for a member not cloned.
+  - `error` is the desk's line where it could not be read, as for a clone whose `kit.yml` does not parse.
+- `remotes`: `{remote, forge, organization, repository, host, url, push, default, branches, primary}`
+  - `organization` and `repository` are the path the URL names past its host, up to its last segment and that segment.
+  - `push` is `null` where it is the URL.
+  - `primary` is `"primary"` or `null`.
+- `branches`: `{kind, branch, remote, local, upstream, default, commit, age, subject, worktree}`
+  - `kind` is `remote`, `gone`, or `local`.
+  - `local` is the local branches.
+  - `upstream` is `[ahead, behind]` of the first, or `null`.
+  - `default` is `"default"` for the remote's default branch, else `null`.
+  - `worktree` is the paths.
+- `worktrees`: `{kind, path, branch, detached, head, upstream, track, base, changes, untracked, locked, prunable}`
+  - `kind` is `desk` or `linked`.
+  - `track` and `base` are `[ahead, behind]` of the upstream and of the primary's default branch, or `null`.
+- `commits`: `{commit, subject, author, age, issue, branches, pushed, worktrees}`
+  - `issue` is the `#<number>` the subject starts with, or `null`.
+  - `pushed` is `pushed` or `local`.
+  - `worktrees` is the paths whose HEAD it is.
+- `tags`: `{tag, kind, commit, tagger, age, subject}`
+  - `kind` is `annotated` or `lightweight`.
+  - `tagger` is `null` for a lightweight tag.
+
+HEAD is no stage of its own. A remote's HEAD is its default branch, `⚓` on its row and on the branch's. A worktree's is
+its branch, or its commit where it is detached, and a commit's row names the worktrees whose HEAD it is.
+
+`kit workspace` reads the repository from its main checkout, so a linked worktree draws what the desk draws, and `repos`
+lists it alone. It asks no remote: what a remote has is what the last fetch left. A document that states no contract is
+read. A member answers with the release its own `kit.yml` pins; one whose document states another contract is not
+merged, and is `{member, error}` too, its line saying both numbers and which side to update. For `repos`, the line is
+its row's `error`. `--marks` over a workspace names a member that could not be read under `errors` beside the marks.
+
+### kit workspaces: the JSON
+
+- The list, `kit workspaces --json`, is `{file, roots, favorites, workspaces}`. Each group is `{name, members, repos,
+  favorite}`, `members` a count and `repos` the members.
+- `--show=<workspace>` is `{name, kind, members}`. `kind` is `group` or `repository`. Each member is `{repository, host,
+  path, forge, remotes, checkout, checkouts, by}`. `remotes` is `[{name, url, forge}]`, the primary first. `checkout` is
+  a path or `null`. `by` is `fixed` for a group's member, `given` for a repository named.
+- `--current` is `{kind, name, member, checkout, why, members, groups, workspaces, favorites, recent}`.
+  - `kind` is `repository`, `group`, or `none`.
+  - `why` is `given`, `repository`, `last`, or `none`.
+  - `members` is a group's, as `--show` gives each.
+  - `groups`, for a repository, is each group that holds it, `{name, members}`, `members` a count.
+  - `workspaces` is every group in the file, as the list gives each.
+  - `favorites` is `{name, kind, members, checkout}`.
+  - `recent` is the repositories `--use` kept by their folder whose working trees are still there, the newest first,
+    `{name, member, checkout}`.
+- Only the JSON looks for checkouts. The text names the workspace alone.
+- The forms that edit print one line, which says what changed, or that nothing needed to, and take no `--json`.
+
+### kit welcome: a check in the JSON
+
+`kit welcome --checks --json` prints an array. A check is `{id, step, ok, line, fix, interactive, more, runs, folder,
+repository, desk, branch, kit}`.
+
+- `step` is `toolchains` or `setup`.
+- `fix` is the command that fixes it, or `null` when it holds or kit knows none.
+- `interactive` is true when the fix needs you at the terminal, as `gh auth login` does.
+- `more` is where to read, or the other commands beside the fix, or `null`.
+- `runs` is false when kit only shows the fix and never runs it, as for a line that must run in your own shell
+  (`brew-path`). It is true for every other check. `--fix` refuses a check whose `runs` is false, with exit 2.
+- `folder` is the absolute path of a folder's check, and `null` for a machine check. The machine checks are bash, git,
+  jq, yq, `brew-path`, the machine's package manager, and each forge host's tool and login, once per host among every
+  folder's remotes.
+- `repository` is the folder's member, host and path, or its desk's folder name where it has no remote.
+- `desk` is true for the desk and false for a worktree.
+- `branch` is the folder's branch, and `kit` is the kit version its `kit.yml` declares.
+- Each of the last four is `null` where there is none, and for a machine check.
+
+A folder's check has the same id in every folder: `kit welcome --fix=kit-hydrated --folder=<path>` names one.
+
+A missing tool's fix comes from the toolchains kit found, and never from one it assumes. For the machine, it is the
+package manager's command. For a folder, it is `kit tools install`, from that folder's tool manager, or, when the tool is
+ambient, the package manager's command.
+
+`kit welcome --keep=<check> --json` and `--unkeep=<check> --json` print the check as it now is, one JSON object, or `null`
+where kit did not ask the terminal. `--progress`, with `--checks`, says on stderr what is being checked as it goes:
+`⏳ checking <check>`, followed by `in <folder>` for a folder's, as each check starts, and `⏳ checked`, followed by
+`<folder>` for a folder, as the machine's checks or a folder's end. kittui shows them while the checks run.
+
+The pages of the guide are under `.kit/welcome/`, from the `kit` package, named for their order and step:
+`2-toolchains.md`. A house package replaces a page by placing one of the same name, or adds one.
+
+### The gaps in the app verbs' help
+
+The stage tables above hold the rest. Two facts the help pages held are here:
+
+- `changes`' `merged` stage has one more field, `named`: the references a closing keyword names in the change's body,
+  such as `Fixes AB#12`.
+- `kit issues issues`, `backlog`, and `underway` print what `kit flow issues --json` prints: an array of issues, and
+  over a workspace `{contract, rows, errors}`, each row with its member. `kit changes changes`, `kit delivery releases`,
+  and `kit delivery builds` print what `kit flow changes`, `releases`, and `builds` print, the same way.
+
 see: [toolchains.md](toolchains.md), [workspaces.md](workspaces.md), [integrations/gh.md](integrations/gh.md),
 [integrations/glab.md](integrations/glab.md), [integrations/az.md](integrations/az.md)

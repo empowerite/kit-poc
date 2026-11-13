@@ -282,7 +282,7 @@
       "description": "prints the stages, one per line, in order, the same over any workspace"
     },
     "--marks": {
-      "description": "prints a mark per stage, as one JSON object: evidence's moves with the forge's runs and releases, findings' with its runs and alerts, each scanner's off or refused where it is, policy's with kit.yml and .kit/policy, enforcement's with the files its local rows read; controls and waivers have none, null, as each is read again only on Refresh, kittui offering no Watch for them"
+      "description": "prints a mark per stage, as one JSON object, which changes when what the stage draws does; null for controls and waivers, which are read again only on Refresh"
     },
     "evidence": {
       "description": "the attestations of the 5 newest releases' assets and the 20 newest artifacts"

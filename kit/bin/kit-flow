@@ -18,138 +18,59 @@
 #   kit flow backlog [--text | --json | --jq] [--fresh] [--all | [--mine] [--others] [--owner=<login>…]]
 #   kit flow underway [--text | --json | --jq] [--fresh] [--all | [--mine] [--others] [--owner=<login>…]]
 #
-# Draws the picture of the work. It changes nothing. Work moves left to right through five stages:
+# Draws the picture of the work, from the issues to the releases. It changes nothing. Work moves left to right through five
+# stages:
 #
 #   issues → changes → builds → incoming → releases
 #
-# The desk, the root checkout, and the worktrees that branch from it are no stages of kit flow: kit workspace
-# worktrees draws them, the desk its first row. Pull requests come from the worktrees.
+# On a terminal, kit flow opens the picture in kittui, and kit flow <stage> opens it with that stage maximized. Without a
+# terminal, or with --text, --json, or --jq, it prints the stages on stdout, as text or as JSON. A warning, or a stage's
+# refusal, goes to stderr. The text is painted when stdout is a terminal. The flow setting in kit.yml names the stages
+# drawn, in order.
 #
-# One remote is the primary: the primary setting in kit.yml, else origin. Ahead and behind, the default branch, pull
-# requests, builds, releases, and issues are read from it. incoming fetches every remote, the primary first, and
-# never rebases, merges, or pulls. Each remote has a forge, or none: the forges setting in kit.yml names it, else its
-# host does. The forge setting names the primary's.
+# Where it reads from:
 #
-# The flow setting in kit.yml names the stages drawn, in order. On a terminal, kit flow opens the picture in
-# kittui, and kit flow <stage> opens it with that stage maximized. Without one, or with --text, --json, or --jq, it
-# prints the stages on stdout, as text or as JSON, and what kit says of them, a warning or a stage's refusal, on
-# stderr. The text is painted when stdout is a terminal. Where it runs decides what changes draws:
+#   - One remote is the primary: the primary setting in kit.yml, else origin. Ahead and behind, the default branch, pull
+#     requests, builds, releases, and issues are read from it.
+#   - incoming fetches every remote, the primary first. It never rebases, merges, or pulls.
+#   - Each remote has a forge, or none: the forges setting in kit.yml names it, else its host does. The forge setting names
+#     the primary's.
+#   - A repository with no primary remote fetches nothing, asks no forge, and says so once.
+#
+# Where it runs decides which changes it draws:
 #
 #   - at a desk: every open pull request
 #   - in a worktree: the pull request its branch holds
-#   - above desks, in a directory inside no repository's working tree, a bare repository or a .git directory too,
-#     with no group used last, or under kit --workspace=none: each desk below it, under its path, four levels down
+#   - above desks, in a directory inside no repository's working tree, a bare repository or a .git directory too, with no
+#     group used last, or under kit --workspace=none: each desk below it, under its path, four levels down
 #
-# issues, incoming, builds, and releases draw the same anywhere. A repository with no primary remote
-# fetches nothing, asks no forge, and says so once.
+# issues, incoming, builds, and releases draw the same anywhere.
 #
-# The open pull requests and the open issues are read from the forge at most once a minute. The stages read within
-# that minute draw the same snapshot, kept in the repository's common git directory, so they agree. A command that
-# changes an issue or a pull request drops it, and --fresh reads afresh.
-#
-# Each stage's JSON is kept there too, per checkout and arguments, whatever its age: --cached prints it, so a picture
-# can show the stage as it last was while it loads.
+# The open pull requests and the open issues are read from the forge at most once a minute. The stages read within that
+# minute draw the same snapshot, kept in the repository's common git directory, so they agree. A command that changes an
+# issue or a pull request drops it, and --fresh reads afresh. Each stage's JSON is kept there too, per checkout and
+# arguments, whatever its age: --cached prints it, so a picture can show the stage as it last was while it loads.
 #
 # The filters combine: --mine --owner=bob. --mine alone leaves out the owner column.
 #
-# desk and worktrees are no stages: on a terminal, either opens kit workspace worktrees, the desk its first row; with
-# --text, --json, or --jq, or without a terminal, it exits 2 and names kit workspace worktrees. Nor are backlog and
-# underway: on a terminal, either opens the picture in kittui with issues maximized, on its Backlog or Underway preset;
-# with --text, --json, or --jq, or without a terminal, it prints what kit issues backlog or kit issues underway prints,
-# the issues of that status. Their filters are kittui's: off it, kit flow issues takes them, for both statuses.
+# desk, worktrees, backlog, and underway are no stages: their lines below say what each does instead.
 #
-# One stage prints without its heading. With --json, a stage prints what the picture holds under its name: an array
-# for issues, changes, builds, and releases; an object for incoming, which states contract, the number of the stage
-# documents' contract, as kit workspace's page says. The picture states it too, beside stages; an array holds no place
-# for it. Above desks, --json prints an array with one {path, status} per desk. Each row of issues, changes, builds,
-# releases, and incoming's rows says where it is from: organization and repository, the owner and the name of the
-# repository kit read it in, as its primary remote's URL names them past the host, no organization for a primary on
-# this machine; and source, the forge, git for incoming's. An issue keeps those of the tracker that holds it, and a
-# change those its forge names its repository by.
+# With --json, a stage prints what the picture holds under its name: an array for issues, changes, builds, and releases, and
+# an object for incoming, which states contract, the number of the stage documents' contract. docs/apps.md lists the fields
+# of every stage, and says what makes an issue underway.
 #
-# issues lists every open issue of every tracker, the oldest first: the forge's own, and those of each tracker kit.yml
-# declares under trackers, as its provider lists them, a web tracker's none. Each is its reference, #7 or AB#4521, with
-# its status: underway, with a row per issue and pull request that closes it; underway too, with no pull request, when
-# no open pull request closes it and a branch is named for it, its key and a dash, as 9-other or ab4521-fix, the desk's
-# or the primary's as of the last fetch; else backlog. The forge closes no issue of another tracker on a merge, so kit
-# stands in: a pull request closes one when its branch starts with the issue's key and a dash, or a closing keyword in
-# its body names it, Closes AB#4521; one that a pull request among the 50 merged last names is closed, and left out,
-# whether or not its tracker closed it. A tracker that cannot be read fails the stage. Its owner flags match the
-# issue's assignees. A row's JSON is {number, ref, tracker, title, assignees, labels, age, source, organization,
-# repository, milestone, iteration, swimlane, status, branch, pr, here, local, worktree, url}: ref the issue's
-# reference, its tracker's prefix first, and tracker that prefix; url its page, as the forge's provider or its
-# tracker's gives it, another repository's for an issue there, or null where neither gives one. milestone, iteration,
-# and swimlane are each a name or null: the forge's own, or what a stand-in in kit.yml chooses, as
-# modules/bash/forge.sh says. branch is the pull request's branch, or the branch named for an issue no pull request
-# closes, a checked-out one first, then the desk's, then the primary's; null in the backlog. pr is null for an issue no
-# pull request closes, and here, local, and worktree null for one in the backlog. pr is {number, source, title, author,
-# state, branch, fork, pushed, url}: source is the forge the change is on, github, gitlab, or ado, and url the change's
-# page, as the forge's provider gives it, or null. fork is the owner of the
-# repository the branch lives in when that is not the base repository, a login on GitHub and a namespace's path on
-# GitLab, or null. pushed is {age, by} of the branch's last push, or null when the forge does not tell it
-# cheaply: age in seconds, by a login or null. GitHub's is the head commit's, and GitLab's the head pipeline's. here is
-# true when a checkout on this desk has the branch, and worktree is that checkout's path, or null. local is true when
-# the desk has the branch and no checkout has it. A change's JSON, under changes, carries the same source, fork,
-# pushed, and url, and named, the references a closing keyword names in its body; each issue it closes says its own
-# url. No page is built from a remote's URL by what reads the JSON: the provider gives each. An issue's source, under
-# issues and in each issue a change closes, names the service that holds it: github or gitlab, the code forge's own,
-# or ado, an Azure DevOps forge's or tracker's. organization and repository say where in it the issue is: on GitHub,
-# the repository's owner and name; on GitLab, its group, subgroups and all, and the project; on Azure DevOps, the
-# project and the repository, none for a tracker's work item. Each is null where the tracker has none.
-#
-# A pull request closes an issue where that issue is. An issue of another repository that a pull request here closes
-# is a row of its own, which its organization and repository tell from the issue of that number here, and that issue
-# keeps its own status. kit flow changes <number> lists the changes that close the issue of that number here.
-#
-# incoming's JSON is {contract, fetched, primary, remotes, rows}. Each remote is {name, forge, host, default, commits,
-# branches, tags}: forge and host are null when it has none; branches is {new, updated, gone}. A remote whose fetch
-# failed adds error, git's line, and the stage exits 1. With --no-fetch, fetched is false and each remote is {name,
-# forge, host}. rows is everything incoming, flat, one row a thing, every remote's, the primary's first, each {key,
-# remote, primary, forge, host, url, default, kind, change, ref, sha, old, commits, author, age, subject, local,
-# worktrees, ahead, behind, issues}, null or an empty list where a row has no value. kind is remote, once a remote,
-# its change fetched, unchanged, not fetched, or failed, and its subject git's line when it failed; commit, a commit
-# new on the default branch; branch, one new, updated, forced, or gone, and commits how far it moved, or, new, how
-# many are not on the default branch; tag, one new or moved; or tracking, a local branch its upstream is ahead of,
-# change behind, with ahead and behind. issues are the issues a branch's name starts with and a subject names, as #12;
-# local the local branches on a branch, and worktrees the linked worktrees they are checked out in. A row may carry
-# keys this list does not name; kittui shows them under more. With --no-fetch, each remote's row says not fetched, and
-# the tracking rows stand as the last fetch left them.
-#
-# builds lists the 20 newest runs not owned by any pull request: pushes to the default branch or a tag, and scheduled or
-# manual runs. A run's JSON is {id, number, attempt, workflow, branch, tag, event, sha, title, state, age, took, url,
-# jobs}. number is the forge's count of the workflow's runs, or null; attempt is 1 for a first run. tag is true for a
-# run on a tag. sha is the commit's short hash and title the forge's headline for the run, each empty when the forge
-# gives none. state is running, passed, failed, or cancelled. took is null while the run runs. jobs is empty when the
-# forge does not report them cheaply; each is {name, state, took, step}, step the failed step's name, or null.
-#
-# releases lists the forge's releases, newest first, one row a release, flat. A release's JSON is {key, version, tag,
-# name, kind, latest, at, age, url, notes, assets, downloads, links}. key is its tag, and version the tag without
-# release/. kind is release, pre-release, or draft; latest is "latest" for the forge's latest release, else null. at
-# is when it was published, or made, for a draft. url is its page, and notes its text, empty for none. assets names
-# each file it offers, and downloads says where each downloads, in the same order. links says where a value leads, by
-# its field: kind and url to the page, and assets and downloads, a list, each to its download.
-#
-# Over a workspace
-#
-# kit --workspace=<workspace> flow, the kit option before the verb, names a group, or a repository by its host and
-# path, as kit workspaces names them. Outside a repository, without it, the workspace is the last group used, as kit
-# workspaces --current says. Each form then runs in every member's checkout at once, each under that checkout's own
-# kit.yml, and the stages are kit's five, whatever the kit.yml where it runs says. With --json, a stage prints
-# {contract, rows, errors}: each row, or each incoming object, gains member, its host and path; a member that could
-# not be read is {member, error}, its line, under errors, and every other member still draws, and the stage exits 1
-# after it. So is a member whose incoming, or whose picture, states another contract than this kit reads, its line
-# saying both numbers; a member's array states none, and is read. The picture prints {contract, stages, <stage>…},
-# each stage so. As text, the picture draws each cloned member's picture under its member, and exits 1 when one of
-# them did. A member with no checkout draws nothing; kit workspace repos lists every member, cloned or not. --marks
-# and --quota span the members: a member that could not be read says its line, its marks are {member, error} under
-# errors beside the others', its rate limits are left out, and kit flow exits 1 after the rest. A pull request's
-# number names one repository's, and is refused.
+# kit --workspace=<workspace> flow, with the kit option before the verb, runs every form in each member's checkout of a
+# group, or of a repository named by its host and path, as kit workspaces names them. Outside a repository, without it, the
+# workspace is the last group used, as kit workspaces --current says. Each member runs under its own kit.yml, and the stages
+# are kit's five. With --json, each row gains member, and a member that cannot be read is {member, error} under errors;
+# every other member still draws, and kit flow exits 1 after it. A pull request's number is refused, because it names one
+# repository's. docs/workspaces.md has the rest.
 #
 # Legend
 #
-# Each stage lists the glyphs it draws, one per line. A glyph can show under more than one stage. NO_COLOR removes
-# the colors and keeps the glyphs. In kittui's legend, a dim † after a meaning says a click on the glyph goes to its
-# row in another stage, and a dim 🔗 that a click opens the glyph's page.
+# Each stage lists the glyphs it draws, one per line. A glyph can show under more than one stage. NO_COLOR removes the
+# colors and keeps the glyphs. In kittui's legend, a dim † after a meaning says a click on the glyph goes to its row in
+# another stage, and a dim 🔗 that a click opens the glyph's page.
 #
 # kit:generate legend `k=$(command -v kit); jq -nr -L "${k%/bin/kit}/modules/jq" 'import "glyphs" as g; g::legend'`
 #   📚  workspace: a group, in the workspace menu that drops down from - in kittui's title
@@ -260,11 +181,9 @@
 #   --owner=<login>     only the named login's; give it once or more, or join the logins with :, --owner=a:b
 #   --stages            prints the stages the picture draws, one per line, in order
 #   --me                prints the caller's login on the primary's forge, the login --mine and --others match
-#   --quota             prints the caller's rate limits on the primary's forge, as one JSON array: each forge's
-#                       {forge, limits}, each limit {name, limit, remaining, reset}; reading them costs a request at most.
-#                       A forge without rate limits gives none, and asks nothing
-#   --capabilities      prints what the primary's forge can do, as one JSON object: {contract, forge, provider,
-#                       features}, each feature native or none, as modules/bash/forge.sh declares them; it asks nothing
+#   --quota             prints the caller's rate limits on the primary's forge, as one JSON array; reading them costs a
+#                       request at most
+#   --capabilities      prints what the primary's forge can do, as one JSON object; it asks nothing
 #   --marks             prints a mark per stage, as one JSON object, which changes when what the stage draws does: read
 #                       again, a mark that differs says the stage is stale; on GitHub, nothing changed costs no request
 #   --today             only the issues opened in the last 24 hours
@@ -277,21 +196,27 @@
 #   releases            the releases on the forge, newest first
 #   desk                no stage of kit flow: kit workspace worktrees draws the root checkout, its first row
 #   worktrees           no stage of kit flow: kit workspace worktrees draws the linked worktrees
-#   backlog             no stage of kit flow: issues lists them; on a terminal it opens issues on its Backlog preset
-#   underway            no stage of kit flow: issues lists them; on a terminal it opens issues on its Underway preset
+#   backlog             no stage of kit flow: issues lists them; on a terminal it opens issues on its Backlog preset,
+#                       and otherwise it prints what kit issues backlog prints
+#   underway            no stage of kit flow: issues lists them; on a terminal it opens issues on its Underway preset,
+#                       and otherwise it prints what kit issues underway prints
 #
-# Exits 0 when the picture is drawn, 1 when the forge, the fetch, the workspace file, a member of the workspace, a desk
-# below, or git's list of the worktrees, the desks, or the remote branches cannot be read: with --json, what was read
-# is still printed, and names what could not, a remote's error, a member under errors, or a stage of null. It exits 1
-# too when a setting is wrong; 1, printing nothing, when --workspace=, or kit flow outside a repository with a group
-# used last, meets a workspace file kit workspaces refuses; and 2 on a usage error, as kit flow desk, worktrees,
-# backlog, or underway off a terminal, or with a form. A wrong setting is a flow setting that is not a list of distinct
-# stages, or names desk, worktrees, backlog, or underway, a primary that names no remote, or a forges key that is no
-# remote name. With --marks, when the forge cannot answer, its stages' marks are null beside every local stage's, and
-# kit flow exits 1.
+# Exits 0 when the picture is drawn, 1 when a read fails, and 2 on a usage error. A read fails when:
+#   - the forge, the fetch, or git's list of the worktrees, the desks, or the remote branches cannot be read. With --json,
+#     what was read is still printed, and names what could not: a remote's error, a member under errors, or a stage of null.
+#   - a member of the workspace, or a desk below, cannot be read
+#   - a setting is wrong: flow is not a list of distinct stages, or names desk, worktrees, backlog, or underway; primary
+#     names no remote; or a forges key is no remote name
+#   - --workspace=, or kit flow outside a repository with a group used last, meets a workspace file that kit workspaces
+#     refuses. Nothing is printed.
+#   - with --marks, the forge cannot answer. Its stages' marks are null beside every local stage's.
+# A usage error includes:
+#   - kit flow desk or worktrees off a terminal, or with a form
+#   - kit flow backlog or underway given --fresh, --all, --mine, --others, or --owner off a terminal, or with a form: only
+#     kittui applies them to the two words, and kit flow issues takes them
 #
 # see: modules/bash/flow.sh, modules/bash/issues.sh, modules/bash/changes.sh, modules/bash/builds.sh,
-# modules/bash/releases.sh
+# modules/bash/releases.sh, docs/apps.md
 
 set -o errexit -o nounset -o pipefail
 # shellcheck source=modules/bash/1st.sh

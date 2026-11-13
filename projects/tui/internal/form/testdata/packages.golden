@@ -14,10 +14,7 @@
    --stages                  prints the stages, one per line: packages
    --marks                   prints the stage's mark, as one JSON object, which changes when kit.yml
                              or .kit/packages/ does
-   packages                  the stage: a row per package in reach, {name, state, origin, depends,
-                             includes, dependents, bundles, description}, keyed by its name;
-                             dependents are the active packages that depend on it, and bundles the
-                             active ones that include it
+   packages                  the stage: a row per package in reach
 
 
  kit packages

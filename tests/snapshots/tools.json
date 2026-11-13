@@ -77,7 +77,7 @@
           "type": "boolean"
         },
         "capabilities": {
-          "description": "prints what the primary's forge can do, as one JSON object: {contract, forge, provider, features}, each feature native or none, as modules/bash/forge.sh declares them; it asks nothing",
+          "description": "prints what the primary's forge can do, as one JSON object; it asks nothing",
           "type": "boolean"
         },
         "fresh": {
@@ -123,7 +123,7 @@
           "type": "array"
         },
         "quota": {
-          "description": "prints the caller's rate limits on the primary's forge, as one JSON array: each forge's {forge, limits}, each limit {name, limit, remaining, reset}; reading them costs a request at most. A forge without rate limits gives none, and asks nothing",
+          "description": "prints the caller's rate limits on the primary's forge, as one JSON array; reading them costs a request at most",
           "type": "boolean"
         },
         "stage": {
@@ -327,7 +327,7 @@
           "type": "boolean"
         },
         "subcommand": {
-          "description": "packages: the stage: a row per package in reach, {name, state, origin, depends, includes, dependents, bundles, description}, keyed by its name; dependents are the active packages that depend on it, and bundles the active ones that include it",
+          "description": "packages: the stage: a row per package in reach",
           "enum": [
             "packages"
           ],

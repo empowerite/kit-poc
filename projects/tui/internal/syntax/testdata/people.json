@@ -174,7 +174,7 @@
       "description": "prints the stages, one per line, in order, the same over any workspace"
     },
     "--marks": {
-      "description": "prints a mark per stage, as one JSON object: null for each, as each is read again only on Refresh, kittui offering no Watch for a tab kit never marks"
+      "description": "prints a mark per stage, as one JSON object: null for each, as each is read again only on Refresh"
     },
     "people": {
       "description": "who has access to the repository, people and bots, each with a role"
