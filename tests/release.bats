@@ -200,7 +200,9 @@ install-lines() {
   [ "$(install-lines docs/install.md '### By download' | sed 's/^version=.*/version=9.9.9/')" = "${expected}" ]
   lines=$(sed -n '/^    version=9.9.9$/,/^      ln -s -f /p' "${fakes}/notes" | sed 's/^    //')
   [ "${lines}" = "${expected}" ]
-  # the pin follows, in mise.toml, and kit install after it
+  # the pin follows, for the person's own mise config and not the repository's, and kit install after it
+  [[ "$(<"${fakes}/notes")" == *'Or add it to your own ~/.config/mise/config.toml:'* ]]
+  [[ "$(<"${fakes}/notes")" != *'mise.toml'* ]]
   [[ "$(<"${fakes}/notes")" == *'"github:empowerite/kit" = { version = "9.9.9", version_prefix = "release/" }'* ]]
   [[ "$(<"${fakes}/notes")" == *'kit install'* ]]
   # a pre-release's notes name its own version

@@ -164,7 +164,7 @@ case "${verb}" in
     lines=$(download-lines "${version}") || exit 1
     notes=$(printf 'Install it by download, with the digest checked before anything is unpacked:\n\n'
       printf '    %s\n' "${lines//$'\n'/$'\n'    }"
-      printf '\nOr pin it in mise.toml:\n\n    [tools]\n    %s\n\n' "${pin}"
+      printf '\nOr add it to your own ~/.config/mise/config.toml:\n\n    [tools]\n    %s\n\n' "${pin}"
       printf 'Then, in the repository: kit install\n')
     flags=()
     [[ "${version}" == *-* ]] && flags+=(--prerelease)
