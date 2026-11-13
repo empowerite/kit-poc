@@ -47,8 +47,8 @@ see: [architecture.md](../architecture.md#code-forges-seams-and-providers), `kit
 | Provider | Hosting | CLI | kit status | JSON output | Machine-readable descriptions |
 | --- | --- | --- | --- | --- | --- |
 | [GitHub](gh.md#github-pull-requests) | SaaS; GitHub Enterprise Server self-hosted; proprietary | `gh`, official ([cli/cli](https://github.com/cli/cli), MIT) | `provider` | `--json "${fields}"`, `--jq`; `gh api` | REST OpenAPI per product and version, GraphQL schema, webhook schemas |
-| [GitLab](glab.md#gitlab-merge-requests) | SaaS; self-managed (Community Edition MIT, Enterprise Edition proprietary) | `glab`, official ([gitlab-org/cli](https://gitlab.com/gitlab-org/cli), MIT) | `provider` | `--output json` (`-F json`), `--jq`; `glab api` | REST OpenAPI 3.0, GraphQL schema |
-| [Azure DevOps Repos](az.md#azure-devops-repos) | SaaS (Azure DevOps Services); Azure DevOps Server self-hosted; proprietary | `az` with the `azure-devops` extension, official ([Azure/azure-devops-cli-extension](https://github.com/Azure/azure-devops-cli-extension), MIT) | `provider` | `--output json`, `--query`; `az devops invoke`, `az rest` | none published; a REST reference in prose |
+| [GitLab](glab.md#gitlab-merge-requests) | SaaS; self-managed (Community Edition MIT, Enterprise Edition proprietary) | `glab`, official ([gitlab-org/cli](https://gitlab.com/gitlab-org/cli), MIT) | `provider`, experimental | `--output json` (`-F json`), `--jq`; `glab api` | REST OpenAPI 3.0, GraphQL schema |
+| [Azure DevOps Repos](az.md#azure-devops-repos) | SaaS (Azure DevOps Services); Azure DevOps Server self-hosted; proprietary | `az` with the `azure-devops` extension, official ([Azure/azure-devops-cli-extension](https://github.com/Azure/azure-devops-cli-extension), MIT) | `provider`, experimental | `--output json`, `--query`; `az devops invoke`, `az rest` | none published; a REST reference in prose |
 | [Bitbucket Cloud](bkt.md#bitbucket-cloud) | SaaS; proprietary | `bkt`, community ([avivsinai/bitbucket-cli](https://github.com/avivsinai/bitbucket-cli), MIT); `twg`, Atlassian's, beta ([atlassian/twg-cli](https://github.com/atlassian/twg-cli)) | `none` | `bkt`: `--json`, `--jq`; `bkt api`. `twg`: `-o json` | REST OpenAPI 3.0 and Swagger 2.0 |
 | [Bitbucket Data Center](bkt.md#bitbucket-data-center) | self-hosted; proprietary | `bkt`, community ([avivsinai/bitbucket-cli](https://github.com/avivsinai/bitbucket-cli), MIT) | `none` | `--json`, `--jq`; `bkt api` | REST OpenAPI 3.0 per version |
 | [AWS CodeCommit](aws.md#aws-codecommit) | SaaS; proprietary | `aws`, official ([aws/aws-cli](https://github.com/aws/aws-cli), Apache-2.0) | `planned` | JSON by default, `--query` | Smithy model, botocore model |
@@ -60,6 +60,9 @@ see: [architecture.md](../architecture.md#code-forges-seams-and-providers), `kit
 
 Each provider's name leads to its section on its tool's page: what the tool reads and writes
 where it meets kit's scope, its gaps, and the descriptions the provider publishes.
+
+GitHub's provider is supported. GitLab's and Azure DevOps' are experimental: each is tested against a fake built
+from the tool's documented output, and has not yet run against a live project.
 
 The order is a judgment of how widely each is used, kit's own providers first; no survey backs it. Bitbucket Cloud
 and Bitbucket Data Center are two products with two APIs, so they have two rows. Bitbucket Cloud has no issues since

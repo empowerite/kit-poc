@@ -95,11 +95,13 @@ toolchains; see [toolchains.md](toolchains.md):
   - `shellcheck`, for the bash rule
   - `actionlint`, for the workflows rule
   - `markdownlint-cli2`, for the markdown style, with the `style/markdown` package
-- The code forge's command-line tool: `gh` for GitHub or `glab` for GitLab. The code forge is the service that hosts the
-  repository. These verbs need it: `kit work`, `kit assign`, `kit unassign`, `kit close`, `kit gather`,
-  `kit settle`, `kit flow`, `kit tidy`, `kit linked`, and `kit release`. `kit commit` uses it to close an issue its
-  subject names, and `kit policy` uses it in CI to read the pull request.
-- For an Azure DevOps tracker: `az`, the Azure CLI.
+- The code forge's command-line tool. The code forge is the service that hosts the repository. GitHub, through `gh`,
+  is supported. GitLab, through `glab`, and Azure DevOps, through `az` with its `azure-devops` extension, are
+  experimental: kit's provider for each is tested against a fake built from the tool's documented output, and has
+  not yet run against a live project. These verbs need the tool: `kit work`, `kit assign`, `kit unassign`,
+  `kit close`, `kit gather`, `kit settle`, `kit flow`, `kit tidy`, `kit linked`, and `kit release`. `kit commit`
+  uses it to close an issue its subject names, and `kit policy` uses it in CI to read the pull request.
+- For an Azure DevOps tracker beside another code forge: `az`, the Azure CLI, with its `azure-devops` extension.
 
 kit checks bash each time it starts. It finds a missing git, jq, or yq only when it first runs that tool.
 `kit welcome` checks all four at once.

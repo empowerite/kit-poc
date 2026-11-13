@@ -16,6 +16,10 @@ machine-readable descriptions each publishes. The index of these pages is [1st.m
 | [GitLab CI/CD](#gitlab-cicd) | [CI](ci.md) | `provider`, through `forge/gitlab.sh` |
 | [GitLab releases and deployments](#gitlab-releases-and-deployments) | [CD](cd.md) | `provider`: releases, environments, and deployments |
 
+kit's GitLab provider is experimental: it is tested against a fake built from the output `glab` and GitLab's API
+document, which this page and the schemas in [glab/](glab/) record, and it has not yet run against a live project.
+GitHub is the code forge kit supports; [1st.md](1st.md#providers-in-kit) says the same of each provider.
+
 ## GitLab merge requests
 
 A self-managed GitLab answers at `https://${host}/api/v4` and `https://${host}/api/graphql`. `glab` reaches it with

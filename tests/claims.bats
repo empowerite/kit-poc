@@ -408,3 +408,17 @@ EOF
   done
   (( ${#found[@]} == 0 )) || { printf '%s\n' "${found[@]}"; return 1; }
 }
+
+@test "each page that names the code forges says GitHub is supported, and GitLab and Azure DevOps experimental" {
+  local page text found=()
+  for page in README.md docs/features.md docs/install.md docs/integrations/1st.md docs/integrations/az.md \
+    docs/integrations/forges.md docs/integrations/glab.md kit/packages/kit/files/repo/.kit/welcome/1-introduction.md
+  do
+    # a paragraph's lines are read joined by a space, so a phrase may wrap
+    text=$(tr -s '[:space:]' ' ' < "${root}/${page}")
+    [[ "${text}" == *experimental* && "${text}" == *"a fake built from"* && "${text}" == *"against a live"* ]] \
+      || found+=("${page}: it does not say which forge is experimental, and that it means tested against a fake" \
+        "built from the tool's documented output, not yet against a live project")
+  done
+  (( ${#found[@]} == 0 )) || { printf '%s\n' "${found[@]}"; return 1; }
+}

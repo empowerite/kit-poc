@@ -17,6 +17,10 @@ machine-readable descriptions each publishes. The index of these pages is [1st.m
 | [Azure Pipelines runs](#azure-pipelines-runs) | [CI](ci.md) | `provider`, through `forge/ado.sh`: runs and artifacts |
 | [Azure Pipelines environments and releases](#azure-pipelines-environments-and-releases) | [CD](cd.md) | `provider`, through `forge/ado.sh`: environments and deployments; classic releases none |
 
+kit's Azure DevOps provider is experimental: it is tested against a fake built from the output `az` documents,
+which this page and the schemas in [az/](az/) record, and no call of it has yet run against a live organization.
+GitHub is the code forge kit supports; [1st.md](1st.md#providers-in-kit) says the same of each provider.
+
 ## Azure DevOps Repos
 
 kit's provider, `forge/ado.sh`, reads the organization, the project, and the repository from the primary remote's

@@ -27,6 +27,10 @@ descriptions of its API and its configuration files the provider publishes.
 | CI | the code forge's own, through the forge seam | the code forge |
 | CD | the code forge's releases, through the forge seam | the code forge |
 
+The `github` provider is supported. The `gitlab` and `ado` forge providers are experimental, and with them what
+kit reads of their forges' own trackers, CI, and CD: each is tested against a fake built from the tool's documented
+output, which its page and the schemas beside the page record, and has not yet run against a live project.
+
 A CI or CD system that is not the code forge's own reaches kit today only through the code forge: it reports a
 commit status or a check run there, and kit reads it with the change's checks.
 
