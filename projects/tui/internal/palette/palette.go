@@ -310,6 +310,33 @@ func (m *Model) toVerb() {
 	m.sheet.Settle()
 }
 
+// toBest puts the cursor, which toVerb left on the first verb, on the verb the search names: the one whose name is what
+// is typed, else the first whose name starts with it. A search that names none, as one for a word of a description,
+// leaves the cursor on the first verb. A search for work keeps every verb of the group of that name, and kit work is
+// one of twenty.
+func (m *Model) toBest(query string) {
+	query = strings.ToLower(strings.TrimSpace(query))
+	rows, t := m.sheet.Rows(), m.sheet.Table()
+	best := -1
+	for k, r := range rows {
+		name := strings.ToLower(r.Key)
+		if r.Aside || query == "" || !strings.HasPrefix(name, query) {
+			continue
+		}
+		if name == query {
+			best = k
+			break
+		}
+		if best < 0 {
+			best = k
+		}
+	}
+	if best >= 0 {
+		t.Cursor = best
+		m.sheet.Settle()
+	}
+}
+
 // chose does what a choice from the app's menu asks: a screen asks kittui to show it in the palette's place, which
 // stays as it is; and quit ends the palette, as ctrl-q does.
 func (m Model) chose(c shell.Choice) tea.Cmd {
@@ -521,6 +548,7 @@ func (m Model) key(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		case shell.Left:
 			m.search, m.recent = s, m.recent.Remember(s.Query)
 			m.toVerb()
+			m.toBest(s.Query)
 			return m, nil
 		case shell.Recalled:
 			m.recent = m.recent.Opened()

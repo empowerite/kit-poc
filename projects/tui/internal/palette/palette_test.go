@@ -659,3 +659,15 @@ func TestThePresetsSayWhatTheyDidInPlaceOfTheKeys(t *testing.T) {
 		t.Errorf("a click on Default: layered %v, %q\n%s", m.sheet.Layered(), m.sheet.Table().ViewName, screen(m))
 	}
 }
+
+// Leaving the search puts the cursor on the verb it names, as the one whose name is what is typed, else the first whose
+// name starts with it, though the rows it keeps hold others before it; a search that names none leaves it on the first.
+func TestLeavingTheSearchPutsTheCursorOnTheVerbItNames(t *testing.T) {
+	for query, want := range map[string]string{"che": "check", "check": "check", "ver": "version", "s": "submit",
+		"t": "commit", "": "commit"} {
+		m, _ := drive(searching(t), append(testkit.Typed(query), enter)...)
+		if got := cursorOn(m); got != want || !m.sheet.InRows() {
+			t.Errorf("%q: the cursor is on %q, want %q", query, got, want)
+		}
+	}
+}
