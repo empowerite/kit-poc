@@ -1,9 +1,9 @@
 # Tutorials 2: the site is published and its links resolve Implementation Plan
 
 **Status, 2026-11-12:** The review of 2026-11-12 read this plan against commit `0e76266c`, where it found 3 of the 7
-tasks built, Task 6 built in part, and Tasks 4, 5, and 7 not built. #345 has since built Tasks 4 and 5 and ticked them
-here; Task 4a, the rest of Task 6, and Task 7 are open. [The review's page](../reviews/2026-11-12-review-plans.md) has
-each task's evidence.
+tasks built, Task 6 built in part, and Tasks 4, 5, and 7 not built. #345 has since built Tasks 4 and 5, and #363 Task
+5a, each ticked here; Task 4a, the rest of Task 6, and Task 7 are open. [The review's
+page](../reviews/2026-11-12-review-plans.md) has each task's evidence.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
