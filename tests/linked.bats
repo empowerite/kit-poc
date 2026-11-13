@@ -19,27 +19,68 @@ setup() {
   [[ "$output" == *"kit linked <number>"* ]]
 }
 
+# runner-change makes what a CI system that is no forge's own builds a change from: a primary the runner can fetch
+# the change's target from, whose forge kit.yml names since its address is a path; a base whose kit.yml exempts bob;
+# and a detached checkout of the branch 7-fix-the-thing, whose own kit.yml exempts ada, the change's author.
+runner-change() {
+  git init --quiet --bare "${BATS_TEST_TMPDIR}/origin.git"
+  git remote set-url origin "${BATS_TEST_TMPDIR}/origin.git"
+  printf 'forge: github\nlinked_exempt:\n  - bob\n' > kit.yml
+  git add kit.yml
+  git commit --quiet --message "#1 kit: bob is exempt" && git push --quiet origin main
+  git switch --quiet --create 7-fix-the-thing
+  printf 'forge: github\nlinked_exempt:\n  - ada\n' > kit.yml
+  git commit --quiet --all --message "#7 kit: ada is exempt"
+  git checkout --quiet --detach
+  fixture repo.json <<<'{"nameWithOwner": "empowerite/example", "url": "https://github.com/empowerite/example"}'
+  fixture pull.json <<<'{"user": {"login": "ada"}}'
+  fixture pr.json <<<'{"body": ""}'
+  route gh 'repo view*' repo.json
+  route gh 'api repos/empowerite/example/pulls/3 *' pull.json
+  route gh 'pr view 3 --json *' pr.json
+}
+
 @test "on a detached HEAD, as a CI system that is no forge's own checks one out, linked finds the change it names" {
   fake-tools gh
-  fixture repo.json <<<'{"nameWithOwner": "empowerite/example", "url": "https://github.com/empowerite/example"}'
-  fixture pr.json <<<'{"body": ""}'
+  runner-change
   fixture closing.json <<'JSON'
 {"data": {"repository": {"pullRequest": {"closingIssuesReferences": {"nodes": [
   {"number": 7, "state": "OPEN", "repository": {"nameWithOwner": "empowerite/example"}}]}}}}}
 JSON
-  route gh 'repo view*' repo.json
-  route gh 'pr view 3 --json *' pr.json
   route gh 'api graphql*' closing.json
-  git commit --quiet --allow-empty --message one
-  git checkout --quiet --detach
-  # Drone names the change it builds
-  DRONE=true DRONE_PULL_REQUEST=3 run env -u GITHUB_EVENT_PATH "${kit_checkout}/bin/kit" linked
+  # Drone names the change it builds, its head branch, and its target
+  DRONE=true DRONE_PULL_REQUEST=3 DRONE_SOURCE_BRANCH=7-fix-the-thing DRONE_TARGET_BRANCH=main \
+    run env -u GITHUB_EVENT_PATH "${kit_checkout}/bin/kit" linked
   [ "$status" -eq 0 ]
   [[ "$output" == *"pull request #3 is linked to #7"* ]]
   # a runner that names none is still refused
   run env -u GITHUB_EVENT_PATH -u DRONE_PULL_REQUEST "${kit_checkout}/bin/kit" linked
   [ "$status" -eq 1 ]
   [[ "$output" == *"name the change: kit linked <number>"* ]]
+}
+
+@test "on a CI system that is no forge's own, the logins exempt are the base's: a branch cannot exempt its author" {
+  fake-tools gh
+  runner-change
+  fixture closing.json <<<'{"data": {"repository": {"pullRequest": {"closingIssuesReferences": {"nodes": []}}}}}'
+  route gh 'api graphql*' closing.json
+  export DRONE=true DRONE_PULL_REQUEST=3 DRONE_SOURCE_BRANCH=7-fix-the-thing DRONE_TARGET_BRANCH=main
+  run env -u GITHUB_EVENT_PATH "${kit_checkout}/bin/kit" linked
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"pull request #3 is not linked to any issue"* ]]
+  [[ "$output" != *"exempt"* ]]
+  # a change whose branches the runner does not name has no base to read, and fails before the forge is asked
+  : > "${FAKE_DIR}/gh.calls"
+  run env -u GITHUB_EVENT_PATH -u DRONE_SOURCE_BRANCH "${kit_checkout}/bin/kit" linked
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the head branch of the change is not in the runner's environment"* ]]
+  [ ! -s "${FAKE_DIR}/gh.calls" ]
+  # and a runner that names no change at all reads no exemption from a detached checkout, given the number or not
+  run env -u GITHUB_EVENT_PATH -u DRONE_PULL_REQUEST "${kit_checkout}/bin/kit" linked 3
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"HEAD is detached on a CI runner that names no change"* ]]
+  [[ "$output" != *"exempt"* ]]
+  [ ! -s "${FAKE_DIR}/gh.calls" ]
 }
 
 @test "linked fails, naming the read, when the forge cannot say which pull request this checkout is working on" {

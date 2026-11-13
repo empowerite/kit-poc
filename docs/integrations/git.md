@@ -192,7 +192,7 @@ see: [forges.md](forges.md), [../workspaces.md](../workspaces.md), `kit/modules/
 | Fetch every remote, pruned | `git fetch --quiet --prune --end-of-options "${remote}"`; `kit rebase` runs it with `git -C "${worktree}"` |
 | Fetch origin | `git fetch --quiet --prune origin`; `git fetch --quiet origin` |
 | Fetch the default branch | `git fetch --quiet --end-of-options "${primary}" "${default}"` |
-| Fetch a merge request's target | `git fetch --quiet --no-tags "${primary}" "+refs/heads/${target}:refs/remotes/${primary}/${target}"` |
+| Fetch a change's target | `git fetch --quiet --no-tags "${primary}" "+refs/heads/${target}:refs/remotes/${primary}/${target}"` |
 | Make an issue's branch on origin | `git push --quiet origin "refs/remotes/origin/${default}:refs/heads/${branch}"` |
 | Push a branch to its own name | `git -C "${path}" push --quiet --end-of-options "${remote}" "refs/heads/${branch}:refs/heads/${branch}"`; `--set-upstream` before `--end-of-options` on a first push |
 | Push a rebased branch | `git -C "${worktree}" push --quiet --force-with-lease="refs/heads/${branch}:${theirs}" --end-of-options "${remote}" "refs/heads/${branch}:refs/heads/${branch}"` |

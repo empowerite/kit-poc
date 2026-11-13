@@ -34,7 +34,8 @@
 # claim. --check holds the paths the branch changed since its merge base with its base to the branch's own lease, as
 # kit policy does in CI: each one outside it is refused. On a CI runner, whose clone holds no lease, the lease is the
 # push remote's copy: the push setting in kit.yml, else the primary. A branch whose issue holds no lease is held to
-# none.
+# none. On a CI runner, a detached HEAD that names no change fails --check, as it fails kit policy: there is no
+# branch to hold.
 #
 # A path is relative to the repository's root and holds itself and everything under it: docs holds docs/policy.md. *
 # and ? match within one segment, […] one character of a set, and ** any number of segments. Two claims overlap unless

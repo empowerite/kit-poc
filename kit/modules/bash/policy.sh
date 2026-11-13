@@ -54,9 +54,12 @@
 # code of the branch can move, as it could move a ref (policy:runner-base): on GitHub the pull request's base commit,
 # pull_request.base.sha in the event at GITHUB_EVENT_PATH, or a merge group's, merge_group.base_sha; on GitLab the
 # target branch's tip, CI_MERGE_REQUEST_TARGET_BRANCH_SHA, or <primary>/<target> fetched from the primary when it is
-# not here, never the merge base, which the branch chooses by where it forks. A runner that names a change and no base
-# it can have fails both. Elsewhere the base is <primary>/<default>, the primary remote's default branch. kit ci runs
-# both before the gate and kit check, which run commands of the branch's own.
+# not here, never the merge base, which the branch chooses by where it forks. On another CI system that names the
+# change it builds, the base is the tip of the target branch the system's variable names, fetched from the primary
+# the same way; policy_ci_branches lists each system's variables, and where a system names no target, as CircleCI,
+# the base is the primary's default branch, fetched. A runner that names a change and no base it can have fails both.
+# Elsewhere the base is <primary>/<default>, the primary remote's default branch. kit ci runs both before the gate
+# and kit check, which run commands of the branch's own.
 #
 # policy:from-base reads policy, policy_engine, linked_exempt, facts, forge, and forges from the base's kit.yml, each
 # absent where the base has none, so the kit's default applies: for forge and forges, the provider the remote's host
@@ -76,10 +79,12 @@
 # checkout of the kit, is read as the base holds it, and a source's or a release's elsewhere from where it is. A
 # package the base lists that is in none of those places fails both. A change to the policy is judged by the policy
 # before it, and takes effect once it is on the default branch. On a CI runner the branch is the change's head
-# branch, whatever its name, so a detached checkout of the change, a fork's main among them, is judged the same way;
-# a merge group's is its head, gh-readonly-queue/<base>/pr-<n>-<sha>, which the kit's default branch pattern refuses,
-# so a repository that runs kit ci on a merge queue sets policy.branch to allow it. On the default branch, or a
-# detached HEAD outside a runner, both read the disk.
+# branch, whatever its name and whatever is checked out, so a detached checkout of the change, a fork's main among
+# them, is judged the same way: GitHub's and GitLab's own runners name it, and so does each CI system of
+# policy_ci_branches. A merge group's is its head, gh-readonly-queue/<base>/pr-<n>-<sha>, which the kit's default
+# branch pattern refuses, so a repository that runs kit ci on a merge queue sets policy.branch to allow it. On the
+# default branch, or a detached HEAD at a desk, both read the disk. On a runner, a detached HEAD that names no
+# change fails both: it has no branch whose base could judge it, and a check that cannot judge never passes.
 #
 # A base with no kit.yml is one the kit is not installed on: there, both read the checkout's own settings and Rego, as
 # on the default branch, so the change that installs the kit sets its first policy. A base that is not here, as in a
@@ -118,6 +123,21 @@ declare -gra policy_subjects=(branch worktree commit_subject change_title)
 # jq and RE2 read it the same way.
 # shellcheck disable=SC2034  # read by modules/bash/policy/patterns.sh
 declare -gr policy_reference_trailer='^([A-Z]+)?#[0-9]+(, *([A-Z]+)?#[0-9]+)*$'
+
+# policy_ci_branches is the table of the CI systems, GitHub's and GitLab's own runners apart, that name a change's
+# branches in variables of their own: for each, the variable that holds the change's head branch, then the one that
+# holds its target branch, or - where the system names no target. A value may be a ref, refs/heads/<branch>, and
+# Buildkite writes a fork's head branch as <owner>:<branch>. The variables that name the change itself are
+# forge_ci_changes in modules/bash/forge.sh, and SYSTEM_PULLREQUEST_PULLREQUESTID in modules/bash/forge/ado.sh.
+declare -gra policy_ci_branches=(
+  'SYSTEM_PULLREQUEST_SOURCEBRANCH SYSTEM_PULLREQUEST_TARGETBRANCH'  # Azure Pipelines, on Azure DevOps or GitHub
+  'CHANGE_BRANCH CHANGE_TARGET'                                      # Jenkins, in a multibranch pipeline
+  'BUILDKITE_BRANCH BUILDKITE_PULL_REQUEST_BASE_BRANCH'              # Buildkite
+  'CODEBUILD_WEBHOOK_HEAD_REF CODEBUILD_WEBHOOK_BASE_REF'            # AWS CodeBuild
+  'CI_COMMIT_SOURCE_BRANCH CI_COMMIT_TARGET_BRANCH'                  # Woodpecker
+  'DRONE_SOURCE_BRANCH DRONE_TARGET_BRANCH'                          # Drone
+  'CIRCLE_BRANCH -'                                                  # CircleCI, which names no target
+)
 
 # policy_defaults is the package.yml whose `policy:` map holds the kit's defaults, relative to the release.
 declare -gr policy_defaults=packages/kit/package.yml
@@ -310,9 +330,11 @@ policy:worktree() {
 }
 
 # policy:branch prints the branch to check: the change's source branch on a CI runner, or a merge group's head there,
-# otherwise the current branch, or nothing on a detached HEAD.
+# otherwise the current branch, or nothing on a detached HEAD. The change's source branch is GitHub's or GitLab's own
+# runner's, else the one another CI system that names a change holds in its variable (policy:ci-row), whatever is
+# checked out: a detached HEAD, or the target with the change merged in.
 policy:branch() {
-  local branch=${GITHUB_HEAD_REF:-${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-}}
+  local branch=${GITHUB_HEAD_REF:-${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-}} variable
   if [[ -z "${branch}" && "${GITHUB_EVENT_NAME:-}" == merge_group ]]
   then
     # A merge group's event names its head, refs/heads/gh-readonly-queue/<base>/pr-<n>-<sha>; an event that cannot be
@@ -322,16 +344,65 @@ policy:branch() {
     printf '%s\n' "${branch#refs/heads/}"
     return 0
   fi
+  if [[ -z "${branch}" ]]
+  then
+    read -r variable _ <<<"$(policy:ci-row)"
+    if [[ -n "${variable}" ]]
+    then
+      branch=${!variable#refs/heads/}
+      branch=${branch##*:}
+    fi
+  fi
   # A detached HEAD has no branch, and prints nothing.
   [[ -n "${branch}" ]] || branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)
   printf '%s\n' "${branch}"
 }
 
 # policy:change-named succeeds where the environment names the change a CI runner builds: a pull request's head
-# branch, GITHUB_HEAD_REF; a merge request's, CI_MERGE_REQUEST_SOURCE_BRANCH_NAME; or a merge group's event,
-# GITHUB_EVENT_NAME merge_group. Such a change is past its base whatever its branch is named.
+# branch, GITHUB_HEAD_REF; a merge request's, CI_MERGE_REQUEST_SOURCE_BRANCH_NAME; a merge group's event,
+# GITHUB_EVENT_NAME merge_group; or the change another CI system names (policy:ci-named). Such a change is past its
+# base whatever its branch is named.
 policy:change-named() {
-  [[ -n "${GITHUB_HEAD_REF:-}${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-}" || "${GITHUB_EVENT_NAME:-}" == merge_group ]]
+  [[ -n "${GITHUB_HEAD_REF:-}${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-}" || "${GITHUB_EVENT_NAME:-}" == merge_group ]] \
+    || policy:ci-named
+}
+
+# policy:ci-named succeeds where a CI system that is neither GitHub's nor GitLab's own runner names the change it
+# builds: Azure Pipelines for a repository on Azure DevOps, in SYSTEM_PULLREQUEST_PULLREQUESTID, which
+# modules/bash/forge/ado.sh reads, or a system of the forge seam's table, as forge:ci-change reads it, which counts
+# a system's variable only where its own marker is set.
+policy:ci-named() {
+  [[ -n "${SYSTEM_PULLREQUEST_PULLREQUESTID:-}" || -n "$(forge:ci-change)" ]]
+}
+
+# policy:ci-row prints the row of policy_ci_branches for the CI system that names a change here (policy:ci-named),
+# the first whose head branch's variable is set, and nothing where no such system names a change, or the one that
+# does sets none of them.
+policy:ci-row() {
+  local row variable
+  policy:ci-named || return 0
+  for row in "${policy_ci_branches[@]}"
+  do
+    variable=${row%% *}
+    [[ -n "${!variable:-}" ]] || continue
+    printf '%s\n' "${row}"
+    return 0
+  done
+}
+
+# policy:on-runner succeeds on a CI runner, by the marker it sets: CI, as most do, GitHub Actions and GitLab CI among
+# them, or the marker of a CI system of the forge seam's table, the first word of each row of forge_ci_changes in
+# modules/bash/forge.sh, as TF_BUILD on Azure Pipelines and JENKINS_URL on Jenkins.
+policy:on-runner() {
+  local row marker
+  [[ -z "${CI:-}" ]] || return 0
+  # shellcheck disable=SC2154  # forge_ci_changes is set by modules/bash/forge.sh
+  for row in "${forge_ci_changes[@]}"
+  do
+    marker=${row%% *}
+    [[ -z "${!marker:-}" ]] || return 0
+  done
+  return 1
 }
 
 # policy:input prints the facts document at the ci moment, as facts:document builds it: the branch's commits, its
@@ -360,18 +431,32 @@ policy:engine() {
 }
 
 # policy:branch-past prints the branch policy:branch names when it is past the default one, and nothing on the default
-# branch or a detached HEAD. A change a CI runner names is past its base whatever its branch is named, as a fork's
-# main is (policy:change-named). It returns 1 when the default branch cannot be read, or a merge group's head is not
-# in its event.
+# branch or, at a desk, a detached HEAD. A change a CI runner names is past its base whatever its branch is named, as
+# a fork's main is (policy:change-named). It returns 1, saying so, when the default branch cannot be read, a merge
+# group's head is not in its event, a CI system names a change and no head branch for it, or HEAD is detached on a
+# runner (policy:on-runner) that names no change: there is no branch there to judge, and a check that cannot judge
+# fails.
 policy:branch-past() {
   local branch default_branch
   branch=$(policy:branch)
   if [[ -z "${branch}" ]]
   then
-    [[ "${GITHUB_EVENT_NAME:-}" == merge_group ]] || return 0
-    error "the merge group's head is not in the runner's event (merge_group.head_ref is not in" \
-      "${GITHUB_EVENT_PATH:+the event at }${GITHUB_EVENT_PATH:-GITHUB_EVENT_PATH, which is not set}), so its policy" \
-      "cannot be read"
+    if [[ "${GITHUB_EVENT_NAME:-}" == merge_group ]]
+    then
+      error "the merge group's head is not in the runner's event (merge_group.head_ref is not in" \
+        "${GITHUB_EVENT_PATH:+the event at }${GITHUB_EVENT_PATH:-GITHUB_EVENT_PATH, which is not set}), so its" \
+        "policy cannot be read"
+      return 1
+    fi
+    if policy:change-named
+    then
+      error "the head branch of the change is not in the runner's environment (no variable this CI system sets" \
+        "names it), so its policy cannot be read"
+      return 1
+    fi
+    policy:on-runner || return 0
+    error "HEAD is detached on a CI runner that names no change, so there is no branch to judge and its policy" \
+      "cannot be read; check the branch out by name, or run this in the change's own pipeline"
     return 1
   fi
   if ! policy:change-named
@@ -405,20 +490,41 @@ policy:base-name() {
 # GitLab it is the target branch's tip: CI_MERGE_REQUEST_TARGET_BRANCH_SHA where a merged-results pipeline sets it,
 # else the commit at the tip of the branch CI_MERGE_REQUEST_TARGET_BRANCH_NAME names, as the primary has it
 # (policy:target-here); never CI_MERGE_REQUEST_DIFF_BASE_SHA, the merge base, which a branch chooses by where it
-# forks. It returns 1, saying so, where a change is named (policy:change-named) and its base is not in the event, is
-# no commit, or cannot be had.
+# forks. On another CI system that names a change (policy:ci-row) it is the tip of the target branch its variable
+# names, as the primary has it, and where the system names no target, the tip of the primary's default branch, the
+# base at a desk. It returns 1, saying so, where a change is named (policy:change-named) and its base is not in the
+# event, is no commit, or cannot be had.
 policy:runner-base() {
-  local event=${GITHUB_EVENT_PATH:-} key=pull_request.base.sha commit='' target unread=''
+  local event=${GITHUB_EVENT_PATH:-} key=pull_request.base.sha commit='' target unread='' variable
   if [[ -n "${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME:-}" ]]
   then
     commit=${CI_MERGE_REQUEST_TARGET_BRANCH_SHA:-}
     target=${CI_MERGE_REQUEST_TARGET_BRANCH_NAME:-}
     if [[ -z "${commit}" && -n "${target}" ]]
     then
-      policy:target-here "${target}" || return 1
+      policy:target-here "${target}" 'in CI_MERGE_REQUEST_TARGET_BRANCH_NAME' || return 1
       return 0
     fi
     [[ -n "${commit}" ]] || unread='CI_MERGE_REQUEST_TARGET_BRANCH_NAME is not set'
+  elif [[ -z "${GITHUB_HEAD_REF:-}" && "${GITHUB_EVENT_NAME:-}" != merge_group ]] && policy:ci-named
+  then
+    read -r _ variable <<<"$(policy:ci-row)"
+    case "${variable}" in
+      ('') unread='no variable this CI system sets names the branches of the change' ;;
+      (-)
+        target=$(git:default-branch) || return 1
+        policy:target-here "${target}" 'as the default branch' || return 1
+        return 0
+        ;;
+      (*)
+        target=${!variable:-}
+        if [[ -n "${target}" ]]
+        then
+          policy:target-here "${target#refs/heads/}" "in ${variable}" || return 1
+          return 0
+        fi
+        unread="${variable} is not set"
+    esac
   else
     [[ "${GITHUB_EVENT_NAME:-}" != merge_group ]] || key=merge_group.base_sha
     if [[ -n "${event}" ]]
@@ -444,24 +550,25 @@ policy:runner-base() {
   [[ -z "${commit}" ]] || printf '%s\n' "${commit}"
 }
 
-# policy:target-here <branch> fetches a merge request's target from the primary into
+# policy:target-here <branch> <where> fetches a change's target from the primary into
 # refs/remotes/<primary>/<branch>, forced and with no tags, so a ref an earlier job left or moved counts for nothing,
 # and prints the commit at its tip. The name reaches git as an argument, so one git refuses as a branch name is
-# refused first, named. It returns 1, saying so, when the target cannot be had.
+# refused first, named with <where>, which says where the name was read: in a variable, or as the default branch. It
+# returns 1, saying so, when the target cannot be had.
 policy:target-here() {
-  local target=$1 primary
+  local target=$1 where=$2 primary
   if [[ "${target}" == -* ]] || ! git check-ref-format --branch "${target}" >/dev/null 2>&1
   then
-    error "the base of the change cannot be named ('${target}' in CI_MERGE_REQUEST_TARGET_BRANCH_NAME is not a" \
-      "branch name), so its policy cannot be read"
+    error "the base of the change cannot be named ('${target}' ${where} is not a branch name), so its policy cannot" \
+      "be read"
     return 1
   fi
   primary=$(forge:primary) || return 1
   if ! git fetch --quiet --no-tags "${primary}" "+refs/heads/${target}:refs/remotes/${primary}/${target}" 2>/dev/null \
     || ! git rev-parse --verify --quiet "refs/remotes/${primary}/${target}^{commit}"
   then
-    error "the base of the change, ${primary}/${target}, the merge request's target, could not be fetched, so its" \
-      "policy cannot be read"
+    error "the base of the change, ${primary}/${target}, the change's target, could not be fetched, so its policy" \
+      "cannot be read"
     return 1
   fi
 }

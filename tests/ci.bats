@@ -50,6 +50,47 @@ setup() {
     "── kit check ──"
 }
 
+@test "on a CI system that is no forge's own, kit ci judges the change by its base's policy, or fails" {
+  fake-tools gh
+  fixture repo.json <<<'{"nameWithOwner": "empowerite/example", "url": "https://github.com/empowerite/example"}'
+  fixture pr.json <<<'{"number": 3, "title": "Fix the thing", "body": ""}'
+  fixture pull.json <<<'{"user": {"login": "ada"}}'
+  fixture closing.json <<'JSON'
+{"data": {"repository": {"pullRequest": {"closingIssuesReferences": {"nodes": [
+  {"number": 7, "state": "OPEN", "repository": {"nameWithOwner": "empowerite/example"}}]}}}}}
+JSON
+  route gh 'repo view*' repo.json
+  route gh 'pr view 3 --json *' pr.json
+  route gh 'api repos/empowerite/example/pulls/3 *' pull.json
+  route gh 'api graphql*' closing.json
+  # the primary is a repository the runner can fetch the change's target from, so kit.yml names its forge
+  git init --quiet --bare "${BATS_TEST_TMPDIR}/origin.git"
+  git remote set-url origin "${BATS_TEST_TMPDIR}/origin.git"
+  printf 'ci:\n  echo gate ran\n' > justfile
+  printf 'forge: github\n' >> kit.yml
+  git add --all
+  git commit --quiet --message "#1 start: the kit" && git push --quiet origin main
+  # the branch carries its own judge: it turns off the rule that refuses its commit
+  git switch --quiet --create 7-fix-the-thing
+  printf 'policy:\n  commit_subject: ""\n' >> kit.yml
+  git commit --quiet --all --message "no reference"
+  git checkout --quiet --detach
+  # Drone checks the change out detached, and names it, its head branch, and its target
+  export DRONE=true DRONE_PULL_REQUEST=3 DRONE_SOURCE_BRANCH=7-fix-the-thing DRONE_TARGET_BRANCH=main
+  run env -u GITHUB_EVENT_PATH "${kit_checkout}/bin/kit" ci
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"pull request #3 is linked to #7"* ]]
+  [[ "$output" == *"'no reference' does not match policy.commit_subject"* ]]
+  [[ "$output" != *"policy allows"* ]]
+  [[ "$output" == *"1 of 4 checks refused"* ]]
+  # a runner that names no change cannot judge a detached HEAD, so the policy fails beside the issue link
+  run env -u GITHUB_EVENT_PATH -u DRONE_PULL_REQUEST "${kit_checkout}/bin/kit" ci
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"HEAD is detached on a CI runner that names no change"* ]]
+  [[ "$output" != *"policy allows"* ]]
+  [[ "$output" == *"2 of 4 checks refused"* ]]
+}
+
 @test "kit lint is not one of the four checks: a workflow kit lint refuses does not fail kit ci" {
   printf 'ci:\n  echo gate ran\n' > justfile
   mkdir -p .github/workflows

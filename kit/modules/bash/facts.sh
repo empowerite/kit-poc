@@ -6,7 +6,8 @@
 #
 #   - `moment`: commit or ci, the point the facts are judged at
 #   - `branch` and `default_branch`; the branch is null on the default branch or a detached HEAD, and is a change's
-#     head branch on a CI runner, whatever its name (policy:branch-past)
+#     head branch on a CI runner, whatever its name (policy:branch-past); on a runner, a detached HEAD that names no
+#     change has no facts, and the document fails
 #   - `worktree`: at ci, on a branch, the linked worktree's path from the main checkout's root, as
 #     worktrees/7-fix-the-thing, or its absolute path where it lies outside that root (policy:worktree); null in the
 #     main checkout, as on a CI runner, with no branch, and at commit

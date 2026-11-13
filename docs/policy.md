@@ -54,7 +54,7 @@ kit policy
 | Field | Contents |
 | --- | --- |
 | `moment` | `commit` or `ci`: the point the facts are judged at. |
-| `branch` | On a runner, the change's head branch. Elsewhere, at the desk or in any worktree, the current branch. On the default branch or a detached checkout it is `null`, and nothing is checked. |
+| `branch` | On a runner, the change's head branch. Elsewhere, at the desk or in any worktree, the current branch. On the default branch, or a detached checkout at a desk, it is `null`, and only the tree is checked. On a runner, a detached checkout that names no change has no branch to judge, and `kit policy` and `kit facts` fail. |
 | `default_branch` | The repository's default branch. |
 | `worktree` | In a linked worktree, its path from the main checkout's root, as `worktrees/7-fix-the-thing`, or its absolute path where it lies outside that root. `null` in the main checkout, which a runner's checkout is, where `branch` is `null`, and at commit. |
 | `commits` | Each commit past the fork from the branch's base, merges excluded, as its `sha`, its `subject`, and its `trailers`, `[{key, value}]` in order, as git reads them from the message's last paragraph: the primary remote's default branch, or on a runner the commit the change's event names as its base. The delivered workflow fetches full history for this. When the fork is not found, as in a shallow clone, `commits` is `null`, the commits cannot be checked, and `kit policy` fails. |
@@ -102,6 +102,11 @@ it changes, a kind it redefines, and a file it removes, adds, or edits under `.k
   which a branch chooses by where it forks. A runner that names a change and no base it can have fails both verbs,
   naming what is missing. At a desk the base is `refs/remotes/<primary>/<default>`, read in full, so a tag or a
   branch named `<primary>/<default>` does not stand for it.
+- A CI system that is no code forge's own, and Azure Pipelines, names the change's head branch and its target
+  branch in variables of its own. There the base is the target's tip, fetched from the primary every time, as on
+  GitLab. [integrations/ci.md](integrations/ci.md#ci-that-is-not-the-code-forges-own) lists each system's
+  variables. CircleCI names no target, so there the base is the primary's default branch, fetched the same way. A
+  change whose head branch or target the system does not name fails both verbs.
 - In a merge queue, the branch is the merge group's head, `gh-readonly-queue/<base>/pr-<n>-<sha>`, which the kit's
   default `branch` pattern refuses. A repository that runs `kit ci` on `merge_group` events sets `policy.branch` to
   allow it.
@@ -131,8 +136,14 @@ it changes, a kind it redefines, and a file it removes, adds, or edits under `.k
 - The packages are the ones `packages:` lists, as `kit hydrate` delivers them. `kit install` writes every package the
   set needs there; a bundle listed alone, without its members, delivers none of their Rego.
 - A change to the policy is judged by the policy before it, and takes effect once it is on the default branch.
-- On a runner, the branch is the change's head branch, whatever its name, so the detached checkout of a pull request
-  is judged the same way. On the default branch, or a detached checkout elsewhere, both read the disk.
+- On a runner, the branch is the change's head branch, whatever its name and whatever is checked out, so the
+  detached checkout of a pull request is judged the same way. On the default branch, or a detached checkout at a
+  desk, both read the disk.
+- On a runner, a detached checkout that names no change fails both verbs, and `kit leases --check` and `kit facts`
+  too: there is no branch whose base could judge it, and a check that cannot judge never passes. A runner is known
+  by `CI`, which most CI systems set, or by its system's own marker, such as `TF_BUILD` or `JENKINS_URL`, which
+  [integrations/ci.md](integrations/ci.md#ci-that-is-not-the-code-forges-own) lists. Check the branch out by name
+  there, or run the verb in the change's own pipeline.
 - A fork's pull request from its own `main` has `main` as its branch, which the default `branch` pattern refuses.
   A `policy.branch` on the default branch that matches `main` allows it.
 - `kit policy --input` prints the facts as the base's policy has them, the base's kinds included. `kit facts` prints
@@ -143,7 +154,7 @@ as on the default branch, so the pull request that installs the kit sets its fir
 
 A base that is not here, as in a clone that lacks `<primary>/<default>` or the event's commit, fails both verbs
 wherever they run. They say `the base, <base>, is not here, so its policy cannot be read; fetch it with full
-history`, naming the ref or the commit; a merge request's target that cannot be fetched is named the same way. Where
+history`, naming the ref or the commit; a change's target that cannot be fetched is named the same way. Where
 git has not recorded `<primary>/HEAD`, the default branch is taken to be `main`, and they say
 `run: git remote set-head <primary> --auto (<primary>/HEAD is not recorded, so the default branch is taken to be
 main)`; where there is no such remote, they say `run: git remote add <primary> <url>`. A read

@@ -72,6 +72,9 @@ helper:isolate-in() {
   # summary, the toolchain the job names, and the pull request
   unset GITHUB_ACTIONS GITHUB_STEP_SUMMARY KIT_TOOLCHAIN
   unset GITHUB_EVENT_PATH GITHUB_HEAD_REF CI_MERGE_REQUEST_IID CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+  # the markers of a runner, on which kit policy refuses a detached HEAD that names no change; a test of a runner
+  # sets its own
+  unset CI TF_BUILD JENKINS_URL CODEBUILD_BUILD_ID BUILDKITE CIRCLECI DRONE
   # the depth of the kit call that ran bats, kit gate's under kit ci, which every call a test makes would add to
   unset kit_depth
   # the release the loader chose for the call that ran bats, which a test's own kit calls choose again for themselves

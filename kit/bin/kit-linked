@@ -18,8 +18,11 @@
 # one, linked_exempt is read from the kit.yml on its base, so a branch cannot exempt its own author: <primary>/<default>
 # at a desk and, on a CI runner, the base the change's event names, which no command of the branch can move: a pull
 # request's or a merge group's base commit, or a merge request's target branch at its tip. On a runner the branch is
-# the change's head branch, whatever its name, and kit ci runs kit linked before the gate. A base with no kit.yml,
-# where the kit is not installed yet, leaves the checkout's own kit.yml to say, as on the default branch.
+# the change's head branch, whatever its name, and kit ci runs kit linked before the gate. On a CI system that is no
+# forge's own, and on Azure Pipelines, the base is the tip of the target branch the system's variable names, as kit
+# policy reads it. A base with no kit.yml, where the kit is not installed yet, leaves the checkout's own kit.yml to
+# say, as on the default branch. On a CI runner, a detached HEAD that names no change fails, since no base can say
+# which logins are exempt.
 #
 # Arguments:
 #   <number>   the pull request to check; default: this checkout's, which on a CI runner is
@@ -28,8 +31,8 @@
 #
 # Exits 0 when at least one linked issue counts or the author is exempt, 1 when neither holds, there is no pull
 # request to check, the forge cannot say which pull request this checkout is working on, the pull request's body
-# cannot be read, linked_exempt in kit.yml cannot be read, or the base cannot be named, is not here, or its kit.yml
-# cannot be read, and 2 on a usage error.
+# cannot be read, linked_exempt in kit.yml cannot be read, the base cannot be named, is not here, or its kit.yml
+# cannot be read, or HEAD is detached on a CI runner that names no change, and 2 on a usage error.
 #
 # see: modules/bash/forge.sh, modules/bash/policy.sh
 

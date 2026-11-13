@@ -27,10 +27,16 @@
 # rule that judges it. The base is <primary>/<default> at a desk and, on a CI runner, the base the change's event names,
 # which no command of the branch can move: a pull request's or a merge group's base commit, or a merge request's
 # target branch at its tip; a runner that names a change and no base it can have fails. On a runner the branch is the
-# change's head branch, whatever its name, or a merge group's head. A change to the policy is
-# judged by the policy before it. A base with no kit.yml, where the kit is not installed yet, leaves the checkout's
-# own settings and Rego to judge, as on the default branch, so the change that installs the kit sets its first
-# policy. --input prints the facts that policy judges; --facts judges by the disk's.
+# change's head branch, whatever its name, or a merge group's head. A CI system that is no forge's own, such as
+# Jenkins or Buildkite, and Azure Pipelines name the change's head branch and its target in variables of their own,
+# and the base is the target's tip, fetched from the primary; modules/bash/policy.sh lists the variables. A change to
+# the policy is judged by the policy before it. A base with no kit.yml, where the kit is not installed yet, leaves the
+# checkout's own settings and Rego to judge, as on the default branch, so the change that installs the kit sets its
+# first policy. --input prints the facts that policy judges; --facts judges by the disk's.
+#
+# On the default branch, and on a detached HEAD at a desk, only the tree is judged. On a CI runner, a detached HEAD
+# that names no change fails: there is no branch to judge, and a check that cannot judge never passes. Check the
+# branch out by name there, or run kit policy in the change's own pipeline.
 #
 # The facts are the document a policy rule is written against. A pull request by a login the repository lists under
 # linked_exempt in kit.yml passes with nothing checked, and the output says so. That is for a bot such as
@@ -60,8 +66,9 @@
 #
 # Exits 0 when the policy refuses nothing, with or without warnings, 1 on any refusal, on a path outside the branch's
 # lease or a lease that does not read, when the forge cannot answer for the open change, when linked_exempt in kit.yml
-# or another fact cannot be read, or when the base cannot be named, is not here, or its policy cannot be read, as when
-# a package its kit.yml lists is not in reach, and 2 on a usage error.
+# or another fact cannot be read, when the base cannot be named, is not here, or its policy cannot be read, as when
+# a package its kit.yml lists is not in reach, or on a CI runner's detached HEAD that names no change, and 2 on a
+# usage error.
 #
 # see: modules/bash/policy.sh, modules/bash/leases.sh, docs/policy.md
 

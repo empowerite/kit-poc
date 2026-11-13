@@ -273,6 +273,96 @@ change() {
   [[ "$output" != *"exempt"* ]]
 }
 
+# strict-base makes the base hold a pattern for commit subjects, and a branch past it that carries its own judge: one
+# commit the base refuses, and a kit.yml that blanks the pattern and exempts the change's author, ada.
+strict-base() {
+  printf 'forge: github\npolicy:\n  commit_subject: "^#[0-9]+ "\n' > kit.yml
+  git add kit.yml
+  git commit --quiet --message "#2 kit: the policy" && git push --quiet origin main
+  branch 7-fix-the-thing "no reference"
+  printf 'forge: github\npolicy:\n  commit_subject: ""\nlinked_exempt:\n  - ada\n' > kit.yml
+  change "Fix the thing" ada
+}
+
+@test "on a CI system that is no forge's own, the change's detached checkout is judged by the policy on its base" {
+  strict-base
+  git switch --quiet --detach
+  # each system sets its marker, and names the change, its head branch, and its target in variables of its own;
+  # CircleCI names no target, so the primary's default branch judges, and Azure Pipelines and CodeBuild write a
+  # branch as a ref
+  while IFS= read -r named
+  do
+    read -r -a variables <<<"${named}"
+    run env "${variables[@]}" "${kit_root}/bin/kit" policy
+    [ "$status" -eq 1 ] || { echo "${named}: ${output}"; false; }
+    [[ "$output" == *"'no reference' does not match policy.commit_subject"* ]] || { echo "${named}: ${output}"; false; }
+    [[ "$output" != *"exempt"* && "$output" != *"policy allows"* ]] || { echo "${named}: ${output}"; false; }
+  done <<'ROWS'
+DRONE=true DRONE_PULL_REQUEST=3 DRONE_SOURCE_BRANCH=7-fix-the-thing DRONE_TARGET_BRANCH=main
+JENKINS_URL=https://ci.example.com/ CHANGE_ID=3 CHANGE_BRANCH=7-fix-the-thing CHANGE_TARGET=main
+BUILDKITE=true BUILDKITE_PULL_REQUEST=3 BUILDKITE_BRANCH=ada:7-fix-the-thing BUILDKITE_PULL_REQUEST_BASE_BRANCH=main
+CI=woodpecker CI_COMMIT_PULL_REQUEST=3 CI_COMMIT_SOURCE_BRANCH=7-fix-the-thing CI_COMMIT_TARGET_BRANCH=main
+CODEBUILD_BUILD_ID=example:1 CODEBUILD_WEBHOOK_TRIGGER=pr/3 CODEBUILD_WEBHOOK_HEAD_REF=refs/heads/7-fix-the-thing CODEBUILD_WEBHOOK_BASE_REF=refs/heads/main
+TF_BUILD=True SYSTEM_PULLREQUEST_PULLREQUESTNUMBER=3 SYSTEM_PULLREQUEST_SOURCEBRANCH=7-fix-the-thing SYSTEM_PULLREQUEST_TARGETBRANCH=main
+TF_BUILD=True SYSTEM_PULLREQUEST_PULLREQUESTID=3 SYSTEM_PULLREQUEST_SOURCEBRANCH=refs/heads/7-fix-the-thing SYSTEM_PULLREQUEST_TARGETBRANCH=refs/heads/main
+CIRCLECI=true CIRCLE_PULL_REQUEST=https://github.com/empowerite/example/pull/3 CIRCLE_BRANCH=7-fix-the-thing
+ROWS
+  # the facts are the change's: its head branch, its commit past the target, and its title
+  export DRONE=true DRONE_PULL_REQUEST=3 DRONE_SOURCE_BRANCH=7-fix-the-thing DRONE_TARGET_BRANCH=main
+  run --separate-stderr "${kit_root}/bin/kit" policy --input
+  [ "$status" -eq 0 ]
+  [ "$(jq --raw-output '[.branch, (.commits | length), .change.title] | join("|")' <<<"$output")" \
+    = "7-fix-the-thing|1|Fix the thing" ]
+  # the target is fetched from the primary, so a ref an earlier job moved onto the branch counts for nothing
+  git update-ref refs/remotes/origin/main HEAD
+  run "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"'no reference' does not match policy.commit_subject"* ]]
+  # a checkout of the target with the change merged in, as Drone makes, is the change's all the same
+  git update-ref refs/remotes/origin/main HEAD~1
+  git switch --quiet --force-create main
+  run "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"'no reference' does not match policy.commit_subject"* ]]
+  git switch --quiet --detach
+  # a change whose branches the runner does not name cannot be judged, and fails
+  run env -u DRONE_TARGET_BRANCH "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"DRONE_TARGET_BRANCH is not set"*"so its policy cannot be read"* ]]
+  run env -u DRONE_SOURCE_BRANCH "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"so its policy cannot be read"* ]]
+  [[ "$output" != *"policy allows"* ]]
+  run env DRONE_TARGET_BRANCH=nowhere "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"origin/nowhere, the change's target, could not be fetched"* ]]
+}
+
+@test "on a CI runner, a detached HEAD that names no change is refused, since no branch or commit can be judged" {
+  strict-base
+  git switch --quiet --detach
+  # CI, which GitHub Actions, GitLab CI, and most systems set, or a system's own marker
+  for marker in CI=true TF_BUILD=True JENKINS_URL=https://ci.example.com/ CODEBUILD_BUILD_ID=example:1 \
+    BUILDKITE=true CIRCLECI=true DRONE=true
+  do
+    run env "${marker}" "${kit_root}/bin/kit" policy
+    [ "$status" -eq 1 ] || { echo "${marker}: ${output}"; false; }
+    [[ "$output" == *"HEAD is detached on a CI runner that names no change"* ]] || { echo "${marker}: ${output}"; false; }
+    [[ "$output" != *"policy allows"* ]]
+  done
+  # the facts, the rules, and the leases fail the same way, and a branch checked out by name is judged
+  run env CI=true "${kit_root}/bin/kit" policy --input
+  [ "$status" -eq 1 ]
+  run env CI=true "${kit_root}/bin/kit" policy --rules
+  [ "$status" -eq 1 ]
+  run env CI=true "${kit_root}/bin/kit" leases --check
+  [ "$status" -eq 1 ]
+  git switch --quiet 7-fix-the-thing
+  run env CI=true "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"'no reference' does not match policy.commit_subject"* ]]
+}
+
 @test "a base with no kit.yml, as before the kit is installed there, leaves the branch's own policy to judge it" {
   branch 7-install-the-kit "no reference"
   printf 'policy:\n  commit_subject: "^no "\n' > kit.yml
@@ -728,7 +818,7 @@ REGO
   # a target origin does not have, and one that is no branch name, fail closed, named
   run env CI_MERGE_REQUEST_TARGET_BRANCH_NAME=nowhere "${kit_root}/bin/kit" policy
   [ "$status" -eq 1 ]
-  [[ "$output" == *"origin/nowhere, the merge request's target, could not be fetched"* ]]
+  [[ "$output" == *"origin/nowhere, the change's target, could not be fetched"* ]]
   run env CI_MERGE_REQUEST_TARGET_BRANCH_NAME='-x' "${kit_root}/bin/kit" policy
   [ "$status" -eq 1 ]
   [[ "$output" == *"'-x' in CI_MERGE_REQUEST_TARGET_BRANCH_NAME is not a branch name"* ]]
@@ -783,7 +873,7 @@ REGO
   [ "$(git rev-parse refs/remotes/upstream/main)" = "${tip}" ]
   run env CI_MERGE_REQUEST_TARGET_BRANCH_NAME=nowhere "${kit_root}/bin/kit" policy
   [ "$status" -eq 1 ]
-  [[ "$output" == *"upstream/nowhere, the merge request's target, could not be fetched"* ]]
+  [[ "$output" == *"upstream/nowhere, the change's target, could not be fetched"* ]]
 }
 
 @test "a base the primary's unrecorded HEAD names says to record it, and a repository without the remote says so" {

@@ -58,8 +58,30 @@ A value that holds no number names no change. With none of them, the provider re
 GitHub's event payload, GitLab's `CI_MERGE_REQUEST_IID`, or Azure DevOps' `SYSTEM_PULLREQUEST_PULLREQUESTID`, else
 asks for the open change on the checked-out branch. A runner that names no change, on a detached HEAD, has none,
 and `kit linked` refuses. Bitbucket Pipelines sets `BITBUCKET_PR_ID`, which kit does not read: it has no provider
-for Bitbucket. The number is all the table gives: `kit policy` still reads the change's branch and its base from
-GitHub's and GitLab's runners alone.
+for Bitbucket.
+
+`kit policy` and `kit linked` judge the change by the policy on its base, so they need the change's head branch and
+its target branch too. GitHub's and GitLab's own runners name both. For the systems above, and for Azure Pipelines
+on a repository of Azure DevOps, kit reads them from a second table, `policy_ci_branches` in
+`kit/modules/bash/policy.sh`, once a change is named:
+
+| CI system | Head branch | Target branch |
+| --- | --- | --- |
+| Azure Pipelines | `SYSTEM_PULLREQUEST_SOURCEBRANCH` | `SYSTEM_PULLREQUEST_TARGETBRANCH` |
+| Jenkins, a multibranch pipeline | `CHANGE_BRANCH` | `CHANGE_TARGET` |
+| Buildkite | `BUILDKITE_BRANCH` | `BUILDKITE_PULL_REQUEST_BASE_BRANCH` |
+| AWS CodeBuild | `CODEBUILD_WEBHOOK_HEAD_REF` | `CODEBUILD_WEBHOOK_BASE_REF` |
+| Woodpecker | `CI_COMMIT_SOURCE_BRANCH` | `CI_COMMIT_TARGET_BRANCH` |
+| Drone | `DRONE_SOURCE_BRANCH` | `DRONE_TARGET_BRANCH` |
+| CircleCI | `CIRCLE_BRANCH` | none: the primary's default branch |
+
+A value may be a ref, `refs/heads/<branch>`, and Buildkite writes a fork's head branch as `<owner>:<branch>`. The
+head branch is the one the variable names, whatever is checked out: a detached HEAD, or, on Drone, the target with
+the change merged in. The base is the tip of the target branch, fetched from the primary every time, forced and with
+no tags, so a ref an earlier job left counts for nothing. A change whose head branch or target is not named fails
+both verbs. So does a detached HEAD on a runner that names no change, since no branch is there to judge:
+[policy.md](../policy.md#what-judges-a-branch) says how a branch is judged. None of these was verified on a live runner;
+the variables are as each system documents them.
 
 ## Scope
 
