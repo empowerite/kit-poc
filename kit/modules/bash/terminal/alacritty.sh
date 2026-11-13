@@ -3,8 +3,9 @@
 # ----------------------------------------------------------------------------------------------------------------------
 # Alacritty reads the first of these that is there: alacritty/alacritty.toml, then alacritty.toml, under
 # XDG_CONFIG_HOME; then the same under ~/.config; ~/.alacritty.toml; and /etc/alacritty/alacritty.toml. Nothing prints
-# what it settles on, and alacritty msg config changes it, so the reader reads the one key it needs from the file:
-# option_as_alt under [window], or window.option_as_alt at the top. With no file, it is Alacritty's default.
+# what it settles on, and alacritty msg config changes it, so the reader reads the one key it needs from the file, as
+# TOML: window.option_as_alt, however it is written. The file's import lists are not followed. With no file, it is
+# Alacritty's default.
 #
 #   option    window.option_as_alt: None, OnlyLeft, OnlyRight, or Both; None; null off macOS, where it does nothing
 #   config    the file read, else where Alacritty looks first
@@ -26,16 +27,11 @@ terminal/alacritty:settings() {
   done
   if [[ -n "${config}" ]]
   then
-    option=$(awk '
-      /^[[:space:]]*\[/ { table = $0; gsub(/[][[:space:]]/, "", table); next }
-      (table == "window" && /^[[:space:]]*option_as_alt[[:space:]]*=/) \
-        || (table == "" && /^[[:space:]]*window\.option_as_alt[[:space:]]*=/) { value = $0 }
-      END {
-        sub(/^[^=]*=[[:space:]]*/, "", value)
-        sub(/[[:space:]]*#.*$/, "", value)
-        gsub(/["'\'']/, "", value)
-        print value
-      }' "${config}")
+    if ! option=$(yq --input-format=toml --output-format=yaml '.window.option_as_alt // "None"' "${config}" 2>/dev/null)
+    then
+      printf "kit cannot read Alacritty's %s as TOML\n" "${config}"
+      return 1
+    fi
     [[ -n "${option}" ]] || option=None
   fi
   [[ "${OSTYPE:-}" == darwin* ]] || option=''

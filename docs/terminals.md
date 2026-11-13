@@ -163,7 +163,8 @@ See: [WezTerm's show-keys](https://wezterm.org/cli/show-keys.html)
 ## Alacritty
 
 kit knows Alacritty by `ALACRITTY_WINDOW_ID` or `TERM=alacritty`, and reads `option_as_alt` from the first
-`alacritty.toml` on Alacritty's search path. Alacritty speaks the kitty keyboard protocol with no setting.
+`alacritty.toml` on Alacritty's search path. The file is read as TOML, so a table, a dotted key, and an inline table are
+one setting; its `import` lists are not followed. Alacritty speaks the kitty keyboard protocol with no setting.
 
 | Finding | Setting | Bad | Default | Need |
 | --- | --- | --- | --- | --- |

@@ -494,6 +494,18 @@ alacritty-config() {
   [ "$(found <<<"$output")" = '[]' ]
 }
 
+@test "Alacritty's ⌥ is read in any spelling of TOML: an inline table, a quoted key, and a file it cannot parse is said" {
+  alacritty-config 'window = { option_as_alt = "Both" }'
+  run kit-bash 'OSTYPE=darwin24 ALACRITTY_WINDOW_ID=1 terminal:checks'
+  [ "$(found <<<"$output")" = '[]' ]
+  alacritty-config '"window"."option_as_alt" = '"'Both'"
+  run kit-bash 'OSTYPE=darwin24 ALACRITTY_WINDOW_ID=1 terminal:checks'
+  [ "$(found <<<"$output")" = '[]' ]
+  alacritty-config '[window'
+  run kit-bash 'OSTYPE=darwin24 ALACRITTY_WINDOW_ID=1 terminal:settings alacritty'
+  [[ "$(jq -r .unreadable <<<"$output")" == "kit cannot read Alacritty's "*" as TOML" ]]
+}
+
 # warp-settings <toml>… writes Warp's settings where it keeps them on macOS.
 warp-settings() {
   mkdir -p "${HOME}/.warp"
@@ -507,6 +519,18 @@ warp-settings() {
   warp-settings '[terminal]' 'mouse_reporting_enabled = false'
   run kit-bash 'OSTYPE=darwin24 TERM_PROGRAM=WarpTerminal terminal:checks'
   [ "$(found <<<"$output")" = '["terminal-warp-option","terminal-warp-mouse"]' ]
+}
+
+@test "Warp's Meta keys are read in any spelling of TOML, a table of their own among them" {
+  warp-settings '[terminal.input.extra_meta_keys]' 'left_alt = true' 'right_alt = false'
+  run kit-bash 'OSTYPE=darwin24 TERM_PROGRAM=WarpTerminal terminal:checks'
+  [ "$(found <<<"$output")" = '[]' ]
+  warp-settings 'terminal.input.extra_meta_keys.left_alt = true'
+  run kit-bash 'OSTYPE=darwin24 TERM_PROGRAM=WarpTerminal terminal:checks'
+  [ "$(found <<<"$output")" = '[]' ]
+  warp-settings 'terminal = { mouse_reporting_enabled = false, input = { extra_meta_keys = { left_alt = true } } }'
+  run kit-bash 'OSTYPE=darwin24 TERM_PROGRAM=WarpTerminal terminal:checks'
+  [ "$(found <<<"$output")" = '["terminal-warp-mouse"]' ]
 }
 
 # windows-fakes <delegation> <build> stands in reg.exe, which names the default terminal (none for none), and
