@@ -466,6 +466,12 @@ EOF
   [[ "${setup}" == *"kit/bin/kit trust"*"direnv allow"* ]]
 }
 
+@test "kit flow with a stage opens it at a terminal and prints it with --json, and the pages say so: no --text there" {
+  run grep --line-number --extended-regexp 'kit flow <stage>` (prints|shows) one stage' \
+    "${root}/docs/architecture.md" "${root}/docs/features.md"
+  [ "${status}" -eq 1 ]
+}
+
 @test "a count a page gives of what the code holds is the count, and a list it gives is the list, in its order" {
   local found
   facts > "${BATS_TEST_TMPDIR}/facts.json"

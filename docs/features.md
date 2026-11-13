@@ -155,8 +155,9 @@ a branch is named for it. Otherwise the issue is in the backlog.
 
 At a terminal, `kit flow` opens the Flow app in kittui; see [The terminal UI](#the-terminal-ui).
 Without a terminal, or with `--text`, it prints each stage under a heading, so you can pipe, page,
-or save the output. `--json` prints the same facts as JSON, and `kit flow <stage>` shows one
-stage. The `flow` setting in `kit.yml` names the stages that `kit flow` draws, and their order.
+or save the output. `--json` prints the same facts as JSON. At a terminal, `kit flow <stage>` opens that
+one stage; without one it prints the stage, and `--json` prints it as JSON. The `flow` setting in `kit.yml` names the
+stages that `kit flow` draws, and their order.
 
 `kit workspace` shows what git holds: remotes, branches, worktrees, commits, and tags. It
 reads only the local repository, so what it shows of a remote is what the last fetch left. The
