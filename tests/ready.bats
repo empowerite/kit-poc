@@ -52,6 +52,20 @@ setup() {
   [ "$status" -eq 0 ]
 }
 
+@test "ready, linked, and settle refuse a missing change, and a word that is no number, in the same words and with the same statuses" {
+  printf 'forge/plain:pr-here() { :; }\nforge/plain:settle() { :; }\n' >> bash/forge/plain.sh
+  local verb
+  for verb in ready linked settle
+  do
+    run "${kit_root}/bin/kit" "${verb}"
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"no change is named, and this checkout is working on none; run: cd "*" && kit ${verb} <number>"* ]]
+    run "${kit_root}/bin/kit" "${verb}" abc
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"'abc' is not a number; run: cd "*" && kit help ${verb}"* ]]
+  done
+}
+
 @test "a second report replaces the first and repeats no closing line, and --report-file= is read from where it was typed" {
   "${kit_root}/bin/kit" ready --report='The first report.' >/dev/null 2>&1
   mkdir notes

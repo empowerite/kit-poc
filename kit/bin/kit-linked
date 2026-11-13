@@ -71,7 +71,7 @@ number=${1:-}
 [[ -n "${number}" ]] || number=$(forge:pr-here) || exit 1
 if [[ ! "${number}" =~ ^[0-9]+$ ]]
 then
-  error "name the change: kit linked <number> (none was given, and this checkout is working on none)"
+  error "no change is named, and this checkout is working on none; run: kit linked <number>"
   exit 1
 fi
 IFS=$'\t' read -r sigil noun < <(forge:noun) || exit 1

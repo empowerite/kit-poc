@@ -56,7 +56,7 @@ JSON
   # a runner that names none is still refused
   run env -u GITHUB_EVENT_PATH -u DRONE_PULL_REQUEST "${kit_checkout}/bin/kit" linked
   [ "$status" -eq 1 ]
-  [[ "$output" == *"name the change: kit linked <number>"* ]]
+  [[ "$output" == *"no change is named, and this checkout is working on none; run: cd "*" && kit linked <number>"* ]]
 }
 
 @test "on a CI system that is no forge's own, the logins exempt are the base's: a branch cannot exempt its author" {
