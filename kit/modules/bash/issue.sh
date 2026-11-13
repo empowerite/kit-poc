@@ -430,9 +430,8 @@ issue:branch() {
     fi
   elif [[ -z "${branch}" ]]
   then
-    slug=$(tr '[:upper:]' '[:lower:]' <<<"${title}" | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c 1-60)
-    slug=${slug%-}
-    branch="${key}-${slug:-issue}"
+    slug=$(forge:branch-slug "${title}")
+    branch="${key}-${slug}"
     if ! refusal=$(policy:refusal branch "${branch}")
     then
       [[ -z "${refusal}" ]] || error "refusing to start ${ref}: the branch kit work names, ${refusal}; set" \

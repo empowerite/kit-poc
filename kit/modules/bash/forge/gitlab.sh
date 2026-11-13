@@ -204,12 +204,12 @@ forge/gitlab:iterations() {
 }
 
 # GitLab has no command that creates a branch for an issue. This creates the branch the issue page would:
-# <iid>-<slug of the title>, from the default branch. GitLab links a branch with that name to the issue.
+# <iid>-<slug of the title>, the slug forge:branch-slug gives, from the default branch. GitLab links a branch with that
+# name to the issue.
 forge/gitlab:link-branch() {
   local title slug
   title=$(forge/gitlab:issue-title "$1") || return 1
-  slug=$(tr '[:upper:]' '[:lower:]' <<<"${title}" | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c 1-60)
-  slug=${slug%-}
+  slug=$(forge:branch-slug "${title}")
   forge/gitlab:api repository/branches --method POST --raw-field "branch=$1-${slug}" --raw-field "ref=$2" >/dev/null
 }
 

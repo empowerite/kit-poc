@@ -832,6 +832,14 @@ here() {
   [ "$output" = "https://git.example.com/empowerite/example" ]
 }
 
+@test "GitLab makes a branch for an issue whose title has no letter or digit of ASCII, <iid>-issue, as kit work names it" {
+  world gitlab
+  fixture issue.json <<<'{"iid": 7, "title": "修复登录问题", "state": "opened", "assignees": []}'
+  run call link-branch 7 main
+  [ "$status" -eq 0 ]
+  grep --quiet -- '--raw-field branch=7-issue --raw-field ref=main' "${FAKE_DIR}/glab.calls"
+}
+
 @test "kit linked speaks the forge's words: a merge request on GitLab, its URL in the remedy" {
   export GITHUB_STEP_SUMMARY="${BATS_TEST_TMPDIR}/summary.md"
   GITLAB_CLOSES=none.json world gitlab

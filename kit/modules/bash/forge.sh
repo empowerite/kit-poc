@@ -871,6 +871,16 @@ forge:issue-add-sub()       { forge:changing issue-add-sub "$@"; }
 forge:branch-for-issue()    { forge:call branch-for-issue "$@"; }
 forge:link-branch()         { forge:changing link-branch "$@"; }
 forge:pr-for-branch()       { forge:call pr-for-branch "$@"; }
+# forge:branch-slug <title> prints the part of a branch name that comes from an issue's title: its lower-case ASCII
+# letters and digits, each run of anything else one dash, at most 60 characters. A title with none, as one in another
+# script, gives issue, so the name <key>-<slug> always passes policy.branch. kit work and a forge that makes the branch
+# itself name it alike.
+forge:branch-slug() {
+  local slug
+  slug=$(tr '[:upper:]' '[:lower:]' <<<"$1" | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c 1-60)
+  slug=${slug%-}
+  printf '%s\n' "${slug:-issue}"
+}
 # forge:pr-create <branch> <default> <title> opens the change as a draft, the forge's own or the stand-in the repository
 # chose: a change opened ready, then labelled, or titled with the prefix. It prints the change's number.
 forge:pr-create() {
