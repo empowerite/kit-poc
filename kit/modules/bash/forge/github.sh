@@ -339,8 +339,10 @@ forge/github:issue-comment() {
   forge/github:gh issue comment "$1" --body "$2" >/dev/null 2>&1
 }
 
+# The place is read first, so the line of a URL that names no repository is said, where gh's own words are hidden.
 forge/github:issue-create() {
-  local number
+  local number forge_github_place
+  forge_github_place=$(forge/github:place) || return 1
   number=$(forge/github:gh issue create --title "$1" --body "${2:-}" 2>/dev/null | sed -n 's@.*/issues/@@p')
   if [[ ! "${number}" =~ ^[0-9]+$ ]]
   then
@@ -426,10 +428,13 @@ forge/github:link-branch() {
 # counts against no rate limit; and a scanner off or refused is kept there as so, and asked again only once
 # forge_github_verdict_seconds have passed, as a 403 or 404 keeps no ETag. A kind that cannot be read is null, its
 # line said, and the others are still read; it returns 1 then, after the object.
-# gh fills {owner}/{repo} with the repository forge/github:gh names to it, which costs no request.
+# gh fills {owner}/{repo} with the repository forge/github:gh names to it, which costs no request. The place is read
+# first, once for every kind, since forge/github:mark hides what gh says: a URL that names no repository fails here
+# with its line, before any kind is asked about, and prints no object.
 forge/github:marks() {
-  local dir=${1:-} kind mark marks='{}' status=0
+  local dir=${1:-} kind mark marks='{}' status=0 forge_github_place
   local -a kinds=("${@:2}")
+  forge_github_place=$(forge/github:place) || return 1
   (( ${#kinds[@]} > 0 )) || kinds=(issues runs releases milestones deployments environments alerts)
   for kind in "${kinds[@]}"
   do
@@ -1115,10 +1120,12 @@ forge/github:off() {
 # forge/github:alert-pages <name> <what> <path>… reads every page of each path, a scanner's alerts, and puts them, one
 # JSON array of the pages, each an array, in the variable <name>. It returns 3, printing nothing, where GitHub says
 # the scanner is off for the repository, and 1 after the line forge/github:alerts-refused says where GitHub refuses
-# the read.
+# the read. The place is read first, as forge/github:ask reads it, so the line of a URL that names no repository is
+# said, not kept with what gh says.
 forge/github:alert-pages() {
-  local pages_into=$1 pages_what=$2 pages_path pages_said pages_out pages_all='[]'
+  local pages_into=$1 pages_what=$2 pages_path pages_said pages_out pages_all='[]' forge_github_place
   shift 2
+  forge_github_place=$(forge/github:place) || return 1
   file:temp pages_said gh || return 1
   for pages_path in "$@"
   do

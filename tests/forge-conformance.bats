@@ -404,6 +404,18 @@ named-afresh() {
   [ -z "$output" ]
   [[ "$stderr" == *"https://github.com/team names no repository"* ]]
   [ ! -s "${FAKE_DIR}/gh.named" ]
+  # a call that hides what gh says, or keeps it to say why gh failed, says that line too, and never blames the login
+  for asked in 'issue-create Fix' marks 'marks issues runs' code-scanning-alerts dependabot-alerts \
+    secret-scanning-alerts
+  do
+    # shellcheck disable=SC2086  # the call and its arguments are words
+    run --separate-stderr call ${asked}
+    [ "$status" -eq 1 ] || { echo "${asked}: ${status}"; false; }
+    [ -z "$output" ] || { echo "${asked}: ${output}"; false; }
+    [ "$stderr" = "❌ set the URL of origin to a repository on GitHub, as https://github.com/<owner>/<name> (https://github.com/team names no repository, so GitHub was not asked)" ] \
+      || { echo "${asked}: ${stderr}"; false; }
+  done
+  [ ! -s "${FAKE_DIR}/gh.named" ]
   # a primary on this machine, GitHub's by kit.yml alone, names none: gh runs as the caller's environment has it
   git remote set-url origin "${BATS_TEST_TMPDIR}/mirror.git"
   unset FAKE_GH_REPO

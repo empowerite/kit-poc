@@ -13,7 +13,9 @@ say. kit acts on the primary remote, so its provider runs every `gh` call with `
 and `GH_HOST="${host}"`, read from the primary's URL. `gh repo view` takes no repository from `GH_REPO`, so the
 provider gives it as the argument. An ssh URL may name a `Host` of the ssh configuration, as `github.com-work`: the
 provider asks `ssh -G` for the host it stands for, as `gh` does, and takes `ssh.github.com` for `github.com`. A
-primary that is a path on this machine names no repository, and `gh` runs as the caller's environment has it.
+primary that is a path on this machine names no repository, and `gh` runs as the caller's environment has it. A
+URL with a host and no `<owner>/<name>` names none either: `gh` is not run, and every call fails with one line that
+says which URL to set, the marks, the alerts, and a new issue among them.
 
 This page says what `gh` reads and writes where it meets kit's scope, for each service it reaches, and the
 machine-readable descriptions each publishes. The index of these pages is [1st.md](1st.md).
