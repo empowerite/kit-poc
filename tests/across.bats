@@ -233,6 +233,24 @@ EOF
   [ "$(jq -r .kind <<<"$output")" = none ]
 }
 
+@test "on a terminal, a verb short of its arguments after kit --workspace= opens its form over that workspace" {
+  fake-tui
+  two-desks
+  cd "${BATS_TEST_TMPDIR}/code/a"
+  # typed whole, kit workspaces --add= refuses a workspace; the form must run the same words, not the verb without it
+  run pty "'${kit_root}/bin/kit' --workspace=w workspaces --add=x"
+  [[ "$output" == *"kittui native-native --workspace=w -- workspaces --add=x"* ]]
+  run pty "'${kit_root}/bin/kit' --workspace=none workspaces --add=x"
+  [[ "$output" == *"kittui native-native --workspace=none -- workspaces --add=x"* ]]
+  run pty "'${kit_root}/bin/kit' workspaces --add=x"
+  [[ "$output" == *"kittui native-native -- workspaces --add=x"* ]]
+  # kit tui itself gives kittui the workspace it was given
+  run pty "'${kit_root}/bin/kit' --workspace=w tui -- commit --all"
+  [[ "$output" == *"kittui native-native --workspace=w -- commit --all"* ]]
+  run pty "'${kit_root}/bin/kit' --workspace=w tui"
+  [[ "$output" == *"kittui native-native --workspace=w"* ]]
+}
+
 @test "kit workspace repos in a repository lists it alone; outside one, without --workspace=, it refuses with 2" {
   desk-at "${BATS_TEST_TMPDIR}/code/a" github.com/o/a
   cd "${BATS_TEST_TMPDIR}/code/a"

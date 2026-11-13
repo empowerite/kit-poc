@@ -313,21 +313,40 @@ func TestRunPrintsTheTranscriptThenExecs(t *testing.T) {
 }
 
 func TestWordsAfterADoubleDash(t *testing.T) {
-	verb, words := parse([]string{"--", "commit", "--all"})
-	if verb != "commit" || strings.Join(words, " ") != "--all" {
-		t.Errorf("parse = %q %q", verb, words)
+	group, verb, words := parse([]string{"--", "commit", "--all"})
+	if group != "" || verb != "commit" || strings.Join(words, " ") != "--all" {
+		t.Errorf("parse = %q %q %q", group, verb, words)
 	}
-	verb, words = parse(nil)
-	if verb != "" || words != nil {
-		t.Errorf("parse(nil) = %q %q", verb, words)
+	group, verb, words = parse(nil)
+	if group != "" || verb != "" || words != nil {
+		t.Errorf("parse(nil) = %q %q %q", group, verb, words)
 	}
 	// flow takes its words with or without the double dash
 	for _, args := range [][]string{{"flow", "--no-fetch", "--mine"}, {"--", "flow", "--no-fetch", "--mine"}} {
-		if verb, words = parse(args); verb != "flow" || strings.Join(words, " ") != "--no-fetch --mine" {
+		if _, verb, words = parse(args); verb != "flow" || strings.Join(words, " ") != "--no-fetch --mine" {
 			t.Errorf("parse(%q) = %q %q", args, verb, words)
 		}
 	}
 	_ = os.Stdin
+}
+
+// The workspace kit tui was given comes first, before the verb and before the double dash; one among a verb's words
+// after the double dash is the verb's own word.
+func TestTheWorkspaceBeforeTheVerb(t *testing.T) {
+	for _, c := range []struct {
+		args               []string
+		group, verb, words string
+	}{
+		{[]string{"--workspace=w", "--", "commit", "--all"}, "w", "commit", "--all"},
+		{[]string{"--workspace=none", "flow"}, "none", "flow", ""},
+		{[]string{"--workspace=w"}, "w", "", ""},
+		{[]string{"--", "commit", "--workspace=w"}, "", "commit", "--workspace=w"},
+	} {
+		group, verb, words := parse(c.args)
+		if group != c.group || verb != c.verb || strings.Join(words, " ") != c.words {
+			t.Errorf("parse(%q) = %q %q %q", c.args, group, verb, words)
+		}
+	}
 }
 
 // The words after tutorials are kit tutorials' own, which the screen reads.
@@ -399,17 +418,24 @@ func TestFlowAndWorkspaceOpenTheAppWithTheTabNamed(t *testing.T) {
 
 func TestFlowTakesTheWorkspaceFromItsWords(t *testing.T) {
 	for _, words := range [][]string{{"--workspace=w", "--no-fetch"}, {"--no-fetch", "--workspace=w"}} {
-		group, rest := workspaceOf(words)
+		group, rest := workspaceOf("", words)
 		if group != "w" || strings.Join(rest, " ") != "--no-fetch" {
 			t.Errorf("%q gives %q and %q", words, group, rest)
 		}
 	}
-	if group, rest := workspaceOf([]string{"--no-fetch"}); group != "" || len(rest) != 1 {
+	if group, rest := workspaceOf("", []string{"--no-fetch"}); group != "" || len(rest) != 1 {
 		t.Errorf("no workspace gives %q and %q", group, rest)
 	}
 	// a workspace is given after =, never as the next word
-	if group, rest := workspaceOf([]string{"--workspace", "w"}); group != "" || len(rest) != 2 {
+	if group, rest := workspaceOf("", []string{"--workspace", "w"}); group != "" || len(rest) != 2 {
 		t.Errorf("--workspace w gives %q and %q", group, rest)
+	}
+	// the one given before the verb stands where the words name none, and gives way to one they name
+	if group, rest := workspaceOf("v", []string{"--no-fetch"}); group != "v" || len(rest) != 1 {
+		t.Errorf("v before the verb gives %q and %q", group, rest)
+	}
+	if group, _ := workspaceOf("v", []string{"--workspace=w"}); group != "w" {
+		t.Errorf("v before the verb and w among the words give %q", group)
 	}
 }
 
@@ -525,6 +551,10 @@ func TestAFormsVerbRunsInTheWorkspaceTheScreensShow(t *testing.T) {
 			func(_, b string) string { return b },
 			func(_, b string) string { return fix.In(b, "kit --workspace=none version\n") }},
 		"a group picked": {[]string{"help"}, []tea.Msg{pick("w"), form, run0}, "w",
+			func(home, _ string) string { return home },
+			func(string, string) string { return "kit --workspace=w version\n" }},
+		// a verb short of its arguments, handed to kit tui after kit --workspace=w: its form runs it over w
+		"a form opened over a group given": {[]string{"--workspace=w", "--", "version"}, []tea.Msg{run0}, "w",
 			func(home, _ string) string { return home },
 			func(string, string) string { return "kit --workspace=w version\n" }},
 	} {

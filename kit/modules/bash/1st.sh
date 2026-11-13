@@ -886,7 +886,8 @@ guard:unknown-verb() {
 # verb has the --help a person types first; one after a command's first word is the command's, as in kit tools run
 # prettier --help. A verb short of a required argument hands off instead, when stdin, stdout, and stderr are all
 # terminals and kittui can be found (modules/bash/tui.sh): it execs kit tui -- <verb> <argument>…, whose form asks
-# for the rest. It returns 2 on a refusal, 1 when the verb's usage cannot be read to judge a --jq, and 0 when the
+# for the rest, after the --workspace= the call was given, which the loader reads from that option alone, so the form
+# runs the verb over the same workspace. It returns 2 on a refusal, 1 when the verb's usage cannot be read to judge a --jq, and 0 when the
 # arguments complete the syntax, which the verb then parses itself; with --jq beside a --json the verb takes,
 # guard:jq runs it in this process's place.
 # shellcheck disable=SC2154  # the syntax_ variables it reads are set by modules/bash/syntax.sh
@@ -933,7 +934,7 @@ guard:arguments() {
   then
     if [[ -t 0 && -t 1 && -t 2 ]] && use tui && tui:binary --probe >/dev/null 2>&1
     then
-      exec "${kit_root}/bin/kit" tui -- "${verb}" "$@"
+      exec "${kit_root}/bin/kit" ${KIT_WORKSPACE:+"--workspace=${KIT_WORKSPACE}"} tui -- "${verb}" "$@"
     fi
     error "kit ${verb}${syntax_literals[*]:+ ${syntax_literals[*]}} needs ${syntax_missing}; run: kit help ${verb}"
   else

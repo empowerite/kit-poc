@@ -171,7 +171,9 @@ A verb's form runs in the workspace shown. After a switch to a repository, a for
 choices and runs its verb in that repository's checkout. After a switch to a group, it runs in the folder kittui
 started in, as `kit --workspace=<group> <verb>`. The command line kittui leaves in the scrollback says both: the
 workspace, and a `cd` first when the verb ran in another folder than the one kittui started in. A form that is open
-at the switch is closed, since its choices were read in the folder before, and the help shows its palette there.
+at the switch is closed, since its choices were read in the folder before, and the help shows its palette there. A
+verb typed short of its arguments after `kit --workspace=<group>` opens its form over that group, and `kit
+--workspace=<group> tui <verb>` does too, so the form runs the verb over the workspace you named.
 
 Find clones, or `⌃F`, walks the folder typed for git working trees and shows them as a table, as kittui shows every
 list. Each repository found with its worktrees is a heading over its checkout and its worktrees, and the repositories

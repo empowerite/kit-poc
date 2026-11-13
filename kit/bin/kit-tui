@@ -12,6 +12,9 @@
 # it as kit tui -- <verb> <argument>…, when stdin, stdout, and stderr are terminals. The words follow a --, so kit
 # reads none of them as its own.
 #
+# After kit --workspace=<workspace>, the screens open over that workspace, and a form runs its verb over it: the
+# command line the form shows starts with that option. A verb that hands off passes on the workspace it was given.
+#
 # Without the --, a --help or -h after the verb is the verb's: kit tui flow --help answers as kit flow --help does,
 # with the page of kit flow. Before the verb, or with no verb, it prints this page.
 #
@@ -69,6 +72,7 @@ fi
 binary=$(tui:binary) || exit 1
 terminal:export-probes
 export KIT="${kit_root}/bin/kit"
-exec "${binary}" "$@"
+# the workspace kit --workspace= named goes before the words, which may be a verb's own after a --
+exec "${binary}" ${KIT_WORKSPACE:+"--workspace=${KIT_WORKSPACE}"} "$@"
 
 # ----------------------------------------------------------------------------------------------------------------------

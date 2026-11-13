@@ -47,9 +47,10 @@ func main() { exit(run(os.Args[1:], os.Stderr)) }
 
 // run opens the guide for welcome or with no verb, the palette, or the palette on a verb's page, for help, the form of
 // the verb named after --, an app for flow or an app verb, as workspace or audit, or the cards for tutorials, under
-// kittui's root, whose app's menu switches between them, and ends as the person ended the screen shown.
+// kittui's root, whose app's menu switches between them, and ends as the person ended the screen shown. The workspace
+// kit tui was given, before the verb, is the one every screen starts over, so a form runs its verb over it.
 func run(args []string, stderr io.Writer) int {
-	verb, words := parse(args)
+	group, verb, words := parse(args)
 	if !terminals() {
 		fmt.Fprintln(stderr, "❌ "+needsTerminal(verb))
 		return 2
@@ -63,8 +64,9 @@ func run(args []string, stderr io.Writer) int {
 		// what a clone kit does not trust allows: the palette, which reads kit help and kit syntax alone
 		verb, words = "help", nil
 	}
+	r.Group = group
 	if appVerb(verb) || verb == "welcome" {
-		r.Group, words = workspaceOf(words)
+		r.Group, words = workspaceOf(group, words)
 	}
 	first, m, err := open(r, verb, words)
 	if err != nil {
@@ -144,9 +146,10 @@ func open(r kit.Runner, verb string, words []string) (shell.Screen, tea.Model, e
 func appVerb(verb string) bool { return verb == "flow" || flow.AppVerb(verb) }
 
 // workspaceOf takes the workspace kit flow or an app verb was given, --workspace=<w>, out of its words: the group the
-// picture's reads span, which kit refuses to give empty, and the words without it.
-func workspaceOf(words []string) (string, []string) {
-	group, rest := "", []string{}
+// picture's reads span, which kit refuses to give empty, and the words without it. With none among the words, the
+// group is the one given before the verb.
+func workspaceOf(given string, words []string) (string, []string) {
+	group, rest := given, []string{}
 	for _, w := range words {
 		if g, ok := strings.CutPrefix(w, "--workspace="); ok {
 			group = g
@@ -181,15 +184,21 @@ func needsTerminal(verb string) string {
 	return "kit tui needs an interactive terminal; run: " + fix.Here("kit help tui")
 }
 
-// parse takes the verb and its words from [--] <verb> [<word>…]; no verb opens the welcome guide.
-func parse(args []string) (string, []string) {
+// parse takes the workspace, the verb, and its words from [--workspace=<w>] [--] <verb> [<word>…]: the workspace is
+// the one kit tui was given, as kit --workspace=<w> tui, empty without it; no verb opens the welcome guide.
+func parse(args []string) (group, verb string, words []string) {
+	if len(args) > 0 {
+		if g, ok := strings.CutPrefix(args[0], "--workspace="); ok {
+			group, args = g, args[1:]
+		}
+	}
 	if len(args) > 0 && args[0] == "--" {
 		args = args[1:]
 	}
 	if len(args) == 0 {
-		return "", nil
+		return group, "", nil
 	}
-	return args[0], args[1:]
+	return group, args[0], args[1:]
 }
 
 // refuse prints why kittui did not open: kit's line, ending with kit's code, or kittui's own, ending with 1.

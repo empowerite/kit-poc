@@ -50,7 +50,9 @@ place of what is typed.
 `kit <verb> <argument>` opens the verb's screen on the argument. `kit flow issues` opens the picture with the issues
 stage maximized, and both `kit flow backlog` and `kit flow underway` open it the same way, issues set as its Backlog
 or Underway preset. `kit tutorials screens` opens the tutorials with the cursor on that card. `kit help commit` opens
-the palette on the commit verb's page, and `kit tui commit` opens its form.
+the palette on the commit verb's page, and `kit tui commit` opens its form. After `kit --workspace=<workspace>`, kit
+tui starts kittui with `--workspace=<workspace>` before the verb, and every screen opens over that workspace: a form
+shows and runs its verb with the option.
 
 ## The apps
 
