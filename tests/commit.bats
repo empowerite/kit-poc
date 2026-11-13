@@ -478,7 +478,7 @@ forge-world() {
 # opa-rule <rego> adds the policy/opa package and writes <rego> as a rule of package kit.policy beside its kit.rego,
 # so the opa engine judges the commit. It skips the test when opa is not on PATH.
 opa-rule() {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   kit packages add policy/opa >/dev/null 2>&1
   printf 'package kit.policy\n\nimport rego.v1\n\n%s\n' "$1" > .kit/policy/test.rego
 }
@@ -923,7 +923,7 @@ EOF
 }
 
 @test "Rego git holds under .kit/policy/ judges as the commit holds it: taken out on the disk, it still refuses" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   mkdir -p .kit/policy
   printf 'package kit.policy\n\nimport rego.v1\n\ndeny contains "never" if true\n' > .kit/policy/own.rego
   git add --force .kit/policy/own.rego && git commit --quiet --message '#7 policy: a rule of our own'
@@ -951,7 +951,7 @@ EOF
 }
 
 @test "the data and the subdirectories git holds under .kit/policy/ judge the commit, as the commit holds them" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   mkdir -p .kit/policy/team
   printf 'package kit.policy\n\nimport rego.v1\n\ndeny contains "too many files" if count(input.tree) > data.max_files\n' \
     > .kit/policy/own.rego

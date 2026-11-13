@@ -320,7 +320,7 @@ setup() {
   KIT_SNAPSHOTS=write run snapshot "${BATS_TEST_TMPDIR}/new/kept" <<<'a'
   [ "$status" -eq 0 ]
   [ "$(cat "${BATS_TEST_TMPDIR}/new/kept")" = a ]
-  grep --quiet "^KIT_SNAPSHOTS='' BATS_TEST_TIMEOUT=300 bats " "${kit_root}/../bin/ci"
+  grep --quiet "KIT_SNAPSHOTS='' BATS_TEST_TIMEOUT=300 " "${kit_root}/../bin/ci"
 }
 
 @test "every verb's syntax is its snapshot under projects/tui/, every snapshot there is a verb's, and so is the list" {

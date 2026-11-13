@@ -506,6 +506,23 @@ later-release() {
   printf '\n## Added in %s\n\nA new rule.\n' "${version}" >> "$1/packages/kit/files/repo/.kit/rules/json.md"
 }
 
+# needs <tool>… skips the test, naming the tool, when a tool is not on PATH. A tool kit.yml pins is one KIT_TESTS_REQUIRE
+# names, as bin/ci sets it, and there the test fails instead: the toolchain is broken, and a skip would hide that no
+# CI run ever ran the test.
+needs() {
+  local tool
+  for tool in "$@"
+  do
+    command -v "${tool}" >/dev/null && continue
+    if [[ " ${KIT_TESTS_REQUIRE:-} " == *" ${tool} "* ]]
+    then
+      echo "${tool} is pinned by kit.yml and is not on PATH, so the toolchain is broken, and this test cannot run" >&2
+      return 1
+    fi
+    skip "${tool} is not on PATH"
+  done
+}
+
 # release-repo <dir> <tag>… makes a repository at <dir> that holds this checkout's last commit with the disk's files on
 # top, committed, and tags that commit with each <tag>. bin/release packs the commit a tag names, from the repository
 # it is in, so a test that packs runs the copy's bin/release.

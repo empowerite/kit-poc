@@ -9,7 +9,7 @@ setup_file() {
 }
 
 setup() {
-  shellcheck --version >/dev/null 2>&1 || skip "shellcheck is the bash rule's linter, and it is not on PATH"
+  needs shellcheck
   world-copy-repo installed
   script bad.sh 'echo $x'
   script good.sh 'echo "${x:-}"'
@@ -179,7 +179,7 @@ script() {
 }
 
 @test "the delivered markdown passes the delivered markdown linter in a fresh repository" {
-  command -v markdownlint-cli2 >/dev/null || skip "markdownlint-cli2, the markdown style's linter, is not on PATH"
+  needs markdownlint-cli2
   "${kit_checkout}/bin/kit" packages add style/markdown agents/generic >/dev/null 2>&1
   run "${kit_checkout}/bin/kit" lint .kit/1st.md .kit/rules/bash.md .kit/styles/markdown.md AGENTS.md
   [ "$status" -eq 0 ]
@@ -187,7 +187,7 @@ script() {
 }
 
 @test "the workflows rule's pinned check refuses a uses: without a commit SHA and its version, and accepts local and docker actions" {
-  command -v actionlint >/dev/null || skip "actionlint, the workflows rule's linter, is not on PATH"
+  needs actionlint
   mkdir -p .github/workflows .github/actions/local
   printf 'name: local\ndescription: a local action\nruns:\n  using: composite\n  steps:\n    - run: true\n      shell: bash\n' \
     > .github/actions/local/action.yml

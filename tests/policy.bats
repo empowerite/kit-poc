@@ -399,7 +399,7 @@ ROWS
 }
 
 @test "a rule in Rego the base holds judges a branch that deletes it" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   mkdir -p .kit/policy
   cat > .kit/policy/ours.rego <<'REGO'
 package kit.policy
@@ -470,7 +470,7 @@ REGO
 }
 
 @test "the files the base's rules read are the base's facts.read: a branch that drops it blinds no rule" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   mkdir -p .kit/policy
   cat > .kit/policy/ours.rego <<'REGO'
 package kit.policy
@@ -493,7 +493,7 @@ REGO
 }
 
 @test "Rego from a package of a source the base names still judges a branch" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   local src=${BATS_TEST_TMPDIR}/src digest
   mkdir -p "${src}/top/packages/rules/files/repo/.kit/policy"
   printf 'description: "rules from a source"\n' > "${src}/top/packages/rules/package.yml"
@@ -584,7 +584,7 @@ REGO
 }
 
 @test "a branch of the kit itself that edits the Rego its release delivers is judged by the base's" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   # the release is inside the repository, as in a checkout of the kit, and delivers a package the base lists
   (cd "${kit_root}/.." && git ls-files -z kit | tar --null --create --files-from - --file -) | tar --extract --file -
   mkdir -p kit/packages/rules/files/repo/.kit/policy
@@ -675,7 +675,7 @@ REGO
 }
 
 @test "a kind the base defines, which a rule of the base keys on, judges a branch that redefines it" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   mkdir -p .kit/policy .kit/kinds
   printf 'name: secret\npaths:\n  - "**/*.pem"\n' > .kit/kinds/secret.yml
   cat > .kit/policy/ours.rego <<'REGO'
@@ -707,7 +707,7 @@ REGO
 }
 
 @test "a kind and a rule a package of the base delivers judge a branch that drops the package" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   mkdir -p .kit/packages/mine/files/repo/.kit/policy .kit/packages/mine/files/repo/.kit/kinds
   printf 'description: "rules of our own"\n' > .kit/packages/mine/package.yml
   printf 'name: secret\npaths:\n  - "**/*.pem"\n' > .kit/packages/mine/files/repo/.kit/kinds/secret.yml
@@ -736,7 +736,7 @@ REGO
 }
 
 @test "every file the base holds under .kit/policy/, in a subdirectory or as data, judges a branch" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   mkdir -p .kit/policy/team
   printf 'package kit.policy\n\nimport rego.v1\n\ndeny contains "never" if false\n' > .kit/policy/kit.rego
   cat > .kit/policy/team/strict.rego <<'REGO'
@@ -766,7 +766,7 @@ REGO
 }
 
 @test "a template a package of the base delivers under .kit/policy/ judges, rendered with the base's answers" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   mkdir -p .kit/packages/mine/templates/repo/.kit/policy
   printf 'description: "rules of our own"\n' > .kit/packages/mine/package.yml
   cat > .kit/packages/mine/templates/repo/.kit/policy/banned.rego <<'REGO'
@@ -937,7 +937,7 @@ REGO
 }
 
 @test "an engine a branch carries in its own files never judges it: no directory of the checkout is on PATH" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   mkdir -p .kit/policy
   printf 'package kit.policy\n\nimport rego.v1\n\ndeny contains "the base refuses every branch" if true\n' \
     > .kit/policy/own.rego
@@ -1229,7 +1229,7 @@ conventional() {
 }
 
 @test "both engines judge policy/conventional's commits, titles, and trailers in the same words" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   "${kit_root}/bin/kit" install policy/opa policy/conventional >/dev/null 2>&1
   conventional "feat: the thing" "#7 feat: a prefix" "no trailer"
   change "Fix the thing"
@@ -1246,7 +1246,7 @@ conventional() {
 }
 
 @test "the opa engine, given the policy/opa package's Rego, refuses exactly what the patterns engine does" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   "${kit_root}/bin/kit" install policy/opa >/dev/null 2>&1
   [ -f .kit/policy/kit.rego ]
   branch topic "#7 cli: fine" "wip" "Also wrong"
@@ -1264,7 +1264,7 @@ conventional() {
 }
 
 @test "both engines refuse a worktree, and name a rule's remedy or none, in the same words" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   "${kit_root}/bin/kit" install policy/opa >/dev/null 2>&1
   branch 7-fix-the-thing "#7 cli: fine"
   printf "policy:\n  branch: '^x'\n" > kit.yml
@@ -1284,7 +1284,7 @@ conventional() {
 }
 
 @test "a rule of the repository's own in Rego adds to the kit's, and a policy engine the kit does not know is refused" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   "${kit_root}/bin/kit" install policy/opa >/dev/null 2>&1
   cat > .kit/policy/ours.rego <<'REGO'
 package kit.policy
@@ -1307,7 +1307,7 @@ REGO
 }
 
 @test "a warning is printed and passes; a refusal beside it still fails" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   "${kit_root}/bin/kit" install policy/opa >/dev/null 2>&1
   cat > .kit/policy/ours.rego <<'REGO'
 package kit.policy
@@ -1378,7 +1378,7 @@ REGO
 }
 
 @test "Rego that defines no deny in package kit.policy refuses, since unjudged is never allowed" {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   mkdir -p .kit/policy
   printf 'package kit.polcy\n\nimport rego.v1\n\ndeny contains "a typo hides me" if true\n' > .kit/policy/typo.rego
   branch 7-fix-the-thing "#7 cli: fix the thing"

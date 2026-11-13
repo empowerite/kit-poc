@@ -59,7 +59,7 @@ candidates() {
 }
 
 @test "the zsh script parses, registers for kit and for every kit-<verb>, and knows no verb by name" {
-  command -v zsh >/dev/null || skip "zsh is not on PATH"
+  needs zsh
   run "${kit_checkout}/bin/kit" completion zsh
   [ "$status" -eq 0 ]
   [[ "$output" == "#compdef kit -p kit-*"* ]]

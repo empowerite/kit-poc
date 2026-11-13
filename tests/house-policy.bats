@@ -7,7 +7,7 @@ load helper
 repo_root=$(cd "${BATS_TEST_DIRNAME}/.." && pwd)
 
 setup() {
-  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  needs opa
   fake-tools gh
   work="${BATS_TEST_TMPDIR}/desk"
   mkdir -p "${work}/.kit/policy"

@@ -11,7 +11,7 @@ bats_require_minimum_version 1.5.0
 load helper
 
 setup() {
-  command -v mise >/dev/null || skip "mise is not on PATH, so its answers cannot be checked"
+  needs mise
   fresh-repo >/dev/null
   # a tool the desk's mise has installed, and its version: the pin the scratch project makes
   read -r tool version < <(MISE_OFFLINE=1 mise ls --installed --json 2>/dev/null \

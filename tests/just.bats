@@ -14,7 +14,7 @@ setup_file() {
 }
 
 setup() {
-  command -v just >/dev/null || skip "just is not on PATH"
+  needs just
   export PATH="${kit_checkout}/bin:${PATH}"
   world-copy-repo installed
   printf 'bash_path:\n  - kit:modules/bash/\n  - bash/\n' >> kit.yml

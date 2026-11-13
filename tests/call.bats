@@ -80,7 +80,7 @@ sent() {
 }
 
 @test "timeout stops a verb kit runs, sending to kit alone or to its group: it answers 124, and the call logs 143" {
-  command -v timeout >/dev/null || skip 'timeout is not on PATH'
+  needs timeout
   # --foreground sends the TERM to kit alone, as a supervisor does; without it, timeout sends it to the whole group
   started=${SECONDS}
   run timeout --foreground -s TERM 1 "${kit}" fake wait "${ended}"

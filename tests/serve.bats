@@ -224,7 +224,7 @@ call() {
 }
 
 @test "a tool runs its verb from typed arguments: context names a bash file's rule, and lint's finding comes back as an error" {
-  command -v shellcheck >/dev/null || skip "shellcheck, the bash rule's linter, is not on PATH"
+  needs shellcheck
   printf '#!/usr/bin/env bash\nset -o errexit -o nounset -o pipefail\necho $1\n' > tool.sh
   serve "$(call 1 context '{"path":["tool.sh"]}')" "$(call 2 lint '{"path":["tool.sh"]}')" "$(call 3 packages)" \
     "$(call 4 context '{"path":["tool.sh"],"json":true}')" "$(call 5 kinds '{"path":["tool.sh"],"json":false}')"
@@ -372,7 +372,7 @@ call() {
 }
 
 @test "check, context, kinds, and lint take a worktree and run there: a file staged in a worktree is linted, where the desk has nothing to lint" {
-  command -v shellcheck >/dev/null || skip "shellcheck, the bash rule's linter, is not on PATH"
+  needs shellcheck
   git add --all && git commit --quiet --message=init
   git worktree add --quiet -b 7-fix-the-thing worktrees/7-fix-the-thing
   (cd worktrees/7-fix-the-thing && "${kit_checkout}/bin/kit" hydrate) >/dev/null 2>&1

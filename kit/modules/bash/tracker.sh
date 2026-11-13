@@ -44,7 +44,8 @@
 #   close <id> <reason> [<other-id>]  closes the issue: completed, not-planned, or duplicate of the other issue in
 #                           the same tracker
 #   comment <id> <text>     adds a comment
-#   one-assignee            optional: succeeds when an issue holds one assignee, which assign then replaces
+#   one-assignee            a provider may implement it, and without it assign adds an assignee; it succeeds when
+#                           an issue holds one assignee, which assign then replaces
 #   me                      the caller's login in this tracker, which can differ from the forge login
 #   new-url [<title>]       the browser URL a person files a new issue at, the title filled in where the page takes one
 #   open-issues             one JSON object per open issue, oldest first, the documents the issues stage of kit flow
