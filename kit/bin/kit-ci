@@ -11,9 +11,11 @@
 #   3. kit gate: the repository's gate, its own CI command, passes
 #   4. kit check: every delivered file matches the pinned release
 #
-# The two judgements run first, before any command of the branch's own: the gate is one, and kit check runs the
-# commands the repository's kit:generate directives name, so either could move a ref the judgements read. Every
-# check runs even when an earlier one fails, so one run reports every finding.
+# The two judgements run first, before any command of the branch's own that kit ci runs: the gate is one, and kit
+# check runs the commands the repository's kit:generate directives name, so either could move a ref the judgements
+# read. What a pipeline runs before kit ci is its own: an install from the branch's files, as kit tools install, has
+# run the branch's install scripts by then, and docs/policy.md says what that leaves open. Every check runs even
+# when an earlier one fails, so one run reports every finding.
 #
 # kit lint is not one of the four, and kit ci never runs it. kit commit and the lefthook hook run it over the staged
 # paths; a repository whose CI should run the linters too runs it from its gate, as the gate setting

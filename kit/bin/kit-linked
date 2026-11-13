@@ -22,7 +22,8 @@
 # forge's own, and on Azure Pipelines, the base is the tip of the target branch the system's variable names, as kit
 # policy reads it. A base with no kit.yml, where the kit is not installed yet, leaves the checkout's own kit.yml to
 # say, as on the default branch. On a CI runner, a detached HEAD that names no change fails, since no base can say
-# which logins are exempt.
+# which logins are exempt. The forge's tool, jq, yq, and git are run from no directory of the checkout, which the
+# branch fills: kit linked takes each off PATH first, node_modules/.bin and .venv/bin among them.
 #
 # Arguments:
 #   <number>   the pull request to check; default: this checkout's, which on a CI runner is
@@ -32,7 +33,8 @@
 # Exits 0 when at least one linked issue counts or the author is exempt, 1 when neither holds, there is no pull
 # request to check, the forge cannot say which pull request this checkout is working on, the pull request's body
 # cannot be read, linked_exempt in kit.yml cannot be read, the base cannot be named, is not here, or its kit.yml
-# cannot be read, or HEAD is detached on a CI runner that names no change, and 2 on a usage error.
+# cannot be read, HEAD is detached on a CI runner that names no change, or it is run outside a git repository, and 2
+# on a usage error.
 #
 # see: modules/bash/forge.sh, modules/bash/policy.sh
 
@@ -42,6 +44,8 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
 kit:enter
 use forge tracker yaml settings policy file
 guard:arguments linked "$@" || exit $?
+# The tools that answer come from no directory of the checkout, which the branch being judged fills.
+policy:judging-path linked || exit 1
 
 if (( $# > 0 )) && [[ ! "$1" =~ ^[0-9]+$ ]]
 then

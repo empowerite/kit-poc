@@ -116,6 +116,34 @@ JSON
   [[ "$output" == *"pull request #3 is ada's, exempt from the linked-issue check by kit.yml"* ]]
 }
 
+@test "a forge tool a branch carries in its own files never answers for it: no directory of the checkout is on PATH" {
+  fake-tools gh
+  fixture repo.json <<<'{"nameWithOwner": "empowerite/example", "url": "https://github.com/empowerite/example"}'
+  fixture pr.json <<<'{"body": ""}'
+  fixture closing.json <<<'{"data": {"repository": {"pullRequest": {"closingIssuesReferences": {"nodes": []}}}}}'
+  route gh 'repo view*' repo.json
+  route gh 'pr view 3 --json *' pr.json
+  route gh 'api graphql*' closing.json
+  git commit --quiet --allow-empty --message "#1 start: the first"
+  git update-ref refs/remotes/origin/main HEAD
+  git switch --quiet --create 7-fix-the-thing
+  # the attack: a gh of the branch's own, where npm puts a package's commands, that says an open issue is linked
+  mkdir -p node_modules/.bin
+  cat > node_modules/.bin/gh <<EOF
+#!/usr/bin/env bash
+touch "${BATS_TEST_TMPDIR}/hijacked"
+case "\$*" in
+  (*graphql*) printf '%s\n' '{"data": {"repository": {"pullRequest": {"closingIssuesReferences": {"nodes": [{"number": 7, "state": "OPEN", "repository": {"nameWithOwner": "empowerite/example"}}]}}}}}' ;;
+  (*) exec "${FAKE_DIR}/bin/gh" "\$@" ;;
+esac
+EOF
+  chmod +x node_modules/.bin/gh
+  PATH="${PWD}/node_modules/.bin:${PATH}" run "${kit_checkout}/bin/kit" linked 3
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"pull request #3 is not linked to any issue"* ]]
+  [ ! -e "${BATS_TEST_TMPDIR}/hijacked" ]
+}
+
 @test "an issue whose state its tracker cannot read is named, and never called closed" {
   fake-tools gh az
   printf 'trackers:\n  - prefix: "AB#"\n    provider: ado\n    organization: https://dev.azure.com/example\n' > kit.yml

@@ -34,6 +34,12 @@
 # checkout's own settings and Rego to judge, as on the default branch, so the change that installs the kit sets its
 # first policy. --input prints the facts that policy judges; --facts judges by the disk's.
 #
+# The engine and the tools beside it, opa, jq, yq, and git, are run from no directory of the checkout, which the
+# branch fills: kit policy takes each off PATH, node_modules/.bin and .venv/bin among them, then puts the chosen
+# toolchain's directories first. So an opa the branch carries in its own files never judges it. The tools the
+# toolchain installs are the ones the branch's own files pin, and a pipeline that installs from those files before
+# kit policy has run the branch's install scripts by then: docs/policy.md says what that leaves open.
+#
 # On the default branch, and on a detached HEAD at a desk, only the tree is judged. On a CI runner, a detached HEAD
 # that names no change fails: there is no branch to judge, and a check that cannot judge never passes. Check the
 # branch out by name there, or run kit policy in the change's own pipeline.
@@ -67,8 +73,8 @@
 # Exits 0 when the policy refuses nothing, with or without warnings, 1 on any refusal, on a path outside the branch's
 # lease or a lease that does not read, when the forge cannot answer for the open change, when linked_exempt in kit.yml
 # or another fact cannot be read, when the base cannot be named, is not here, or its policy cannot be read, as when
-# a package its kit.yml lists is not in reach, or on a CI runner's detached HEAD that names no change, and 2 on a
-# usage error.
+# a package its kit.yml lists is not in reach, on a CI runner's detached HEAD that names no change, or outside a git
+# repository, and 2 on a usage error.
 #
 # see: modules/bash/policy.sh, modules/bash/leases.sh, docs/policy.md
 
@@ -78,8 +84,14 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
 kit:enter
 use policy settings materialize yaml file context flow dependencies
 guard:arguments policy "$@" || exit $?
-# The policy engine runs as kit gate runs the repository's tools: the chosen toolchain's directories first on PATH.
-dependencies:onto-path
+# The engine and the tools beside it come from no directory of the checkout, which the branch being judged fills:
+# those go off PATH, then the chosen toolchain's directories go first, as kit gate has them, and no dependency
+# provider's, since node_modules/.bin and .venv/bin are the checkout's.
+policy:judging-path policy || exit 1
+toolchain=$(dependencies:toolchain-dirs)
+PATH="${toolchain:+${toolchain}:}${PATH}"
+# A toolchain can name a directory of the checkout too, as a dev shell's PATH may.
+policy:judging-path policy || exit 1
 materialize:hydrate
 
 # shellcheck disable=SC2154  # syntax_options is set by guard:arguments

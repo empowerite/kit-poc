@@ -94,9 +94,11 @@ deny list stops one.
 ### What judges a branch
 
 On a branch past the default one, `kit policy` and `kit linked` judge by the policy on the branch's base, the commit
-the commits are counted from. A branch cannot loosen the rule that judges it: a pattern it blanks, a login it adds
-under `linked_exempt`, an engine it names, a file it stops a rule from reading, a `forge` it drops or a `forges` entry
-it changes, a kind it redefines, and a file it removes, adds, or edits under `.kit/policy/` change nothing.
+the commits are counted from. A branch cannot loosen the rule that judges it by what it holds in its files: a
+pattern it blanks, a login it adds under `linked_exempt`, an engine it names, a file it stops a rule from reading, a
+`forge` it drops or a `forges` entry it changes, a kind it redefines, a file it removes, adds, or edits under
+`.kit/policy/`, and a command it carries under `node_modules/.bin` or `.venv/bin` change nothing. The end of this
+section says what that does not cover.
 
 - The base is `<primary>/<default>` at a desk: the default branch of the `primary` remote, `origin` unless `kit.yml`
   names another. On a runner, it is the base the change's event names, which no command of the branch can move, as
@@ -118,6 +120,11 @@ it changes, a kind it redefines, and a file it removes, adds, or edits under `.k
   allow it.
 - `kit ci` runs `kit linked` and `kit policy` first, before the gate and `kit check`, which run commands of the
   branch's own: the gate itself, and the commands the `kit:generate` directives name.
+- The two verbs run their tools, `opa`, `jq`, `yq`, `git`, and the code forge's tool, from no directory of the
+  checkout, which the branch fills. Each takes every such directory off `PATH` first, `node_modules/.bin` and
+  `.venv/bin` among them, whether a pipeline put it there, as `kit tools path` names them, or no one did. `kit
+  policy` then puts the chosen toolchain's directories first. So an `opa` or a `gh` the branch carries in its own
+  files never answers for it.
 - `policy`, `policy_engine`, `linked_exempt`, `facts`, `forge`, and `forges` come from the base's `kit.yml`. Where
   the base has none of one, it is absent, and the kit's default applies, not the branch's: for `forge` and `forges`,
   the provider the remote's host names.
@@ -157,6 +164,18 @@ it changes, a kind it redefines, and a file it removes, adds, or edits under `.k
 
 A base with no `kit.yml` is one the kit is not installed on. There, both read the checkout's own settings and Rego,
 as on the default branch, so the pull request that installs the kit sets its first policy.
+
+The guarantee covers what a branch holds in its files. It does not cover two things:
+
+- The tools the toolchain installs are the ones the branch's own files pin: `tools.lock`, `mise.toml`, a flake. A
+  branch that pins another `opa`, `jq`, or `yq` there is judged with it. kit does not yet take the engine as the
+  base pins it.
+- Whatever ran before the judgements has run. A pipeline that installs from the branch's files first, as the
+  delivered workflow does with `kit tools install`, has run the branch's install scripts by then, such as npm's
+  `postinstall`, and such a script can change any file on the runner, kit's own among them.
+
+A repository that must hold its policy against its own contributors requires a review of the files that pin its
+tools, or runs `kit linked` and `kit policy` in a job that installs nothing from the branch.
 
 A base that is not here, as in a clone that lacks `<primary>/<default>` or the event's commit, fails both verbs
 wherever they run. They say `the base, <base>, is not here, so its policy cannot be read; fetch it with full

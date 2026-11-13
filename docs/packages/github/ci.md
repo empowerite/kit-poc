@@ -12,7 +12,10 @@ default branch. The job:
    nix, Homebrew, a Docker image, a dev container, or the tools already on the runner. The gate is the repository's own
    CI command, such as `just ci`.
 4. Runs `kit ci`, which runs `kit linked`, `kit policy`, the gate, and `kit check`, in that order, and reports each
-   one. The two judgements come before any command of the branch's own runs.
+   one. The two judgements come before the gate and `kit check`, which run commands of the branch's own, and they
+   run their tools from no directory of the checkout. They do not come before step 3: `kit tools install` installs
+   what the branch's own files pin, and a package manager's install scripts, such as npm's, run then.
+   [policy.md](../../policy.md#what-judges-a-branch) says what that leaves open.
 
 GitHub's hosted runners already have Homebrew and Docker. The job sets `KIT_TOOLCHAIN` to the `ci_toolchain` answer, so
 kit uses that toolchain and refuses, never replaces, one the runner cannot use. One bootstrap step runs for the

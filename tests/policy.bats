@@ -925,6 +925,53 @@ REGO
   [[ "$output" != *"policy allows"* ]]
 }
 
+@test "an engine a branch carries in its own files never judges it: no directory of the checkout is on PATH" {
+  command -v opa >/dev/null || skip "opa, the opa policy engine, is not on PATH"
+  mkdir -p .kit/policy
+  printf 'package kit.policy\n\nimport rego.v1\n\ndeny contains "the base refuses every branch" if true\n' \
+    > .kit/policy/own.rego
+  git add --force .kit/policy
+  git commit --quiet --message "#2 kit: a rule that refuses every branch" && git push --quiet origin main
+  branch 7-fix-the-thing "#7 cli: fix the thing"
+  run "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the base refuses every branch"* ]]
+  # the attack: a manifest, its lock, and an opa of the branch's own where npm puts a package's commands, and where
+  # uv puts them, each answering that nothing is refused
+  printf '{"name": "x", "devDependencies": {}}\n' > package.json
+  printf '{"packages": {"": {}}}\n' > package-lock.json
+  printf '[project]\nname = "x"\n' > pyproject.toml
+  printf 'version = 1\n' > uv.lock
+  mkdir -p node_modules/.bin .venv/bin
+  printf '#!/usr/bin/env bash\ntouch %q\nprintf %q\n' "${BATS_TEST_TMPDIR}/hijacked" \
+    '{"result": [{"expressions": [{"value": []}]}]}' > node_modules/.bin/opa
+  chmod +x node_modules/.bin/opa
+  cp node_modules/.bin/opa .venv/bin/opa
+  git add --force package.json package-lock.json pyproject.toml uv.lock node_modules .venv
+  git commit --quiet --message "#7 cli: an engine of our own"
+  run "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the base refuses every branch"* ]]
+  [[ "$output" != *"policy allows"* ]]
+  [ ! -e "${BATS_TEST_TMPDIR}/hijacked" ]
+  # a pipeline that put those directories on PATH itself, as kit tools path names them, changes nothing, nor does
+  # an entry that names the working directory
+  cp node_modules/.bin/opa opa
+  PATH="${PWD}/node_modules/.bin:${PWD}/.venv/bin:.::${PATH}" run "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the base refuses every branch"* ]]
+  [[ "$output" != *"policy allows"* ]]
+  [ ! -e "${BATS_TEST_TMPDIR}/hijacked" ]
+  # outside a repository there is no checkout, and no branch to judge: both verbs say so, and neither passes
+  cd "${work}"
+  run "${kit_root}/bin/kit" policy
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit policy runs in a git repository, whose branch it judges"* ]]
+  run "${kit_root}/bin/kit" linked 3
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"kit linked runs in a git repository, whose branch it judges"* ]]
+}
+
 @test "nothing on the disk under .kit/policy/ is read while a branch is judged" {
   printf 'policy:\n  commit_subject: "^#[0-9]+ "\n' > kit.yml
   git add kit.yml

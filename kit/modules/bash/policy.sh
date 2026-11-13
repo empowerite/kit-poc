@@ -87,6 +87,12 @@
 # default branch, or a detached HEAD at a desk, both read the disk. On a runner, a detached HEAD that names no
 # change fails both: it has no branch whose base could judge it, and a check that cannot judge never passes.
 #
+# The tools a judgement runs come from no directory of the checkout either (policy:judging-path): kit policy and kit
+# linked take each off PATH, so an opa or a forge tool the branch carries in node_modules/.bin or .venv/bin is never
+# run. That is as far as it goes. The tools the chosen toolchain installs are the ones the branch's own files pin,
+# and a pipeline that installs from the branch's files before the judgements has run the branch's install scripts
+# by then; docs/policy.md says so.
+#
 # A base with no kit.yml is one the kit is not installed on: there, both read the checkout's own settings and Rego, as
 # on the default branch, so the change that installs the kit sets its first policy. A base that is not here, as in a
 # clone without it, fails both, since its policy cannot be read; so does a read of the base's files that fails.
@@ -328,6 +334,36 @@ policy:worktree() {
   main=$(cd "${main}" && pwd -P) || return 0
   [[ "${top}" != "${main}" ]] || return 0
   printf '%s\n' "${top#"${main}/"}"
+}
+
+# policy:judging-path <verb> takes off PATH every directory inside the checkout, which the branch being judged fills, so a
+# judgement runs its tools, opa, jq, yq, git, and the forge's tool, from none of them: node_modules/.bin and
+# .venv/bin, which a dependency provider fills from the branch's own manifest, are never searched, whether a pipeline
+# put them on PATH, as kit tools path names them, or no one did. An entry that is no absolute path names the working
+# directory, the checkout, and goes too. The release's own bin stays where the release is the checkout's, as in a
+# checkout of the kit: that code is already running. The root is the one kit:enter moved to, read from the file
+# system, so no tool of the PATH being cleaned answers for it. It returns 1 outside a clone, saying that kit <verb>
+# runs in one: there is no branch there to judge.
+policy:judging-path() {
+  local root own dir real kept=''
+  local -a dirs
+  if ! root=$(kit:clone-root .)
+  then
+    error "kit $1 runs in a git repository, whose branch it judges; cd into one"
+    return 1
+  fi
+  # shellcheck disable=SC2154  # kit_root is exported by modules/bash/1st.sh
+  own=$(cd "${kit_root}/bin" && pwd -P) || return 1
+  IFS=: read -r -a dirs <<<"${PATH}"
+  for dir in "${dirs[@]}"
+  do
+    [[ "${dir}" == /* ]] || continue
+    # a directory that is not there holds no tool, and is judged by its name
+    real=$(cd "${dir}" 2>/dev/null && pwd -P) || real=${dir}
+    [[ "${real}" == "${own}" || ( "${real}/" != "${root}/"* && "${dir}/" != "${root}/"* ) ]] || continue
+    kept+=${kept:+:}${dir}
+  done
+  PATH=${kept}
 }
 
 # policy:branch prints the branch to check: the change's source branch on a CI runner, or a merge group's head there,

@@ -104,8 +104,9 @@ dependencies:path() {
 
 # dependencies:onto-path puts the chosen tool manager's directories first on PATH, then each installed
 # provider's, as kit gate runs with them, for a verb that runs the repository's tools outside kit gate: kit lint, and
-# the policy engine kit commit and kit policy run. It never asks which toolchain to use; with none settled, only the
-# providers' directories go first.
+# the policy engine kit commit runs. kit policy, which judges a branch, takes the tool manager's directories alone,
+# and no directory of the checkout (policy:judging-path in modules/bash/policy.sh). It never asks which toolchain to
+# use; with none settled, only the providers' directories go first.
 dependencies:onto-path() {
   local toolchain installed
   toolchain=$(dependencies:toolchain-dirs)
