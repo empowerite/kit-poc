@@ -1460,10 +1460,14 @@ forge/github:refused() {
 # on its standard input, so no argv shows it, and the key is only ever a path openssl reads.
 
 # forge/github:api-base prints the base of the REST API of the primary remote's host: https://api.github.com for
-# github.com, and https://<host>/api/v3 for any other, as GitHub Enterprise Server serves it.
+# github.com, and https://<host>/api/v3 for any other, as GitHub Enterprise Server serves it. The host is the one
+# forge/github:place prints, which gh's calls go to: the host a Host of the ssh configuration stands for, and
+# github.com for ssh.github.com. A primary whose URL names no host is github.com's. It fails, with
+# forge/github:place's line, for a URL that names no repository.
 forge/github:api-base() {
-  local host
-  host=$(forge:host "$(forge:primary 2>/dev/null)" 2>/dev/null) || host=''
+  local place host
+  place=$(forge/github:place) || return 1
+  host=${place%%/*}
   if [[ -z "${host}" || "${host}" == github.com ]]
   then
     printf 'https://api.github.com\n'
@@ -1506,7 +1510,7 @@ forge/github:app-api() {
   (( $# < 4 )) || body=(--header 'Content-Type: application/json' --data "$4")
   guard:require tool:curl || return 1
   file:temp headers curl-headers || return 1
-  base=$(forge/github:api-base)
+  base=$(forge/github:api-base) || return 1
   status=0
   # a host that does not answer, or a server that stalls, ends the call: nothing waits on the forge for long
   out=$(printf 'Authorization: Bearer %s\n' "${bearer}" | curl --fail-with-body --silent --connect-timeout 10 \

@@ -125,6 +125,40 @@ without() {
   [ ! -e "${FAKE_DIR}/gh.calls" ]
 }
 
+@test "the App's calls go to the API of the host the primary's URL stands for, as gh's do" {
+  fixture app.json <<<'{"slug":"kit-bot","owner":{"login":"empowerite"},"permissions":{},"html_url":"https://github.com/apps/kit-bot","id":1}'
+  curl-route '*https://api.github.com/app' 0 200 app.json
+  curl-route '*https://ghe.example.com/api/v3/app' 0 200 app.json
+  # an ssh URL may name a Host of the ssh configuration, which only kit.yml makes GitHub's: ssh says the host it
+  # stands for
+  printf 'forge: github\n' > kit.yml
+  fake-tools ssh
+  fixture ssh-work.txt <<<$'user git\nhostname github.com\nport 22'
+  route ssh '-G -- github.com-work' ssh-work.txt
+  fixture ssh-ghe.txt <<<$'user git\nhostname ghe.example.com\nport 22'
+  route ssh '-G -- ghe.example.com' ssh-ghe.txt
+  # github.com by an ssh alias, GitHub's own ssh on port 443, and a GitHub Enterprise Server
+  while read -r url base
+  do
+    git remote set-url origin "${url}"
+    : > "${FAKE_DIR}/curl.calls"
+    run --separate-stderr call bot-app 12345 "${pem}"
+    [ "$status" -eq 0 ] || { echo "${url}: ${stderr}"; false; }
+    grep --quiet --fixed-strings " ${base}/app" "${FAKE_DIR}/curl.calls" || { echo "${url}:"; cat "${FAKE_DIR}/curl.calls"; false; }
+  done <<'URLS'
+git@github.com-work:empowerite/kit.git https://api.github.com
+ssh://git@ssh.github.com:443/empowerite/kit.git https://api.github.com
+git@ghe.example.com:team/app.git https://ghe.example.com/api/v3
+URLS
+  # a URL that names no repository is said, and no call is made
+  git remote set-url origin https://github.com/empowerite
+  : > "${FAKE_DIR}/curl.calls"
+  run --separate-stderr call bot-app 12345 "${pem}"
+  [ "$status" -eq 1 ]
+  [[ "$stderr" == *"https://github.com/empowerite names no repository"* ]]
+  [ ! -s "${FAKE_DIR}/curl.calls" ]
+}
+
 @test "an answer that is no App is a read that failed, and says so in the App's words" {
   fixture odd.json <<<'[1]'
   curl-route '*/app' 0 200 odd.json

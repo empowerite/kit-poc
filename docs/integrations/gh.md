@@ -344,7 +344,9 @@ GitHub for it: the App's permissions, a token narrowed to one repository, and a 
   base64-encoded on one line. It reaches `security` or `secret-tool` on stdin, never in an argument.
 - `gh` is not used for these calls, since its login is the person's. They go through `curl`, with the JWT or the
   token in a header read from stdin, bounded by `--connect-timeout 10 --max-time 30`.
-- GitHub Enterprise Server answers at `https://${host}/api/v3`, and github.com at `https://api.github.com`.
+- GitHub Enterprise Server answers at `https://${host}/api/v3`, and github.com at `https://api.github.com`. The
+  host is the one `gh`'s calls go to: for an ssh URL, the host `ssh -G` says a `Host` of the ssh configuration
+  stands for, and github.com for `ssh.github.com`.
 
 ## Schemas of its output
 
