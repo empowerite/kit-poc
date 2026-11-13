@@ -1,12 +1,154 @@
 # Workspaces
 
-A workspace is what kit looks at: one repository, or a named group of repositories that move together. Started inside
-a repository, kit looks at that repository. A group lets you see several at once, without opening each one.
+A workspace is what kit looks at: one repository, or a named group of repositories that move together. Started
+inside a repository, kit looks at that repository. A group lets you see several repositories at once, without opening
+each one.
 
-## The file
+This page has three parts:
 
-Groups are yours alone. kit keeps them in `${XDG_CONFIG_HOME:-~/.config}/kit/workspaces.yml`. You can edit the file by
-hand; when kit edits it, your comments stay where they were.
+- [Tasks](#tasks) shows how to make a group, use it, and look across it.
+- [Reference](#reference) describes the file, the members, the rule for which workspace kit starts on, and the
+  options.
+- [kittui and workspaces](#kittui-and-workspaces) describes the three screens that work with groups.
+
+Some words of this page:
+
+| Word | Meaning |
+| --- | --- |
+| member | one repository of a group, named by its host and its whole path |
+| checkout | a clone of a member on your machine |
+| desk | the root checkout of a repository, where you cloned it |
+| linked worktree | a second checkout of a repository, on a branch of its own |
+
+## Tasks
+
+### Make a group
+
+```sh
+kit workspaces --new=empowerite . github.com/empowerite/edge
+```
+
+`--new` takes a name and the repositories that join the group. A repository is a member name, a git URL, or the
+folder of a checkout. `.` is the repository you are in.
+
+To add many repositories at once, give `--new` or `--add` a pattern, a command, or both:
+
+```sh
+kit workspaces --new=brew 'github.com/empowerite/homebrew-*'      # the checkouts under your roots that match
+kit workspaces --add=org --from="gh repo list empowerite --limit 1000 --json url --jq '.[].url'"
+kit workspaces --remove=org 'github.com/empowerite/attic-*'       # the group's members that match
+```
+
+- A pattern is a member that holds `*`, `?`, or `[`.
+- `--from=<command>` is a command that kit runs with bash. Each line it prints is a repository.
+- kit writes the members it found under `repos`, as if you had named each one. The group does not follow the pattern
+  or the command afterward, so it does not pick up new repositories later.
+
+### Change a group
+
+```sh
+kit workspaces --add=empowerite github.com/empowerite/edge
+kit workspaces --remove=empowerite github.com/empowerite/edge
+kit workspaces --rename=empowerite core           # the group keeps its place, its comments, and its favorite
+kit workspaces --delete=core                      # the group goes; its checkouts stay as they were
+kit workspaces --favorite=empowerite
+kit workspaces --unfavorite=empowerite
+```
+
+Each command that edits the file prints one line. The line says what changed, or that nothing needed to change, such
+as `📚 empowerite holds them already`. These commands take no `--json`.
+
+### Look at your groups
+
+```sh
+kit workspaces                                    # the groups and the favorites
+kit workspaces --show=empowerite                  # each member, with its checkout or ☁️
+kit workspaces --current                          # the workspace kit starts on here, and why
+```
+
+Every form that reads prints JSON with `--json`. `kit help workspaces` gives the shapes.
+
+### Choose where kit starts
+
+```sh
+kit workspaces --use=empowerite                   # start on empowerite outside a repository
+kit workspaces --use=.                            # keep the repository here among the recent ones
+```
+
+See [Which workspace kit starts on](#which-workspace-kit-starts-on) for the rule.
+
+### Look across a group
+
+```sh
+kit --workspace=empowerite flow                   # each cloned member's picture, under its member's name
+kit --workspace=empowerite flow issues --json     # every member's open issues, each row with its member
+kit --workspace=empowerite platform settings      # one stage of an app verb, in every member
+kit --workspace=empowerite workspace repos        # each member: its forge, branch, and checkout, or not cloned
+kit --workspace=empowerite workspace commits      # the commits not on the default branch, in every member
+kit --workspace=empowerite welcome --checks       # each member's desk and worktrees, checked in the group's order
+```
+
+`--workspace=` is an option of `kit` itself, so it goes before the verb. It runs the verb in the checkout of every
+cloned member at once. Each member's checkout uses its own `kit.yml`, so a GitLab member beside GitHub members keeps
+its forge and its trackers.
+
+On a terminal, `kit --workspace=empowerite flow` opens the Flow app of kittui over the group. The other apps follow
+the same group. Every tab gathers the rows of every cloned member, grouped by member as they load. A member that kit
+could not read is one red line among the rows.
+
+### Look at git across a group
+
+`kit workspace` prints what git holds: the members, then remotes, branches, worktrees, commits, and tags. It reads
+only git and asks no remote, so what a remote has is what your last fetch left.
+
+```sh
+kit workspace                                     # the repository here: every stage
+kit workspace branches                            # its branches, local and on each remote
+kit workspace worktrees --json                    # {contract, rows, errors}, each row a worktree
+kit --workspace=empowerite workspace repos        # each member of the group
+```
+
+- Without `--workspace=`, `kit workspace` reads the repository you are in. In a linked worktree, it reads the
+  repository's main checkout.
+- With `--workspace=`, every row gains `member`.
+- `kit workspace` exits 1 when it cannot read a member, or a member's desk. It still prints what it read. The member
+  is under `errors`, or the desk's line is the `error` of the member's `repos` row.
+- On a terminal, `kit workspace` opens the Repositories app, with the repos tab first and the incoming tab last.
+  `~` stands for the home folder in a clone's path. A closed row of the repos tab shows `…` and the last two folders
+  of the path, and an open row shows the whole path. A member's name on any tab leads to its row on the repos tab.
+
+[apps.md](apps.md#repositories-kit-workspace) lists the fields of every stage.
+
+### Check the setup of a group
+
+```sh
+kit welcome --checks --json                       # the machine's checks, then each folder of the repository here
+kit --workspace=empowerite welcome --checks       # each member's desk and worktrees, in the group's order
+kit --workspace=none welcome --checks             # no group: the repository here, or the machine's checks alone
+```
+
+`kit welcome` checks each folder of the workspace on its own, because each branch can have a `kit.yml` or none, and
+can pin a kit version of its own.
+
+- For a repository, the folders are its desk, then each worktree that `git worktree list` names.
+- For a group, they are the desk and worktrees of each member that has a checkout under your roots.
+- Each folder's check names the folder, the repository, whether it is the desk, the branch, and the kit version that
+  its `kit.yml` declares. `kit check` runs there, on the release that the folder pins.
+- The machine's checks run once. They cover the tools that kit runs on, the machine's package manager, and the tool
+  and the login of each forge host among the remotes of the folders.
+- `kit welcome --fix=<check> --folder=<path>` runs the fix of one folder's check in that folder.
+
+On a terminal, kittui's setup step draws the checks as one table. The machine's checks come first. Then each
+repository has one row for each folder, with its branch, its kit version, and a column for each kind of check. Each
+failed check shows under its row, with its fix. The members that have no checkout are named under the table. `kit help
+welcome` describes the checks.
+
+## Reference
+
+### The file
+
+Groups are yours alone. kit keeps them in `${XDG_CONFIG_HOME:-~/.config}/kit/workspaces.yml`. You can edit the file
+by hand. When kit edits it, your comments stay where they were.
 
 ```yaml
 # where your clones are; kit looks for checkouts here, four levels down
@@ -21,257 +163,295 @@ workspaces:
     exclude: [github.com/empowerite/attic]
 ```
 
-- `roots` are the directories kit looks under for checkouts. A leading `~` is your home directory, and a root
-  written twice, as `~/Code` and `~/Code/`, counts once.
-- `favorites` names workspaces to keep at hand: a group's name, or a repository.
-- Each group has `repos`, its members, and may have `exclude`, which takes members back out.
-- `sources`, at the top, is your layer of the pull path: the artifact sources kit searches before the repository's,
-  as a mirror and `off` behind a firewall. It applies to every repository you work in; see
-  [packages.md](packages.md#kinds-and-the-pull-path).
+| Key | Meaning |
+| --- | --- |
+| `roots` | the directories that kit looks under for checkouts; `~` is your home directory, and a root written twice, as `~/Code` and `~/Code/`, counts once |
+| `favorites` | the workspaces to keep at hand: each is a group's name or a repository |
+| `workspaces` | your groups, by name |
+| `repos` | in a group: its members |
+| `exclude` | in a group: members to take back out |
+| `sources` | the artifact sources that kit searches before the repository's, such as a mirror, and `off` behind a firewall |
 
-A group's name starts with a lowercase letter or a digit, and holds lowercase letters, digits, and `.`, `_`, or `-`,
-and never `/`. That is how kit tells a name from a repository.
+`sources` is your layer of the pull path. It applies to every repository you work in. See
+[packages.md](packages.md#kinds-and-the-pull-path).
 
-kit checks the file wherever it reads it. It refuses a file that does not parse or is not a map, a group with a key
-other than `repos` and `exclude` (`match` and `project` are not built yet), a group whose name breaks that rule, an
-entry that names no repository, and a group named `none`. `kit workspaces`, `kit --workspace=<name> flow`, and `kit
---workspace=<name> workspace` each say what is wrong and exit 1, printing nothing, as `kit flow` and `kit workspace`
-do outside a repository with a group used last, where they read the file for that group. Inside a repository, or
-with no group used, `kit flow` and `kit workspace` with no `--workspace=` read no file.
+A group's name starts with a lowercase letter or a digit. It holds only lowercase letters, digits, `.`, `_`, and `-`,
+and never `/`. That is how kit tells a group's name from a repository.
 
-## Members and checkouts
+#### What kit refuses
+
+kit checks the file wherever it reads it. It refuses:
+
+- a file that does not parse, or that is not a map
+- a group with a key other than `repos` and `exclude`; `match` and `project` are not built yet
+- a group whose name breaks the rule above, and a group named `none`
+- an entry that names no repository
+
+A command that reads a refused file says what is wrong, prints nothing else, and exits 1.
+
+`kit workspaces` always reads the file. `kit flow`, `kit workspace`, and the app verbs read it only when they need a
+group: with `--workspace=<name>`, or outside a repository when a last-used group is recorded. Inside a repository,
+or with no group used, they read no file.
+
+### Members and checkouts
 
 A member is named by its host and its whole path: `github.com/empowerite/edge`, or `gitlab.com/group/sub/repo` on
-GitLab. A git URL names the same member, so `git@github.com:empowerite/jig.git` is `github.com/empowerite/jig`. kit
-spells a member one way: the host in lower case, and on GitHub and GitLab the path too, so `github.com/NixOS/nixpkgs`
-is `github.com/nixos/nixpkgs`.
+GitLab. A git URL names the same member, so `git@github.com:empowerite/jig.git` is `github.com/empowerite/jig`.
 
-A member's checkout is a clone under one of the roots whose primary remote points at it: the `primary` setting in its
-`kit.yml`, else `origin`. A clone's other remotes never make it a checkout of another member, so a fork's clone, with
-the original as `upstream`, counts once, under the fork. A member cloned twice has both as checkouts, and the first,
-under the earliest root, is the one kit uses. A member with no checkout is still a member. A clone whose `kit.yml`
-does not parse names no primary, so it is filed under `origin` and the walk of the roots goes on; kit says so where
-its member is drawn: a warning for the member's first checkout, and its repos row's `error`.
+kit spells a member one way: the host in lower case, and on GitHub and GitLab the path in lower case too. So
+`github.com/NixOS/nixpkgs` is `github.com/nixos/nixpkgs`.
+
+A member's checkout is a clone under one of your roots whose primary remote points at the member. The primary remote
+is the `primary` setting in the clone's `kit.yml`, otherwise `origin`.
+
+- A clone's other remotes never make it a checkout of another member. A fork's clone, with the original as `upstream`,
+  counts once, under the fork.
+- A member that you cloned twice has both clones as checkouts. kit uses the first, under the earliest root.
+- A member with no checkout is still a member.
+- A clone whose `kit.yml` does not parse names no primary. kit files it under `origin` and goes on walking your roots.
+  kit says so where the member is drawn: a warning for the member's first checkout, and the `error` of its `repos` row.
 
 A checkout is a directory that holds a `.git` directory. A bare repository, a linked worktree, and a clone behind a
-symbolic link are no checkouts, and kit does not look inside a hidden folder.
+symbolic link are not checkouts. kit does not look inside a hidden folder.
 
-## Which workspace kit starts on
+### Which workspace kit starts on
 
-1. A workspace given with `--workspace=`, the kit option before the verb, wins: `kit --workspace=empowerite flow`.
+kit takes the first of these that applies:
+
+1. The workspace that `--workspace=` gives. The option goes before the verb: `kit --workspace=empowerite flow`.
    `--workspace=none` names no workspace.
-2. Inside a repository, it is that repository, even when the repository belongs to a group. In a linked worktree, it
-   is the repository the worktree belongs to.
-3. Outside any repository, it is the last group used.
-4. With no group used yet, there is none.
+2. The repository you are in. This holds even when the repository belongs to a group. In a linked worktree, it is
+   the repository that the worktree belongs to.
+3. Outside any repository, the last group used.
+4. With no group used yet, none.
 
 A directory is inside a repository when it is in the repository's working tree, where `git rev-parse --show-toplevel`
-answers. A bare repository has no working tree, and a `.git` directory is not in one, so both are outside a
-repository: there, too, kit starts on the last group used, and with none, `kit flow` draws the desks below and `kit
-workspace` refuses.
+answers. A bare repository has no working tree, and a `.git` directory is not in one. Both count as outside a
+repository.
 
-`kit workspaces --use=<name>` keeps the last group used in `${XDG_CACHE_HOME:-~/.cache}/kit/workspaces/last`: kit's own
-to rewrite, apart from your file. A last group the file does not hold is none, and `kit workspaces --delete` of the last
-group used forgets it, so a group made later under its name is not the last used.
+When kit starts on none:
 
-`kit workspaces --use=<folder>`, with a folder written as a path, as `.`, `~/Code/edge`, or `/srv/edge`, keeps the
-repository whose working tree holds it first among the recent repositories, in
-`${XDG_CACHE_HOME:-~/.cache}/kit/workspaces/recent`: ten at most, each once, the newest first. A linked worktree is no
-workspace of its own: its folder is kept as its repository's desk, and one kept before stands as that desk. A recent
-repository is no group: kit starts on it only inside it, as on any other. The workspace menu offers them, and its **Open
-Repository…** keeps the one it opens there. `kit --workspace=<path> workspaces --current`, with an absolute path, names
-the repository whose working tree holds it, and refuses with 2 where none does.
+| Command | What it does |
+| --- | --- |
+| `kit flow` | lists each repository that it finds under the current directory, up to four levels down |
+| `kit workspace` | exits 2, because it needs a repository |
 
-`kit flow`, `kit workspace`, and `kit workspaces --current` follow this rule. Every other verb runs in its folder's
-repository, or refuses outside one, and takes no `--workspace=`. `--workspace=` is an option of `kit` itself, which the
-loader, `kit/bin/kit`, reads and hands to the verb, and a verb refuses it among its own words. A call across a
-workspace runs on the kit you installed, and each member's own call, in its checkout, runs the release that member
-pins, so `--workspace=` takes no `--version=`.
+`kit workspaces --current` says which workspace kit starts on, and why. With `--json`, it also gives what the
+workspace menu of kittui draws:
 
-`kit workspaces --current` says which one, and why. With `--json` it also gives what kittui's workspace menu draws: a
-group's members with their checkouts, the groups a repository belongs to, every group in the file, the favorites, and
-the recent repositories whose working trees are still there.
+- the members of a group, with their checkouts
+- the groups that a repository belongs to
+- every group in the file
+- the favorites
+- the recent repositories whose working trees are still there
 
-`kit flow` and `kit workspace` start where `kit workspaces --current` says. Outside a repository, they draw the last
-group used, as `--workspace=` with its name would. With no group used, or with `--workspace=none`, `kit flow` draws
-each desk below, as it does above desks, and `kit workspace` refuses with 2, as it reads a repository.
+#### The last group used
 
-## Commands
+`kit workspaces --use=<name>` keeps the last group used in `${XDG_CACHE_HOME:-~/.cache}/kit/workspaces/last`. This
+file is kit's own to rewrite, apart from your file.
 
-```sh
-kit workspaces                                    # the groups and the favorites
-kit workspaces --show=empowerite                  # each member, with its checkout or ☁️
-kit workspaces --current                          # the workspace kit starts on here, and why
-kit workspaces --use=empowerite                   # start on empowerite outside a repository
-kit workspaces --use=.                            # keep the repository here among the recent ones
-kit workspaces --new=empowerite . github.com/empowerite/kit
-kit workspaces --add=empowerite github.com/empowerite/edge
-kit workspaces --remove=empowerite github.com/empowerite/edge
-kit workspaces --rename=empowerite core           # the group keeps its place, its comments, and its favorite
-kit workspaces --delete=core                      # the group goes; its checkouts are as they were
-kit workspaces --favorite=empowerite
-kit workspaces --unfavorite=empowerite
-```
+- A last group that the file does not hold counts as none.
+- `kit workspaces --delete` of the last group used forgets it. A group that you make later under the same name is not
+  the last used.
 
-`--new`, `--add`, and `--remove` take a member, a git URL, or a checkout's directory, as `.` for the repository you
-are in. Each also takes a pattern, a member holding `*`, `?`, or `[`, as `github.com/empowerite/homebrew-*`, and
-`--new` and `--add` take `--from=<command>`, a command kit runs by bash whose every line is a repository:
+#### Recent repositories
 
-```sh
-kit workspaces --new=brew 'github.com/empowerite/homebrew-*'      # the checkouts under the roots it matches
-kit workspaces --add=org --from="gh repo list empowerite --limit 1000 --json url --jq '.[].url'"
-kit workspaces --new=tools --from="gh repo list empowerite --json url --jq '.[].url'" 'github.com/empowerite/*-tool'
-kit workspaces --remove=org 'github.com/empowerite/attic-*'       # the group's members it matches
-```
+`kit workspaces --use=<folder>` keeps a repository among the recent repositories. Write the folder as a path, such as
+`.`, `~/Code/edge`, or `/srv/edge`. kit keeps the repository whose working tree holds the folder, in
+`${XDG_CACHE_HOME:-~/.cache}/kit/workspaces/recent`.
 
-A pattern matches the repositories `--from`'s command printed, else, for `--remove`, the group's members, else the
-members of the checkouts under the roots, and one that matches none is refused with 2. With no pattern, every
-repository the command printed joins. Either way, kit writes the members it found under `repos`, as if you had named
-each: a group does not follow a pattern or a command afterward, which the queries of `match` will, once they are
-built. The forms that read print JSON with `--json`; `kit help workspaces` gives the shapes. The forms that edit
-print one line, which says what changed, or that nothing needed to, as `📚 empowerite holds them already`, and take
-no `--json`. Each, and `--use`, takes the file's lock first, so two commands that edit the file at once each land.
+- The list holds ten repositories, each once, the newest first.
+- A path inside a linked worktree is kept as the desk of its repository, and an earlier entry for that desk moves up.
+- A recent repository is not a group. kit starts on it only when you are inside it.
+- The workspace menu offers the recent repositories, and its Open Repository… keeps the one it opens.
 
-`kit workspaces` exits 1 when the file cannot be read or edited, as when another command holds its lock past the wait of
-30 seconds by the clock, or `${XDG_CACHE_HOME:-~/.cache}/kit/workspaces/` cannot be written, and 2 for a usage error, an
-unknown workspace, or a new name that is refused or taken.
+`kit --workspace=<path> workspaces --current`, with an absolute path, names the repository whose working tree holds
+the path. It exits 2 where no repository does.
 
-## kit flow over a workspace
+### Which verbs take --workspace=
 
-```sh
-kit --workspace=empowerite flow                   # each cloned member's picture under its name
-kit --workspace=empowerite flow issues --json     # every member's open issues, each row tagged with its member
-```
+`--workspace=` is an option of `kit` itself. The loader, `kit/bin/kit`, reads it and hands it to the verb. A verb
+refuses `--workspace` among its own words.
 
-`--workspace=` runs `kit flow` in every member's checkout at once, each under that checkout's own `kit.yml`, so a
-GitLab member beside GitHub ones keeps its forges and trackers. With `--json`, a stage prints `{contract, rows,
-errors}`: each row, or each desk, worktrees, or incoming object, gains `member`, its host and path; a member that
-could not be read is `{member, error}` under `errors`, and the others still draw. Each member answers with the release
-its own `kit.yml` pins, and one whose document states another `contract` is under `errors` too, not merged; see
-[apps.md](apps.md#the-contract-of-the-stage-documents). Every row already says where it is from, as each
-member's `kit flow` printed it: `organization` and `repository`, as the member's primary remote names them, and
-`source`, the forge, or `git` for incoming's; see [apps.md](apps.md). kit flow exits 1 when a member cannot be read: with
-`--json`, what was read is still printed. `--marks` names such a member under `errors` beside the marks, and
-`--quota` leaves its rate limits out; both say its line on stderr. A member with no checkout draws no stage; `kit
-workspace repos` lists it. Over a workspace, the stages are kit's eight, whatever the `kit.yml` where you run it says.
-`--stages`, `--marks`, and `--quota` span the members too; a pull request's number, and `--me`, name one repository's,
-and are refused.
+| Verbs | What `--workspace=` does |
+| --- | --- |
+| `kit flow`, `kit workspace`, `kit issues`, `kit changes`, `kit delivery`, `kit people`, `kit audit`, `kit platform`, `kit packages` | runs the verb in every cloned member's checkout |
+| `kit welcome` | checks the folders of the workspace |
+| `kit workspaces --current` | names the workspace |
+| `kit tui <verb>` and a verb typed short of its arguments | opens the verb's form over the workspace |
+| every other verb | ignores the option and runs in the folder's repository, or refuses outside one |
 
-## The workspace menu in kittui
+- A call across a workspace runs on the kit that you installed. The call for each member runs the release that the
+  member pins. So `--workspace=` takes no `--version=`.
+- Over a workspace, `kit flow` draws kit's five stages, whatever the `flow` setting in the `kit.yml` where you run it
+  says. `--stages`, `--marks`, and `--quota` span the members too. A pull request's number and `--me` name one
+  repository's, so kit refuses them.
+- Each row says where it comes from: `organization`, `repository`, and `source`, and each row gains `member`. A member
+  that kit could not read is `{member, error}` under `errors`, and the others still print. A member whose document
+  states another contract is under `errors` too, and kit does not merge it. See
+  [apps.md](apps.md#the-contract-of-the-stage-documents).
+- `kit flow` exits 1 when it cannot read a member. With `--json`, it still prints what it read. `--marks` names such a
+  member under `errors`, beside the marks, and `--quota` leaves its rate limits out. Both print the member's line on
+  stderr.
+- A member with no checkout draws no stage. `kit workspace repos` lists it.
 
-The `-` on every screen's title line drops down the workspaces to switch to: the groups the repository here belongs to;
-the favorites, however many; every other group in the file; and the recent repositories, the one shown first, or the one
-a worktree shown belongs to, unless a favorite names it already. The one shown is dim, wherever it stands, as is a
-favorite repository with no checkout. **Open Repository…**, last, opens a dialog to type a repository's folder in: tab
-completes a folder, the folders it can complete to stand under it, and a plain click on one opens it. A path pasted
-there that starts with `/` or `~` takes the place of what is typed. Enter, or a click on Open, asks kit; a folder in no
-git working tree is refused with one line in the dialog, which stays open.
+### The options of kit workspaces
 
-A verb's form runs in the workspace shown. After a switch to a repository, a form opened from the help reads its
-choices and runs its verb in that repository's checkout. After a switch to a group, it runs in the folder kittui
-started in, as `kit --workspace=<group> <verb>`. The command line kittui leaves in the scrollback says both: the
-workspace, and a `cd` first when the verb ran in another folder than the one kittui started in. A form that is open
-at the switch is closed, since its choices were read in the folder before, and the help shows its palette there. A
-verb typed short of its arguments after `kit --workspace=<group>` opens its form over that group, and `kit
---workspace=<group> tui <verb>` does too, so the form runs the verb over the workspace you named.
+| Form | What it does |
+| --- | --- |
+| `kit workspaces` | lists the groups and the favorites |
+| `--show=<workspace>` | shows a group's members, or a repository |
+| `--current` | says which workspace kit starts on here, and why |
+| `--use=<workspace>`, `--use=<folder>` | remembers the last group used, or a recent repository |
+| `--new=<name>` | makes a group |
+| `--add=<name>`, `--remove=<name>` | adds repositories to a group, or takes them out |
+| `--rename=<name> <new-name>` | renames a group |
+| `--delete=<name>` | deletes a group and its favorite |
+| `--favorite=<workspace>`, `--unfavorite=<workspace>` | adds a workspace to the favorites, or takes it out |
+| `--from=<command>` | with `--new` or `--add`: runs the command, and each line it prints is a repository |
 
-Find clones, or `⌃F`, walks the folder typed for git working trees and shows them as a table, as kittui shows every
-list. Each repository found with its worktrees is a heading over its checkout and its worktrees, and the repositories
-found alone stand under one heading, no worktrees, last. A ▸ or ▾ opens or closes a heading, and `<` and `>` close or
-open every heading a level at a time. A 📚 column marks a clone whose repository is a member of the group shown.
-Space, `⇧↑↓`, `⌃A`, or a plain click on a row's mark selects clones, and three lines under the table act on them, each
-a plain click, dim while it cannot act:
+`--new`, `--add`, and `--remove` take a member, a git URL, a checkout's directory, or a pattern.
 
-- Add (`+`) drops down the groups in the file, and the one chosen takes the selected clones as members, or every
-  clone found while none is selected.
-- Remove (`-`) takes the selected clones out of the group shown.
-- Open (`⏎`) opens the clone under the cursor.
+A pattern matches against one list:
 
-Add and Remove run `kit workspaces --add=` and `--remove=` with the clones' folders. What kit says stands in the
-dialog, which stays open, and the 📚 column follows the group as it is now. Esc goes back to the folders.
+| Form | The pattern matches |
+| --- | --- |
+| with `--from` | the repositories that the command printed |
+| `--remove`, without `--from` | the members of the group |
+| `--new` and `--add`, without `--from` | the members of the checkouts under your roots |
 
-**Manage…**, after it, opens the workspaces' screen: every group a row, with whether it is a favorite, how many
-members it has, and the members. The app's menu, `=`, holds what it does to the group under the cursor, each a line
-that a plain click does and a key does with the menu closed, and each a `kit workspaces` command kittui runs. It
-keeps the common ones: New Workspace… (`n`), a name and its repositories; Switch to It (`⏎`); and Favorite or
-Unfavorite (`f`). Its Workspace… line drops a menu of the rest down from itself: Rename… (`r`); Add Members… (`a`),
-repositories and patterns; Add an Owner's Repositories… (`o`), a GitHub owner and a pattern, which runs `gh repo list`
-through `--from`; Add from a Command… (`c`); Remove Members… (`x`); and Delete… (`d`), which asks first. Esc goes
-back to the app's menu. kit's line, when it refuses, stands in the action's dialog; when it is done, every screen's
-menu lists the groups as they are now, and a group renamed or deleted while it is shown is followed. Its title line has
-a crumb, ↩ and the screen Manage… was chosen on, which a plain click or ⌫ goes back to, as a link's crumb does. A
-switch to another workspace drops every crumb, as the apps are made anew there.
+- A pattern that matches nothing is a usage error, and kit exits 2.
+- With no pattern, every repository that the `--from` command printed joins the group.
+- Each form that edits the file, and `--use`, takes the file's lock first. So two commands that edit the file at the
+  same time each land. kit waits up to 30 seconds for a lock that another live process holds.
 
-## Flow over a workspace in kittui
+`kit workspaces` exits:
 
-On a terminal, `kit --workspace=empowerite flow` opens kittui's Issues app over the group, as picking the group from
-the 📚 workspace menu does, and every other app follows the same group. Every tab gathers its rows from every cloned
-member, grouped by member as they load, and a member whose read failed is one red line among them.
+| Status | When |
+| --- | --- |
+| 0 | it printed or edited |
+| 1 | it cannot read or edit the file, because another command holds its lock past the wait, or because `${XDG_CACHE_HOME:-~/.cache}/kit/workspaces/` cannot be written |
+| 2 | a usage error, an unknown workspace, or a new name that is refused or taken |
 
-## kit workspace
+## kittui and workspaces
 
-```sh
-kit workspace                                     # the git of the repository here: every stage
-kit --workspace=empowerite workspace repos        # each member: its forge, branch, and checkout, or not cloned
-kit workspace branches                            # its branches, local and on each remote
-kit --workspace=empowerite workspace commits      # the commits not on the default branch, in every member
-kit workspace worktrees --json                    # {contract, rows, errors}, each row a worktree
-```
+Three screens work with workspaces: the workspace menu, the Open Repository… dialog with its Find clones table, and
+the workspaces screen.
 
-`kit workspace` draws what git holds across a workspace: its members, then a stage for each of git's entities:
-remotes, branches, worktrees, commits, and tags. It reads git alone, from each repository's main checkout, and asks
-no remote, so a remote's side is what the last fetch left. HEAD is no stage: a remote's is its default branch, ⚓ on
-its row and on the branch's, and a worktree's is its branch, or its commit where it is detached.
+### The workspace menu
 
-- repos: each member, cloned or not, with its forge, remotes, clone or `not cloned`, its desk's branch, its linked
-  worktrees by branch, and the local branches no checkout has; with no `--workspace=`, the repository here alone.
-- remotes: each remote, its forge, the repository its URL names, its default branch, and how many branches it has.
-- branches: each branch on a remote, with the local branches that pull from it and what the first is ahead and
-  behind; and each local branch whose upstream is gone, or that has none. A branch checked out names its worktree.
-- worktrees: each worktree, the desk first: its branch, what it is ahead and behind its upstream and the default
-  branch, and its paths changed and untracked.
-- commits: the commits the local branches hold and the default branch does not, the newest first, each with its
-  branches, whether a remote has it, and the issue its subject starts with.
-- tags: each tag, the newest first, annotated or lightweight, with its commit and its tagger.
+The workspace menu is the `-` on every screen's title line. Click it, or press `-`, to drop down the workspaces that
+you can switch to. The menu lists, in this order:
 
-`--workspace=` reads every cloned member's checkout at once, as it does for `kit flow`, and every row gains its
-member. kit workspace exits 1 when a member, or a member's desk, cannot be read: what was read is still drawn, as
-text or with `--json`, the member under `errors`, or the desk's line as its repos row's `error`. A bare repository
-is outside a repository: without `--workspace=`, kit workspace draws the last group used there, and with none
-refuses it with 2. On a terminal, `kit workspace` opens kittui's Repositories app, a tab per stage, the 📚 repos tab
-first and kit flow's incoming last.
-On the repos tab, a clone reads `~` for the home folder, and a closed row shows `…` and its last two folders; open,
-the row shows the whole path. A member's name on any tab leads to its row there.
+1. the groups that the repository here belongs to
+2. your favorites
+3. every other group in the file
+4. the recent repositories, with the one shown first, or the one that the worktree shown belongs to, unless a
+   favorite already names it
+5. Open Repository…
+6. Manage…
 
-## kit welcome
+A line is dim when you cannot switch to it now: the workspace shown, and a favorite repository with no checkout.
 
-```sh
-kit welcome --checks --json                       # the machine's checks, then each folder of the repository here
-kit --workspace=empowerite welcome --checks       # each member's desk and worktrees, in the group's order
-kit --workspace=none welcome --checks             # no group: the repository here, else the machine's checks alone
-```
+| Line | What it does |
+| --- | --- |
+| a group, a favorite, or a recent repository | switches to it |
+| Open Repository… | opens the dialog that opens a repository by its folder |
+| Manage… | opens the workspaces screen |
 
-`kit welcome`'s setup checks each folder of the workspace on its own, since each branch can have a `kit.yml` or none,
-and pin a kit of its own: for a repository, its desk, then each worktree `git worktree list` names; for a group, each
-member's, for every checkout of it under the roots. Each folder's check names its folder, its repository, whether it
-is the desk, its branch, and the kit its `kit.yml` declares, and `kit check` runs there on the release that folder
-pins. The machine's checks, the tools kit runs on, the machine's package manager, and each forge host's tool and
-login, run once, for every host among the folders' remotes. The folders are judged at once. `kit welcome
---fix=<check> --folder=<path>` runs a folder's check's fix in that folder.
+After a switch to another workspace, kittui drops every crumb, because the apps are made anew there.
 
-On a terminal, kittui's setup step draws the checks as one table: the machine's first, then each repository, a row
-per folder with its branch, its kit, and a column for each kind of check, its failed checks under it, each offering
-its fix. A group's members with no checkout are named under the table.
+#### Forms and the workspace
 
-## Still to come
+A verb's form runs in the workspace shown.
 
-What is built is steps 1 to 3 of [the workspaces design](superpowers/specs/2026-11-08-workspaces-design.md): the file,
-`kit workspaces` with fixed members, checkout discovery, the startup rule, the 📚 control, and Flow across the members
-with checkouts. Steps 4 to 7 are designed and not built:
+| After a switch to | The form runs the verb |
+| --- | --- |
+| a repository | in that repository's checkout |
+| a group | in the folder where kittui started, as `kit --workspace=<group> <verb>` |
 
-- Queries, ☁️ members, batched forge reads, and the query cache. A group's `match` is refused by name until then.
+- The command line that kittui leaves in the scrollback says both the workspace, and a `cd` first when the verb ran
+  in another folder than the one where kittui started.
+- A form that is open at the switch is closed, because its choices were read in the folder before. The help shows its
+  palette there.
+- A verb that you type short of its arguments after `kit --workspace=<group>` opens its form over that group.
+  `kit --workspace=<group> tui <verb>` does the same.
+
+### Open Repository…
+
+The dialog opens a repository by its folder.
+
+| Control | What it does |
+| --- | --- |
+| type a folder | `~` is your home folder, and a path with no `/` at its start is read from there |
+| paste a path that starts with `/` or `~` | the pasted path replaces what you typed |
+| `⇥` | completes the folder, one folder at a time |
+| click a folder in the list under the field | goes into that folder |
+| Enter, or click Open | opens the folder typed |
+| `esc`, or a click off the box | closes the dialog |
+
+A folder that is in no git working tree is refused with one line in the dialog, which stays open.
+
+#### Find clones
+
+Find clones, or `⌃F`, walks the folder typed for git working trees. It shows the clones that it finds as a table, as
+kittui shows every list.
+
+- Each repository that it found with its worktrees is a heading over its checkout and its worktrees.
+- The repositories found alone are under one heading, with no worktrees, last.
+- A 📚 column marks a clone whose repository is a member of the group shown.
+
+| Control | What it does |
+| --- | --- |
+| click ▸ or ▾ | opens or closes a heading |
+| `<`, `>` | closes or opens every heading, one level at a time |
+| space, `⇧↑↓`, `⌃A`, click a row's mark | selects clones |
+| Add (`+`) | drops down the groups in the file; the group you pick takes the selected clones as members, or every clone found while none is selected |
+| Remove (`-`) | takes the selected clones out of the group shown |
+| Open (`⏎`) | opens the clone under the cursor |
+| `esc` | goes back to the folders |
+
+The three lines under the table are plain clicks, and each is dim while it cannot act. Add and Remove run
+`kit workspaces --add=` and `--remove=` with the clones' folders. kit's answer shows in the dialog, which stays open,
+and the 📚 column follows the group as it is now.
+
+### The workspaces screen
+
+Manage… opens the workspaces screen. It has one row for each group. A row shows whether the group is a favorite, how
+many members it has, and the members.
+
+The app's menu, `=`, holds what you can do to the group under the cursor. Each line is a plain click, and each has a
+key that does the same with the menu closed. Each action runs a `kit workspaces` command. kittui never writes the file
+itself.
+
+| Action | Key | What it asks for |
+| --- | --- | --- |
+| New Workspace… | `n` | a name and its repositories |
+| Switch to It | `⏎` | nothing |
+| Favorite or Unfavorite | `f` | nothing |
+| Workspace… | | opens a menu of the actions below; `esc` goes back to the app's menu |
+| Rename… | `r` | the new name |
+| Add Members… | `a` | repositories and patterns |
+| Add an Owner's Repositories… | `o` | a GitHub owner and a pattern; it runs `gh repo list` through `--from` |
+| Add from a Command… | `c` | a command that prints one repository on each line |
+| Remove Members… | `x` | repositories and patterns |
+| Delete… | `d` | a confirmation |
+
+- Every action but New Workspace… acts on the group under the cursor. With no group under the cursor, only New
+  Workspace… acts, and the menus show the rest dim.
+- When kit refuses, its line shows in the action's dialog.
+- When kit is done, every screen's workspace menu lists the groups as they are now. kittui follows a group that you
+  renamed or deleted while it is shown.
+- The title line of the screen has a crumb: ↩ and the name of the screen that you chose Manage… on. Click it, or
+  press `⌫`, to go back.
+
+## Not built yet
+
+The first three steps of [the workspaces design](superpowers/specs/2026-11-08-workspaces-design.md) are built: the
+file, `kit workspaces` with fixed members, checkout discovery, the start rule, the workspace menu, and Flow across the
+members that have checkouts. The other steps are designed and not built:
+
+- Queries, ☁️ members, batched forge reads, and the query cache. kit refuses a group's `match` by name until then.
 - Topics and git config labels as filters.
-- GitHub Project workspaces. A group's `project` is refused by name until then.
-- **Browse…**, a picker of every checkout under the roots with groups suggested from owners. The workspaces' screen,
-  **Open Repository…**, and **Manage…** are built; a pattern or a command given to `--new` and `--add` is read once,
-  when it is given.
+- GitHub Project workspaces. kit refuses a group's `project` by name until then.
+- Browse…, a picker of every checkout under your roots, with groups suggested from owners.
