@@ -43,7 +43,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "kit context --claude"
+            "command": "kit context --claude || printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"kit: no rule was read for this file, because kit did not answer. Put kit on PATH, or run kit context <path>.\"}}'"
           }
         ]
       }

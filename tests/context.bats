@@ -211,6 +211,16 @@ compressed() {
   [ -z "$output" ]
 }
 
+@test "the claude hook names a set of rules once for a session, and again for a new session or another set" {
+  hook() { printf '{"session_id":"%s","tool_name":"Write","tool_input":{"file_path":"%s/%s"}}' "$1" "${PWD}" "$2" \
+    | "${kit_checkout}/bin/kit" context --claude; }
+  [[ "$(hook s1 lib/run.sh)" == *"lib/run.sh is governed by .kit/rules/bash.md"* ]]
+  [ -z "$(hook s1 lib/other.sh)" ]
+  [[ "$(hook s2 lib/other.sh)" == *"lib/other.sh is governed by .kit/rules/bash.md"* ]]
+  "${kit_checkout}/bin/kit" packages add style/bash >/dev/null 2>&1
+  [[ "$(hook s1 lib/run.sh)" == *".kit/rules/bash.md .kit/styles/bash.md"* ]]
+}
+
 @test "a file in another checkout of the repository is governed by that checkout's rules, each named so it opens from where it was asked" {
   git add --all && git commit --quiet --message=init
   git worktree add --quiet -b 7-fix-the-thing worktrees/7-fix-the-thing

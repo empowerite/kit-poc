@@ -661,6 +661,18 @@ context:render() {
   done
 }
 
+# context:session-named <session> <rules> succeeds the first time a session is told a set of rules, and records the
+# set in a file of the session beside the context log. It fails for a set the session was told before, so the hook
+# says nothing twice. A session id that is no plain word, or none, is always told.
+context:session-named() {
+  local file
+  [[ "$1" =~ ^[A-Za-z0-9_-]+$ ]] || return 0
+  file="$(dirname "$(context:log-path)")/context-sessions/$1"
+  ! grep --quiet --line-regexp --fixed-strings -- "$2" "${file}" 2>/dev/null || return 1
+  mkdir -p "$(dirname "${file}")"
+  printf '%s\n' "$2" >> "${file}"
+}
+
 # context:claude reads Claude Code's PreToolUse hook input on stdin and logs the file the tool is about to write.
 # It prints, as additional context, the paths of the rules that govern that file. It prints nothing when the tool
 # input has no file path or no rule governs the file. The harness runs the hook in the folder where the session
@@ -682,6 +694,7 @@ context:claude() {
     rules=$(context:rules "${path}" | paste -s -d ' ' -)
   fi
   [[ -n "${rules}" ]] || return 0
+  context:session-named "$(jq --raw-output '.session_id // empty' <<<"${input}")" "${rules}" || return 0
   if [[ "${rules}" == *" "* ]]
   then
     text="kit: ${path} is governed by ${rules}; read each before this change."

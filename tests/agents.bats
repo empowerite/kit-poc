@@ -126,6 +126,16 @@ claude-prefixes() {
   done
 }
 
+@test "the Claude hook tells the agent once, as additional context, when kit is not on PATH" {
+  kit install agents/claude
+  local command
+  command=$(jq --raw-output '.hooks.PreToolUse[0].hooks[0].command' .claude/settings.json)
+  run --separate-stderr env PATH=/usr/bin:/bin sh -c "${command}" <<<'{"session_id":"s1","tool_input":{"file_path":"a.sh"}}'
+  [ "$status" -eq 0 ]
+  [ "$(jq --raw-output '.hookSpecificOutput.hookEventName' <<<"$output")" = "PreToolUse" ]
+  [[ "$(jq --raw-output '.hookSpecificOutput.additionalContext' <<<"$output")" == *"kit did not answer"* ]]
+}
+
 @test "the trust is the person's to give: the AGENTS.md region tells an agent to ask them, and the deny lists refuse kit trust" {
   kit install agents/claude agents/gemini
   # the region is in a fresh clone before anything is hydrated, where .kit/1st.md is not; it names no option

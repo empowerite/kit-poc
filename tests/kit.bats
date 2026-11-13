@@ -104,7 +104,7 @@ tree-digest() {
   [ "$status" -eq 0 ]
   [ "$(declared packages)" = "kit agents/generic agents/claude" ]
   jq --exit-status '.permissions.deny | index("Bash(git rebase *)")' .claude/settings.json >/dev/null
-  jq --exit-status '.hooks.PreToolUse[0].hooks[0].command == "kit context --claude"' .claude/settings.json >/dev/null
+  jq --exit-status '.hooks.PreToolUse[0].hooks[0].command | startswith("kit context --claude || ")' .claude/settings.json >/dev/null
   grep --quiet --line-regexp '@../AGENTS.md' .claude/CLAUDE.md
   grep --quiet --line-regexp '<!-- kit:generate .claude/CLAUDE.md -->' .claude/CLAUDE.md
   [ ! -e .claude/rules ]

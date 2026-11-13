@@ -35,6 +35,9 @@ place:
 
 `hooks.PreToolUse` runs `kit context --claude` before each `Write`, `Edit`, and `MultiEdit`. It shows the agent the
 rules that govern the file; see [docs/context.md](../../context.md).
+A session is told a set of rules once: the hook says nothing when the same set governs the next file. Where `kit` is
+not on the harness's `PATH`, or kit does not answer, the command prints one line of additional context that says no
+rule was read, so the agent knows to run `kit context <path>` itself.
 
 The package merges one more entry, `mcpServers.kit`, into `.mcp.json`: the kit's MCP server, `kit serve`, which
 offers the rules as resources and the verbs as tools in three groups; see [docs/serve.md](../../serve.md):
