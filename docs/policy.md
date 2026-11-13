@@ -340,7 +340,7 @@ and OPA's RE2 share, so both engines read them the same way:
 | Engine | How it checks | Chosen by |
 | --- | --- | --- |
 | `patterns` | Matches each rule in bash. Needs no other tool. | Default. |
-| `opa` | Open Policy Agent evaluates every `.rego` file under `.kit/policy/`, package `kit.policy`. The set `deny` of strings is the refusals. | `policy_engine: opa`, or any `.rego` file in `.kit/policy/` when `policy_engine` is not set. |
+| `opa` | Open Policy Agent evaluates every `.rego` file under `.kit/policy/`, package `kit.policy`. The set `deny` of strings is the refusals. | `policy_engine: opa`, or any `.rego` file in `.kit/policy/`, at any depth, when `policy_engine` is not set. |
 
 The `opa` engine needs `opa`. Pin it in the repository's toolchain, then run `kit tools install`.
 
