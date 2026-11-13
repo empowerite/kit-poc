@@ -99,6 +99,7 @@ context:relative() {
 # .git, at or above the nearest existing directory of the path.
 context:elsewhere() {
   local path=$1 here dir other line
+  local -a worktrees=()
   here=$(pwd -P)
   [[ "${path}" == /* ]] || path="${here}/${path}"
   dir=${path%/*}
@@ -108,7 +109,9 @@ context:elsewhere() {
   done
   other=$(kit:clone-root "${dir:-/}") || return 0
   [[ "${other}" != "${here}" ]] || return 0
-  while IFS= read -r line
+  # Where git cannot list the worktrees, no folder is known to be another checkout of this repository.
+  list:read worktrees git worktree list --porcelain || return 0
+  for line in "${worktrees[@]}"
   do
     [[ "${line}" == 'worktree '* ]] || continue
     line=$(cd "${line#worktree }" 2>/dev/null && pwd -P) || continue
@@ -117,7 +120,7 @@ context:elsewhere() {
       printf '%s\n' "${other}"
       return 0
     fi
-  done < <(git worktree list --porcelain)
+  done
 }
 
 # context:asked-there <checkout> <path> [--json] prints the rules that govern <path>, a file in <checkout>, which is

@@ -684,8 +684,11 @@ serve_path_max=''
 # not under the root. A checkout whose directory no longer exists is left out.
 serve:checkouts() {
   local root line path
+  local -a worktrees=()
   root=$(pwd -P 2>/dev/null) || return 1
-  while IFS= read -r line
+  # Where git cannot list the worktrees, there is no checkout to name.
+  list:read worktrees git worktree list --porcelain 2>/dev/null || return 0
+  for line in "${worktrees[@]}"
   do
     [[ "${line}" == 'worktree '* ]] || continue
     path=$(cd "${line#worktree }" 2>/dev/null && pwd -P) || continue
@@ -694,7 +697,7 @@ serve:checkouts() {
       ("${root}"/*) printf '%s\t%s\n' "${path#"${root}"/}" "${path}" ;;
       (*) printf '%s\t%s\n' "${path}" "${path}"
     esac
-  done < <(git worktree list --porcelain 2>/dev/null)
+  done
 }
 
 # serve:checkout <value> prints the physical path of the checkout that <value> names. <value> is a path, read from
@@ -703,18 +706,20 @@ serve:checkouts() {
 # checkout, or another clone, such as a submodule.
 serve:checkout() {
   local value=$1 path listed
+  local -a checkouts=()
   [[ -n "${value}" ]] || return 1
   # The ./ makes cd read a value that starts with -, such as - itself, as a path and not as an option.
   [[ "${value}" == /* ]] || value="./${value}"
   path=$(cd "${value}" 2>/dev/null && pwd -P) || return 1
-  while IFS=$'\t' read -r _ listed
+  list:read checkouts serve:checkouts || return 1
+  for listed in "${checkouts[@]}"
   do
-    if [[ "${listed}" == "${path}" ]]
+    if [[ "${listed#*$'\t'}" == "${path}" ]]
     then
       printf '%s\n' "${path}"
       return 0
     fi
-  done < <(serve:checkouts)
+  done
   return 1
 }
 
