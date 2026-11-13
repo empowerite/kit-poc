@@ -61,7 +61,7 @@ refuses the keep. It also refuses, with 2, a check that holds and a check of ano
 in. The finding then holds, and its line starts with `kept:`, as `kit welcome --keep=` says when it ends;
 with `--json`, it gives the check as `kit welcome --checks --json` would.
 `kit welcome --unkeep=terminal-iterm-triggers` undoes it, and the last one takes `terminal:` out of the file. In
-kittui, a failed finding offers later and keep.
+kittui, a failed finding offers ⧉ and keep.
 
 ## iTerm2
 

@@ -1,6 +1,6 @@
 # Entities: design
 
-Status: proposed, 2026-11-09.
+Status: proposed, 2026-11-09. Since then `kit people`, `kit delivery`, `kit platform`, and `kit audit` have been built.
 
 ## Intent
 
@@ -446,8 +446,8 @@ These entities exist and keep their meaning; [packages.md](../../packages.md) an
 
 ## What the first release settles
 
-None of the new domains ships in the first release. Four decisions cost little now and much later, because verbs,
-files, and kittui already depend on them:
+When this was written, none of the new domains shipped; `kit people`, `kit delivery`, `kit platform`, and `kit audit`
+exist now. Four decisions cost little now and much later, because verbs, files, and kittui already depend on them:
 
 1. References. Settle the full reference for every subject, and have kittui's links between rows, `kit flow --json`,
    and `kit workspace --json` carry it, before more of them invent their own.

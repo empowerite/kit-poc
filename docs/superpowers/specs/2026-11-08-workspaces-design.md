@@ -307,7 +307,8 @@ These were not decided in the brainstorm. Each is a default the design takes unt
   open items, any owner.
 - Inside a member, kit starts on the member, and the 📚 dropdown offers its groups first.
 - Welcome says a check that is the same in every member once, and per member one that differs.
-- `kit welcome` gains no `--workspace` now: kittui runs it in each member's checkout and composes the answers.
+- `kit welcome` took no `--workspace` when this was written, and kittui ran it in each member's checkout. It takes the
+  kit option now, as `kit --workspace=<workspace> welcome`, and checks each folder of the workspace itself.
 - Owners suggested as groups in **Browse…**, never applied unasked.
 - A ☁️ member is cloned only when an action needs a checkout, after asking, into the first root as `host/owner/repo`.
 - A GitHub Project workspace narrows backlog and underway to the Project's items.

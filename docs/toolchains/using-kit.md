@@ -122,8 +122,8 @@ path of `direct` alone, where no layer names a source, writes nothing, so each m
 
 ## A desk and a runner
 
-- A desk locks: when an entry in `kit.yml` changes, `kit tools install` downloads the tool for every platform and
-  rewrites its lines in `tools.lock`.
+- A desk, a developer's machine as against a CI runner, locks: when an entry in `kit.yml` changes,
+  `kit tools install` downloads the tool for every platform and rewrites its lines in `tools.lock`.
 - A runner never locks. A `tools.lock` behind `kit.yml` fails the install, naming each tool, so a pin is never
   resolved on a runner that a desk has not checked.
 - A tool with `profile: desk` is installed on a desk alone, and one with `profile: ci` on a runner alone.

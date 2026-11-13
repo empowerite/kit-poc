@@ -191,8 +191,8 @@ used in the code today that differs is in the last column, to be renamed as the 
 | | a dialog that asks one question | prompt | ask |
 | everywhere | where the keys go | focus | has the keyboard |
 
-A screen is one of kittui's four: Flow, Welcome, Tutorials, and Help, which the kit menu moves between. They are
-screens of one program, not applications.
+A screen is one of kittui's top-level views, which the kit menu moves between. Flow is the first of nine apps, each
+an app of one program with tabs of its own; Welcome, Tutorials, and Help are screens that are not apps.
 
 ### Keys
 

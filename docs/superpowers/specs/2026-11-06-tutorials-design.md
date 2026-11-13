@@ -86,7 +86,7 @@ The front matter marks which kind a page is.
   tutorials it added or changed, and **Changelog**, each 0.4.x release, newest first, with what changed and which
   tutorials it touched.
 - *My call:* the changelog is written by hand, one MDX entry per release, as part of cutting it; it is not scraped
-  from commits or the forge's release notes. `kit release` refuses a version with no entry.
+  from commits or the forge's release notes. Nothing refuses a version with no entry: the rule was designed and not built.
 
 ### The catalogue
 
@@ -162,5 +162,5 @@ made.
   builder's.
 - **The screen's layout.** Card size, how tags are shown and filtered, keyboard order, and the text fallback
   (`kit tutorials --text`, or no terminal) follow kittui's existing screens.
-- **Arguments.** *My call:* `kit tutorials [<id>]` opens one tutorial directly, and `--tag <tag>` filters.
+- **Arguments.** *My call:* `kit tutorials [<id>]` opens one tutorial directly, and `--tag=<audience>` filters.
 - **The first tutorial's subject.** Which feature v0.1.0's tutorial teaches.

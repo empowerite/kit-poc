@@ -1,6 +1,6 @@
 # Terminal checks: design
 
-Status: designed, 2026-11-11. Issue #211.
+Status: built, 2026-11-12, under #211.
 
 ## Intent
 
@@ -234,7 +234,7 @@ person's own settings file, where `kit toolchains` records the system toolchain.
 keep is for the profile it was judged in, written `terminal-iterm-triggers@Work`, so keeping triggers in one profile
 never silences another (my call). A kept finding is judged as before;
 where it would fail, it holds instead, its line opens with "kept:", and its `more` names
-`kit welcome --unkeep=<check>`. In kittui, a failed terminal check offers later and keep; it offers no now, since kit
+`kit welcome --unkeep=<check>`. In kittui, a failed terminal check offers ⧉ and keep; it offers no now, since kit
 never runs its fix, which stands under it. `--keep=` refuses a check that is not a terminal check, with exit 2.
 
 ### What welcome shows
