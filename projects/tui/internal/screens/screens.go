@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -224,7 +225,8 @@ func (m Model) opened(msg openedMsg) (tea.Model, tea.Cmd) {
 
 // answered takes kit's answer to the latest ask for the workspace, dropping an earlier one's: kit's line, when it could
 // not say, told to every screen made, the workspace as it was; else the workspace, which the runner then reads, the
-// screens made anew when it moved the place they read, then told it. The help is told the runner then, and kept, its
+// screens made anew when it moved the place they read, then told it. The place moved when the kind or the name differs, or the checkout, as a
+// worktree of the repository shown differs, or the members of a group, which kit reads over. The help is told the runner then, and kept, its
 // palette as it was left; with a form open that read its choices in another folder, it is made anew as the apps are,
 // on its palette. At kittui's start, the screen open is made anew
 // only over a group, since inside a repository, or outside every one, it already reads where kit says.
@@ -238,7 +240,8 @@ func (m Model) answered(msg workspaceMsg) (tea.Model, tea.Cmd) {
 	}
 	moved := msg.ws.Kind == "group" && msg.ws.Name != m.start
 	if msg.gen > 0 {
-		moved = msg.ws.Kind != m.workspace.Kind || msg.ws.Name != m.workspace.Name
+		moved = msg.ws.Kind != m.workspace.Kind || msg.ws.Name != m.workspace.Name ||
+			msg.ws.Checkout != m.workspace.Checkout || !slices.Equal(msg.ws.Members, m.workspace.Members)
 	}
 	m.workspace, m.refused = msg.ws, ""
 	if m.opener.Open {

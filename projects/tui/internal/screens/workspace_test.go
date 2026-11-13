@@ -246,6 +246,34 @@ func TestNoWorkspaceIsNoGroupToKeep(t *testing.T) {
 	}
 }
 
+// A workspace of the same name that stands in another folder, as a second worktree of the repository shown does, or a
+// group that gained a member, moves the place the screens read: they are made anew, over the new folder.
+func TestAWorkspaceOfTheSameNameInAnotherPlaceRemakesTheScreens(t *testing.T) {
+	m, _, checkout := workspaced(t, map[string]string{"current.json": repoJSON, "w.json": groupJSON})
+	was, other := m.epochs[shell.Welcome], t.TempDir()
+	m.asked++
+	m = drive(m, workspaceMsg{gen: m.asked, ws: kit.Workspace{Kind: "repository", Name: m.workspace.Name, Checkout: other}})
+	if m.runner.Dir != other || m.epochs[shell.Welcome] != was+1 {
+		t.Errorf("a worktree of %s: reads %q (was %q), made %d times more", m.workspace.Name, m.runner.Dir, checkout,
+			m.epochs[shell.Welcome]-was)
+	}
+	m.asked++
+	m = drive(m, workspaceMsg{gen: m.asked, ws: kit.Workspace{Kind: "group", Name: "w",
+		Members: []kit.WorkspaceMember{{Repository: "github.com/o/a", Checkout: checkout}}}})
+	was = m.epochs[shell.Welcome]
+	m.asked++
+	m = drive(m, workspaceMsg{gen: m.asked, ws: kit.Workspace{Kind: "group", Name: "w"}})
+	if m.epochs[shell.Welcome] != was+1 {
+		t.Errorf("a group that lost a member: made %d times more", m.epochs[shell.Welcome]-was)
+	}
+	was = m.epochs[shell.Welcome]
+	m.asked++
+	m = drive(m, workspaceMsg{gen: m.asked, ws: kit.Workspace{Kind: "group", Name: "w"}})
+	if m.epochs[shell.Welcome] != was {
+		t.Errorf("the same group again: made %d times more", m.epochs[shell.Welcome]-was)
+	}
+}
+
 func TestAGroupKitWillNotKeepIsNotSwitchedTo(t *testing.T) {
 	m, record, _ := workspaced(t, map[string]string{"current.json": repoJSON, "w.json": groupJSON})
 	t.Setenv("FAKE_KIT_REFUSE", "workspaces")
