@@ -1,15 +1,16 @@
 // The issues' actions: what the tab's menu offers on the issues selected in issues, each a kit verb kittui runs and
-// never does itself, so a terminal, an agent over kit serve, and the menu do the same thing. An action that changes
-// what others see first shows the issues it will change and asks; one that wants an answer, a title, a login, an issue,
-// or one of the caller's pull requests, asks for it. While kit runs, the keys bar says so; then it says what kit did,
-// or why it refused, the selection is cleared when kit did it, and the stages that read the forge's issues and pull
-// requests read them afresh. kit's verbs read a reference in the repository they run in, so while an issue of another
-// repository, which kit lists where a pull request here closes it, is among those selected, every action that hands
-// kit a reference is dim; Copy Links, which hands kit nothing, is not.
+// never does itself, so a terminal, an agent over kit serve, and the menu do the same thing. An action that writes
+// asks first, once, in the one dialog they share: its title says what it will do, a line for each issue says which it
+// will change and where, and it has two buttons. Enter, or a click on the button that does it, runs kit; esc, a click
+// on Cancel, or a click off the dialog runs nothing. One that wants an answer, a title, a login, an issue, or one of
+// the caller's pull requests, asks for it in the same dialog. While kit runs, the keys bar says so; then it says what
+// kit did, or why it refused, the selection is cleared when kit did it, and the stages that read the forge's issues
+// and pull requests read them afresh. kit's verbs read a reference in the repository they run in, so while an issue
+// of another repository, which kit lists where a pull request here closes it, is among those selected, every action
+// that hands kit a reference is dim; Copy Links, which hands kit nothing, is not.
 package flow
 
 import (
-	"cmp"
 	"fmt"
 	"slices"
 	"strconv"
@@ -19,6 +20,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/empowerite/kit/projects/tui/internal/kit"
+	"github.com/empowerite/kit/projects/tui/internal/pane"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/style"
 )
@@ -64,19 +66,23 @@ func (m Model) actions() []shell.Item {
 	}
 }
 
-// ask is what an action asks before kit runs: a title, and either a line to type, the issues it will change to
-// confirm, or lines to pick one of, each with its answer, as the caller's pull requests by number; and the kit commands
-// the answer makes, or, with then, what it does in their place.
+// ask is what an action asks before kit runs, in the one dialog every action that writes shares: a title, which says
+// what it will do; a line to type, or lines to pick one of, each with its answer, such as the caller's pull requests
+// by number, or neither, for a yes alone; what it will change, a line each, which listed gives for the issues; what
+// the dialog says under them, where they are and what kit makes of them; the name of its button that does it; and
+// the kit commands the answer makes, or, with then, what it does in their place.
 type ask struct {
-	title  string
-	typing bool     // whether the answer is typed
-	typed  string   // what is typed so far
-	lines  []string // the issues to confirm, or the lines to pick from
-	pick   []string // each line's answer, when one is picked
-	at     int      // the line under the keyboard
-	does   string   // what enter does with the line picked, as the keys bar names it: add, by default
-	run    func(answer string) []call
-	then   func(answer string) tea.Cmd
+	title   string
+	typing  bool     // whether the answer is typed
+	typed   string   // what is typed so far
+	lines   []string // the lines to pick from
+	pick    []string // each line's answer, when one is picked
+	at      int      // the line under the keyboard
+	changes []string // what it will change, a line each
+	says    []string // what is said under them, a sentence each: the repository, and what kit makes
+	does    string   // the name on its button that does it: Assign
+	run     func(answer string) []call
+	then    func(answer string) tea.Cmd
 }
 
 // call is one kit command an action runs: the checkout it runs in, none for where the screen reads, and its words.
@@ -149,10 +155,12 @@ type trackersMsg struct {
 	err      error
 }
 
-// actedMsg is what kit printed for an action's commands, and its refusal when one failed: those after it did not run.
+// actedMsg is what kit printed for an action's commands, its refusal when one failed: those after it did not run;
+// and how many commands the action ran, or would have.
 type actedMsg struct {
 	out string
 	err error
+	ran int
 }
 
 // refs gives the references of the issues selected in issues, in the rows' order: #45, whatever their member, each
@@ -250,8 +258,10 @@ func (m Model) cursorMember() string {
 	return member
 }
 
-// act does what the issues' action named asks: it runs kit at once, or asks first. Over a group, an action on the
-// issues runs in each member's checkout, with that member's issues; one that acts in one member runs in its.
+// act does what the issues' action named asks: one that hands kit the issues asks first, in the dialog ask
+// describes, and runs kit only on its answer; New… asks kit for the trackers, and Copy Links, which hands kit
+// nothing, copies at once. Over a group, an action on the issues runs in each member's checkout, with that member's
+// issues; one that acts in one member runs in its.
 func (m *Model) act(name string) tea.Cmd {
 	if m.onPackages() {
 		return m.actOnPackages(name)
@@ -276,11 +286,20 @@ func (m *Model) act(name string) tea.Cmd {
 			return out
 		}
 	}
-	confirm := func(title string, words ...string) {
-		m.ask = &ask{title: title, lines: m.listed(), run: each(words...)}
+	// the dialog names one issue as one
+	these, all, twins := "these issues", "each of these issues", "duplicates"
+	if len(refs) == 1 {
+		these, all, twins = "this issue", "this issue", "a duplicate"
 	}
-	question := func(title string, run func(answer string) []call) {
-		m.ask = &ask{title: title, typing: true, run: run}
+	asks := func(a ask, made ...string) {
+		a.changes, a.says = m.listed(), append(m.inHere(), made...)
+		m.ask = &a
+	}
+	confirm := func(title, does string, words ...string) {
+		asks(ask{title: title, does: does, run: each(words...)})
+	}
+	question := func(title, does string, run func(answer string) []call, made ...string) {
+		asks(ask{title: title, does: does, typing: true, run: run}, made...)
 	}
 	switch name {
 	case "New…":
@@ -298,39 +317,47 @@ func (m *Model) act(name string) tea.Cmd {
 	case "Start Local Work for Each":
 		// The person at the screen chose this, and kit work has no terminal to see that by, so the flag says it: the
 		// desk's uncommitted work is swept into the first worktree made, as kit work does at a terminal.
-		var calls []call
-		for _, g := range groups {
-			for _, r := range g.refs {
-				calls = append(calls, call{g.dir, []string{"work", "--sweep", r}})
+		asks(ask{title: "Start local work on " + all + "?", does: "Start", run: func(string) []call {
+			var calls []call
+			for _, g := range groups {
+				for _, r := range g.refs {
+					calls = append(calls, call{g.dir, []string{"work", "--sweep", r}})
+				}
 			}
-		}
-		return m.run(calls)
+			return calls
+		}}, "kit work makes a branch, a worktree, a start commit, and a draft pull request for each issue, assigns "+
+			"the issue to you, and moves the desk's uncommitted work into the first worktree.")
 	case "Start Local Work Together…":
-		question("Title of the parent issue", func(t string) []call {
+		question("Start local work on "+these+" under a new parent issue titled", "Start", func(t string) []call {
 			return one(append([]string{"work", "--sweep", "--title=" + t}, refs...)...)
-		})
+		}, "kit work files the parent issue, and makes one branch, one worktree, a start commit, and a draft pull "+
+			"request that closes them all. It assigns them to you, and moves the desk's uncommitted work into the "+
+			"worktree.")
 	case "Add to Pull Request…":
 		numbers, lines := m.mine()
 		var picks []string
 		for _, n := range numbers {
 			picks = append(picks, strconv.Itoa(n))
 		}
-		m.ask = &ask{title: "Add to which of your pull requests?", lines: lines, pick: picks,
-			run: func(n string) []call { return one(append([]string{"work", "--pr=" + n}, refs...)...) }}
+		asks(ask{title: "Add " + these + " to which of your pull requests?", does: "Add", lines: lines, pick: picks,
+			run: func(n string) []call { return one(append([]string{"work", "--pr=" + n}, refs...)...) }},
+			"kit work assigns each issue to you, and the pull request closes it.")
 	case "Assign to Me":
-		return m.run(each("assign")(""))
+		confirm("Assign "+these+" to you?", "Assign", "assign")
 	case "Assign to…":
-		question("Assign to which login?", func(login string) []call { return each("assign", "--to="+login)("") })
+		question("Assign "+these+" to which login?", "Assign", func(login string) []call {
+			return each("assign", "--to="+login)("")
+		})
 	case "Unassign":
-		confirm("Take yourself off these issues?", "unassign")
+		confirm("Take yourself off "+these+"?", "Unassign", "unassign")
 	case "Gather Under a Parent…":
-		question("Title of the parent issue", func(t string) []call {
+		question("Gather "+these+" under a new parent issue titled", "Gather", func(t string) []call {
 			return one(append([]string{"gather", "--title=" + t}, refs...)...)
 		})
 	case "Close as Not Planned":
-		confirm("Close these issues as not planned?", "close", "--not-planned")
+		confirm("Close "+these+" as not planned?", "Close", "close", "--not-planned")
 	case "Close as Duplicate of…":
-		question("Duplicate of which issue?", func(original string) []call {
+		question("Close "+these+" as "+twins+" of which issue?", "Close", func(original string) []call {
 			return one(append([]string{"close", "--duplicate-of=" + original}, refs...)...)
 		})
 	case "Copy Links":
@@ -349,7 +376,7 @@ func (m *Model) newIssue(msg trackersMsg) tea.Cmd {
 		m.note.Text, m.note.Done = Failed+" "+msg.err.Error(), false
 		return nil
 	}
-	a := &ask{title: "New issue in which tracker?", does: "open", then: m.openPage}
+	a := &ask{title: "New issue in which tracker?", does: "Open", then: m.openPage}
 	refusal := "kit names no tracker to file a new issue in"
 	for _, t := range msg.trackers {
 		if t.URL == "" {
@@ -367,7 +394,8 @@ func (m *Model) newIssue(msg trackersMsg) tea.Cmd {
 }
 
 // listed gives a line for each issue selected, its reference and title, after its member's short name over a group,
-// as the dialog that confirms an action lists them.
+// for the dialog an action asks in, which lists what it will change: an issue underway that two selected rows stand
+// for is listed once.
 func (m Model) listed() []string {
 	var out []string
 	for _, r := range m.selectedRows() {
@@ -376,9 +404,21 @@ func (m Model) listed() []string {
 		if member != "" {
 			line = m.short(member) + " " + line
 		}
-		out = append(out, line)
+		if !slices.Contains(out, line) {
+			out = append(out, line)
+		}
 	}
 	return out
+}
+
+// inHere gives what an action's dialog says of where the rows it lists are, under them: in, and the path of the
+// repository here, which pathHere gives; nothing over a group, where each line names its member, and nothing where
+// kittui knows no repository here.
+func (m Model) inHere() []string {
+	if here := m.pathHere(""); m.runner.Group == "" && here != "" {
+		return []string{"in " + here}
+	}
+	return nil
 }
 
 // issueTitle gives a member's issue's title, by what its row's key names it by, as named gives it, as issues read it,
@@ -433,16 +473,17 @@ func (m *Model) run(calls []call) tea.Cmd {
 			o, err := in.Act(ctx, c.words...)
 			out.WriteString(o)
 			if err != nil {
-				return actedMsg{out.String(), err}
+				return actedMsg{out.String(), err, len(calls)}
 			}
 		}
-		return actedMsg{out.String(), nil}
+		return actedMsg{out.String(), nil, len(calls)}
 	}
 }
 
-// acted takes what kit said for an action: its last line in place of the keys, or its refusal; when kit did what
-// was asked, the selection is cleared; either way, what reads the forge's issues reads them afresh, and the packages
-// stage, after a Packages action, reads the active set again.
+// acted takes what kit said for an action: its last line in place of the keys, and, where the action ran more than
+// one command, that the line is the last of so many, or its refusal; when kit did what was asked, the selection is
+// cleared; either way, what reads the forge's issues reads them afresh, and the packages stage, after a Packages
+// action, reads the active set again.
 func (m *Model) acted(msg actedMsg) tea.Cmd {
 	lines := strings.Split(strings.TrimSpace(ansi.Strip(msg.out)), "\n")
 	name := issuesStage
@@ -452,7 +493,11 @@ func (m *Model) acted(msg actedMsg) tea.Cmd {
 	if msg.err != nil {
 		m.note.Text, m.note.Done = Failed+" "+msg.err.Error(), false
 	} else {
-		m.done(lines[len(lines)-1])
+		did := lines[len(lines)-1]
+		if msg.ran > 1 {
+			did += fmt.Sprintf(", the last of %d commands", msg.ran)
+		}
+		m.done(did)
 		if s := m.find(name); s != nil {
 			clear(s.Picked)
 		}
@@ -461,7 +506,7 @@ func (m *Model) acted(msg actedMsg) tea.Cmd {
 }
 
 // askKey takes a key while an action asks: esc does not run it; enter runs it with the answer, which a typed one
-// needs; up and down move along the pull requests; anything else is typed, when the answer is.
+// needs; up and down move along the lines to pick from; anything else is typed, when the answer is.
 func (m Model) askKey(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	a := m.ask
 	switch key := k.String(); {
@@ -472,7 +517,7 @@ func (m Model) askKey(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		switch {
 		case a.pick != nil:
 			answer = a.pick[a.at]
-		case a.typing && answer == "":
+		case a.waits():
 			return m, nil
 		}
 		m.ask = nil
@@ -488,24 +533,103 @@ func (m Model) askKey(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// askKeys gives what the dialog an action asks in shows, and its keys: the line typed so far, with its caret; the
-// pull requests, the one under the keyboard inverse; or the issues to confirm.
-func (m Model) askKeys() (body []string, keys string) {
+// cancelButton is the dialog's button that runs nothing, named with its key: esc does the same.
+const cancelButton = " esc Cancel "
+
+// doButton gives the dialog's button that does what it asks, named with its key: enter does the same.
+func (a ask) doButton() string { return " ⏎ " + a.does + " " }
+
+// waits says whether the dialog's button that does it does nothing yet: its answer is typed, and nothing is.
+func (a ask) waits() bool { return a.typing && strings.TrimSpace(a.typed) == "" }
+
+// buttons gives the dialog's last line, its two buttons, two cells apart: the one that does it, drawn inverse, the
+// way a menu draws the line under the keyboard, and dim while it waits for an answer; and Cancel.
+func (a ask) buttons() string {
+	if a.waits() {
+		return style.Off(a.doButton()) + "  " + cancelButton
+	}
+	return style.Selected(a.doButton()) + "  " + cancelButton
+}
+
+// askKeys gives the keys of the dialog an action asks in, for the keys bar, which names them the way its buttons do:
+// esc cancels, enter does it, and up and down move along the lines to pick from.
+func (m Model) askKeys() string {
+	if m.ask.pick != nil {
+		return "esc cancel · ↑↓ move · ⏎ " + strings.ToLower(m.ask.does)
+	}
+	return "esc cancel · ⏎ " + strings.ToLower(m.ask.does)
+}
+
+// askBody gives the lines of the dialog an action asks in, under its title: the line typed so far, with its caret,
+// or the lines to pick from, the one under the keyboard inverse; a blank line apart, what it will change, a line
+// each, and what the ask says under them, dim, wrapped; and last, a blank line apart, its buttons. The box ends above
+// the keys bar, so the buttons always show: a list longer than the room is cut, its last line saying how many more
+// it holds.
+func (m Model) askBody() []string {
 	a := m.ask
+	var body []string
 	switch {
 	case a.typing:
-		return []string{a.typed + style.Mark("▏")}, "esc cancel · ⏎ ok"
+		body = append(body, a.typed+style.Mark("▏"))
 	case a.pick != nil:
 		body = slices.Clone(a.lines)
 		body[a.at] = style.Selected(body[a.at])
-		return body, "esc cancel · ↑↓ move · ⏎ " + cmp.Or(a.does, "add")
 	}
-	return a.lines, "esc no · ⏎ yes"
+	var says []string
+	for _, s := range a.says {
+		for _, l := range pane.Wrap(s, min(72, m.paneWidth()-6)) {
+			says = append(says, style.Off(l))
+		}
+	}
+	if len(a.changes) > 0 {
+		if len(body) > 0 {
+			body = append(body, "")
+		}
+		// the screen's lines under the box's top edge and over the keys bar, less the box's bottom edge, the buttons
+		// and the blank over them, and what else the box holds
+		changes := a.changes
+		if room := max(1, m.height-m.askTop()-5-len(body)-len(says)); len(changes) > room {
+			rest := fmt.Sprintf("and %d more", len(changes)-room+1)
+			if room == 1 {
+				rest = fmt.Sprintf("%d in all", len(changes))
+			}
+			changes = append(slices.Clone(changes[:room-1]), style.Off(rest))
+		}
+		body = append(append(body, changes...), says...)
+	}
+	return append(body, "", a.buttons())
 }
 
-// askBox gives the dialog an action asks in, centered over the rows near their top, and the column it is drawn at.
-func (m Model) askBox() (lines []string, left int) {
-	body, _ := m.askKeys()
-	lines = shell.Dialog(m.ask.title, body, m.paneWidth()-2)
-	return lines, max(0, (m.paneWidth()-ansi.StringWidth(lines[0]))/2)
+// askTop gives the screen line the top edge of the dialog an action asks in stands on: near the rows' top.
+func (m Model) askTop() int { return m.top() + 1 }
+
+// askBox gives the dialog an action asks in, where it stands: centered over the rows, near their top.
+func (m Model) askBox() shell.Placed {
+	lines := shell.Dialog(m.ask.title, m.askBody(), m.paneWidth()-2)
+	return shell.Placed{Lines: lines, Top: m.askTop(), Left: max(0, (m.paneWidth()-ansi.StringWidth(lines[0]))/2)}
+}
+
+// askClick takes a click while an action asks, and every one: a left click on the button that does it runs it, the
+// same as enter; one on Cancel, or off the dialog, runs nothing, the same as esc; one on a line to pick from puts
+// the keyboard on it; anywhere else on the dialog, and with another button, it does nothing.
+func (m Model) askClick(c tea.MouseClickMsg) (Model, tea.Cmd, bool) {
+	if c.Button != tea.MouseLeft {
+		return m, nil, true
+	}
+	a, box := m.ask, m.askBox()
+	line, on := box.Hit(c.X, c.Y)
+	// a body line starts a cell in from the box's left edge
+	x, do := c.X-box.Left-2, ansi.StringWidth(a.doButton())
+	switch {
+	case !on:
+		m.ask = nil
+	case line == len(box.Lines)-3 && x >= 0 && x < do:
+		next, cmd := m.askKey(tea.KeyPressMsg{Code: tea.KeyEnter})
+		return next.(Model), cmd, true
+	case line == len(box.Lines)-3 && x >= do+2 && x < do+2+ansi.StringWidth(cancelButton):
+		m.ask = nil
+	case a.pick != nil && line >= 0 && line < len(a.pick):
+		a.at = line
+	}
+	return m, nil, true
 }

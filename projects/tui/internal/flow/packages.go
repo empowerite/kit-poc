@@ -1,6 +1,7 @@
 // The Packages app: kit packages' one stage, a row per package in reach, drawn from the catalog as kit workspace's
 // stages are, and the tab's menu's actions on the packages selected, each kit packages add, remove, or select, which
-// kittui runs and never does itself. An action that takes files out shows what it changes and asks first.
+// kittui runs and never does itself. Each shows what it changes and asks first, in the dialog the issues' actions ask
+// in, which act.go describes.
 package flow
 
 import (
@@ -105,10 +106,10 @@ func (m Model) packageEnabled(name string) bool {
 	return len(picked) == 1
 }
 
-// actOnPackages does what the Packages action named asks: Add runs kit packages add on the packages selected that are
-// not active; Remove asks, listing the active ones selected, then runs kit packages remove on them; Make Only These
-// Active asks, listing the packages it keeps or adds and the active ones it takes out, then runs kit packages select.
-// Over a group, each runs in each member's checkout, with that member's packages.
+// actOnPackages does what the Packages action named asks, each asking first: Add lists the packages selected that
+// are not active, then runs kit packages add on them; Remove lists the active ones selected, then runs kit packages
+// remove on them; Make Only These Active lists the packages it keeps or adds and the active ones it takes out, then
+// runs kit packages select. Over a group, each runs in each member's checkout, with that member's packages.
 func (m *Model) actOnPackages(name string) tea.Cmd {
 	picked := m.pickedPackages()
 	for _, g := range picked {
@@ -131,18 +132,29 @@ func (m *Model) actOnPackages(name string) tea.Cmd {
 		}
 		return glyph + " " + name
 	}
-	switch name {
-	case AddPackages:
-		return m.run(each("add", func(g memberPackages) []string { return g.others }))
-	case RemovePackages:
+	// the dialog lists the packages a verb is handed, and its title names one package as one
+	asks := func(many, one, does, verb, glyph string, names func(memberPackages) []string) {
 		var lines []string
 		for _, g := range picked {
-			for _, n := range g.active {
-				lines = append(lines, line(g.member, Minus, n))
+			for _, n := range names(g) {
+				lines = append(lines, line(g.member, glyph, n))
 			}
 		}
-		m.ask = &ask{title: "Remove these packages, and the files they delivered?", lines: lines,
-			run: func(string) []call { return each("remove", func(g memberPackages) []string { return g.active }) }}
+		title := many
+		if len(lines) == 1 {
+			title = one
+		}
+		m.ask = &ask{title: title, does: does, changes: lines, says: m.inHere(),
+			run: func(string) []call { return each(verb, names) }}
+	}
+	switch name {
+	case AddPackages:
+		asks("Add these packages, and the files they deliver?", "Add this package, and the files it delivers?",
+			"Add", "add", Plus, func(g memberPackages) []string { return g.others })
+	case RemovePackages:
+		asks("Remove these packages, and the files they delivered?",
+			"Remove this package, and the files it delivered?", "Remove", "remove", Minus,
+			func(g memberPackages) []string { return g.active })
 	case OnlyPackages:
 		g := picked[0]
 		chosen := slices.Concat(g.active, g.others)
@@ -159,10 +171,13 @@ func (m *Model) actOnPackages(name string) tea.Cmd {
 				lines = append(lines, line(g.member, Minus, n))
 			}
 		}
-		m.ask = &ask{title: "Make these the active packages? kit keeps what they need, and takes out the rest",
-			lines: lines, run: func(string) []call {
-				return []call{{g.dir, append([]string{packagesVerb, "select"}, chosen...)}}
-			}}
+		title := "Make these the active packages? kit keeps what they need, and takes out the rest"
+		if len(chosen) == 1 {
+			title = "Make this the only active package? kit keeps what it needs, and takes out the rest"
+		}
+		m.ask = &ask{title: title, does: "Select", changes: lines, says: m.inHere(), run: func(string) []call {
+			return []call{{g.dir, append([]string{packagesVerb, "select"}, chosen...)}}
+		}}
 	}
 	return nil
 }

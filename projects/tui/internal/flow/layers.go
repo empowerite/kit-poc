@@ -1,9 +1,9 @@
 // The picture's layers: what it opens over itself, in the one order the keys, the clicks, the keys bar, and the drawing
 // follow, as shell.Layers says, the topmost first: what an issues action asks, which takes every key and click until it
-// is answered; a field's card; the fields dialog, which the card opens over; the presets' menu; the searches remembered
-// under the search's ▾; the app's menu; the workspace menu's dropdown; and the tab's menu. The
-// two menus that hang from the bar take a left click, and leave the others to the screen, as a right click under them
-// groups.
+// is answered, a click on one of its buttons, or off it, answering it; a field's card; the fields dialog, which the
+// card opens over; the presets' menu; the searches remembered under the search's ▾; the app's menu; the workspace
+// menu's dropdown; and the tab's menu. The two menus that hang from the bar take a left click, and leave the others
+// to the screen, as a right click under them groups.
 package flow
 
 import (
@@ -18,16 +18,11 @@ func (m Model) layers() shell.Layers[Model] {
 	menu := func(Model) shell.Segment { return shell.MenuKeys() }
 	layers := shell.Layers[Model]{
 		{ // what an issues action asks
-			Open: func(m Model) bool { return m.ask != nil },
-			Key:  model(Model.askKey),
-			Keys: func(m Model) shell.Segment {
-				_, keys := m.askKeys()
-				return shell.DialogKeys(keys)
-			},
-			Draw: func(m Model, lines []string) []string {
-				box, left := m.askBox()
-				return shell.Over(lines, box, m.top()+1, left)
-			},
+			Open:  func(m Model) bool { return m.ask != nil },
+			Key:   model(Model.askKey),
+			Click: Model.askClick,
+			Keys:  func(m Model) shell.Segment { return shell.DialogKeys(m.askKeys()) },
+			Draw:  func(m Model, lines []string) []string { return m.askBox().Draw(lines) },
 		},
 	}
 	layers = append(layers, table.Overlays[Model]{

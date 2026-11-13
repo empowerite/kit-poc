@@ -1,6 +1,5 @@
 // The Packages app: kit packages opens it on its one tab, a row per package in reach, drawn from the catalog, and its
-// tab's menu adds, removes, and selects the packages selected, each by running kit packages, asking first where files
-// come out.
+// tab's menu adds, removes, and selects the packages selected, each by running kit packages, asking first.
 package flow
 
 import (
@@ -103,9 +102,20 @@ func TestPackagesActionsAreInItsMenuDimUntilTheyApply(t *testing.T) {
 	}
 }
 
-func TestAddRunsKitPackagesAddOnTheInactivePackagesSelectedAndReadsTheStageAgain(t *testing.T) {
+func TestAddListsTheInactivePackagesSelectedRunsKitPackagesAddOnYesAndReadsTheStageAgain(t *testing.T) {
 	m, record := packaged(t, "agents/cursor", "style/yaml", "kit")
 	m = choose(t, m, AddPackages)
+	v := view(m)
+	for _, want := range []string{"Add these packages, and the files they deliver?", Plus + " agents/cursor",
+		Plus + " style/yaml", "│ in empowerite/kit", "│  ⏎ Add    esc Cancel "} {
+		if !strings.Contains(v, want) {
+			t.Errorf("the dialog does not say %q:\n%s", want, v)
+		}
+	}
+	if got := actedOn(t, record); m.ask == nil || len(got) != 0 || strings.Contains(v, Plus+" kit") {
+		t.Fatalf("Add ran %q before it asked, or adds what is active:\n%s", got, v)
+	}
+	m = drive(m, press(tea.KeyEnter))
 	if got := actedOn(t, record); !slices.Equal(got, []string{"packages add agents/cursor style/yaml"}) {
 		t.Fatalf("the calls: %q", got)
 	}
@@ -128,7 +138,7 @@ func TestRemoveListsTheActivePackagesSelectedAndRunsOnlyOnYes(t *testing.T) {
 	m, record := packaged(t, "style/bash", "agents/cursor")
 	m = choose(t, m, RemovePackages)
 	v := view(m)
-	if !strings.Contains(v, "Remove these packages, and the files they delivered?") || !strings.Contains(v,
+	if !strings.Contains(v, "Remove this package, and the files it delivered?") || !strings.Contains(v,
 		Minus+" style/bash") || strings.Contains(v, Minus+" agents/cursor") {
 		t.Fatalf("the dialog:\n%s", v)
 	}
@@ -140,6 +150,22 @@ func TestRemoveListsTheActivePackagesSelectedAndRunsOnlyOnYes(t *testing.T) {
 	drive(m, press(tea.KeyEnter))
 	if got := actedOn(t, record); !slices.Equal(got, []string{"packages remove style/bash"}) {
 		t.Errorf("the calls: %q", got)
+	}
+	// each dialog names one package as one, and several as several
+	m, _ = packaged(t, "style/bash", "kit", "agents/cursor")
+	for name, title := range map[string]string{
+		RemovePackages: "Remove these packages, and the files they delivered?",
+		AddPackages:    "Add this package, and the files it delivers?",
+		OnlyPackages:   "Make these the active packages? kit keeps what they need, and takes out the rest",
+	} {
+		if got := choose(t, m, name); got.ask == nil || got.ask.title != title {
+			t.Errorf("%s asks %+v, want %q", name, got.ask, title)
+		}
+	}
+	m, _ = packaged(t, "kit")
+	if got := choose(t, m, OnlyPackages); got.ask == nil ||
+		got.ask.title != "Make this the only active package? kit keeps what it needs, and takes out the rest" {
+		t.Errorf("Make Only These Active on one package asks %+v", got.ask)
 	}
 }
 
@@ -164,7 +190,7 @@ func TestMakeOnlyTheseActiveListsWhatItKeepsAddsAndTakesOutThenRunsSelect(t *tes
 func TestAPackagesRefusalIsTheKeysBarsLineAndKeepsTheSelection(t *testing.T) {
 	t.Setenv("FAKE_FLOW_REFUSE", "packages add")
 	m, _ := packaged(t, "agents/cursor")
-	m = choose(t, m, AddPackages)
+	m = confirmed(t, m, AddPackages)
 	last := lines(m)[len(lines(m))-1]
 	if !strings.Contains(last, "kit packages add refuses for the test") || m.selected() != 1 {
 		t.Errorf("after a refusal: %q, %d selected", last, m.selected())
@@ -193,7 +219,7 @@ func TestOverAGroupAPackagesActionRunsInEachMembersCheckout(t *testing.T) {
 	b, _ := filepath.EvalSymlinks(t.TempDir())
 	m.ws.Members = []kit.WorkspaceMember{{Repository: "github.com/o/a", Checkout: a},
 		{Repository: "github.com/o/b", Checkout: b}}
-	m = choose(t, m, AddPackages)
+	m = confirmed(t, m, AddPackages)
 	// the add cleared the selection, and the stage read the rows again, as the fake prints them
 	m = drive(m, source.Answer[[]byte]{Name: packagesStage, Gen: m.find(packagesStage).src.Gen(), Value: []byte(
 		`{"rows": [{"key": "kit", "member": "github.com/o/a", "state": "active", "links": {}}], "errors": []}`)})

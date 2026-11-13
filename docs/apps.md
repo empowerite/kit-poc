@@ -320,10 +320,11 @@ verb: `--stages`, `--marks`, and its one stage, `kit packages packages`.
   `depends` and `includes` are the package's own; `dependents` are the active packages that depend on it, which
   `kit packages remove` refuses it for, and `bundles` the active bundles that include it. Where kit was never
   installed, the stage refuses with kit packages' own line.
-- Packages' tab menu acts on the packages selected, each action a kit verb kittui runs: Add runs `kit packages add`
-  on the selected packages that are not active; Remove… lists the active ones and asks before it runs
-  `kit packages remove`, which takes their files out; Make Only These Active… lists what it keeps, adds, and takes
-  out, and asks before it runs `kit packages select`. Over a workspace, each runs in its member's checkout.
+- Packages' tab menu acts on the packages selected, each action a kit verb kittui runs, and each asks first: Add
+  lists the selected packages that are not active, and asks before it runs `kit packages add`; Remove… lists the
+  active ones and asks before it runs `kit packages remove`, which takes their files out; Make Only These Active…
+  lists what it keeps, adds, and takes out, and asks before it runs `kit packages select`. Over a workspace, each runs
+  in its member's checkout.
 
 see: [toolchains.md](toolchains.md), [workspaces.md](workspaces.md), [integrations/gh.md](integrations/gh.md),
 [integrations/glab.md](integrations/glab.md), [integrations/az.md](integrations/az.md)

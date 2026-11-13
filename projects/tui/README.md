@@ -18,7 +18,11 @@ It has six screens:
   keyboard, and a second click there runs it, as ⏎ does, so no single click runs a command.
 - **The flow picture.** `kit flow` at a terminal draws its stages here. Over a group, `kit --workspace=<group> flow`
   or one picked from the 📚 workspace menu, every tab gathers every cloned member's rows, grouped by member as they
-  load. An action on rows runs in each row's member's checkout.
+  load. An action on rows runs in each row's member's checkout. An action that writes, on issues or on packages, asks
+  first, once, in one dialog: its title says what it will do, a line for each issue or package says which it changes,
+  the repository is named under them, and for `kit work`, what it makes. The dialog has two buttons. ⏎, or a click on
+  the button that does it, runs kit. Esc, a click on Cancel, or a click off the dialog runs nothing and keeps the
+  selection. Where an action ran more than one command, the notice says how many.
 - **The workspace picture.** `kit workspace` at a terminal draws what git holds across the workspace here: the 📚 repos
   tab first, a row per member of the workspace, then a tab for each of git's entities, remotes, branches, worktrees,
   commits, and tags. It is the flow picture's screen on kit workspace's stages, which kittui knows after `workspace/`,
@@ -216,7 +220,8 @@ Each screen reads what it shows from kit as JSON. A form reads `kit syntax <verb
     ascending and lowered for descending, as each points, ¹ and ₁ for the first, ² and ₂ for the second, as
     grid.DirectionMark gives it to the rule, the columns dialog, the card and the legend, never a full-size ▲ or ▼; the
     card's lines carry ¹ and ₁ alone, ⁿ and ₙ where other things order the rows. The line under the keyboard in a menu
-    or a dialog stands on the menu's bright cyan, in black, and a dialog's keys are the keys bar's alone. A column's
+    or a dialog stands on the menu's bright cyan, in black, and a dialog's keys are the keys bar's alone, except in
+    the dialog an action asks in, whose two buttons name ⏎ and esc. A column's
     sort mark stands on the rule under the first cell of its name, wherever the name aligns. A dim · there says the
     column can sort and does not; a column that cannot sort has the rule alone.
     A list has its mark under that first cell, what a click on it does: ×, dim, while a row holds all its values, which
