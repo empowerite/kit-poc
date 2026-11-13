@@ -29,16 +29,16 @@ see: [forges.md](forges.md), [../workspaces.md](../workspaces.md), `kit/modules/
 | --- | --- | --- |
 | git is on PATH | read | `welcome:tool`: `kit welcome`; `guard:require tool:git`: `kit commit`, `kit submit`, `kit rebase`, `kit release`, `kit flow`, `kit workspace` |
 | Inside a repository, and its root | read | `kit:enter`, which moves every verb to the root; `welcome:repository`: `kit welcome`; `workspaces:in-repository`: `kit flow`, `kit workspace`; `context:relative`, `policy:from`, `across:repos`, `materialize:all`: `kit install`, `kit update`, `kit check` |
-| The git directory and the common one | read | `git:main-root`: `kit commit`, `kit rebase`, `kit work`, the desk stage, `kit workspace`; `flow:in-worktree`: the worktrees stage; `welcome:where`; the files kit keeps under `${common}/kit/`: `context:log-path` and `context:matcher` (`kit context`), `flow:kept` (`kit flow`), `forge:snapshots` (the forge seam), `toolchain:kept` and `toolchain:recorded` (the toolchain chosen here) |
-| The branch checked out, and HEAD's commit | read | `commit:branch`: `kit commit`, `kit submit`; `git:rebase`: `kit rebase`; `policy:branch`: `kit policy`, `kit facts`; `issue:start`: `kit work`; `changes:documents`: the changes stage; each provider's `pr-here`: `kit linked`, `kit ready`, `kit settle`; the desk and worktrees stages; `welcome:where` |
-| Uncommitted changes | read | `git:clean`: `kit tidy`, `kit rebase`, `kit work`; `flow:checkout`: the desk and worktrees stages; `commit:choices`: the paths `kit commit` completes |
-| A checkout's status with its branch | read | `workspace:worktrees`: the worktrees stage of `kit workspace`; `marks:status`: the desk and worktrees marks of `kit flow --marks`; `workspace:marks`: `kit workspace --marks` |
-| Every worktree, the desk first | read | `git:linked-worktrees`: the worktrees stage; `git:worktrees`: `kit tidy`; `issue:worktree`: `kit work`; `issues:checkouts`: the issues stage; `workspace:paths`, `workspace::worktrees`, `workspace::heads`: `kit workspace`; `across:branches`: `kit workspace` over a workspace; `marks:desk`, `marks:worktrees` |
+| The git directory and the common one | read | `git:main-root`: `kit commit`, `kit rebase`, `kit work`, the desk stage, `kit workspace`; `flow:in-worktree`: the worktrees stage; `welcome:here`; the files kit keeps under `${common}/kit/`: `context:log-path` and `context:matcher` (`kit context`), `flow:kept` (`kit flow`), `forge:snapshots` (the forge seam), `toolchain:kept` and `toolchain:recorded` (the toolchain chosen here) |
+| The branch checked out, and HEAD's commit | read | `commit:branch`: `kit commit`, `kit submit`; `git:rebase`: `kit rebase`; `policy:branch`: `kit policy`, `kit facts`; `issue:start`: `kit work`; `changes:documents`: the changes stage; each provider's `pr-here`: `kit linked`, `kit ready`, `kit settle`; the desk and worktrees stages; `welcome:here` |
+| Uncommitted changes | read | `git:clean`: `kit tidy`, `kit rebase`, `kit work`; `commit:choices`: the paths `kit commit` completes |
+| A checkout's status with its branch | read | `workspace:worktrees`: the worktrees stage of `kit workspace`; `workspace:marks`: `kit workspace --marks` |
+| Every worktree, the desk first | read | `git:linked-worktrees`: the worktrees stage; `git:worktrees`: `kit tidy`; `issue:worktree`: `kit work`; `issues:checkouts`: the issues stage; `workspace:paths`, `workspace::worktrees`, `workspace::heads`: `kit workspace`; `across:branches`: `kit workspace` over a workspace |
 | Add a worktree for a branch | write | `issue:worktree`: `kit work` |
 | Remove a finished worktree, and prune git's records | write | `git:tidy-worktree`, `git:tidy`: `kit tidy`; `git:tidy-wait`: `kit tidy --wait`, once the change merges |
 | The default branch | read | `git:default-branch`, the primary's HEAD, else `main`: `kit commit`, `kit rebase`, `kit tidy`, `kit work`, `kit release`, `kit facts`, `kit policy`, `kit flow`, `kit workspace`; `flow:remote-default`: the incoming stage; `workspace:remote-facts`: the remotes stage of `kit workspace`; `policy:base` says why one is missing |
 | Local and remote branches, with their upstreams | read | `flow:incoming-rows`: the incoming stage, the local branches on each remote branch; `workspace:branches`: the branches stage of `kit workspace`; `issues:branches` and `issues:documents`: the issues stage; `across:branches`; `git:gone-branches`: `kit tidy`, the worktrees stage |
-| A ref names a commit | read | `commit:submit`, `commit:index`, `commit:named`, `commit:moved`: `kit commit`, `kit submit`; `git:rebase`, `git:unpushed`; `issue:worktree`; `releases:release`; `policy:base`, `facts:document`; `workspace:base`; `flow:remote-default`, `flow:checkout` |
+| A ref names a commit | read | `commit:submit`, `commit:index`, `commit:named`, `commit:moved`: `kit commit`, `kit submit`; `git:rebase`, `git:unpushed`; `issue:worktree`; `releases:release`; `policy:base`, `facts:document`; `workspace:base`; `flow:remote-default` |
 | A branch name is valid | read | `policy:target-here`: `kit policy` on a GitLab merge request |
 | A branch's upstream | read | `git:pushes-to`: `kit submit`, `kit work`, `kit rebase` |
 | Delete a branch whose upstream is gone | write | `git:tidy`: `kit tidy` |
@@ -47,11 +47,10 @@ see: [forges.md](forges.md), [../workspaces.md](../workspaces.md), `kit/modules/
 | What a remote has, without fetching | read | `releases:on-origin`, `releases:release`: `kit release`; `issue:branch`: `kit work`; `marks:incoming`: the incoming mark |
 | Fetch a remote | write | `git:tidy`: `kit tidy`, every remote; `git:rebase`: `kit rebase`; `issue:start`, `issue:branch`: `kit work`; `releases:release`: `kit release`; `policy:target-here`: `kit policy`; `flow:incoming`: the incoming stage; `flow:picture`: `kit flow`, before the desk and worktrees stages |
 | Push a branch or a tag | write | `git:push`: `kit submit`, `kit work`, and `kit rebase`, which forces with a lease; `issue:branch`: `kit work` makes the branch on the push remote; `releases:release`: `kit release` |
-| Ahead and behind the default branch | read | `flow:incoming-rows`: the incoming stage, a local branch against its upstream; `flow:fork`, `flow:checkout`: the desk and worktrees stages; `workspace:worktrees`: `kit workspace` |
+| Ahead and behind the default branch | read | `flow:incoming-rows`: the incoming stage, a local branch against its upstream; `workspace:worktrees`: `kit workspace` |
 | Commits no remote has | read | `git:unpushed`: `kit tidy`; `commit:submit`: `kit submit`; `releases:release`: `kit release`; `issue:start-commit`: `kit work`; `workspace:commits`: `kit workspace` |
 | Ancestry | read | `flow:incoming-rows`: the incoming stage, a branch force-pushed; `git:tidy-worktree`: `kit tidy`; `git:rebase`: `kit rebase`; `releases:release`: `kit release`; `facts:document`: `kit facts`, `kit policy` |
-| Commits and their subjects | read | `facts:document`: `kit facts`, `kit policy`; `flow:fetch-json`: the incoming stage; `flow:incoming-rows`, `flow:tip`: the incoming stage's rows, each commit's author and age too; `flow:checkout`: the desk and worktrees stages; `workspace:commits`: the commits stage of `kit workspace`; `commit:behind`, `commit:moved`, `commit:commit`: `kit commit`; `releases:release`; `issue:sweep-push` |
-| The lines a checkout changes | read | `flow:checkout`: the desk and worktrees stages |
+| Commits and their subjects | read | `facts:document`: `kit facts`, `kit policy`; `flow:fetch-json`: the incoming stage; `flow:incoming-rows`, `flow:tip`: the incoming stage's rows, each commit's author and age too; `workspace:commits`: the commits stage of `kit workspace`; `commit:behind`, `commit:moved`, `commit:commit`: `kit commit`; `releases:release`; `issue:sweep-push` |
 | Make a commit | write | `git:commit`: `kit commit`, and `kit work`'s empty start commit |
 | Rebase onto the default branch | write | `git:rebase`: `kit rebase` |
 | The tags | read | `forge:tags`: each provider's runs, for the builds stage; `workspace:tags`: the tags stage of `kit workspace`; `flow:refs`: the incoming stage; `flow:incoming-rows`: the incoming stage's rows, a tag's commit, tagger, and subject; `workspace:marks` |
@@ -128,8 +127,6 @@ see: [forges.md](forges.md), [../workspaces.md](../workspaces.md), `kit/modules/
 | Capability | Command |
 | --- | --- |
 | A worktree ahead and behind the default branch | `git -C "${path}" rev-list --left-right --count "${base}...HEAD"` |
-| Where a branch left the default branch | `git merge-base --end-of-options "${primary}/${default}" "${branch}"`, else `git merge-base --end-of-options "${default}" "${branch}"` |
-| Ahead and behind that fork | `git rev-list --count "${fork}..${branch}"`; `git rev-list --count "${fork}..${primary}/${default}"` |
 | Ahead of the remote's branch | `git rev-list --count "refs/remotes/${remote}/${branch}..HEAD"` |
 | The remote's commits a worktree lacks | `git -C "${worktree}" rev-list --count "HEAD..${theirs}"` |
 | A branch's commits no remote has | `git rev-list --count "refs/heads/${branch}" --not --remotes`; then `git rev-list --count "refs/heads/${branch}" --not --remotes "${head}"` |
@@ -144,12 +141,10 @@ see: [forges.md](forges.md), [../workspaces.md](../workspaces.md), `kit/modules/
 | --- | --- |
 | The commits past a branch's base | `git log --no-merges --format='%H%x1f%s' "${base}..HEAD"` |
 | The commits a fetch brought to the default branch | `git log --format='%h%x09%s' "${old}..${new}"` |
-| A checkout's commits past its fork | `git -C "${path}" log --format='%h%x09%s' "${fork}..${branch}"` |
 | The commits each local branch holds | `git rev-list --max-count="${workspace_commits}" "refs/heads/${branch}" --not "${base}"` |
 | The local branches' commits | `git log --branches --not "${base}" --max-count="${workspace_commits}" --format='%H%x1f%h%x1f%ct%x1f%an%x1f%s'` |
 | A commit's subject | `git log -1 --format=%s HEAD`; `git log -1 --format='%h %s'`; `git log -1 --format='%h %s' "${last}"`; `git -C "${root}" log -1 --format=%s "${after}"` |
 | The last commit that changed a path, and the path before it | `git log -1 --format=%H HEAD -- ":(literal)${path}"`; `git rev-parse --verify --quiet "${last}^:${path}"` |
-| The lines a checkout changes | `git -C "${path}" diff --numstat "${fork}"`, or `HEAD` with no fork |
 
 ### Read the tags
 
@@ -243,7 +238,7 @@ after each record. `git:linked-worktrees`, `git:worktrees`, `workspace::worktree
 ### git status --porcelain=v2 --branch
 
 Header lines that start with `#`, then one line per changed path. `workspace::status` reads it for the worktrees
-stage of `kit workspace`, and `marks:status` hashes it whole for the desk and worktrees marks.
+stage of `kit workspace`.
 [git's porcelain format version 2](https://git-scm.com/docs/git-status#_porcelain_format_version_2).
 
 | Field | What it holds | What kit does with it |
@@ -268,7 +263,7 @@ ends in a NUL and a rename's or a copy's old name is the record after it.
 | Field | What it holds | What kit does with it |
 | --- | --- | --- |
 | the output as a whole | nothing for a clean checkout | `git:clean` is true when it is empty: `kit tidy`, `kit rebase`, `kit work` |
-| `${xy}`, characters 1 and 2 | the status in the index and in the working tree, `??` for untracked | `flow::checkout` keeps it as a change's status; `commit:choices` names it untracked, modified, deleted, added, staged, renamed, or changed, and marks a path staged already as active |
+| `${xy}`, characters 1 and 2 | the status in the index and in the working tree, `??` for untracked | `commit:choices` names it untracked, modified, deleted, added, staged, renamed, or changed, and marks a path staged already as active |
 | `${path}`, from character 4 | the path, root-relative | a change's path; with `-z`, `commit:choices` skips the old name after a rename or a copy |
 
 ### git for-each-ref --format
@@ -307,9 +302,9 @@ and `git rev-list` alone one commit a line. [git rev-list](https://git-scm.com/d
 
 | Field | What it holds | What kit does with it |
 | --- | --- | --- |
-| `${left}` | the commits the default branch has past the fork | `workspace::worktrees`'s base, its second value: behind |
-| `${right}` | the commits HEAD has past the fork | the base's first value: ahead |
-| the count, alone | the commits a range or a `--not` list leaves | ahead and behind in the desk and worktrees stages; `git:unpushed`; what `kit submit` and a tag push send |
+| `${left}` | the commits the default branch has past HEAD | `workspace::worktrees`'s base, its second value: behind |
+| `${right}` | the commits HEAD has past the default branch | the base's first value: ahead |
+| the count, alone | the commits a range or a `--not` list leaves | ahead and behind in the incoming stage; `git:unpushed`; what `kit submit` and a tag push send |
 | one commit a line | the commits a range holds | `workspace:commits` maps each to its branches and marks those no remote has; `issue:start-commit` adds the start commit when there is none |
 
 ### git ls-remote
@@ -351,17 +346,6 @@ whole. `facts:tree` reads both for `kit facts`, and `policy:object` and `policy:
 | `${object}` | the blob, or the commit a submodule is at | a fact's `blob`; `cat-file` reads its size and its text |
 | `${stage}` | `0`, or `1` to `3` for a conflict, in `ls-files` alone | kit keeps stage `0` |
 | `${path}` | the path, root-relative | the fact's key |
-
-### git diff --numstat
-
-`${added}\t${removed}\t${path}` per path, `-` for each count of a binary file.
-[git diff](https://git-scm.com/docs/git-diff), whose `--numstat` says this.
-
-| Field | What it holds | What kit does with it |
-| --- | --- | --- |
-| `${added}` | the lines added | summed as the checkout's `added`; `-` counts nothing |
-| `${removed}` | the lines removed | summed as the checkout's `removed`; `-` counts nothing |
-| `${path}` | the path | not read |
 
 ### git cat-file
 
@@ -422,8 +406,8 @@ git publishes no JSON Schema and prints no JSON. Its formats for scripts are doc
 linked above, and its manual promises that a porcelain format does not change in a way that breaks a script.
 
 kit turns git's output into JSON in several places, and none of them is git's format alone: `workspace.jq` makes the
-rows of `kit workspace` from several git commands joined with each remote's forge and links, `flow::checkout` makes
-the desk and worktrees stages' documents from `git status --porcelain`, `git diff --numstat`, and `git log`,
+rows of `kit workspace` from several git commands joined with each remote's forge and links, `workspace::worktrees` makes
+the worktrees stage's rows from `git status --porcelain=v2` and `git rev-list`,
 `facts:tree` makes the `tree` of `kit facts` from `git ls-files` or `git ls-tree` with each path's kinds, and
 `forge:tags` and `issues:checkouts` make a list and a map. A schema of any of them describes a verb's output, not
 git's, so this page writes none; [../workspaces.md](../workspaces.md) says what `kit workspace --json` prints, and

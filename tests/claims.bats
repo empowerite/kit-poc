@@ -539,6 +539,40 @@ EOF
   (( ${#found[@]} == 0 )) || { printf '%s\n' "${found[@]}"; return 1; }
 }
 
+@test "a schema of a tool's output and git.md name only the jq definitions and the functions the code holds" {
+  local schema name provider found=()
+  cd "${root}"
+  # git.md's tables name the functions that run each git call, in code spans: bash:name and module::name
+  while read -r name
+  do
+    grep --quiet --recursive --fixed-strings "${name}() " kit/modules kit/bin \
+      || found+=("docs/integrations/git.md: names ${name}, which kit does not define")
+  done < <(grep --only-matching '`[a-z/_]*:[a-z0-9-]*`' docs/integrations/git.md | tr -d '`' | sort -u)
+  while read -r name
+  do
+    grep --quiet --extended-regexp "^def ${name#*::}[(:]" "kit/modules/jq/${name%%::*}.jq" \
+      || found+=("docs/integrations/git.md: names ${name}, which kit/modules/jq does not define")
+  done < <(grep --only-matching '`[a-z]*::[a-z_0-9]*`' docs/integrations/git.md | tr -d '`' | sort -u)
+  for schema in docs/integrations/*/*.schema.json
+  do
+    # the text of a schema is its descriptions; a name in one is a claim about the code
+    while read -r name
+    do
+      grep --quiet --extended-regexp "^def ${name#forge::}[(:]" kit/modules/jq/forge.jq \
+        || found+=("${schema}: names ${name}, which kit/modules/jq/forge.jq does not define")
+    done < <(jq --raw-output '[.. | strings] | join("\n")' "${schema}" | grep --only-matching 'forge::[a-z_0-9]*' | sort -u)
+    while read -r name
+    do
+      provider=${name%%:*}
+      grep --quiet --fixed-strings "${name}() " "kit/modules/bash/${provider}.sh" \
+        || found+=("${schema}: names ${name}, which kit/modules/bash/${provider}.sh does not define")
+    done < <(jq --raw-output '[.. | strings] | join("\n")' "${schema}" \
+      | grep --only-matching 'forge/[a-z]*:[a-z0-9-]*' | sort -u)
+  done
+  cd "${BATS_TEST_TMPDIR}"
+  (( ${#found[@]} == 0 )) || { printf '%s\n' "${found[@]}"; return 1; }
+}
+
 @test "the screen the README shows is one kittui draws: Flow's golden at 80 columns, less the spaces that end a line" {
   local golden=projects/tui/internal/flow/testdata/issues.golden shown drawn
   # the first text block under the heading, as the page shows it
