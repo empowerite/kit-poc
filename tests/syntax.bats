@@ -382,7 +382,7 @@ setup() {
   run "${kit_root}/bin/kit" syntax packages --choices='<package>' -- --kind
   [ "$output" = closed ]
   run "${kit_root}/bin/kit" packages add nonesuch
-  [[ "$output" == *"<package> 'nonesuch' is not one of the choices"* ]]
+  [[ "$output" == *"'nonesuch' is not a package; the choices are: "* ]]
 }
 
 @test "the tracked files a path is picked from are relative to where the command was typed" {

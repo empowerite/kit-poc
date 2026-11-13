@@ -105,7 +105,7 @@ tree-digest() {
 @test "install refuses a package this release does not know, in the words the form uses, and the choices list the known ones" {
   run "${kit_checkout}/bin/kit" install gemini
   [ "$status" -eq 2 ]
-  [[ "$output" == *"<package> 'gemini' is not one of the choices; run: cd "*" && kit help install"* ]]
+  [[ "$output" == *"'gemini' is not a package; the choices are: "*"; run: cd "*" && kit help install"* ]]
   run "${kit_checkout}/bin/kit" syntax install --choices='<package>'
   [[ "$(cut -f 1 <<<"$output" | paste -s -d ' ' -)" == "agents/claude agents/copilot agents/cursor agents/gemini agents/generic empowerite github/ci hooks/lefthook kit policy/conventional policy/opa style/bash"* ]]
   [ ! -e .kit/manifest ]
@@ -832,7 +832,7 @@ tree-digest() {
   [ -f .kit/styles/yaml.md ]
   run "${kit_checkout}/bin/kit" packages add 'nothing/*'
   [ "$status" -eq 2 ]
-  [[ "$output" == *"<package> 'nothing/*' is not one of the choices; run: cd "*" && kit help packages"* ]]
+  [[ "$output" == *"'nothing/*' is not a package; the choices are: "*"; run: cd "*" && kit help packages"* ]]
 }
 
 @test "a bundle brings its members in, a member leaves on its own, and the exclusion holds through update" {

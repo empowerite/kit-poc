@@ -123,17 +123,17 @@ setup() {
 @test "a value off a closed set is refused in one line by the verb itself, a glob that matches is not, and an open set never refuses" {
   run "${kit_root}/bin/kit" packages add nonesuch
   [ "$status" -eq 2 ]
-  [[ "$output" == *"<package> 'nonesuch' is not one of the choices; run: cd "*" && kit help packages"* ]]
+  [[ "$output" == *"'nonesuch' is not a package; the choices are: "*"; run: cd "*" && kit help packages"* ]]
   run kit-bash 'syntax:match packages select "style/*" kit; echo "$?"'
   [ "$output" = 0 ]
   run kit-bash 'syntax:match packages select "nonesuch/*"; echo "$? ${syntax_refusal}"'
-  [ "$output" = "2 <package> 'nonesuch/*' is not one of the choices; run: kit help packages" ]
+  [[ "$output" == "2 'nonesuch/*' is not a package; the choices are: "*"; run: kit help packages" ]]
   # a rule's variants are its templates in this repository
   "${kit_root}/bin/kit" install style/markdown >/dev/null 2>&1
   run kit-bash 'syntax:match new file x --rule=markdown --variant=document; echo "$?"'
   [ "$output" = 0 ]
   run kit-bash 'syntax:match new file x --rule=markdown --variant=nonesuch; echo "$? ${syntax_refusal}"'
-  [ "$output" = "2 --variant 'nonesuch' is not one of the choices; run: kit help new" ]
+  [[ "$output" == "2 --variant 'nonesuch' is not a choice; the choices are: "*"; run: kit help new" ]]
   run kit-bash 'syntax:match context nonesuch.md; echo "$?"'
   [ "$output" = 0 ]
 }

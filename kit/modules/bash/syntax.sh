@@ -328,7 +328,8 @@ syntax:check() {
 # (each flag or option given, by its key, to its values joined by newlines; a flag's is 1),
 # syntax_values (every operand and option key given, to its values the same way), and syntax_command (the index
 # among the arguments, from 0, of a command's first word; empty where the line holds none). When the arguments
-# complete the syntax, a value off a closed set of choices is refused too: <key> '<value>' is not one of the choices.
+# complete the syntax, a value off a closed set of choices is refused too, naming the choices: '<value>' is not a <noun>;
+# the choices are: …
 syntax:match() {
   local verb=$1 syntax status=0 key name count value i n
   local -a fields usage
@@ -419,11 +420,30 @@ syntax:closed() {
     while IFS= read -r value
     do
       syntax:offered "${value}" "${choices}" && continue
-      syntax_refusal="${key} '${value}' is not one of the choices; run: kit help ${verb}"
+      syntax:refuse-choice "${key}" "${value}" "${choices}"
+      syntax_refusal+="; run: kit help ${verb}"
       return 2
     done <<<"${syntax_values[${key}]}"
   done
   return 0
+}
+
+# syntax:refuse-choice <key> <value> <choices> sets syntax_refusal to the refusal of a value off a closed set, the key's
+# noun, as the choices (one per line) read cut near 100 characters: an operand <package> is "a package", and an option
+# --option is named before the value, as "--option 'value' is not a choice".
+syntax:refuse-choice() {
+  local list
+  list=$(paste -sd, - <<<"$3")
+  list=${list//,/, }
+  if (( ${#list} > 100 ))
+  then
+    list=${list:0:100}
+    list="${list%, *}, "$'\u2026'
+  fi
+  if [[ "$1" == \<*\> ]]
+  then syntax_refusal="'$2' is not a ${1:1:${#1}-2}; the choices are: ${list}"
+  else syntax_refusal="$1 '$2' is not a choice; the choices are: ${list}"
+  fi
 }
 
 # syntax:offered <value> <choices> succeeds when the value is one of the choices, one per line, or is a glob that

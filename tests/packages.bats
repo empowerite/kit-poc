@@ -99,7 +99,7 @@ setup() {
   # a word that is no verb of kit packages is a package name, and one the kit does not know is refused
   run "${kit_checkout}/bin/kit" packages list
   [ "$status" -eq 2 ]
-  [[ "$output" == *"<package> 'list' is not one of the choices; run: cd "*" && kit help packages"* ]]
+  [[ "$output" == *"'list' is not a package; the choices are: "*"; run: cd "*" && kit help packages"* ]]
 }
 
 @test "kit new kind writes a kind into the repository's own package, which kit kinds then lists and applies to a path" {
