@@ -106,6 +106,10 @@ declare -ga welcome_folders=()
 # welcome:progress says it.
 declare -g welcome_progress=false
 
+# welcome_machine is true when kit welcome --machine asked for the machine alone: no folder is judged, and no repository
+# is read, so the forge checks are those of github.com, the forge kit supports, and not of the hosts of a workspace.
+declare -g welcome_machine=false
+
 # welcome_where is what a check adds to say where it holds: {folder, repository, desk, branch, kit}, each null for a
 # machine check. welcome:folder-checks sets it for the folder it judges.
 declare -g welcome_where='{"folder":null,"repository":null,"desk":null,"branch":null,"kit":null}'
@@ -558,6 +562,11 @@ welcome:hooks-active() {
 welcome:hosts() {
   local record repository desk folder forge host
   local -A read=() seen=()
+  if [[ "${welcome_machine}" == true ]]
+  then
+    printf 'github\tgithub.com\n'
+    return 0
+  fi
   for record in "${welcome_folders[@]}"
   do
     IFS=$'\x1f' read -r repository desk folder <<<"${record}"
@@ -703,6 +712,7 @@ welcome:folders() {
   local -a records=()
   local -A seen=()
   welcome_folders=()
+  [[ "${welcome_machine}" != true ]] || return 0
   if [[ "${given}" == none ]] && top=$(workspaces:in-repository)
   then
     given=${top}

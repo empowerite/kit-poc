@@ -4,7 +4,6 @@ package welcome
 
 import (
 	"cmp"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -96,7 +95,6 @@ func (m Model) View() tea.View {
 	}
 	lines = m.recent.Overlay(append(lines, ""), m.recallAt(), m.width)
 	lines = m.appMenu.Overlay(lines, m.width)
-	lines = m.books.Overlay(lines, m.booksAt(), m.width)
 	return shell.View(lines, m.height, m.bottom())
 }
 
@@ -143,19 +141,16 @@ func (m Model) bar() tabs.Bar {
 // keys is the pane's last line, where a window says how many rows it hides below, so the rows have the line above it.
 func (m Model) paneHeight() int { return max(1, m.height-m.paneTop()-1) }
 
-// menuBar gives the menu bar, as internal/shell draws every screen's: the kit menu's = before kit welcome; the
-// workspace menu, which names the workspace; maximized, the selected tab, as the bar draws it but its number in place
-// of its glyph, its : last; and the search field.
+// menuBar gives the menu bar, as internal/shell draws every screen's: the kit menu's = before kit welcome, and no
+// workspace menu, as the welcome is about no workspace; maximized, the selected tab, as the bar draws it but its number
+// in place of its glyph, its : last; and the search field.
 func (m Model) menuBar() shell.MenuBar {
-	b := shell.MenuBar{Screen: appLabel, Open: m.appMenu.Open, Workspace: m.books.Label(), Crumb: m.appMenu.Crumb, Search: m.searchLine()}
+	b := shell.MenuBar{Screen: appLabel, Open: m.appMenu.Open, Crumb: m.appMenu.Crumb, Search: m.searchLine()}
 	if m.maximized {
 		b.On = m.bar().NumberedLabel()
 	}
 	return b
 }
-
-// booksAt gives the column the menu bar's workspace menu starts at.
-func (m Model) booksAt() int { return m.menuBar().WorkspaceAt() }
 
 // keys gives the path to the keyboard, which the keys bar is drawn from: the screen; the steps' bar, whose down enters
 // the step's checks, its table, which the table's name names, or its page; and the pane while it has the keyboard, the
@@ -163,7 +158,7 @@ func (m Model) booksAt() int { return m.menuBar().WorkspaceAt() }
 // none of its checks, as enters says, the bar names no down, and the search's Enter is named by the tabs it leads to.
 // An open menu takes every press, and is the path alone, as a layer of the step's table is.
 func (m Model) keys() shell.Path {
-	if m.appMenu.Open || m.recent.Open || m.books.Open || m.tabMenu.Open {
+	if m.appMenu.Open || m.recent.Open || m.tabMenu.Open {
 		return shell.Path{shell.MenuKeys()}
 	}
 	if m.gridded() {
@@ -185,7 +180,7 @@ func (m Model) keys() shell.Path {
 		// the bar is not there to move along
 		bar.Bindings = slices.DeleteFunc(bar.Bindings, func(b shell.Binding) bool { return b.Key == "⇥·⇧⇥" })
 	}
-	path := shell.Path{shell.WorkspaceScreenKeys(shell.CrumbOf(m.appMenu.Crumb)...), bar}
+	path := shell.Path{shell.ScreenKeys(shell.CrumbOf(m.appMenu.Crumb)...), bar}
 	switch {
 	case m.search().Focused:
 		search := shell.SearchKeys(cmp.Or(down, "tabs"), m.search().Query, m.recalls())
@@ -193,13 +188,6 @@ func (m Model) keys() shell.Path {
 		return append(path, search)
 	case m.inPane && m.gridded():
 		seg, _ := m.sheet().Keys()
-		seg.Bindings = slices.Clone(seg.Bindings)
-		if m.copies() {
-			seg.Bindings = append(seg.Bindings, fix.Bindings(m.runsHere())...)
-		}
-		if m.keeping() {
-			seg.Bindings = append(seg.Bindings, shell.Bind("k", keepName))
-		}
 		return append(path, seg)
 	case m.inPane:
 		return append(path, m.paneKeys())
@@ -276,25 +264,13 @@ func (m Model) pane() []string {
 	return out
 }
 
-// lines gives the selected step's lines: a step with checks has its page's title, its checks, setup then the members
-// of the workspace's group with no checkout, and the rest of its page under them; any other step has its page.
+// lines gives the selected step's lines: a step with checks has its page's title, its checks, and the rest of its page
+// under them; any other step has its page.
 func (m Model) lines() []line {
-	switch {
-	case m.hasRows():
-		return m.footed(append(m.stepLines(), m.notCloned()...))
+	if m.hasRows() {
+		return m.footed(m.stepLines())
 	}
 	return m.pageText(m.step)
-}
-
-// notCloned gives the lines setup ends with where the workspace's group has members with no checkout: a blank line,
-// then their names, dim. Any other step has none.
-func (m Model) notCloned() []line {
-	gone := uncloned(m.workspace)
-	if m.tabs[m.step].id != setupID || len(gone) == 0 {
-		return nil
-	}
-	return []line{{row: -1}, {row: -1, text: pane.Clip(lead+style.Off("not cloned: "+strings.Join(gone, ", ")),
-		m.width-1)}}
 }
 
 // pageLines gives a page's lines, as pageText does, their texts alone.
@@ -404,7 +380,7 @@ func (m Model) stepLines() []line {
 		return out
 	}
 	for _, i := range rows {
-		out = append(out, m.checkLines(i, m.checks[i].Key(), "")...)
+		out = append(out, m.checkLines(i)...)
 	}
 	return append(out, m.stepTail(rows)...)
 }
@@ -429,16 +405,12 @@ func (m Model) stepHead() []line {
 	return out
 }
 
-// addChecking adds the lines that say the checks run: checking…, then, dim under it, the check each folder is on, and
-// the machine's, as kit says it starts each: <check> in <folder's name>.
+// addChecking adds the lines that say the checks run: checking…, then, dim under it, the check kit is on, as kit says
+// it starts it.
 func (m Model) addChecking(add func(row int, text string)) {
 	add(-1, lead+style.Off("checking…"))
-	for _, p := range m.running {
-		text := p.Check
-		if p.Folder != "" {
-			text += " in " + filepath.Base(p.Folder)
-		}
-		add(-1, lead+"  "+style.Off(text))
+	if m.running != "" {
+		add(-1, lead+"  "+style.Off(m.running))
 	}
 }
 
@@ -454,16 +426,15 @@ func (m Model) stepTail(rows []int) []line {
 	return out
 }
 
-// checkLines gives a check's lines, after the indent: ✅, 💡 for an offer, or ❌, and its line, then, where no folder's
-// row is drawn above it, its folder, the cursor's row drawn as chosen with its buttons, as rowButtons draws them; under
-// it, each of its findings, a line each; under a failed check or an offer, its fix, dim; under a failed check, where to
-// read more; and the note its fix left.
-func (m Model) checkLines(i int, key, indent string) []line {
-	c, w := m.checks[i], m.width-1
-	focused := m.hasRows() && m.inPane && i == m.cursor
-	start, text, glyph := indent+lead, c.Line, Passed
+// checkLines gives a check's lines: ✅, 💡 for an offer, or ❌, and its line, the cursor's row drawn as chosen with its
+// buttons, as rowButtons draws them; under it, each of its findings, a line each; under a failed check or an offer, its
+// fix, dim; under a failed check, where to read more; and the note its fix left.
+func (m Model) checkLines(i int) []line {
+	c, w, key := m.checks[i], m.width-1, m.checks[i].Key()
+	focused := m.inPane && i == m.cursor
+	start, text, glyph := lead, c.Line, Passed
 	if focused {
-		start, text = indent+focus, style.Chosen(c.Line)
+		start, text = focus, style.Chosen(c.Line)
 	}
 	if !c.OK {
 		glyph = Failed
@@ -473,11 +444,7 @@ func (m Model) checkLines(i int, key, indent string) []line {
 	// the check's own sentence is wrapped under its glyph, so all of it is read; the lines of the row are the row's
 	first := start + glyph + " "
 	pad := strings.Repeat(" ", ansi.StringWidth(first))
-	body := text
-	if !m.foldered(m.step) {
-		body += folderOf(c)
-	}
-	parts := pane.Wrap(body, w-ansi.StringWidth(first))
+	parts := pane.Wrap(text, w-ansi.StringWidth(first))
 	if len(parts) == 0 {
 		parts = []string{""}
 	}
@@ -493,16 +460,15 @@ func (m Model) checkLines(i int, key, indent string) []line {
 		last := &out[len(out)-1]
 		last.text = pane.Clip(last.text, w-ansi.StringWidth(end)) + end
 	}
-	// the lines under the row, whole, are a block that scrolls across, the indent staying
+	// the lines under the row, whole, are a block that scrolls across, its lead staying
 	add := func(text string) {
-		out = append(out, line{row: i, text: indent + under + text, block: "check/" + key, lead: len(indent + under)})
+		out = append(out, line{row: i, text: under + text, block: "check/" + key, lead: len(under)})
 	}
 	for _, f := range c.Findings {
 		add(f)
 	}
 	if c.Fix != "" {
-		// a folder's fix names its folder, so it runs wherever it is pasted
-		shown := fix.In(c.Folder, c.Fix)
+		shown := c.Fix
 		if c.Interactive {
 			shown += " · it needs you at the keyboard"
 		}

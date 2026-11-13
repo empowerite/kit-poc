@@ -422,18 +422,14 @@ func TestWelcomeChecksReadEachFoldersCheck(t *testing.T) {
 	}
 }
 
-// A fix names the workspace the checks were read over, so a forge's login finds its host, and a folder's check its
-// folder, where kit runs its fix.
-func TestWelcomeFixNamesTheWorkspaceAndAFoldersFolder(t *testing.T) {
-	r := Runner{Kit: "kit", Dir: "/w", Group: "w"}
-	if got := strings.Join(r.WelcomeFix(Check{ID: "kit-hydrated", Folder: "/a/t"}).Args[1:], " "); got !=
-		"--workspace=w welcome --fix=kit-hydrated --folder=/a/t" {
-		t.Errorf("over a group: %s", got)
-	}
-	r.Group, r.NoGroup = "", true
-	if got := strings.Join(r.WelcomeFix(Check{ID: "forge-login-github.com"}).Args[1:], " "); got !=
-		"--workspace=none welcome --fix=forge-login-github.com" {
-		t.Errorf("over no group: %s", got)
+// The welcome's reads and fixes are the machine's: no workspace words, over a group or none, and no folder, whatever
+// the check names.
+func TestTheWelcomeNamesNoWorkspaceNorFolder(t *testing.T) {
+	for _, r := range []Runner{{Kit: "kit", Dir: "/w", Group: "w"}, {Kit: "kit", Dir: "/w", NoGroup: true}} {
+		if got := strings.Join(r.WelcomeFix(Check{ID: "kit-hydrated", Folder: "/a/t"}).Args[1:], " "); got !=
+			"welcome --fix=kit-hydrated --machine" {
+			t.Errorf("a fix over %+v: %s", r, got)
+		}
 	}
 }
 
@@ -442,7 +438,7 @@ func TestWelcomeFixIsACommandNotYetStarted(t *testing.T) {
 	t.Setenv("FAKE_KIT_RECORD", record)
 	dir := t.TempDir()
 	cmd := fake(t, dir).WelcomeFix(Check{ID: "jq"})
-	if cmd.Process != nil || strings.Join(cmd.Args[1:], " ") != "welcome --fix=jq" || cmd.Dir != dir {
+	if cmd.Process != nil || strings.Join(cmd.Args[1:], " ") != "welcome --fix=jq --machine" || cmd.Dir != dir {
 		t.Fatalf("WelcomeFix: %q in %q", cmd.Args, cmd.Dir)
 	}
 	if err := cmd.Run(); err != nil {
@@ -450,7 +446,7 @@ func TestWelcomeFixIsACommandNotYetStarted(t *testing.T) {
 	}
 	got, _ := os.ReadFile(record)
 	want, _ := filepath.EvalSymlinks(dir)
-	if string(got) != "welcome --fix=jq\n"+want+"\n" {
+	if string(got) != "welcome --fix=jq --machine\n"+want+"\n" {
 		t.Errorf("the fix ran as %q", got)
 	}
 }
@@ -754,19 +750,18 @@ exit 1`).MarksOf(ctx, "workspace")
 	}
 }
 
-// With told, the checks ask kit for its progress, and told hears each line of it as kit says it, a check that starts,
-// on the machine or in a folder, and a folder's end, while every other line of stderr stays kit's refusal.
+// With told, the checks ask kit for its progress, and told hears each line of it as kit says it, a check that starts
+// and the end of them, while every other line of stderr stays kit's refusal.
 func TestWelcomeChecksTellWhatKitSaysAsTheyRun(t *testing.T) {
-	r := script(t, `[ "$4" = --progress ] || exit 3
-printf '⏳ checking tool-git\n⏳ checked\n⏳ checking kit-check in /a/b c\n' >&2
-printf '⏳ checked /a/b c\n' >&2
+	r := script(t, `[ "$*" = "welcome --checks --json --machine --progress" ] || exit 3
+printf '⏳ checking tool-git\n⏳ checking kit-check\n⏳ checked\n' >&2
 echo '[{"id": "tool-git", "ok": true}]'`)
 	var heard []Progress
 	checks, err := r.WelcomeChecks(context.Background(), func(p Progress) { heard = append(heard, p) })
 	if err != nil || len(checks) != 1 {
 		t.Fatalf("WelcomeChecks: %v, %+v", err, checks)
 	}
-	want := []Progress{{Check: "tool-git"}, {}, {Check: "kit-check", Folder: "/a/b c"}, {Folder: "/a/b c"}}
+	want := []Progress{{Check: "tool-git"}, {Check: "kit-check"}, {}}
 	if !reflect.DeepEqual(heard, want) {
 		t.Errorf("heard %+v", heard)
 	}
@@ -776,8 +771,10 @@ echo '[{"id": "tool-git", "ok": true}]'`)
 	if !errors.As(err, &exit) || exit.Stderr != "❌ kit refuses\n⏳ checkedout\n" {
 		t.Errorf("refused: %v", err)
 	}
-	// without told, kit is not asked for its progress
-	if _, err := script(t, `[ $# = 3 ] && echo '[]'`).WelcomeChecks(context.Background(), nil); err != nil {
+	// without told, kit is not asked for its progress; over a group, it is not asked for the workspace
+	r = script(t, `[ "$*" = "welcome --checks --json --machine" ] && echo '[]'`)
+	r.Group = "w"
+	if _, err := r.WelcomeChecks(context.Background(), nil); err != nil {
 		t.Errorf("without told: %v", err)
 	}
 }

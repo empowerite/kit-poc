@@ -1,67 +1,48 @@
 <!-- kit:generated -- kit welcome's fourth step, customize, from the kit package -->
 <!-- see: "Changing what kit adds" in .kit/1st.md, to replace it -->
-# Customize — kit is a starting point, and these are the parts teams change first
+# Customize — kit is a starting point, built to be changed without forking it
 
-Each part ends with where to change it, the file first, then the doc that explains it, and with the command that
-shows it.
+A tool that every repository must accept as it is gets dropped. So kit was designed from the start to be changed
+by the repository that uses it, and for that change to survive each new release. Five choices make that work.
 
-## Packages
+## Everything kit adds comes from a package
 
-`packages:` in `kit.yml` lists the active packages. Change the list with `kit packages add` and
-`kit packages remove`, never by hand. Each package delivers its files, and takes them back out when it goes.
+kit adds nothing by itself. A [package](kittui:welcome/terms/package) is a directory in a release, and every file kit
+delivers belongs to one. A repository chooses its packages: the `kit` package for the rules, one style package for each
+kind of file whose looks it wants held, and a package for each agent it uses. To stop using something, remove its
+package, and kit takes out what the package added.
 
-→ [kit.yml](../../kit.yml) · [docs/packages.md](https://github.com/empowerite/kit/blob/main/docs/packages.md)
+## Settings live in one file
 
-`kit packages`
+`kit.yml` is the one file of settings. It lists the active packages, the version of kit the repository pins, the
+stages `kit flow` shows, the patterns that names must match, and which remote is the
+[primary](kittui:welcome/terms/primary). `kit packages add` and `kit packages remove` change the list of packages, so
+nobody edits it by hand.
 
-## Policy
+## Rules are data, with a remedy
 
-`policy:` in `kit.yml` sets the patterns that branch names, worktrees, commit subjects, and pull request titles must
-match, each with a remedy a refusal names. `kit work` makes names that pass, and `kit commit` and CI hold names to it.
+A naming rule is a pattern, and each one comes with the remedy a refusal prints. A team changes a pattern in `kit.yml`,
+and `kit work` makes names that pass it, while `kit commit` and CI hold every name to it. A rule is a file under
+`.kit/`, so a person and an agent read the same words.
 
-→ [kit.yml](../../kit.yml) · [docs/policy.md](https://github.com/empowerite/kit/blob/main/docs/policy.md)
+## A repository's own package wins
 
-`kit policy`
+Where a repository wants a delivered file to say something else, it writes a
+[house package](kittui:welcome/terms/house%20package): a package of its own under `.kit/packages/<name>/`, in the
+same shape as the kit's. It depends on the package that delivers the file, and places its own file at the same path.
+The later package wins. The repository never edits a delivered file in place, since `kit check` fails the build when
+a delivered file differs from the release.
 
-## The stages of kit flow
+## An update leaves your files alone
 
-`flow:` in `kit.yml` names the stages `kit flow` draws, in order. Leave out the ones your team does not use.
+A release is versioned and pinned, and a pull request that bumps the version brings the new rules. Because a change is
+a package and not an edit, an update replaces what kit delivered and nothing else. A file that kit shares with the
+repository, such as `AGENTS.md`, holds only a region that kit owns, and the rest is the repository's.
 
-→ [kit.yml](../../kit.yml) · [docs/features.md](https://github.com/empowerite/kit/blob/main/docs/features.md)
+## When this matters
 
-`kit flow --stages`
-
-## Primary and forges
-
-`primary:` names the remote kit reads pull requests, builds, and issues from; the default is `origin`. `push:`
-names the remote a branch goes to, as `push: origin` in a fork; the default is the primary. `forges:` names the code
-forge of a remote whose host does not say it, such as a GitLab you host yourself.
-
-→ [kit.yml](../../kit.yml) · [forges.md](https://github.com/empowerite/kit/blob/main/docs/integrations/forges.md)
-
-`kit flow incoming --no-fetch`
-
-## A house package
-
-A house package holds your team's own rules, styles, and templates. It lives in the repository, under
-`.kit/packages/<name>/`, in the same shape as the kit's packages.
-
-- To add a file, place it under the package's `files/repo/`.
-- To replace a file kit delivers, depend on the package that delivers it, and place yours at the same path. The
-  later package wins.
-- These pages are files too, under `.kit/welcome/`. A house package replaces one by its name, or adds one, such as
-  `7-our-team.md`. Start no line of a page with ✅, 💡, or ❌: in `kit welcome --text`, a line that starts with one is
-  a check.
-
-→ [.kit/packages/](../packages/) · [docs/packages.md](https://github.com/empowerite/kit/blob/main/docs/packages.md)
-
-`kit packages --active`
-
-## The docs
-
-`kit help` lists every command, and `kit help <verb>` prints one command's page. `.kit/README.md` explains the
-`.kit/` directory. The kit's own README and its `docs/` cover the rest, at <https://github.com/empowerite/kit>.
-
-→ [.kit/README.md](../README.md) · [README.md](https://github.com/empowerite/kit/blob/main/README.md)
-
-`kit help`
+Nothing here needs doing now. These choices matter on the day a team wants to change a rule. This guide knows no
+repository, so it cannot show yours; inside one, `kit packages` lists the packages in reach and which are active,
+`kit policy` shows its naming rules, and `.kit/1st.md` explains "Changing what kit adds". The reference is
+[docs/packages.md](https://github.com/empowerite/kit/blob/main/docs/packages.md), and the other docs are at
+<https://github.com/empowerite/kit>.

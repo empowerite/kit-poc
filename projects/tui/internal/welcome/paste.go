@@ -7,7 +7,7 @@ package welcome
 // card's line or a preset's name. Under an open menu, and on a page or the rows, it types nothing.
 func (m *Model) paste(text string) {
 	switch s := m.search(); {
-	case m.tabMenu.Open || m.appMenu.Open || m.books.Open || m.recent.Open:
+	case m.tabMenu.Open || m.appMenu.Open || m.recent.Open:
 	case s.Focused:
 		s.Query += text
 		m.setSearch(s)

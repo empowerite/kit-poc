@@ -662,6 +662,32 @@ folders() {
   [[ "$output" == *$'# What is left\n\nNothing is left: every check holds.'* ]]
 }
 
+@test "--machine judges the machine alone: no folder, and github.com's forge, whatever the repository's remotes are" {
+  git remote add origin https://gitlab.example.com/acme/widget.git
+  fake-gh
+  touch "${BATS_TEST_TMPDIR}/logged-in"
+  run --separate-stderr "${kit_root}/bin/kit" welcome --checks --json --machine
+  [ "$status" -eq 0 ]
+  [ "$(jq --raw-output 'map(.id) | join(" ")' <<<"$output")" = \
+    "tool-bash tool-git tool-jq tool-yq toolchain-system forge-cli-github.com forge-login-github.com" ]
+  [ "$(jq --raw-output 'map(.folder == null) | all' <<<"$output")" = true ]
+  # progress names the machine's checks only
+  run --separate-stderr "${kit_root}/bin/kit" welcome --checks --json --machine --progress
+  [[ "$stderr" != *" in "* ]]
+  # a fix runs there too, and a login's fix needs no remote
+  rm "${BATS_TEST_TMPDIR}/logged-in"
+  run --separate-stderr "${kit_root}/bin/kit" welcome --fix=forge-login-github.com --machine
+  [ "$status" -eq 0 ]
+  [ "$output" = "✅ gh is logged in to github.com" ]
+  # no folder, and a verb of its own
+  run --separate-stderr "${kit_root}/bin/kit" welcome --checks --machine --folder="$(pwd -P)"
+  [ "$status" -eq 2 ]
+  [[ "$stderr" == *"--folder cannot be combined with --machine"* ]]
+  run --separate-stderr "${kit_root}/bin/kit" welcome --machine
+  [ "$status" -eq 2 ]
+  [[ "$stderr" == *"kit welcome needs --checks"* ]]
+}
+
 @test "over a group, every member's desk and worktrees are judged, in its order, and a forge host's login once" {
   local code="${BATS_TEST_TMPDIR}/code" a b
   git init --quiet "${code}/a" && git -C "${code}/a" commit --quiet --allow-empty --message one
@@ -762,12 +788,12 @@ folders() {
   [[ "$output" == *"kittui native-native welcome"* ]]
   [[ "$output" != *"# Introduction — "* ]]
   run pty "'${kit_root}/bin/kit' welcome --text"
-  [[ "$output" == *"# Introduction — "* && "$output" != *"kittui"* ]]
+  [[ "$output" == *"# Introduction — "* && "$output" != *"kittui native-native"* ]]
   run pty "'${kit_root}/bin/kit' welcome --checks"
-  [[ "$output" == *"✅ bash "* && "$output" != *"kittui"* ]]
+  [[ "$output" == *"✅ bash "* && "$output" != *"kittui native-native"* ]]
   run --separate-stderr "${kit_root}/bin/kit" welcome </dev/null
   [[ "${lines[0]}" == "# Introduction — "* ]]
-  [[ "$output" != *"kittui"* ]]
+  [[ "$output" != *"kittui native-native"* ]]
 }
 
 # good-probes prints what a terminal that gives kittui all it needs answers, with the emoji width given, 2 by default.

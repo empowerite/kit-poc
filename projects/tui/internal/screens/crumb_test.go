@@ -126,11 +126,11 @@ func TestManageLeavesACrumbAndAMoveDropsIt(t *testing.T) {
 		`"repos":["github.com/o/a"],"favorite":false}]}`
 	m, _, _ := workspaced(t, map[string]string{"current.json": repoJSON, "w.json": groupJSON, "list.json": list})
 	m = drive(m, shell.Pick(" manage")())
-	if m.here != shell.Manage || !strings.Contains(title(m), " · "+shell.Back+" welcome") {
+	if m.here != shell.Manage || !strings.Contains(title(m), " · "+shell.Back+" issues") {
 		t.Fatalf("Manage…, on %s: %q", m.here, title(m))
 	}
 	m = drive(m, testkit.Press("backspace"))
-	if m.here != shell.Welcome || crumbAt(m) >= 0 {
+	if m.here != shell.Issues || crumbAt(m) >= 0 {
 		t.Fatalf("⌫ from Manage… went to %s: %q", m.here, title(m))
 	}
 	m = drive(m, shell.Pick(" manage")(), shell.PickMsg{Workspace: "w"})

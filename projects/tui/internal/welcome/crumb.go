@@ -18,7 +18,7 @@ func (m Model) Crumbed(name string) tea.Model {
 
 // covered says whether anything is open over the screen: a menu, or a layer of the table.
 func (m Model) covered() bool {
-	return m.appMenu.Open || m.books.Open || m.recent.Open || m.tabMenu.Open || (m.gridded() && m.sheet().Layered())
+	return m.appMenu.Open || m.recent.Open || m.tabMenu.Open || (m.gridded() && m.sheet().Layered())
 }
 
 // OnCrumb says whether a click is on the crumb, a left one, with nothing open over the title.

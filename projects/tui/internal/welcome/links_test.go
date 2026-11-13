@@ -14,17 +14,17 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/testkit"
 )
 
-// linked opens the screen over pages with links on them: an introduction with a link of each kind, a customize page
-// whose lead has one over its table, and a terms page with two terms. Its browser is the recorder's.
+// linked opens the screen over pages with links on them: an introduction with a link of each kind, a customize page, and
+// a terms page with two terms, a link in its lead. Its browser is the recorder's.
 func linked(t *testing.T, msgs ...tea.Msg) (Model, *[]string) {
 	t.Helper()
 	m, _ := fake(t)
-	m.runner = repoWith(t, map[string]string{
+	m.runner = pagesWith(t, map[string]string{
 		"1-introduction.md": "# Introduction — start\n\nSee [Flow](kittui:flow), [the issues](kittui:flow/issues), [a tutorial](kittui:tutorials/search),\n" +
 			"[a term](kittui:welcome/terms/desk), [the terms](kittui:welcome/terms), [nowhere](kittui:welcome/nonesuch),\n" +
 			"[here](kittui:welcome), and [the docs](https://example.com/docs).\n",
-		"4-customize.md": "# Customize — parts\n\nSee [Packages](kittui:packages) over the table.\n\n## Packages\n\nThe list.\n\n`kit packages`\n",
-		"5-terms.md":     "# Terms — words\n\n## Where\n\n### workspace\n\nWhat kit looks at.\n\n### desk\n\nYour root.\n",
+		"4-customize.md": "# Customize — parts\n\nSee the settings.\n\n## Packages\n\nThe list.\n",
+		"5-terms.md":     "# Terms — words\n\nSee [Packages](kittui:packages) first.\n\n## Where\n\n### workspace\n\nWhat kit looks at.\n\n### desk\n\nYour root.\n",
 	})
 	var opened []string
 	m.browse = func(url string) error { opened = append(opened, url); return nil }
@@ -119,12 +119,12 @@ func TestALinkToAPlaceOnThisScreenShowsIt(t *testing.T) {
 
 // A link in the lead over a step's table is followed by a click as one on a page is; a click on the table is its own.
 func TestALinkInTheLeadOverATableIsFollowed(t *testing.T) {
-	m, _ := linked(t, esc, stepKey(1))
+	m, _ := linked(t, esc, stepKey(2))
 	x, y := at(t, m, "Packages")
 	if got := asked(m, x, y); got != (shell.SwitchMsg{Screen: shell.Packages, Crumb: true}) {
 		t.Errorf("a link in the lead: %#v", got)
 	}
-	if got := asked(m, x, y+4); got != nil {
+	if got := asked(m, x, y+6); got != nil {
 		t.Errorf("a click below the lead: %#v", got)
 	}
 	if got := m.leadLinkAt(x, y); got != "packages" {

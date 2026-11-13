@@ -49,12 +49,6 @@ func TestAPageIsReadAsItsTerms(t *testing.T) {
 	if lead, terms := parseTerms("# Ours\n\n- **deploy**: a release.\n"); terms != nil || lead == "" {
 		t.Errorf("a page without terms: %q %+v", lead, terms)
 	}
-	for command, want := range map[string]string{"kit flow --stages": "kit flow", "git remote --verbose": "git remote",
-		"kit gate": "kit gate", "ls": "ls", "kit --version": "kit", "": ""} {
-		if got := verbOf(command); got != want {
-			t.Errorf("verbOf(%q) = %q, want %q", command, got, want)
-		}
-	}
 	rs := termRecords(terms)
 	// the commands are a list, the examples as written; there is no command or examples apart from it
 	if rs[0].Key != "0 desk" || rs[0].Values["topic"].Raw[0] != "Terms" || rs[2].Values["order"].Raw[0] != "3" ||
@@ -129,7 +123,7 @@ func TestTheKitPackagesTermsSayEachWordOnce(t *testing.T) {
 			if seen[n] {
 				t.Errorf("%q is named twice", n)
 			}
-			seen[n], meaning[n], command[n] = true, e.meaning, verbOf(e.examples[0])
+			seen[n], meaning[n], command[n] = true, e.meaning, strings.Join(strings.Fields(e.examples[0])[:2], " ")
 		}
 	}
 	for _, n := range []string{"workspace", "tracker", "CI", "CD", "worktree", "desk", "context", "rule", "house package",
@@ -177,7 +171,7 @@ func TestTheKitPackagesTermsSayEachWordOnce(t *testing.T) {
 func TestTheTermsAreATableOfTermsMeaningsAndCommands(t *testing.T) {
 	m, _ := loaded(t, stepKey(terms))
 	if !m.gridded() ||
-		keysAt(m) != "= menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ terms "+jump+" : tab menu" {
+		keysAt(m) != "= menu / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ terms "+jump+" : tab menu" {
 		t.Fatalf("the terms step: gridded %v, keys %q", m.gridded(), keysAt(m))
 	}
 	got := view(m)
@@ -352,8 +346,8 @@ func TestTheTermsTableFollowsTheSettingsAndTheScreensSize(t *testing.T) {
 }
 
 func TestATermsPageWithoutTermsIsAPage(t *testing.T) {
-	r := repoWith(t, map[string]string{"5-terms.md": "# Our words\n\nWe say *ship* for a release.\n"})
-	m := New(r, "")
+	r := pagesWith(t, map[string]string{"5-terms.md": "# Our words\n\nWe say *ship* for a release.\n"})
+	m := New(r)
 	m = drive(m, append(testkit.Start(m, at120), stepKey(terms))...)
 	if m.gridded() || !strings.Contains(view(m), "We say *ship* for a release.") {
 		t.Errorf("a page without terms:\n%s", view(m))
@@ -374,8 +368,8 @@ func TestTheEdgesOfTheTermsStep(t *testing.T) {
 		readCatalog([]byte("{"))
 	}()
 	// terms with no lead have the table at the pane's top; a refusal stands in the keys bar's place, in red
-	r := repoWith(t, map[string]string{"5-terms.md": "## desk\n\nYour root checkout.\n\n`kit flow desk`\n"})
-	m := New(r, "")
+	r := pagesWith(t, map[string]string{"5-terms.md": "## desk\n\nYour root checkout.\n\n`kit flow desk`\n"})
+	m := New(r)
 	m = drive(m, append(testkit.Start(m, at120), stepKey(terms), down, testkit.Press("tab"), enter, testkit.Press("s"),
 		enter, enter)...)
 	if lines := strings.Split(view(m), "\n"); !strings.Contains(lines[paneTop], "▾ topic 1 ") ||

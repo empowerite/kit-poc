@@ -159,7 +159,7 @@ func TestAKeepKitDoesNotSayTheCheckOfChecksAgain(t *testing.T) {
 	t.Setenv("FAKE_WELCOME_CALLS", record)
 	t.Setenv("FAKE_WELCOME_KEPT", "null")
 	terminal(t, press('k'))
-	if got := calls(t, record); got[len(got)-1] != "welcome --checks --json --progress" {
+	if got := calls(t, record); got[len(got)-1] != "welcome --checks --json --machine --progress" {
 		t.Errorf("the calls after the keep: %q", got)
 	}
 }

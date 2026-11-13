@@ -291,8 +291,19 @@ case "${1:-}" in
     cat "${file}"
     ;;
   (welcome)
+    # the welcome is the machine's: a workspace is refused, as is --checks or --fix without --machine, with exit 2;
     # --checks prints the welcome screen's fixture; --fix and --keep= fall through to the record below, where
     # FAKE_KIT_REFUSE=welcome refuses them with exit 2
+    if [[ " $* " == *" --workspace "* ]]
+    then
+      echo "❌ kit welcome here takes no workspace" >&2
+      exit 2
+    fi
+    if [[ "${2:-}" == --checks || "${2:-}" == --fix=* ]] && [[ " $* " != *" --machine "* ]]
+    then
+      echo "❌ kit welcome here judges the machine alone: kit welcome ${2:-} --machine" >&2
+      exit 2
+    fi
     if [[ "${2:-}" == --checks ]]
     then
       cat "${here}/../../welcome/testdata/checks.json"

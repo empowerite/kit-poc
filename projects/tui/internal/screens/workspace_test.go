@@ -1,6 +1,6 @@
 // kittui's root reads the workspace from kit once it starts, tells every screen made, and switches on a pick: a pick
-// that moves the place the screens read remakes them there, all but the tutorials, and the help, which is told where
-// its forms now read and run.
+// that moves the place the screens read remakes them there, all but the welcome and the tutorials, and the help, which
+// is told where its forms now read and run. The picture of kit flow's issues stands for the screens remade.
 package screens
 
 import (
@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/empowerite/kit/projects/tui/internal/app"
+	"github.com/empowerite/kit/projects/tui/internal/flow"
 	"github.com/empowerite/kit/projects/tui/internal/kit"
 	"github.com/empowerite/kit/projects/tui/internal/opener"
 	"github.com/empowerite/kit/projects/tui/internal/palette"
@@ -31,7 +32,7 @@ const (
 		`"members":[{"repository":"github.com/o/a","checkout":CHECKOUT}],"groups":[],"favorites":[]}`
 )
 
-// workspaced gives the root on the welcome, over the kit package's fake kit, at 120×30, kit workspaces answering with
+// workspaced gives the root on the issues' picture, over the kit package's fake kit, at 120×30, kit workspaces answering with
 // the files given, CHECKOUT in each the directory of a's checkout; the file kit's calls are recorded in; and that
 // directory. No files leaves kit without kit workspaces.
 func workspaced(t *testing.T, files map[string]string) (Model, string, string) {
@@ -58,7 +59,11 @@ func workspacedOver(t *testing.T, group string, files map[string]string) (Model,
 	}
 	r := testkit.Runner(t, "kit")
 	r.Group = group
-	root := New(r, shell.Welcome, welcome.Open(r, kit.Workspace{}))
+	first, err := flow.OpenApp(r, shell.Issues, flow.Words{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := New(r, shell.Issues, first)
 	m, _ := testkit.Drive(root, nil, testkit.Start(root, tea.WindowSizeMsg{Width: 120, Height: 30})...)
 	return m, record, checkout
 }
@@ -75,11 +80,26 @@ func drive(m Model, msgs ...tea.Msg) Model {
 func TestTheWorkspaceReachesEveryScreenMade(t *testing.T) {
 	m, _, _ := workspaced(t, map[string]string{"current.json": repoJSON})
 	if got := title(m); !strings.Contains(got, "- o/a") {
-		t.Errorf("the welcome, made first: %q", got)
+		t.Errorf("the picture, made first: %q", got)
 	}
-	m = drive(m, shell.SwitchMsg{Screen: shell.Help}, shell.SwitchMsg{Screen: shell.Tutorials})
-	if got := m.made[shell.Welcome].(welcome.Model).Books().Workspace.Name; got != "github.com/o/a" {
-		t.Errorf("the welcome's control: %q", got)
+	// a screen made after kit said the workspace is told it, as is the one made before
+	m = drive(m, shell.SwitchMsg{Screen: shell.Repositories})
+	if got := title(m); !strings.Contains(got, "- o/a") {
+		t.Errorf("the workspace's picture, made later: %q", got)
+	}
+}
+
+// The welcome judges the machine, so it has no workspace menu, and the workspace is no business of its: made before or
+// after kit says it, and when kit says another, it is as it was.
+func TestTheWelcomeIsToldTheWorkspaceAndHasNoMenuForIt(t *testing.T) {
+	m, _, _ := workspaced(t, map[string]string{"current.json": repoJSON, "w.json": groupJSON})
+	m = drive(m, shell.SwitchMsg{Screen: shell.Welcome})
+	if got := title(m); strings.Contains(got, "o/a") || strings.Contains(got, shell.Workspaces) {
+		t.Errorf("the welcome made after the workspace: %q", got)
+	}
+	m = drive(m, shell.PickMsg{Workspace: "w"})
+	if got := title(m); strings.Contains(got, "- w") || m.here != shell.Welcome {
+		t.Errorf("the welcome after a pick: %q on %s", got, m.here)
 	}
 }
 
@@ -89,9 +109,9 @@ func TestAKitWithoutWorkspacesLeavesEveryScreenOpen(t *testing.T) {
 	if last := lines[len(lines)-1]; strings.Contains(last, "❌") || !strings.Contains(last, "menu") {
 		t.Errorf("the last line: %q", last)
 	}
-	books := m.made[shell.Welcome].(welcome.Model).Books()
-	if items := books.Items(); items[0].Glyph != "❌" || !strings.Contains(items[0].Name, "workspaces") {
-		t.Errorf("the control's first line: %+v", items[0])
+	m = drive(m, typed("-")...)
+	if v := ansi.Strip(m.View().Content); !strings.Contains(v, "❌") || !strings.Contains(v, "workspaces") {
+		t.Errorf("the control's first line:\n%s", v)
 	}
 }
 
@@ -99,7 +119,7 @@ func TestPickingAGroupRemembersItAndRemakesTheScreens(t *testing.T) {
 	m, record, _ := workspaced(t, map[string]string{"current.json": repoJSON, "w.json": groupJSON})
 	m = drive(m, shell.SwitchMsg{Screen: shell.Help})
 	m = drive(m, typed("/com")...)
-	m = drive(m, shell.SwitchMsg{Screen: shell.Welcome})
+	m = drive(m, shell.SwitchMsg{Screen: shell.Issues})
 	m = drive(m, typed("/xyz")...)
 	if !strings.Contains(title(m), "xyz") {
 		t.Fatalf("the search typed: %q", title(m))
@@ -168,9 +188,9 @@ func TestAFormOpenAtAPickIsKeptOnlyWhereItsFolderStays(t *testing.T) {
 			help.Runner().Dir, m.epochs[shell.Help]-was)
 	}
 	// a help not shown, with a form open, is closed, and made anew when it is next shown
-	m = drive(m, palette.OpenMsg{Verb: "version"}, shell.SwitchMsg{Screen: shell.Welcome},
+	m = drive(m, palette.OpenMsg{Verb: "version"}, shell.SwitchMsg{Screen: shell.Issues},
 		shell.PickMsg{Workspace: "github.com/o/a"})
-	if _, made := m.made[shell.Help]; made || m.here != shell.Welcome {
+	if _, made := m.made[shell.Help]; made || m.here != shell.Issues {
 		t.Errorf("the help with a form open was kept, on %s", m.here)
 	}
 	// over a group the screens read where kittui started, and so does a form opened there: another group keeps it
@@ -228,9 +248,10 @@ func TestARepositoryPickedIsWhereLaterScreensRead(t *testing.T) {
 func TestARefusedPickKeepsTheWorkspaceAndSaysKitsLine(t *testing.T) {
 	m, _, _ := workspaced(t, map[string]string{"current.json": repoJSON})
 	m = drive(m, shell.PickMsg{Workspace: "github.com/o/gone"})
-	books := m.made[shell.Welcome].(welcome.Model).Books()
-	if m.workspace.Name != "github.com/o/a" || books.Workspace.Name != "github.com/o/a" || books.Refusal == "" {
-		t.Errorf("a refused pick: %+v, %+v", m.workspace, books)
+	still := strings.Contains(title(m), "- o/a")
+	m = drive(m, typed("-")...)
+	if v := ansi.Strip(m.View().Content); m.workspace.Name != "github.com/o/a" || !still || !strings.Contains(v, "❌") {
+		t.Errorf("a refused pick: %+v, still on o/a %v\n%s", m.workspace, still, v)
 	}
 }
 
@@ -240,9 +261,10 @@ func TestNoWorkspaceIsNoGroupToKeep(t *testing.T) {
 	m, record, _ := workspacedOver(t, "none", map[string]string{"none.json": `{"kind":"none","name":null,"member":null,` +
 		`"checkout":null,"why":"given","members":[],"groups":[],"favorites":[]}`})
 	got, _ := os.ReadFile(record)
-	books := m.made[shell.Welcome].(welcome.Model).Books()
-	if m.workspace.Kind != "none" || strings.Contains(string(got), "use none") || books.Refusal != "" {
-		t.Errorf("--workspace=none: %+v, calls %q, refusal %q", m.workspace, got, books.Refusal)
+	m = drive(m, typed("-")...)
+	if v := ansi.Strip(m.View().Content); m.workspace.Kind != "none" || strings.Contains(string(got), "use none") ||
+		strings.Contains(v, "refuses") || m.refused != "" {
+		t.Errorf("--workspace=none: %+v, calls %q, refusal %q\n%s", m.workspace, got, m.refused, v)
 	}
 }
 
@@ -250,27 +272,27 @@ func TestNoWorkspaceIsNoGroupToKeep(t *testing.T) {
 // group that gained a member, moves the place the screens read: they are made anew, over the new folder.
 func TestAWorkspaceOfTheSameNameInAnotherPlaceRemakesTheScreens(t *testing.T) {
 	m, _, checkout := workspaced(t, map[string]string{"current.json": repoJSON, "w.json": groupJSON})
-	was, other := m.epochs[shell.Welcome], t.TempDir()
+	was, other := m.epochs[shell.Issues], t.TempDir()
 	m.asked++
 	m = drive(m, workspaceMsg{gen: m.asked, ws: kit.Workspace{Kind: "repository", Name: m.workspace.Name, Checkout: other}})
-	if m.runner.Dir != other || m.epochs[shell.Welcome] != was+1 {
+	if m.runner.Dir != other || m.epochs[shell.Issues] != was+1 {
 		t.Errorf("a worktree of %s: reads %q (was %q), made %d times more", m.workspace.Name, m.runner.Dir, checkout,
-			m.epochs[shell.Welcome]-was)
+			m.epochs[shell.Issues]-was)
 	}
 	m.asked++
 	m = drive(m, workspaceMsg{gen: m.asked, ws: kit.Workspace{Kind: "group", Name: "w",
 		Members: []kit.WorkspaceMember{{Repository: "github.com/o/a", Checkout: checkout}}}})
-	was = m.epochs[shell.Welcome]
+	was = m.epochs[shell.Issues]
 	m.asked++
 	m = drive(m, workspaceMsg{gen: m.asked, ws: kit.Workspace{Kind: "group", Name: "w"}})
-	if m.epochs[shell.Welcome] != was+1 {
-		t.Errorf("a group that lost a member: made %d times more", m.epochs[shell.Welcome]-was)
+	if m.epochs[shell.Issues] != was+1 {
+		t.Errorf("a group that lost a member: made %d times more", m.epochs[shell.Issues]-was)
 	}
-	was = m.epochs[shell.Welcome]
+	was = m.epochs[shell.Issues]
 	m.asked++
 	m = drive(m, workspaceMsg{gen: m.asked, ws: kit.Workspace{Kind: "group", Name: "w"}})
-	if m.epochs[shell.Welcome] != was {
-		t.Errorf("the same group again: made %d times more", m.epochs[shell.Welcome]-was)
+	if m.epochs[shell.Issues] != was {
+		t.Errorf("the same group again: made %d times more", m.epochs[shell.Issues]-was)
 	}
 }
 
@@ -278,10 +300,10 @@ func TestAGroupKitWillNotKeepIsNotSwitchedTo(t *testing.T) {
 	m, record, _ := workspaced(t, map[string]string{"current.json": repoJSON, "w.json": groupJSON})
 	t.Setenv("FAKE_KIT_REFUSE", "workspaces")
 	m = drive(m, shell.PickMsg{Workspace: "w"})
-	books := m.made[shell.Welcome].(welcome.Model).Books()
-	if got, _ := os.ReadFile(record); m.workspace.Name != "github.com/o/a" || !strings.Contains(books.Refusal,
-		"refuses") || strings.Contains(string(got), "use w") {
-		t.Errorf("a refused --use: %+v, %q", m.workspace, books.Refusal)
+	m = drive(m, typed("-")...)
+	if got, _ := os.ReadFile(record); m.workspace.Name != "github.com/o/a" || !strings.Contains(m.refused, "refuses") ||
+		!strings.Contains(ansi.Strip(m.View().Content), "refuses") || strings.Contains(string(got), "use w") {
+		t.Errorf("a refused --use: %+v, %q", m.workspace, m.refused)
 	}
 }
 
@@ -301,21 +323,45 @@ func TestAScreenThatCannotOpenOverTheNewWorkspaceGivesWayToTheWelcome(t *testing
 	}
 }
 
+// The welcome reads kit alone: a move leaves it as it was, its search typed and its epoch the same, and where a screen
+// cannot open over the new workspace, it is the welcome made already that is shown, as it was.
+func TestTheWelcomeIsKeptAsItWasOnAMoveAndGivenWayToAsMadeAlready(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	r := testkit.Runner(t, "kit")
+	m := New(r, shell.Welcome, welcome.Open(r))
+	m = drive(m, tea.WindowSizeMsg{Width: 120, Height: 30})
+	m = drive(m, typed("/xyz")...)
+	m = drive(m, shell.SwitchMsg{Screen: shell.Issues}, workspaceMsg{gen: 0, ws: kit.Workspace{Kind: "group", Name: "w"}})
+	if m.epochs[shell.Welcome] != 0 || m.epochs[shell.Issues] != 1 {
+		t.Errorf("the welcome was made again: epochs %v", m.epochs)
+	}
+	// the picture is made again over w; where kit cannot run, it cannot be, and the welcome is shown as it was
+	m.runner.Kit = filepath.Join(t.TempDir(), "no-kit")
+	m = drive(m, shell.SwitchMsg{Screen: shell.Issues}, workspaceMsg{gen: 0, ws: kit.Workspace{Kind: "group", Name: "x"}})
+	if m.here != shell.Welcome || !strings.Contains(title(m), "xyz") || m.epochs[shell.Welcome] != 0 {
+		t.Fatalf("shown %s: %q, epochs %v", m.here, title(m), m.epochs)
+	}
+	lines := strings.Split(ansi.Strip(m.View().Content), "\n")
+	if foot := strings.Join(lines[len(lines)-3:], "\n"); !strings.Contains(foot, "❌") {
+		t.Errorf("kit's line is not said: %q", foot)
+	}
+}
+
 func TestAnAnswerForAScreenMadeAgainIsDropped(t *testing.T) {
 	m, _, _ := workspaced(t, map[string]string{"current.json": repoJSON, "w.json": groupJSON})
-	was := m.epochs[shell.Welcome]
+	was := m.epochs[shell.Issues]
 	m = drive(m, shell.PickMsg{Workspace: "w"})
-	if m.epochs[shell.Welcome] == was {
-		t.Fatalf("the welcome made again keeps its epoch %d", was)
+	if m.epochs[shell.Issues] == was {
+		t.Fatalf("the picture made again keeps its epoch %d", was)
 	}
 	// an answer the welcome closed started reaches nothing; the one made again takes its own
-	m = drive(m, tagged{to: shell.Welcome, epoch: was, msg: tea.WindowSizeMsg{Width: 70, Height: 20}})
-	if n := len(strings.Split(m.made[shell.Welcome].View().Content, "\n")); n != 30 {
+	m = drive(m, tagged{to: shell.Issues, epoch: was, msg: tea.WindowSizeMsg{Width: 70, Height: 20}})
+	if n := len(strings.Split(m.made[shell.Issues].View().Content, "\n")); n != 30 {
 		t.Errorf("an old answer reached the welcome: %d lines", n)
 	}
-	own := tagged{to: shell.Welcome, epoch: m.epochs[shell.Welcome], msg: tea.WindowSizeMsg{Width: 70, Height: 20}}
+	own := tagged{to: shell.Issues, epoch: m.epochs[shell.Issues], msg: tea.WindowSizeMsg{Width: 70, Height: 20}}
 	m = drive(m, own)
-	if n := len(strings.Split(m.made[shell.Welcome].View().Content, "\n")); n != 20 {
+	if n := len(strings.Split(m.made[shell.Issues].View().Content, "\n")); n != 20 {
 		t.Errorf("the welcome's own answer: %d lines", n)
 	}
 }

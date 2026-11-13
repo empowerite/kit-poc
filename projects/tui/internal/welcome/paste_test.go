@@ -22,7 +22,6 @@ func TestAPasteIsTypedInTheStepsSearchWithFocus(t *testing.T) {
 	for name, open := range map[string]func(*Model){
 		"the tab's menu":          func(m *Model) { m.tabMenu.Open = true },
 		"the app's menu":          func(m *Model) { m.appMenu.Open = true },
-		"the workspace menu":      func(m *Model) { m.books = m.books.Opened() },
 		"the searches remembered": func(m *Model) { m.recent.Open = true },
 	} {
 		under := m

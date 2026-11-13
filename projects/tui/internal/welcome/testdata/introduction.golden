@@ -1,4 +1,4 @@
-  = kit welcome · - empowerite/kit                                                                           🔎 /search
+  = kit welcome                                                                                              🔎 /search
   ➊╶──────────────────╮➁╶───────────────────╮➂╶──────────────╮➃╶───────────────╮➄╶───────────╮
   │ 👋 introduction : │  🧰 toolchains  3   │  🔧 setup  2   │  🎨 customize   │  📖 terms   │
   ╵                   ╰─────────────────────╰────────────────╰─────────────────╰─────────────╰──────────────────────────
@@ -27,4 +27,4 @@
    • Rules drift between repositories, branches, and colleagues. kit delivers the same rules and checks to each, and
      kit check says when a delivered file drifted.
 ↓²⁵
- = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ page 1-5 jump : tab menu
+ = menu / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ page 1-5 jump : tab menu

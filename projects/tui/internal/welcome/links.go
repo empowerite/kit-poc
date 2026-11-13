@@ -32,12 +32,9 @@ func linkIn(links []markdown.Link, x int) string {
 	return ""
 }
 
-// leadLinkAt gives where the link at a cell of the screen leads, over the lead of the selected step drawn as a table,
-// or, on the setup step, over its lead or its foot, as setupLinkAt says; "" where there is none.
+// leadLinkAt gives where the link at a cell of the screen leads, over the lead of the selected step drawn as a table;
+// "" where there is none.
 func (m Model) leadLinkAt(x, y int) string {
-	if m.tabs[m.step].id == setupID {
-		return m.setupLinkAt(x, y)
-	}
 	if len(m.leadLines(m.step)) == 0 {
 		return ""
 	}

@@ -48,13 +48,14 @@ A word after the verb opens the screen at a place:
 | `kit tui commit` | the form of `kit commit` |
 
 After `kit --workspace=<workspace>`, kit starts kittui with `--workspace=<workspace>` before the verb. Every screen
-then opens over that workspace, and a form shows and runs its verb with the option.
+but the welcome then opens over that workspace, and a form shows and runs its verb with the option.
 
 What each screen does beyond the tutorials:
 
 - Welcome. A check that failed offers its fix on the cursor's row: ⧉ or `c` copies it, and ▶️ or `r` runs it where
-  kit can. The terms and customize pages are drawn as tables, from `terms.json` and `customize.json`. The setup
-  step draws its folders as a table, from `folders.json`.
+  kit can. The terms page is drawn as a table, from `terms.json`. The welcome judges this machine alone, and reads
+  the pages of the kit package, so it has no workspace menu and depends on no repository: it runs `kit welcome
+  --checks --machine`.
 - Help. `→` opens a row to the verb's help page. `⏎`, or a click on the verb's name, opens the verb's form.
 - A form. It builds the command line and shows it. `⏎` on the command line runs the verb. A click on the command
   line gives it the keyboard, and a second click runs it, so no single click runs a command. `esc`, or a click on
@@ -164,7 +165,7 @@ presets, and the outline of the rows are the same code on every screen.
 
 - A catalog is a JSON file beside the code. It declares a table's fields and its own presets. The catalogs are
   `fields.json` for the apps, `verbs.json` for the palette, `tutorials.json`, `workspaces.json`, `clones.json` for
-  Open Repository…, and the three of the welcome guide.
+  Open Repository…, and `terms.json` of the welcome guide.
 - A field has a stable id, a label, a type, what it can sort, group, and filter by, and its renderings in order.
   Presets and code use the id. Only the header shows the label.
 - A renderer is a Go function registered by name, so a catalog stays data. `internal/table/render.go` holds the

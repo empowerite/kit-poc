@@ -125,7 +125,7 @@ func open(r kit.Runner, verb string, words []string) (shell.Screen, tea.Model, e
 	}
 	switch verb {
 	case "welcome", "":
-		return shell.Welcome, welcome.Open(r, kit.Workspace{}), nil
+		return shell.Welcome, welcome.Open(r), nil
 	case "tutorials":
 		return shell.Tutorials, tutorials.Open(r, words), nil
 	case "help":

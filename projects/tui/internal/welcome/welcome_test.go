@@ -106,26 +106,6 @@ func TestTheIntroductionIsItsPageAlone(t *testing.T) {
 	alone(drive(m, refused), "once kit refuses them", "   "+Failed+" kit welcome refuses\n")
 }
 
-// A folder's check on a step that draws no folder above its checks says its repository and its folder after its line,
-// dim; a machine check says neither.
-func TestAFoldersCheckOffSetupSaysItsFolderAfterItsLine(t *testing.T) {
-	m, _ := loaded(t)
-	m.checks = []kit.Check{
-		{ID: "tool-jq", Step: "toolchains", Line: "jq is not installed", Fix: "brew install jq", Runs: true},
-		{ID: "dependencies-npm", Step: "toolchains", Line: "npm has not installed every package", Fix: "kit tools install",
-			Runs: true, Folder: "/c/a", Repository: "github.com/o/a"},
-	}
-	m = drive(m, press('2'))
-	drawn := strings.Split(view(m), "\n")
-	for line, after := range map[string]string{"npm has not installed every package": " · a " + worktreeGlyph + " a",
-		"jq is not installed": ""} {
-		y := slices.IndexFunc(drawn, func(l string) bool { return strings.Contains(l, line) })
-		if y < 0 || !strings.HasSuffix(strings.TrimRight(drawn[y], " "), line+after) {
-			t.Errorf("%q's row: %q", line, drawn[max(y, 0)])
-		}
-	}
-}
-
 // With every check passing, the screen opens on the introduction, its page alone, and no step counts a failure.
 func TestItOpensOnTheIntroductionWhenEveryCheckPasses(t *testing.T) {
 	m, _ := fake(t)
@@ -208,7 +188,7 @@ func TestRRunsTheFixWithTheTerminalThenReadsTheChecksAgain(t *testing.T) {
 	t.Setenv("FAKE_WELCOME_CALLS", record)
 	for _, key := range []tea.Msg{press('r'), buttonClick("jq is not installed", fix.RunName)} {
 		m, r := atChains(t, key)
-		if len(r.calls) != 1 || strings.Join(r.calls[0], " ") != "welcome --fix=jq" {
+		if len(r.calls) != 1 || strings.Join(r.calls[0], " ") != "welcome --fix=jq --machine" {
 			t.Fatalf("%v ran %q", key, r.calls)
 		}
 		// the checks ran again, jq is fixed now, and the cursor stays on its row
@@ -219,7 +199,7 @@ func TestRRunsTheFixWithTheTerminalThenReadsTheChecksAgain(t *testing.T) {
 			t.Errorf("%v:\n%s", key, view(m))
 		}
 	}
-	want := []string{"welcome --checks --json --progress", "welcome --fix=jq", "welcome --checks --json --progress"}
+	want := []string{"welcome --checks --json --machine --progress", "welcome --fix=jq --machine", "welcome --checks --json --machine --progress"}
 	if got := calls(t, record); !slices.Equal(got, append(want, want...)) {
 		t.Errorf("the calls: %q", got)
 	}
@@ -238,7 +218,7 @@ func TestTheToolchainsStepOffersCopyAndRunWithTheOthersBeside(t *testing.T) {
 		}
 	}
 	m = drive(m, press('r'))
-	if len(r.calls) != 1 || strings.Join(r.calls[0], " ") != "welcome --fix=toolchain-project" || !m.checks[2].OK {
+	if len(r.calls) != 1 || strings.Join(r.calls[0], " ") != "welcome --fix=toolchain-project --machine" || !m.checks[2].OK {
 		t.Errorf("ran %q, check %+v", r.calls, m.checks[2])
 	}
 	if labels := regexp.MustCompile(` +`).ReplaceAllString(strings.Split(view(m), "\n")[2], " "); !strings.Contains(
@@ -249,7 +229,7 @@ func TestTheToolchainsStepOffersCopyAndRunWithTheOthersBeside(t *testing.T) {
 
 func TestROnACheckThatStillFailsSaysSo(t *testing.T) {
 	m, r := atChains(t, esc, tabKey, down, press('r'))
-	if len(r.calls) != 1 || strings.Join(r.calls[0], " ") != "welcome --fix=gh-auth" {
+	if len(r.calls) != 1 || strings.Join(r.calls[0], " ") != "welcome --fix=gh-auth --machine" {
 		t.Fatalf("ran %q", r.calls)
 	}
 	if m.cursor != 3 || m.checks[3].OK || !strings.Contains(view(m), "the fix ran, and the check still fails") {
@@ -685,25 +665,36 @@ func TestTheGlyphsAreTwoCellsWithoutAVariationSelector(t *testing.T) {
 	}
 }
 
-func TestTheRepositorysPagesWinAndTheKitPackagesAreTheFallback(t *testing.T) {
+// The pages are the kit package's, and never the repository's: a page of the repository's own .kit/welcome, where the
+// screen runs, is not read, nor is git asked. With no kit package the known steps say where each was looked for.
+func TestThePagesAreTheKitPackagesAndNeverTheRepositorys(t *testing.T) {
 	nowhere := filepath.Join(t.TempDir(), "nowhere")
-	r := repoWith(t, map[string]string{"5-terms.md": "# Our terms\n"})
-	// the repository has pages: they are the steps, as kit welcome --text reads them, with no other filling in
+	r := pagesWith(t, map[string]string{"5-terms.md": "# Our terms\n"})
+	// the repository has a page of that name too, whose text is not the one read
+	if _, err := os.Stat(filepath.Join(r.Dir, pagesDir, "5-terms.md")); err != nil {
+		t.Fatal(err)
+	}
 	tabs := readPages(r)
 	if len(tabs) != 1 || tabs[0].id != "terms" || tabs[0].page != "# Our terms\n" || tabs[0].missing != "" {
 		t.Errorf("tabs %+v", tabs)
 	}
-	// with neither, the known steps say where each was looked for
+	// a repository with pages of its own, and no kit package, is no source: the known steps say where each was looked for
 	t.Setenv("FAKE_WELCOME_ROOT", nowhere)
-	r = repoWith(t, nil)
+	r = testkit.Runner(t, "welcome")
+	if err := os.MkdirAll(filepath.Join(r.Dir, pagesDir), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(r.Dir, pagesDir, "5-terms.md"), []byte("# Ours\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	tabs = readPages(r)
 	want := filepath.Join(nowhere, packageDir, pagesDir, known[terms].file)
-	if len(tabs) != len(known) || tabs[terms].missing != want {
+	if len(tabs) != len(known) || tabs[terms].missing != want || tabs[terms].page != "" {
 		t.Errorf("tabs %+v", tabs)
 	}
 	// the path is broken across lines, so all of it shows at any width
 	for _, width := range []int{120, 40} {
-		m := drive(New(r, ""), tea.WindowSizeMsg{Width: width, Height: 30}, pagesMsg{tabs: tabs}, stepKey(terms))
+		m := drive(New(r), tea.WindowSizeMsg{Width: width, Height: 30}, pagesMsg{tabs: tabs}, stepKey(terms))
 		lines := strings.Split(view(m), "\n")
 		at := slices.Index(lines, "   no page at")
 		path := ""
@@ -719,9 +710,8 @@ func TestTheRepositorysPagesWinAndTheKitPackagesAreTheFallback(t *testing.T) {
 	}
 }
 
-func TestWithNoPagesInTheRepositoryTheKitPackagesAreTheSteps(t *testing.T) {
-	r := repoWith(t, nil)
-	tabs := readPages(r)
+func TestTheKitPackagesPagesAreTheSteps(t *testing.T) {
+	tabs := readPages(testkit.Runner(t, "welcome"))
 	var files []string
 	for i, tab := range tabs {
 		files = append(files, tab.file)
@@ -782,7 +772,7 @@ func TestThePagesAreInTheOrderKitWelcomeGives(t *testing.T) {
 		files[f] = "# " + f + "\n"
 	}
 	var got []string
-	for _, tab := range readPages(repoWith(t, files)) {
+	for _, tab := range readPages(pagesWith(t, files)) {
 		got = append(got, tab.file)
 	}
 	// by the number a name starts with, a tie by name, and a name with no number last, as kit welcome --text
@@ -807,7 +797,7 @@ func TestTheBarScrollsToKeepTheSelectedStepInView(t *testing.T) {
 	}
 	at80 := tea.WindowSizeMsg{Width: 80, Height: 30}
 	m, _ := fake(t)
-	m.runner = repoWith(t, files)
+	m.runner = pagesWith(t, files)
 	m = drive(m, append(testkit.Start(m, at80), esc, backTab)...)
 	if len(m.tabs) != len(known)+20 || m.step != 0 {
 		t.Fatalf("%d steps, step %d", len(m.tabs), m.step)
@@ -848,27 +838,13 @@ func TestSixStepsFitAtEightyColumnsWithTheLastInFull(t *testing.T) {
 	}
 }
 
-func TestTheTitleNamesTheRepositoryWhenKnown(t *testing.T) {
-	for url, want := range map[string]string{
-		"https://github.com/empowerite/kit.git": "empowerite/kit",
-		"git@github.com:empowerite/kit.git":     "empowerite/kit",
-		"ssh://git@gitlab.example/a/b/c":        "b/c",
-		"https://github.com/kit":                "",
-		"nonsense":                              "",
-	} {
-		if got := repoOf(url); got != want {
-			t.Errorf("repoOf(%q) = %q, want %q", url, got, want)
-		}
-	}
-	if m, _ := fake(t); !strings.HasPrefix(view(m), "  "+shell.App+" kit welcome · - empowerite/kit ") ||
-		!strings.HasSuffix(strings.Split(view(m), "\n")[0], shell.Find+" "+shell.Idle) {
-		t.Errorf("title:\n%s", view(m))
-	}
-	// with no repository known, the control is - alone, which still drops down what to switch to
-	if got := strings.Split(view(New(testkit.Runner(t, "welcome"), "")), "\n")[0]; !strings.HasPrefix(got,
-		"  "+shell.App+" kit welcome · "+shell.Workspaces+" ") ||
-		strings.Contains(strings.ReplaceAll(got, shell.Idle, ""), "/") {
-		t.Errorf("title without a repository:\n%s", got)
+// The title names the screen alone: kit welcome, with no workspace menu, whatever repository the screen runs in.
+func TestTheTitleNamesNoWorkspace(t *testing.T) {
+	m, _ := fake(t)
+	title := strings.Split(view(m), "\n")[0]
+	if !strings.HasPrefix(title, "  "+shell.App+" kit welcome ") || strings.Contains(title, shell.Workspaces) ||
+		strings.Contains(title, "·") || !strings.HasSuffix(title, shell.Find+" "+shell.Idle) {
+		t.Errorf("title:\n%s", title)
 	}
 }
 
@@ -1048,13 +1024,13 @@ func TestNAndNStepThroughWhatASearchFindsOnAPage(t *testing.T) {
 // A step drawn as a table keeps its lead, which a search highlights as it does a page's text; the table narrows its
 // rows, and a search no row holds says so in one dim line, the lead still there.
 func TestASearchHighlightsATablesLeadAndNarrowsItsRows(t *testing.T) {
-	m, _ := loaded(t, tea.KeyPressMsg{Code: tea.KeyEscape}, stepKey(3))
+	m, _ := loaded(t, tea.KeyPressMsg{Code: tea.KeyEscape}, stepKey(terms))
 	m = drive(m, testkit.Click(m.searchAt()+1, shell.Top))
-	m = drive(m, testkit.Typed("starting")...)
-	if !m.gridded() || !strings.Contains(m.View().Content, "\x1b[7mstarting\x1b[27m") {
+	m = drive(m, testkit.Typed("shows each")...)
+	if !m.gridded() || !strings.Contains(m.View().Content, "\x1b[7mshows each\x1b[27m") {
 		t.Errorf("the lead's match is not highlighted:\n%s", m.View().Content)
 	}
-	if v := view(m); !strings.Contains(v, "no row matches the search") || !strings.Contains(v, "kit is a starting point") {
+	if v := view(m); !strings.Contains(v, "no row matches the search") || !strings.Contains(v, "The words kit uses") {
 		t.Errorf("a table with no row for the search:\n%s", v)
 	}
 }

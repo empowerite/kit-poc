@@ -155,7 +155,7 @@ func TestRefreshRunsTheChecksAgain(t *testing.T) {
 // A step drawn as a table adds its folds under a rule, each dim while it would change nothing; one chosen folds the
 // table, whose rows then have the keyboard. The table moves with the pane as it is maximized and restored.
 func TestATablesStepAddsItsFolds(t *testing.T) {
-	m, _ := loaded(t, stepKey(custom), typed(':'))
+	m, _ := loaded(t, stepKey(terms), typed(':'))
 	want := []string{refreshName, "Maximize", "", "Show More", "Show Less", "Show Selected", "Hide Selected"}
 	if !slices.Equal(names(m), want) {
 		t.Fatalf("lines %q", names(m))
@@ -168,7 +168,7 @@ func TestATablesStepAddsItsFolds(t *testing.T) {
 		k = slices.Index(want, "Show Less")
 	}
 	if !m.enabled(k) {
-		t.Fatalf("no fold is enabled on the customize step")
+		t.Fatalf("no fold is enabled on the terms step")
 	}
 	before := maps(m.sheet().Table().Open)
 	m = drive(m, menuLine(m, want[k]))

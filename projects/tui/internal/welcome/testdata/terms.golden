@@ -1,4 +1,4 @@
-  = kit welcome · - empowerite/kit                                                                           🔎 /search
+  = kit welcome                                                                                              🔎 /search
   ➀╶──────────────────╮➁╶───────────────────╮➂╶──────────────╮➃╶───────────────╴➎╶───────────╮
     👋 introduction   │  🧰 toolchains  3   │  🔧 setup  2   │  🎨 customize    │ 📖 terms : │
   ────────────────────╰─────────────────────╰────────────────╰──────────────────╯            ╰──────────────────────────
@@ -27,4 +27,4 @@
     ▸ stage       One part of the picture kit flow draws, such as the issues or the bu…  kit flow --stages
 
 
- = menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ terms 1-5 jump : tab menu
+ = menu / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ terms 1-5 jump : tab menu

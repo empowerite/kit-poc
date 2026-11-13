@@ -509,12 +509,12 @@ func (c *Check) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// WelcomeChecks gives kit welcome's checks, in the order kit ran them: the machine's, then each folder's of the
-// workspace, as over names it, every member's desk and worktrees over a group. They have checksLimit at most, and end
-// when ctx does, as the screen that asked for them ends. told, unless nil, hears what kit says as they run, each check
-// that starts and each folder whose checks end, from kit welcome --checks --json --progress.
+// WelcomeChecks gives kit welcome's checks of the machine, kit welcome --checks --json --machine: no repository's or
+// workspace's, so the runner's workspace words are not given. They have checksLimit at most, and end when ctx does, as
+// the screen that asked for them ends. told, unless nil, hears what kit says as they run, each check that starts and
+// the end of them, from --progress.
 func (r Runner) WelcomeChecks(ctx context.Context, told func(Progress)) ([]Check, error) {
-	args := r.over("welcome", "--checks", "--json")
+	args := []string{"welcome", "--checks", "--json", "--machine"}
 	if told != nil {
 		args = append(args, "--progress")
 	}
@@ -529,24 +529,19 @@ func (r Runner) WelcomeChecks(ctx context.Context, told func(Progress)) ([]Check
 	return checks, nil
 }
 
-// Progress is what kit welcome --checks --progress says as it goes: the check that starts, in Folder, or on the machine
-// where Folder is empty; or, with Check empty, that the checks of Folder, or the machine's, end.
+// Progress is what kit welcome --checks --progress says as it goes: the check that starts, or, with Check empty, that
+// the checks end.
 type Progress struct {
-	Check  string
-	Folder string
+	Check string
 }
 
-// progressOf reads one line kit welcome --checks --progress says on stderr: ⏳ checking <id>, with " in <folder>" for
-// a folder's, or ⏳ checked, with " <folder>" for a folder. Any other line is not progress.
+// progressOf reads one line kit welcome --checks --progress says on stderr: ⏳ checking <id>, or ⏳ checked. Any other
+// line is not progress.
 func progressOf(line string) (Progress, bool) {
-	if rest, ok := strings.CutPrefix(line, "⏳ checking "); ok {
-		id, folder, _ := strings.Cut(rest, " in ")
-		return Progress{Check: id, Folder: folder}, id != ""
+	if id, ok := strings.CutPrefix(line, "⏳ checking "); ok {
+		return Progress{Check: id}, id != ""
 	}
-	if rest, ok := strings.CutPrefix(line, "⏳ checked"); ok && (rest == "" || strings.HasPrefix(rest, " ")) {
-		return Progress{Folder: strings.TrimPrefix(rest, " ")}, true
-	}
-	return Progress{}, false
+	return Progress{}, line == "⏳ checked"
 }
 
 // toldWriter takes a command's stderr: each line that says progress goes to told as it comes, and every other line to
@@ -579,26 +574,20 @@ func (w *toldWriter) line(l []byte) {
 	w.rest.Write(l)
 }
 
-// WelcomeFix gives the command that runs a check's fix, kit welcome --fix=<id>, where the command was typed, over the
-// workspace, as over names it, so a forge's login finds its host among the folders; a folder's check, with
-// --folder=<folder>, runs there. It is not started: the caller hands it the terminal, since a fix may print and ask.
-// It exits 0 when the check now holds, 1 when it still fails, and 2 when kit refuses.
+// WelcomeFix gives the command that runs a check's fix, kit welcome --fix=<id> --machine, where the command was typed:
+// the machine's, with no workspace words. It is not started: the caller hands it the terminal, since a fix may print
+// and ask. It exits 0 when the check now holds, 1 when it still fails, and 2 when kit refuses.
 func (r Runner) WelcomeFix(c Check) *exec.Cmd {
-	args := r.over("welcome", "--fix="+c.ID)
-	if c.Folder != "" {
-		args = append(args, "--folder="+c.Folder)
-	}
-	cmd := exec.Command(r.Kit, args...)
+	cmd := exec.Command(r.Kit, "welcome", "--fix="+c.ID, "--machine")
 	cmd.Dir = r.Dir
 	return cmd
 }
 
-// WelcomeKeep runs kit welcome --keep=<id> --json, over the workspace, as over names it: a terminal's finding kept as
-// it is, so it holds from now on. It gives the check as kit now judges it, or nil where kit did not ask the terminal,
-// so the screen reads only that one again. Kit's refusal, as for a check that is no terminal's finding, is the error.
+// WelcomeKeep runs kit welcome --keep=<id> --json: a terminal's finding kept as it is, so it holds from now on. It gives
+// the check as kit now judges it, or nil where kit did not ask the terminal, so the screen reads only that one again.
+// Kit's refusal, as for a check that is no terminal's finding, is the error.
 func (r Runner) WelcomeKeep(ctx context.Context, c Check) (*Check, error) {
-	out, err := r.within(ctx, callLimit, environment(),
-		r.over("welcome", "--keep="+c.ID, "--json")...)
+	out, err := r.within(ctx, callLimit, environment(), "welcome", "--keep="+c.ID, "--json")
 	if err != nil {
 		return nil, err
 	}

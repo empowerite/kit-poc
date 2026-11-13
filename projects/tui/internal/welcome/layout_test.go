@@ -32,7 +32,7 @@ func TestAStepWithChecksDrawsItsTitleItsChecksThenTheRestOfItsPage(t *testing.T)
 		t.Errorf("the toolchains:\n%s", v)
 	}
 	m = drive(m, stepKey(setup))
-	if v := view(m); !inOrder(v, "   Setup — kit checks this machine, then each folder\n\n", "❌ gh is not logged in",
+	if v := view(m); !inOrder(v, "   Setup — this machine's logins and terminal\n\n", "❌ gh is not logged in",
 		"read: kit help check\n\n", "   Each line is a check.") {
 		t.Errorf("setup:\n%s", v)
 	}
@@ -47,7 +47,7 @@ func TestAPageWithNoTitleStandsUnderItsChecks(t *testing.T) {
 		"# Toolchains — the title alone\n":                                        {"   Toolchains — the title alone\n\n", "✅ bash 5.2 runs kit"},
 	} {
 		m, _ := fake(t)
-		m.runner = repoWith(t, map[string]string{"2-toolchains.md": page})
+		m.runner = pagesWith(t, map[string]string{"2-toolchains.md": page})
 		m = drive(m, testkit.Start(m, at120)...)
 		v := view(m)
 		pane := strings.Join(strings.Split(v, "\n")[m.paneTop():], "\n")
@@ -95,36 +95,25 @@ func TestALinkUnderAStepsChecksIsFollowed(t *testing.T) {
 	overShipped(t)
 	m, _ := fake(t)
 	m = drive(m, append(testkit.Start(m, at120), stepKey(chains))...)
-	x, y := at(t, m, "toolchain. Setup")
-	if m = drive(m, testkit.Click(x, y)); m.tabs[m.step].id != "terms" || m.search().Query != "toolchain" {
+	x, y := at(t, m, "its toolchain.")
+	if m = drive(m, testkit.Click(x+4, y)); m.tabs[m.step].id != "terms" || m.search().Query != "toolchain" {
 		t.Errorf("a click on the term: step %s, search %q", m.tabs[m.step].id, m.search().Query)
 	}
 }
 
-// Under the setup step's table stands the rest of its page, where the table's own lines leave it room, and a link
-// there is followed by a click; a click on the title over the table follows nothing. A table that fills its pane has
-// the pane to itself.
-func TestTheRestOfSetupsPageStandsUnderItsTableWhereItHasRoom(t *testing.T) {
+// The setup step is drawn as the toolchains are: its title, its checks, a row each, and the rest of its page under them,
+// whose links are followed by a click.
+func TestSetupDrawsItsChecksAndTheRestOfItsPageUnderThem(t *testing.T) {
 	overShipped(t)
-	m, _, _ := group(t, stepKey(setupStep), tea.WindowSizeMsg{Width: 120, Height: 60})
+	m, _ := fake(t)
+	m = drive(m, append(testkit.Start(m, tea.WindowSizeMsg{Width: 120, Height: 60}), stepKey(setup))...)
 	v := view(m)
-	if !inOrder(v, "   Setup — this machine's logins", "▾ repository", "not cloned", "\n\n   This step checks what the work",
-		"docs/workspaces.md") {
-		t.Fatalf("the page is not under the table:\n%s", v)
+	if m.gridded() || !inOrder(v, "   Setup — this machine's logins", Failed+" gh is not logged in to github.com",
+		Failed+" kit check finds 2 differences", "\n\n   This step checks what the work") {
+		t.Fatalf("the page is not under the checks:\n%s", v)
 	}
-	x, y := at(t, m, "Setup —")
-	if got := asked(m, x, y); got != nil || m.leadLinkAt(x, y) != "" {
-		t.Errorf("a click on the title: %#v, link %q", got, m.leadLinkAt(x, y))
-	}
-	x, y = at(t, m, "worktree. In a folder")
-	if m.leadLinkAt(x, y) != "welcome/terms/worktree" {
-		t.Errorf("the link under the table at %d, %d: %q", x, y, m.leadLinkAt(x, y))
-	}
-	if m = drive(m, testkit.Click(x, y)); m.tabs[m.step].id != "terms" || m.search().Query != "worktree" {
+	x, y := at(t, m, "code forge")
+	if m = drive(m, testkit.Click(x, y)); m.tabs[m.step].id != "terms" || m.search().Query != "code forge" {
 		t.Errorf("a click on the term: step %s, search %q", m.tabs[m.step].id, m.search().Query)
-	}
-	m = drive(m, stepKey(setupStep), at80)
-	if v := view(m); strings.Contains(v, "This step checks") || !strings.Contains(v, "▾ repository") {
-		t.Errorf("a table that fills the pane shares it:\n%s", v)
 	}
 }

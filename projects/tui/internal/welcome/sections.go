@@ -2,7 +2,7 @@
 // record, one row, and its fields in the step's catalog, a JSON file beside the code. Each section of a page is a
 // `## ` heading; the lines under it that hold one backticked command and nothing else, its commands; and the rest of
 // its text, its paragraphs and its list items, its meaning, one line. The text before the first heading is the step's
-// lead, drawn over the table where the pane has room for it. sheetSteps names the steps drawn so, each with its
+// lead, drawn over the table where the pane has room for it. sheetSteps names the steps drawn so, the terms, with the
 // catalog's table and the records its sections make; a page with no such heading, as a house package may write, is
 // drawn as a page, as every other step's.
 package welcome
@@ -12,8 +12,6 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-
-	"github.com/charmbracelet/x/ansi"
 
 	"github.com/empowerite/kit/projects/tui/internal/pane"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
@@ -164,29 +162,6 @@ func plainText(text string) string {
 	return strings.NewReplacer("`", "", "**", "").Replace(autolink.ReplaceAllString(unlinked(text), "$1"))
 }
 
-// verbOf gives what a command is run with: its tool and its verb, the first word after the tool that is no flag, as
-// kit flow for kit flow --stages, or the tool alone; none for no command.
-func verbOf(command string) string {
-	words := strings.Fields(command)
-	if len(words) == 0 {
-		return ""
-	}
-	for _, w := range words[1:] {
-		if !strings.HasPrefix(w, "-") {
-			return words[0] + " " + w
-		}
-	}
-	return words[0]
-}
-
-// firstOf gives a list's first item, or none for no items.
-func firstOf(items []string) string {
-	if len(items) == 0 {
-		return ""
-	}
-	return items[0]
-}
-
 // listOf gives a list's value, its items as they stand, or none for no items.
 func listOf(items []string) table.Value {
 	if len(items) == 0 {
@@ -203,10 +178,9 @@ type sheetStep struct {
 	records  func([]section) []table.Record
 }
 
-// sheetSteps are the steps drawn as tables: the terms, terms.go's, and the parts that customize kit, customize.go's.
+// sheetSteps are the steps drawn as tables: the terms, terms.go's.
 var sheetSteps = []sheetStep{
 	{id: "terms", name: "terms", schema: termsCatalog[termsTable], records: termSections},
-	{id: "customize", name: "parts", schema: customizeCatalog[customizeTable], records: partRecords},
 }
 
 // sheetColor is a step's table's color, the accent's, as the steps' bar draws the selected step.
@@ -232,7 +206,7 @@ func (m *Model) takeSheets() {
 			continue
 		}
 		sheet := table.NewSheet(s.schema, s.name, sheetColor, m.presets)
-		sheet.SetRecords(rooted(s.records(sections), t.dir))
+		sheet.SetRecords(s.records(sections))
 		sheet.Settings(m.settings)
 		m.tabs[k].sheet, m.tabs[k].lead = &sheet, lead
 	}
@@ -249,20 +223,16 @@ func (m Model) eachSheet(do func(*table.Sheet)) {
 }
 
 // leadLines gives the lead of the step i drawn as a page draws it, what the search finds in it highlighted, a blank
-// line under it, where the pane has room for
-// it and the table's control line, header, and a few rows; none where it does not.
+// line under it, where the pane has room for it and the table's control line, header, and a few rows; none where it
+// does not.
 func (m Model) leadLines(i int) []string {
+	if m.tabs[i].lead == "" {
+		return nil
+	}
 	var out []string
 	query := m.searches[m.tabs[i].id].Query
-	switch {
-	case m.tabs[i].id == setupID:
-		out = m.setupLead()
-	case m.tabs[i].lead == "":
-		return nil
-	default:
-		for _, l := range render(m.tabs[i].lead, m.width-len(lead)-1) {
-			out = append(out, pane.Clip(strings.TrimRight(lead+shell.Found(l, query), " "), m.width-1))
-		}
+	for _, l := range render(m.tabs[i].lead, m.width-len(lead)-1) {
+		out = append(out, pane.Clip(strings.TrimRight(lead+shell.Found(l, query), " "), m.width-1))
 	}
 	if len(out)+1+sheetRoom > m.paneHeight() {
 		return nil
@@ -284,41 +254,13 @@ func (m *Model) placeSheets() {
 	}
 }
 
-// sheetPane gives the pane of the selected step drawn as a table: the lead, then the table's lines, and, under the
-// setup step's, its foot, as sheetFoot places it.
+// sheetPane gives the pane of the selected step drawn as a table: the lead, then the table's lines.
 func (m Model) sheetPane() []string {
-	view := m.sheetView()
-	at, foot := m.sheetFoot(view)
-	for k, l := range foot {
-		view[at+k] = pane.Clip(l.text, m.width-1)
+	var view []string
+	for _, l := range m.sheet().View() {
+		view = append(view, pane.Clip(l, m.width-1))
 	}
 	return append(m.leadLines(m.step), view...)
-}
-
-// sheetView gives the lines of the selected step's table, each clipped to the screen.
-func (m Model) sheetView() []string {
-	var out []string
-	for _, l := range m.sheet().View() {
-		out = append(out, pane.Clip(l, m.width-1))
-	}
-	return out
-}
-
-// sheetFoot gives the foot of the setup step's table, the rest of the step's page after its title, and the line of
-// the table's lines it starts on: a line under the table's last line that is not blank, where the lines left blank
-// under that hold all of it. It gives none for any other step's table, and none where the table leaves no such room.
-func (m Model) sheetFoot(view []string) (int, []line) {
-	if m.tabs[m.step].id != setupID {
-		return 0, nil
-	}
-	foot, used := m.stepFoot(), len(view)
-	for used > 0 && strings.TrimSpace(ansi.Strip(view[used-1])) == "" {
-		used--
-	}
-	if used+1+len(foot) > len(view) {
-		return 0, nil
-	}
-	return used + 1, foot
 }
 
 // sheetNotice gives the keys bar's line in place of the keys while the selected step's table says what it did, or why

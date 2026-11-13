@@ -46,14 +46,19 @@ type ran struct {
 func fake(t *testing.T) (Model, *ran) {
 	t.Helper()
 	t.Setenv("FAKE_WELCOME_STATE", filepath.Join(t.TempDir(), "state"))
-	m := New(testkit.Runner(t, "welcome"), "empowerite/kit")
+	m := New(testkit.Runner(t, "welcome"))
 	r := &ran{}
-	m.exec = func(cmd *exec.Cmd, _, _ string, done tea.ExecCallback) tea.Cmd {
+	m.exec = func(cmd *exec.Cmd, shown, line string, done tea.ExecCallback) tea.Cmd {
 		r.calls = append(r.calls, cmd.Args[1:])
 		r.dirs = append(r.dirs, cmd.Dir)
-		return func() tea.Msg { return done(cmd.Run()) }
+		return fakeExec(cmd, shown, line, done)
 	}
 	return m, r
+}
+
+// fakeExec runs a fix at once, its output dropped, as the terminal would take it.
+func fakeExec(cmd *exec.Cmd, _, _ string, done tea.ExecCallback) tea.Cmd {
+	return func() tea.Msg { return done(cmd.Run()) }
 }
 
 // loaded opens the screen at 120×30, runs Init, then sends the messages.
@@ -74,15 +79,17 @@ func atChains(t *testing.T, msgs ...tea.Msg) (Model, *ran) {
 	return loaded(t, append(slices.Clone(toChains), msgs...)...)
 }
 
-// repoWith makes a git repository with the pages under .kit/welcome, and gives the fake runner in it.
-func repoWith(t *testing.T, pages map[string]string) kit.Runner {
+// pagesWith makes a release whose kit package has the pages, has the fake kit answer root with it, and gives the fake
+// runner, run in a git repository whose own .kit/welcome holds a page of every name given, with other words, which the
+// screen never reads.
+func pagesWith(t *testing.T, pages map[string]string) kit.Runner {
 	t.Helper()
-	dir := t.TempDir()
+	root, dir := t.TempDir(), t.TempDir()
 	if out, err := exec.Command("git", "init", "-q", dir).CombinedOutput(); err != nil {
 		t.Fatalf("git init: %v\n%s", err, out)
 	}
-	for name, text := range pages {
-		path := filepath.Join(dir, pagesDir, name)
+	write := func(base, name, text string) {
+		path := filepath.Join(base, pagesDir, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -90,26 +97,33 @@ func repoWith(t *testing.T, pages map[string]string) kit.Runner {
 			t.Fatal(err)
 		}
 	}
+	for name, text := range pages {
+		write(filepath.Join(root, packageDir), name, text)
+		write(dir, name, "# Not the kit package's\n")
+	}
+	t.Setenv("FAKE_WELCOME_ROOT", root)
 	r := testkit.Runner(t, "welcome")
 	r.Dir = dir
 	return r
 }
 
-// house opens the screen at 120×30 in a repository whose .kit is testdata/house's, as a house package composes it:
-// the kit package's pages linked, 5-terms.md replaced, and 7-our-team.md added, a plain page long enough to scroll.
-// Then it sends the messages.
+// house opens the screen at 120×30 over a release whose kit package is testdata/house's, as a house package composes
+// it, the shipped pages linked: 5-terms.md replaced, and 7-our-team.md added, a plain page long enough to scroll. Then
+// it sends the messages.
 func house(t *testing.T, msgs ...tea.Msg) (Model, *ran) {
 	t.Helper()
-	m, r := fake(t)
-	m.runner = repoWith(t, nil)
-	fixture, err := filepath.Abs(filepath.Join("testdata", "house", ".kit"))
+	fixture, err := filepath.Abs(filepath.Join("testdata", "house"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(fixture, filepath.Join(m.runner.Dir, ".kit")); err != nil {
-		t.Fatal(err)
-	}
+	t.Setenv("FAKE_WELCOME_ROOT", fixture)
+	m, r := fake(t)
 	return drive(m, append(testkit.Start(m, at120), msgs...)...), r
+}
+
+// click gives a left click at x, y.
+func click(x, y int) tea.MouseClickMsg {
+	return tea.MouseClickMsg{X: x, Y: y, Button: tea.MouseLeft}
 }
 
 // drive sends the messages, running every command each update returns and feeding its messages back.
@@ -158,13 +172,13 @@ func calls(t *testing.T, path string) []string {
 // in a page. jump names the number keys of the known steps.
 var (
 	jump       = "1-" + strconv.Itoa(len(known)) + " jump"
-	stepKeys   = "= menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ checks " + jump + " : tab menu"
-	pageKeys   = "= menu - workspace / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ page " + jump + " : tab menu"
-	paneKeys   = "= menu - workspace / search ? legend ⌃Q quit │ " + jump + " : tab menu │ esc tabs ↑↓ move ⇞⇟ page"
+	stepKeys   = "= menu / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ checks " + jump + " : tab menu"
+	pageKeys   = "= menu / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ page " + jump + " : tab menu"
+	paneKeys   = "= menu / search ? legend ⌃Q quit │ " + jump + " : tab menu │ esc tabs ↑↓ move ⇞⇟ page"
 	rowKeys    = paneKeys
 	choiceKeys = paneKeys + " c copy r run"
 	showKeys   = paneKeys + " c copy"
-	scrollKeys = "= menu - workspace / search ? legend ⌃Q quit │ " + jump + " : tab menu │ esc tabs ↑↓ scroll ⇞⇟ page"
+	scrollKeys = "= menu / search ? legend ⌃Q quit │ " + jump + " : tab menu │ esc tabs ↑↓ scroll ⇞⇟ page"
 )
 
 // stepKey gives the press of a step's number, which selects it from anywhere: 1 for the first.

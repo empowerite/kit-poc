@@ -26,8 +26,9 @@ of every stage. `kit tutorials` teaches the screens, and `kit help <verb>` lists
 - The Flow app shows the stages that the `flow` setting in `kit.yml` names, in that order. `kit help flow` describes
   what `kit flow` prints. The rest of this page is about the other eight verbs.
 - Two apps are not named for their verbs. The verb of Trust is `kit audit`, because `kit trust` is the verb that
-  trusts a clone. The verb of Repositories is `kit workspace`. The title line of each app names its verb, so Trust
-  reads `kit audit` and Repositories `kit workspace`.
+  trusts a clone. The verb of Repositories is `kit workspace`. The title line of each app is `kit` and the name of its
+  line in the `=` menu, so Trust reads `kit trust` and Repositories `kit repositories`, though the verbs are
+  `kit audit` and `kit workspace`.
 
 ## The shape every app verb shares
 
@@ -1324,13 +1325,18 @@ A missing tool's fix comes from the toolchains kit found, and never from one it 
 package manager's command. For a folder, it is `kit tools install`, from that folder's tool manager, or, when the tool is
 ambient, the package manager's command.
 
+`--machine`, with `--checks` or `--fix`, judges the machine alone and reads no repository or workspace: no folder is
+checked, and the forge checks are github.com's, not the hosts of the workspace's remotes. It is what kittui's guide runs,
+so the guide is the same wherever it is opened. `--folder=` refuses it.
+
 `kit welcome --keep=<check> --json` and `--unkeep=<check> --json` print the check as it now is, one JSON object, or `null`
 where kit did not ask the terminal. `--progress`, with `--checks`, says on stderr what is being checked as it goes:
 `⏳ checking <check>`, followed by `in <folder>` for a folder's, as each check starts, and `⏳ checked`, followed by
 `<folder>` for a folder, as the machine's checks or a folder's end. kittui shows them while the checks run.
 
 The pages of the guide are under `.kit/welcome/`, from the `kit` package, named for their order and step:
-`2-toolchains.md`. A house package replaces a page by placing one of the same name, or adds one.
+`2-toolchains.md`. `kit welcome --text` reads the repository's, so a house package replaces a page there by placing
+one of the same name, or adds one. kittui's guide reads only the `kit` package's pages.
 
 ### The gaps in the app verbs' help
 
