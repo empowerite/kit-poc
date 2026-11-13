@@ -160,6 +160,18 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
   [[ "${lines[1]}" == " #7  👤 bob  "*"d  🛫  🔀 #5 🏁 ready  👤 cy     ⛳ v0.1  🎫 Fix the thing" ]]
 }
 
+@test "a fork's change of a branch named as the desk's own is never here or local, and has no worktree" {
+  jq '.data.repository.pullRequests.nodes |= [.[0], (.[1] | .isCrossRepository = true
+      | .headRepositoryOwner = {login: "cy"})]' "${FAKE_DIR}/open-prs.json" > "${FAKE_DIR}/fork.json"
+  mv "${FAKE_DIR}/fork.json" "${FAKE_DIR}/open-prs.json"
+  git -C worktrees/7-fix-the-thing checkout --quiet --detach
+  git checkout --quiet -b 11-third origin/11-third
+  run kit flow issues --json
+  [ "$status" -eq 0 ]
+  [ "$(jq -c 'map([.pr.number, .pr.fork, .here, .local, .worktree])' <<<"$output")" \
+    = '[[3,null,false,true,null],[5,"cy",false,false,null],[5,"cy",false,false,null]]' ]
+}
+
 @test "a fork's owner, the last push's age, and who pushed it when not the author each take a column" {
   local esc=$'\x1b' hours days
   hours=$(jq --null-input --raw-output 'now - 7200 | todate')

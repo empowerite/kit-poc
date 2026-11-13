@@ -61,6 +61,18 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
   [[ "$output" != *"closes"* ]]
 }
 
+@test "in a worktree, kit flow changes lists the change its branch holds, never a fork's change of a branch with that name" {
+  git worktree add --quiet ../tree 7-fix-the-thing 2>/dev/null || git worktree add --quiet ../tree origin/7-fix-the-thing
+  jq '.data.repository.pullRequests.nodes += [(.data.repository.pullRequests.nodes[0]
+      | .number = 5 | .isCrossRepository = true | .headRepositoryOwner = {login: "mal"})]' \
+    "${FAKE_DIR}/open-prs.json" > "${FAKE_DIR}/fork.json"
+  mv "${FAKE_DIR}/fork.json" "${FAKE_DIR}/open-prs.json"
+  cd ../tree
+  run kit flow changes --json
+  [ "$status" -eq 0 ]
+  [ "$(jq -c 'map(.number)' <<<"$output")" = '[3]' ]
+}
+
 @test "kit flow changes --mine, --others, and --owner choose by the change's author, as kit flow does" {
   run kit flow changes --mine
   [ "$status" -eq 0 ]

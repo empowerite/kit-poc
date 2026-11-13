@@ -38,7 +38,7 @@ changes:documents() {
   if flow:in-worktree
   then
     branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)  # a detached HEAD has no change
-    prs=$(jq --compact-output --arg branch "${branch}" 'select(.branch == $branch)' <<<"${prs}")
+    prs=$(jq --compact-output --arg branch "${branch}" 'select(.branch == $branch and (.fork // null) == null)' <<<"${prs}")
   else
     filter=$(flow:filter-of "$@") || return 1
     read -r -a selection <<<"${filter}"

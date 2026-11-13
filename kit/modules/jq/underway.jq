@@ -7,17 +7,20 @@
 # row($pr; $worktrees; $branches) reads an issue, as forge.jq's issue documents or a change's closes hold one, and gives
 # its row beside the change $pr: the issue's number, title, assignees, labels, age, source, organization, and
 # repository, and any other field it holds; the change as pr, {number, source, title, author, state, branch, fork,
-# pushed, url}, source the forge it is on and url its page, or null; here, true when $worktrees names a checkout for the change's branch; local, true
-# when $branches names the branch and no checkout has it; and worktree, that checkout's path, or null. $worktrees maps
-# a branch to the path of the checkout that has it, and $branches lists the desk's local branches.
+# pushed, url}, source the forge it is on and url its page, or null; here, true when $worktrees names a checkout for the
+# change's branch; local, true when $branches names the branch and no checkout has it; and worktree, that checkout's
+# path, or null. A fork's change is on its author's desk, so it is never here or local, and has no worktree, whatever
+# its branch is called. $worktrees maps a branch to the path of the checkout that has it, and $branches lists the
+# desk's local branches.
 def row($pr; $worktrees; $branches):
-  ($worktrees[$pr.branch] != null) as $here
+  (($pr.fork // null) == null) as $own
+  | ($own and $worktrees[$pr.branch] != null) as $here
   | . + { assignees: (.assignees // []), labels: (.labels // []), source: (.source // null),
           organization: (.organization // null), repository: (.repository // null),
           pr: { number: $pr.number, source: ($pr.source // null), title: $pr.title, author: $pr.author,
                 state: $pr.state, branch: $pr.branch, fork: $pr.fork, pushed: $pr.pushed, url: ($pr.url // null) },
-          here: $here, local: (($here | not) and ($pr.branch | IN($branches[]))),
-          worktree: ($worktrees[$pr.branch] // null) };
+          here: $here, local: ($own and ($here | not) and ($pr.branch | IN($branches[]))),
+          worktree: (if $own then $worktrees[$pr.branch] // null else null end) };
 
 # rows($worktrees; $branches) reads the open changes, as an array of forge.jq's change documents, and gives one row per
 # issue and change, as row gives it, for each issue a change closes: its number, title, assignees, labels, age, source,
