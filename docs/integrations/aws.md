@@ -183,7 +183,9 @@ login --tool npm` or `--tool pip` points npm or uv at it, and kit's dependency s
 A host under `amazonaws.com` that starts with `git-codecommit.` names the forge, as `dev.azure.com` names Azure DevOps.
 `forge_settings.aws` gives what the URL cannot: the profile, when the URL names none, and the stand-ins below.
 
-It would implement contract 3 and declare that CodeCommit lacks these features:
+It would declare that CodeCommit lacks these features. The table was written for the seam's first contract; the features
+added since, in [forges.md](forges.md#features), have not been judged for CodeCommit, and each needs a row before a
+provider is written:
 
 | Feature | Why CodeCommit lacks it | What kit does without it |
 | --- | --- | --- |

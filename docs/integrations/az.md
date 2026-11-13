@@ -23,11 +23,13 @@ GitHub is the code forge kit supports; [1st.md](1st.md#providers-in-kit) says th
 
 ## Azure DevOps Repos
 
-kit's provider, `forge/ado.sh`, reads the organization, the project, and the repository from the primary remote's
-URL. It implements contract 3 and declares that Azure DevOps lacks rate limits it shows, cheap marks, releases, and
-branches linked to a work item: `kit work` pushes the branch it names, and the pull request it opens links the work
-item. Azure Boards is the forge's own tracker, as `#7` and `AB#7` alike, and `forge_settings.ado` in `kit.yml` names
-the work item type and the closing states of the project's process.
+kit's provider, `forge/ado.sh`, reads the organization, the project, and the repository from the primary remote's URL.
+It declares the features Azure DevOps lacks, which [forges.md](forges.md#features) tables and `forge/ado:lacks` lists,
+among them rate limits, cheap marks, releases, and branches linked to a work item: `kit work` pushes the branch it
+names, and the pull request it opens links the work item. The link a branch could have, in the write table below, was
+not verified against a live organization, so the provider does not write it. Azure Boards is the forge's own tracker,
+as `#7` and `AB#7` alike, and `forge_settings.ado` in `kit.yml` names the work item type and the closing states of the
+project's process.
 
 Azure DevOps Server, the self-hosted product, answers at `https://${host}/${collection}` with the same REST API at an
 older version. `--org` names the collection URL; which Server releases the extension supports was not checked.
@@ -154,7 +156,7 @@ a list. `az devops invoke` calls any REST route with the extension's sign-in.
 | Capability | Command |
 | --- | --- |
 | Recent runs | `az pipelines runs list --branch "${branch}" --top 20 --query-order QueueTimeDesc --reason individualCI`; `--reason` takes one value per call, `schedule` or `manual` the others; kit reads `--top 50 --reason "${reason}"` for `individualCI`, `batchedCI`, `schedule`, and `manual`, a call each, so a pull request's runs take no room; `az` has no filter by repository, so kit keeps the runs whose `repository.name` is the repository's, and a project with busy neighbours shows fewer than 20 |
-| A run's jobs and failed step | REST `GET https://dev.azure.com/${organization}/${project}/_apis/build/builds/${build_id}/timeline?api-version=7.1`: records of type `Stage`, `Job`, and `Task`, each with `result` |
+| A run's jobs and failed step | kit reads none, so every run it draws carries no jobs; REST `GET https://dev.azure.com/${organization}/${project}/_apis/build/builds/${build_id}/timeline?api-version=7.1`: records of type `Stage`, `Job`, and `Task`, each with `result` |
 | A change's checks | `az pipelines runs list --reason pullRequest --branch "refs/pull/${n}/merge"` on GitHub; an Azure Repos pull request's policies belong to the code forge |
 | A run's log | REST `GET https://dev.azure.com/${organization}/${project}/_apis/build/builds/${build_id}/logs/${log_id}?api-version=7.1`; the timeline names each record's `log.id` |
 | Artifacts | `az pipelines runs artifact list --run-id "${run_id}"`, which kit reads for each of the 20 newest runs, until 100 artifacts, `az pipelines runs list --top 21` saying whether there are more, those of the project's other repositories, by `repository.name`, left out; an artifact's `id` is its run's own, so kit keys it `<run>/<id>`; a pipeline artifact's size is its `resource.properties.artifactsize`, and none has a digest or an expiry; `kit delivery artifacts` draws them; `az pipelines runs artifact download --run-id "${run_id}" --artifact-name "${name}" --path "${dir}"` |

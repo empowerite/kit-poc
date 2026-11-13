@@ -9,12 +9,14 @@ pages is [1st.md](1st.md).
 kit reads CI through the code forge seam, `kit/modules/bash/forge.sh`, and two of its calls carry CI data; what a
 seam is, [architecture.md](../architecture.md#code-forges-seams-and-providers) says.
 
-- `forge:runs` returns the 20 newest runs that no change owns, each with its jobs and the failed step. The builds
-  stage draws them. Each provider asks its forge for them by kind, so a change's runs take no room in what it reads.
-  GitHub cannot be asked for the pushes to a tag alone: kit reads the 100 newest pushes for them, and a tag's run
-  older than those is not listed.
-- `open-prs` returns each open change with its checks: on GitHub the commit's `statusCheckRollup`, both check runs
-  and commit statuses; on GitLab the jobs of the merge request's head pipeline. The changes stage draws them.
+- `forge:runs` returns the 20 newest runs that no change owns. The builds stage draws them. On GitHub and GitLab the 5
+  newest carry their jobs and the failed step, a call each; a run whose jobs cannot be read carries none, and every
+  run on Azure DevOps carries none, since its jobs would cost a call each. Each provider asks its forge for them by
+  kind, so a change's runs take no room in what it reads. GitHub cannot be asked for the pushes to a tag alone: kit
+  reads the 100 newest pushes for them, and a tag's run older than those is not listed.
+- `open-prs` returns each open change with its checks: on GitHub the commit's `statusCheckRollup`, both check runs and
+  commit statuses; on GitLab the jobs of the merge request's head pipeline; on Azure DevOps the pull request's policy
+  evaluations, build validation and status policies among them. The changes stage draws them.
 
 `forge:marks` also keeps a runs mark, a text that changes when the runs do, so a picture reloads only when it must.
 
@@ -22,8 +24,9 @@ see: [forges.md](forges.md), `kit/modules/bash/builds.sh`
 
 ## CI that is not the code forge's own
 
-The seam reads the code forge's own CI: GitHub Actions on GitHub, GitLab CI/CD on GitLab. A repository on GitHub can
-run its pipeline elsewhere, on Jenkins, CircleCI, Buildkite, or Azure Pipelines. Two cases follow.
+The seam reads the code forge's own CI: GitHub Actions on GitHub, GitLab CI/CD on GitLab, Azure Pipelines on Azure
+DevOps. A repository on GitHub can run its pipeline elsewhere, on Jenkins, CircleCI, Buildkite, or Azure Pipelines.
+Two cases follow.
 
 - A change's checks still work. External CI reports into the code forge: it posts a commit status or, as a GitHub
   App, a check run on the commit it built. `open-prs` reads both, so the changes stage shows an external system's
@@ -95,9 +98,9 @@ the variables are as each system documents them.
 | Capability | Read or write | Where kit uses it |
 | --- | --- | --- |
 | Recent runs no change owns: pushes to the default branch or a tag, scheduled, and manual runs | read | `forge:runs`, the builds stage |
-| A run's jobs and the step that failed | read | `forge:runs` (`jobs[].step`), the builds stage |
+| A run's jobs and the step that failed | read | `forge:runs` (`jobs[].step`), the builds stage: the 5 newest runs on GitHub and GitLab, none on Azure DevOps |
 | Whether the runs changed, read cheaply | read | `forge:marks`, the runs mark |
-| A change's checks | read | `open-prs`, the changes stage; kittui's checks tab (planned) |
+| A change's checks | read | `open-prs`, the changes stage, `kit changes checks`, kittui's checks tab |
 | A run's or a job's log | read | planned |
 | A run's artifacts: list | read | `forge:artifacts`, `kit delivery artifacts`: the newest, with digest, size, run, and expiry |
 | A run's artifacts: download | read | planned |

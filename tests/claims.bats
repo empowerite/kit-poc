@@ -573,6 +573,35 @@ EOF
   (( ${#found[@]} == 0 )) || { printf '%s\n' "${found[@]}"; return 1; }
 }
 
+@test "the forge page's table of features is the seam's, and says what each provider lacks as the provider does" {
+  local feature since provider cell lacks page=docs/integrations/forges.md found=() row listed
+  local -A column=([github]=3 [gitlab]=4 [ado]=5)
+  cd "${root}"
+  grep --quiet --extended-regexp 'contract (version )?[0-9]' docs/integrations/*.md \
+    && found+=("docs/integrations: a page states a number of the forge contract, which moves; name no number")
+  for feature in $(bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge \
+    && printf "%s\n" "${forge_features[@]}"' | sed 's/:.*//')
+  do
+    row=$(grep --fixed-strings "| \`${feature}\` |" "${page}" || true)
+    [[ -n "${row}" ]] || { found+=("${page}: its table of features has no row for ${feature}"); continue; }
+    for provider in "${!column[@]}"
+    do
+      cell=$(awk -F'|' -v n="${column[${provider}]}" '{ gsub(/^ +| +$/, "", $(n + 1)); print $(n + 1) }' <<<"${row}")
+      lacks=$(bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge && source "${kit_root}/modules/bash/forge/$0.sh" \
+        && forge/$0:lacks' "${provider}")
+      if grep --quiet --line-regexp --fixed-strings "${feature}" <<<"${lacks}"
+      then [[ "${cell}" == lacks ]] || found+=("${page}: ${feature} for ${provider} is ${cell}, and the provider lacks it")
+      else [[ "${cell}" == native ]] || found+=("${page}: ${feature} for ${provider} is ${cell}, and the provider has it")
+      fi
+    done
+  done
+  listed=$(sed -n '/^## Features$/,/^## /p' "${page}" | grep --count '^| `')
+  [[ "${listed}" == "$(bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge && echo "${#forge_features[@]}"')" ]] \
+    || found+=("${page}: its table of features names a feature the seam does not")
+  cd "${BATS_TEST_TMPDIR}"
+  (( ${#found[@]} == 0 )) || { printf '%s\n' "${found[@]}"; return 1; }
+}
+
 @test "the screen the README shows is one kittui draws: Flow's golden at 80 columns, less the spaces that end a line" {
   local golden=projects/tui/internal/flow/testdata/issues.golden shown drawn
   # the first text block under the heading, as the page shows it

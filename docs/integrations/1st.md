@@ -14,7 +14,7 @@ descriptions of its API and its configuration files the provider publishes.
 | Page | Category | Seam | What in kit uses it |
 | --- | --- | --- | --- |
 | [forges.md](forges.md) | code forges: the repository, its branches, and its changes | `kit/modules/bash/forge.sh` | `kit work`, `kit submit`, `kit linked`, `kit policy`, `kit tidy`, and the changes and issues stages of `kit flow` |
-| [trackers.md](trackers.md) | trackers: issues, their parents, iterations, and milestones | `kit/modules/bash/tracker.sh`; see [../trackers.md](../trackers.md) | `kit work`, `kit gather`, `kit assign`, `kit close`, `kit settle`, `kit new issue`, and the backlog stage |
+| [trackers.md](trackers.md) | trackers: issues, their parents, iterations, and milestones | `kit/modules/bash/tracker.sh`; see [../trackers.md](../trackers.md) | `kit work`, `kit gather`, `kit assign`, `kit close`, `kit settle`, `kit new issue`, and the issues stage, whose backlog is the issues no change closes |
 | [ci.md](ci.md) | continuous integration: runs, their jobs, and a change's checks | the forge seam's `runs` and a change's checks | `kit ci`, which a pipeline runs, and the builds and changes stages |
 | [cd.md](cd.md) | continuous delivery: releases, environments, and deployments | the forge seam's `releases` | `kit release`, and the releases stage |
 
@@ -31,14 +31,19 @@ The `github` provider is supported. The `gitlab` and `ado` forge providers are e
 kit reads of their forges' own trackers, CI, and CD: each is tested against a fake built from the tool's documented
 output, which its page and the schemas beside the page record, and has not yet run against a live project.
 
+Of the tools below, kit runs `git`, `gh`, `glab`, and `az` alone. Every other page is a catalogue: what the tool and its
+service answer for kit's calls, researched from their documentation, with no provider in kit behind it, so no row of it
+is used by a verb. Which of them kit builds, and in what order, is for the owner to decide; the research does not
+rank them.
+
 A CI or CD system that is not the code forge's own reaches kit today only through the code forge: it reports a
 commit status or a check run there, and kit reads it with the change's checks.
 
-A forge provider declares what its forge lacks, in the forge seam's contract version 3, and `kit flow
---capabilities` prints the declaration; [architecture.md](../architecture.md#code-forges-seams-and-providers) says how
-a verb answers a call of a feature the forge lacks. [aws.md](aws.md#a-plan-for-an-aws-provider) holds the plan for
-AWS's developer services, which kit has no provider for: what each lacks, and the stand-ins a repository on AWS would
-configure.
+A forge provider declares the version of the forge seam's contract it implements and what its forge lacks, and `kit
+flow --capabilities` prints the declaration; [forges.md](forges.md#features) tables it for kit's three providers;
+[architecture.md](../architecture.md#code-forges-seams-and-providers) says how a verb answers a call of a feature the
+forge lacks. [aws.md](aws.md#a-plan-for-an-aws-provider) holds the plan for AWS's developer services, which kit has no
+provider for: what each lacks, and the stand-ins a repository on AWS would configure.
 
 ## Tools
 

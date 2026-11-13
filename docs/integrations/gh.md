@@ -226,7 +226,7 @@ fills `{owner}` and `{repo}` from the repository `GH_REPO` names, as kit sets it
 | Capability | Command |
 | --- | --- |
 | Recent runs | `gh run list --event "${event}" --limit "${limit}" --json databaseId,number,attempt,workflowName,headBranch,headSha,displayTitle,event,status,conclusion,createdAt,startedAt,updatedAt,url`, and `--branch "${branch}"`; kit asks by kind, so a pull request's runs take no room: `--event push --branch "${default}" --limit 20`, `--event schedule --limit 20`, `--event workflow_dispatch --limit 20`, and `--event push --limit 100` for the pushes to a tag, which no filter picks out, so a tag's run older than the 100 newest pushes is not listed |
-| A run's jobs and failed step | `gh run view "${run_id}" --json jobs`; each job has `steps[]` with `conclusion` |
+| A run's jobs and failed step | `gh run view "${run_id}" --json jobs`; each job has `steps[]` with `conclusion`; kit reads it for the 5 newest runs it draws |
 | Whether runs changed | `gh api --include -H "If-None-Match: ${etag}" 'repos/{owner}/{repo}/actions/runs?per_page=10'`, as kit's runs mark does |
 | A change's checks | `gh pr checks "${n}" --json name,state,bucket,link,workflow`; kit reads `statusCheckRollup` through `gh api graphql` |
 | A run's log | `gh run view "${run_id}" --log-failed`, or `--log`; one job with `--job "${job_id}"` |

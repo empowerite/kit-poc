@@ -29,7 +29,7 @@ see: [architecture.md](../architecture.md#code-forges-seams-and-providers), `kit
 | Make a branch linked to an issue, from the default branch, pushed | write | `forge:link-branch`: `kit work` |
 | The branch an open change for an issue is on | read | `forge:branch-for-issue`: `kit work`, so a second run reuses the branch |
 | Open a change as a draft | write | `forge:pr-create`: `kit work` |
-| Mark the change ready for review | write | the workflow's last step, with the forge's own command; no seam call |
+| Mark the change ready for review | write | `forge:pr-ready`: `kit ready`, the workflow's last step |
 | The change's title | read | `forge:pr-title`: `kit policy` |
 | The change's body | read | `forge:pr-body`: `kit linked`, `kit policy`, `kit work` |
 | Replace the change's body | write | `forge:pr-set-body`: `kit work` adds its `Closes` lines |
@@ -37,12 +37,66 @@ see: [architecture.md](../architecture.md#code-forges-seams-and-providers), `kit
 | The change's state, and its merge commit once merged | read | `forge:pr-state`: `kit settle`, `kit tidy` |
 | The change on a branch: open, latest in any state, its state, its head commit | read | `forge:pr-for-branch`, `pr-last-for-branch`, `pr-state-for-branch`, `pr-head-for-branch`, `pr-here`: `kit commit`, `kit tidy`, `kit linked`, the worktrees stage |
 | The issues the change closes, with their state | read | `forge:pr-closing-issues`: `kit linked`, `kit settle` |
-| The change's review threads, resolved or not | read | `forge:open-prs`: the changes stage; planned: kittui's reviews tab |
-| The change's checks rollup on its head commit | read | `forge:open-prs`: the changes stage; planned: kittui's checks tab |
+| The change's review threads, resolved or not, and its reviewers | read | `forge:open-prs`: the changes stage, and `kit changes reviews`, kittui's reviews tab |
+| The change's checks rollup on its head commit | read | `forge:open-prs`: the changes stage, and `kit changes checks`, kittui's checks tab |
 | Every open change, whole, with the above | read | `forge:open-prs`: the changes and issues stages |
 | The page of each open issue, each open change, and each issue a change closes | read | `forge:open-issues`, `forge:open-prs`, as `url`: what kittui's issues and changes tabs open and copy; no caller builds one |
 | Where a remote's branch, commit, and issue pages are | read | `forge:page-urls <remote>`, from the remote's URL with no call to the forge: what `kit workspace` links its rows to; no caller builds one |
-| Merged changes | read | planned: kittui's merged tab |
+| Merged changes | read | `forge:merged-prs`: `kit changes merged`, kittui's merged tab |
+| A change's labels, added or removed | write | `forge:pr-label-add`, `forge:pr-label-remove`: the `drafts` stand-in |
+| Who has access, which teams, and which bots acted | read | `forge:collaborators`, `forge:teams`, `forge:bots`: `kit people` |
+| Attestations, the three kinds of security alert, rulesets, and who may bypass them | read | `forge:attestations`, `forge:code-scanning-alerts`, `forge:dependabot-alerts`, `forge:secret-scanning-alerts`, `forge:rulesets`, `forge:bypasses`: `kit audit` |
+| An app the forge signs in as, with a key of its own | write | the `forge:bot-*` calls: `kit bots` |
+
+## Features
+
+The seam groups its calls into features: a set of calls that a forge has whole or not at all. Each provider declares the
+features its forge lacks, and a call of a feature the forge lacks answers unsupported; the header of
+`kit/modules/bash/forge.sh` says how, and `kit flow --capabilities` prints the declaration of the forge here. The
+table lists every feature, the contract version that added it, and what each of kit's three providers says. A test
+holds the table to the seam's list and to each provider's declaration.
+
+| Feature | Since | GitHub | GitLab | Azure DevOps |
+| --- | --- | --- | --- | --- |
+| `issues` | 1 | native | native | native |
+| `sub-issues` | 1 | native | native | native |
+| `linked-branches` | 1 | native | native | lacks |
+| `drafts` | 1 | native | native | native |
+| `closing-issues` | 1 | native | native | native |
+| `review-threads` | 1 | native | native | native |
+| `checks` | 1 | native | native | native |
+| `quota` | 1 | native | native | lacks |
+| `marks` | 1 | native | native | lacks |
+| `releases` | 1 | native | native | lacks |
+| `runs` | 1 | native | native | native |
+| `labels` | 3 | native | native | native |
+| `milestones` | 4 | native | native | lacks |
+| `iterations` | 4 | native | native | native |
+| `reviewers` | 4 | native | native | native |
+| `merged` | 4 | native | native | native |
+| `artifacts` | 4 | native | native | native |
+| `environments` | 4 | native | native | native |
+| `deployments` | 4 | native | native | native |
+| `collaborators` | 4 | native | native | native |
+| `teams` | 4 | native | native | native |
+| `bots` | 4 | native | native | lacks |
+| `attestations` | 4 | native | lacks | lacks |
+| `code-scanning` | 4 | native | native | lacks |
+| `dependabot` | 4 | native | native | lacks |
+| `secret-scanning` | 4 | native | native | lacks |
+| `rulesets` | 4 | native | native | native |
+| `bypasses` | 4 | native | lacks | lacks |
+| `check-runs` | 4 | native | native | native |
+| `swimlanes` | 5 | lacks | lacks | lacks |
+| `bot-accounts` | 6 | native | lacks | lacks |
+| `merge-closing` | 8 | native | native | lacks |
+
+Two things the table does not say. `lacks` is what the provider declares, which is not always what the forge cannot
+do: Azure DevOps' `linked-branches` is `lacks` because the provider does not write the link, though `az` has the two
+commands in [az.md](az.md#write-to-azure-devops-repos), not verified against a live organization. No provider has a
+separate state for a feature that is not written yet, so `kit flow --capabilities` says `none` for both; that is a
+decision for the seam's owner. `swimlanes` is `lacks` everywhere: no forge kit reaches has a lane it reads the same
+way, so a repository names a stand-in in `kit.yml`.
 
 ## Providers
 
@@ -98,6 +152,8 @@ Atlassian removed them on 20 August 2026, so a Bitbucket repository's tracker is
 Notes on the cells:
 
 - GitHub's author is `api` because `gh pr view` names a bot by its app, not by its login.
+- Azure DevOps' branch link is `cli` because `az` has the two commands; the provider declares `linked-branches` lacking
+  until the link is verified, as the Features table says.
 - Azure DevOps' marks are `—`: no read was found that changes on every update to a pull request.
 - Bitbucket's branch link and closing issues are Jira's: Bitbucket Cloud has no issues, and Data Center never did.
 - Bitbucket Data Center's merge commit is `api` from the activities, and its rate limits `api` (both not verified).

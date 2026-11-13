@@ -7,10 +7,11 @@ references, and its three providers are described in [the tracker seam](../track
 is listed in [the integrations index](1st.md).
 
 kit reaches a tracker through `kit/modules/bash/tracker.sh`. `kit work`, `kit assign`, `kit unassign`, `kit close`,
-`kit gather`, `kit settle`, `kit new issue`, `kit linked`, and `kit tidy` call it. The issues stage of
-`kit flow` draws the open issues of every tracker, through the seam's `open-issues`: the code forge's own through
-`open-issues` in `kit/modules/bash/forge.sh`, and each tracker's `kit.yml` declares through its provider. kittui has
-iterations and milestones tabs with no data source yet, and this page records where each tracker keeps both.
+`kit gather`, `kit settle`, `kit new issue`, `kit linked`, and `kit tidy` call it. The issues stage of `kit flow`
+draws the open issues of every tracker, through the seam's `open-issues`: the code forge's own through `open-issues`
+in `kit/modules/bash/forge.sh`, and each tracker's `kit.yml` declares through its provider. `kit issues milestones`
+and `kit issues iterations` read the forge's own, which kittui's milestones and iterations tabs draw, and this page
+records where each tracker keeps both.
 
 see: [the code forges](forges.md), whose APIs GitHub Issues, GitLab, Azure Boards, Gitea, and Forgejo share
 
@@ -32,9 +33,9 @@ see: [the code forges](forges.md), whose APIs GitHub Issues, GitLab, Azure Board
 | Creates an issue | write | `create`: `kit gather` and `kit work --title` create the parent |
 | Puts an issue under a parent | write | `issue-add-sub` (forge seam): `kit gather`, `kit work --title` |
 | Links a change to an issue | write | `kit work`: a linked branch where the forge links one, and a `Closes` line in the change's body for every issue; `kit linked` reads it |
-| Iterations: sprints or cycles, with dates and their issues | read | planned: kittui's iterations tab |
-| Milestones or versions, with due dates and their issues | read | planned: kittui's milestones tab |
-| A project board's status field | read | planned: a column beside an issue in the issues stage |
+| Iterations: sprints or cycles, with dates and their issues | read | `iterations` (forge seam): `kit issues iterations`, kittui's iterations tab; the forge's own only |
+| Milestones or versions, with due dates and their issues | read | `milestones` (forge seam): `kit issues milestones`, kittui's milestones tab; the forge's own only |
+| A project board's status field | read | planned: a column beside an issue in the issues stage; the `swimlanes` feature is where it would go, and no provider reads it |
 
 The calls are the seam's, and a provider answers each one. kit's providers call a tracker's command line, which holds
 the sign-in; a call that goes only through a tracker's raw API needs a token of its own.
@@ -46,7 +47,7 @@ the sign-in; a call that goes only through a tracker's raw API needs a token of 
 | [GitHub Issues](gh.md#github-issues) | SaaS; GitHub Enterprise Server self-hosted; proprietary | `gh`, official ([cli/cli](https://github.com/cli/cli), MIT) | `provider` (`forge`) | `--json "${fields}"`, `--jq`; `gh api` | REST OpenAPI, GraphQL schema, webhook payloads in OpenAPI 3.1, issue form JSON Schema |
 | [GitLab Issues and work items](glab.md#gitlab-issues-and-work-items) | SaaS; self-managed; open core (MIT core) | `glab`, official ([gitlab-org/cli](https://gitlab.com/gitlab-org/cli), MIT) | `provider` (`forge`) | `--output json`, `--jq`; `glab api` | REST OpenAPI 3.0, GraphQL introspection result |
 | [Azure Boards](az.md#azure-boards) | SaaS (Azure DevOps Services); Azure DevOps Server self-hosted; proprietary | `az` with the `azure-devops` extension, official ([Azure/azure-devops-cli-extension](https://github.com/Azure/azure-devops-cli-extension), MIT) | `provider` (`ado`) | `--output json`, `--query` (JMESPath); `az devops invoke`, `az rest` | none published; a REST reference in prose |
-| [GitHub Projects](gh.md#github-projects) | SaaS; GitHub Enterprise Server; proprietary | `gh project`, official | none | `--format json`, `--jq`; `gh api graphql` | GraphQL schema (`ProjectV2`), `projects_v2_item` webhooks |
+| [GitHub Projects](gh.md#github-projects) | SaaS; GitHub Enterprise Server; proprietary | `gh project`, official | `provider` for iterations alone, through `forge/github.sh` (`gh api graphql`); the status field none | `--format json`, `--jq`; `gh api graphql` | GraphQL schema (`ProjectV2`), `projects_v2_item` webhooks |
 | [Jira Cloud and Data Center](jira.md#jira) | SaaS; Data Center self-hosted until March 28, 2029; proprietary | `acli`, official, Cloud ([acli reference](https://developer.atlassian.com/cloud/acli/reference/commands/), proprietary); `jira`, community ([ankitpokhrel/jira-cli](https://github.com/ankitpokhrel/jira-cli), MIT) | none | `acli`: `--json`; `jira`: `--raw`, `--plain` | Cloud platform and Jira Software OpenAPI 3; Data Center OpenAPI 3 per release |
 | [Linear](linear.md#linear) | SaaS; proprietary | `linear`, community ([schpet/linear-cli](https://github.com/schpet/linear-cli), ISC) | none | `--json`; `linear api` | GraphQL schema |
 | [YouTrack](yt.md#youtrack) | SaaS; YouTrack Server self-hosted; proprietary | `yt`, community ([ryancheley/yt-cli](https://github.com/ryancheley/yt-cli), MIT) | none | `--format json` | OpenAPI 3 per instance |
