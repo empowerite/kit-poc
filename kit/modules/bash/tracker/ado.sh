@@ -107,6 +107,9 @@ tracker/ado:new-url() {
   tracker:query "${org}/${project// /%20}/_workitems/create/${type// /%20}" '[System.Title]' "${1:-}"
 }
 
+# tracker/ado:one-assignee succeeds: a work item has one assignee, which assigning another replaces.
+tracker/ado:one-assignee() { return 0; }
+
 # tracker/ado:open-issues prints one document per open work item of the record's project, oldest first, as the seam's
 # header says: those an Azure Boards query finds in no closing state, each its reference under the record's prefix, its
 # page, and the project as its organization, as an Azure DevOps forge's work items have it. az boards query answers

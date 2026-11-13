@@ -117,6 +117,11 @@ JSON
   [ "$output" = "bob@example.com" ]
   run in_tracker tracker:of 'AB#4521' assign ada@example.com
   [ "$status" -eq 0 ]
+  # a work item has one assignee, so kit assign says it takes the item from bob, never that it adds to bob
+  run "${kit_root}/bin/kit" assign 'AB#4521'
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"AB#4521 is assigned to bob@example.com, and holds one assignee; assigning you takes it from them"* ]]
+  [[ "$output" != *"adding you as well"* ]]
   run in_tracker tracker:at 'AB#' me
   [ "$output" = "ada@example.com" ]
   run in_tracker tracker:at 'AB#' create "New work"

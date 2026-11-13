@@ -74,7 +74,7 @@ issue:create() {
 }
 
 # issue:assign <reference>… adds the caller (as each issue's tracker identifies the caller) to each issue's
-# assignees. It warns when someone else is already assigned. An issue it cannot assign, because the caller, the
+# assignees, or replaces the one assignee of a tracker that holds one. It warns when someone else is already assigned. An issue it cannot assign, because the caller, the
 # issue's assignees, or the assignment cannot be read or made, is named in a warning, and it goes on to the next; it
 # returns 1 when any issue could not be assigned.
 issue:assign() {
@@ -97,8 +97,17 @@ issue:assign() {
       continue
     fi
     [[ " ${assignees} " == *" ${me} "* ]] && continue
-    [[ -z "${assignees}" ]] \
-      || warn "${ref} is already assigned to ${assignees}; adding you as well. Coordinate before continuing."
+    if [[ -z "${assignees}" ]]
+    then
+      :
+    elif tracker:of "${ref}" one-assignee >/dev/null 2>&1
+    then
+      # a work item has one assignee, so assigning the caller takes it from the one it has
+      warn "${ref} is assigned to ${assignees}, and holds one assignee; assigning you takes it from them." \
+        "Coordinate before continuing."
+    else
+      warn "${ref} is already assigned to ${assignees}; adding you as well. Coordinate before continuing."
+    fi
     if ! tracker:of "${ref}" assign "${me}"
     then
       warn "${ref} could not be assigned to ${me}; assign it by hand."
