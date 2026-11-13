@@ -16,9 +16,10 @@ This repository is the source for kit as well as its first consumer.
 
 - The release is `kit/`: `kit/bin/`, `kit/libexec/`, `kit/modules/`, and `kit/packages/`. `kit/bin/kit` is the loader,
   in POSIX sh, and `kit/libexec/kit-call` the bash it runs. The tarball adds only a generated `version` file and
-  `libexec/kittui`, built from `tui/`. Everything in `kit/` is written for a consumer: no file names a
-  consumer, a person, or another repository as the source of a rule. A path in a file under `kit/` is written from
-  `kit/`, as it reads in the tarball: `modules/bash/forge.sh`, not `kit/modules/bash/forge.sh`.
+  the `libexec/kittui-<os>-<arch>` binaries, built from `projects/tui/`. Everything in `kit/` is written for a
+  consumer: no file names a consumer, a person, or another repository as the source of a rule. A path in a file
+  under `kit/` is written from `kit/`, as it reads in the tarball: `modules/bash/forge.sh`, not
+  `kit/modules/bash/forge.sh`.
 - Releases and pre-releases: [CONTRIBUTING.md](CONTRIBUTING.md#release).
 - The kit does not impose taste on a consumer. The `kit` package delivers rules: what the work must do to be trusted.
   Style, how a file looks, ships in the optional `style/<kind>` packages. This repository's own taste beyond those,

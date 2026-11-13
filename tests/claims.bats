@@ -472,6 +472,13 @@ EOF
   [ "${status}" -eq 1 ]
 }
 
+@test "the pages place libexec/ as the loader's kit-call and the kittui binaries, built from projects/tui/" {
+  [ -f "${kit_root}/libexec/kit-call" ]
+  run grep --line-number --extended-regexp 'checkout has no `libexec/`|`libexec/kittui`|built from `tui/`' \
+    "${root}/docs/architecture.md" "${root}/AGENTS.md" "${root}/README.md" "${root}/CONTRIBUTING.md" "${root}/docs/modules.md"
+  [ "${status}" -eq 1 ]
+}
+
 @test "a count a page gives of what the code holds is the count, and a list it gives is the list, in its order" {
   local found
   facts > "${BATS_TEST_TMPDIR}/facts.json"
