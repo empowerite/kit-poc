@@ -339,7 +339,7 @@ apps:merge() {
 }
 
 # apps:hash <path>… prints the sha256 of what the paths hold, each that exists: a file's contents, or every file
-# under a directory, by its path; or nothing when none exists, so the mark is null.
+# under a directory, a link to a file too, by its path; or nothing when none exists, so the mark is null.
 apps:hash() {
   local path any=false
   for path in "$@"
@@ -351,7 +351,7 @@ apps:hash() {
   do
     if [[ -d "${path}" ]]
     then
-      find "${path}" -type f | LC_ALL=C sort | while IFS= read -r each
+      find -L "${path}" -type f | LC_ALL=C sort | while IFS= read -r each
       do
         printf '%s\0' "${each}"
         cat "${each}"

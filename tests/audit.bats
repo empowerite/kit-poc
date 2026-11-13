@@ -98,6 +98,17 @@ JSON
   [ "$("${kit_root}/bin/kit" audit --marks | jq -r .policy)" != "${first}" ]
 }
 
+@test "a policy file that is a link, as kit delivers one from the worktree, moves the policy mark" {
+  github-world
+  mkdir -p .kit/policy real
+  printf 'package x\n' > real/house.rego
+  ln -s ../../real/house.rego .kit/policy/house.rego
+  first=$("${kit_root}/bin/kit" audit --marks | jq -r .policy)
+  [ -n "${first}" ] && [ "${first}" != null ]
+  printf 'deny[1]\n' >> real/house.rego
+  [ "$("${kit_root}/bin/kit" audit --marks | jq -r .policy)" != "${first}" ]
+}
+
 @test "evidence is a row per attestation, keyed by its digest and kind: what it attests, and who signed it" {
   github-world
   run --separate-stderr "${kit_root}/bin/kit" audit evidence --json
