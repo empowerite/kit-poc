@@ -228,16 +228,26 @@ flow:choices() {
   done
 }
 
-# flow:width prints the terminal's width in columns: COLUMNS, else the width of the terminal on stderr, else
-# 100. A width under 60 also gives 100.
+# flow_stdout_columns is the width of the terminal stdout is, read as this module loads, since flow:width runs in a
+# command substitution, where stdout is a pipe. It is empty when stdout is no terminal, or COLUMNS says the width.
+flow_stdout_columns=''
+if [[ ! "${COLUMNS:-}" =~ ^[0-9]+$ && -t 1 ]]
+then
+  # a copy of stdout is stty's stdin, since its own stdout is the pipe the answer comes through
+  exec {flow_stdout_fd}>&1
+  flow_stdout_columns=$(stty size <&"${flow_stdout_fd}" 2>/dev/null | cut -d' ' -f2 || true)  # unreadable: the default
+  exec {flow_stdout_fd}>&-
+fi
+
+# flow:width prints the width in columns of the stream the picture is drawn on: COLUMNS, else the terminal stdout is,
+# else 100. A width under 60 also gives 100.
 flow:width() {
   local cols=''
   if [[ "${COLUMNS:-}" =~ ^[0-9]+$ ]]
   then
     cols=$(( 10#${COLUMNS} ))
-  elif [[ -t 2 ]]
-  then
-    cols=$(stty size <&2 2>/dev/null | cut -d' ' -f2 || true)  # a size stty cannot read gives the default
+  else
+    cols=${flow_stdout_columns}
   fi
   if [[ "${cols}" =~ ^[0-9]+$ ]] && (( cols >= 60 ))
   then

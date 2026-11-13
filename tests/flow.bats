@@ -196,6 +196,19 @@ started() {
   [ "${#lines[@]}" -eq 40 ]
 }
 
+@test "flow:width is the width of the terminal the picture is drawn on, stdout, whatever stderr is" {
+  local width="source '${kit_root}/modules/bash/1st.sh' && use flow && flow:width"
+  # a wide terminal on stdout, with stderr sent to a file, as a person redirecting the messages leaves it
+  run pty "stty cols 140; env -u COLUMNS bash -c \"${width}\" 2>${BATS_TEST_TMPDIR}/err"
+  [[ "${output//$'\r'/}" == *140* ]]
+  # stdout in a pipe is no terminal: the default, though stderr is one
+  run pty "stty cols 140; env -u COLUMNS bash -c \"${width}\" | cat"
+  [[ "${output//$'\r'/}" == *100* ]]
+  # COLUMNS wins
+  run pty "stty cols 140; COLUMNS=90 bash -c \"${width}\" 2>${BATS_TEST_TMPDIR}/err"
+  [[ "${output//$'\r'/}" == *90* ]]
+}
+
 @test "a cell is padded to its width, or clipped with an ellipsis" {
   run in_flow flow:cell abc 5
   [ "$output" = "abc  " ]
