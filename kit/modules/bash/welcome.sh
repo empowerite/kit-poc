@@ -365,7 +365,7 @@ welcome:answers() {
   welcome:version "$1" >/dev/null && return 0
   command -v "$1" >/dev/null 2>&1 || return 1
   out=$("$1" version 2>/dev/null) && [[ -n "${out}" ]] && return 0
-  out=$("$1" -h 2>&1 || true)
+  out=$("$1" -h 2>&1 || true)  # a tool that refuses -h still says what it prints, and the test reads that
   [[ "${out}" == *[Uu]sage* ]]
 }
 

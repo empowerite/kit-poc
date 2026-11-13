@@ -354,7 +354,7 @@ context:glob-ere() {
       ('*') out+='.*' ;;
       ('?') out+='.' ;;
       ('[')
-        length=$(expr "${glob:i}" : '\[[^]]*\]' || true)
+        length=$(expr "${glob:i}" : '\[[^]]*\]' || true)  # expr exits 1 when nothing matches, which is the answer 0
         if (( length == 0 ))
         then out+='\['
         else
