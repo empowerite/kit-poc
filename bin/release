@@ -11,12 +11,14 @@
 #                             branch. A pre-release tag adds -<suffix>, and may be on any commit, the default
 #                             branch included. Any other tag is refused, with the reason.
 #   pack <tag> [<directory>]  writes kit-<version>.tar.gz and its .sha256 to <directory> (default: the current
-#                             directory). The tarball holds one directory, kit-<version>/, with bin/,
+#                             directory), from what the tag's commit holds, never the disk's files; a tag the
+#                             repository lacks is refused. The tarball holds one directory, kit-<version>/, with bin/,
 #                             modules/, packages/, a version file, and libexec/, which holds kit-call, the call the
 #                             loader runs, and kittui, the binary kit tui runs, built from projects/tui/ with go for
 #                             linux and darwin on amd64 and arm64. The .sha256 holds the tarball's sha256; where none
 #                             comes back, pack leaves neither file.
-#   publish <tag>             packs, then creates a GitHub release with both files. Its notes give the download lines
+#   publish <tag>             packs, then creates a GitHub release with both files, for a tag that already exists:
+#                             gh would otherwise make one at the default branch's head. Its notes give the download lines
 #                             of docs/install.md, By download, for this version, and then the mise pin. A tag with a
 #                             suffix is marked pre-release. Only a runner publishes a release, from the release workflow that a
 #                             pushed tag starts. A desk may publish a pre-release.
@@ -44,17 +46,17 @@ usage() {
   echo "usage: bin/release verify <tag> | pack <tag> [<directory>] | publish <tag> | fetch <tag> | retire [<branch>]" >&2
 }
 
-# build-kittui <version> <directory> builds kittui, the binary kit tui runs, from projects/tui/ for the four platforms
+# build-kittui <version> <directory> <source> builds kittui, the binary kit tui runs, from <source>/projects/tui/ for the four platforms
 # the lock covers, static and stripped with the version written in, each as <directory>/kittui-<goos>-<goarch>. The
 # release carries them in libexec/, so whatever installs the kit installs kittui at the same version;
 # modules/bash/tui.sh picks the one for the machine.
 build-kittui() {
-  local version=$1 into=$2 platform goos goarch
+  local version=$1 into=$2 source=$3 platform goos goarch
   for platform in linux/amd64 linux/arm64 darwin/arm64 darwin/amd64
   do
     IFS=/ read -r goos goarch <<<"${platform}"
     (
-      cd "${kit_root}/../projects/tui" &&
+      cd "${source}/projects/tui" &&
         GOOS=${goos} GOARCH=${goarch} CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${version}" \
           -o "${into}/kittui-${goos}-${goarch}" ./cmd/kittui
     ) || return 1
@@ -120,16 +122,25 @@ case "${verb}" in
     ;;
   (pack)
     (( $# >= 1 && $# <= 2 )) || { usage; exit 2; }
-    version=$(tag-version "$1")
+    tag=$1
+    version=$(tag-version "${tag}")
     into=${2:-.}
     staging=$(mktemp -d)
     # shellcheck disable=SC2064  # expanded now on purpose: the path is fixed from here on
     trap "rm -rf '${staging}'" EXIT
-    mkdir -p "${into}" "${staging}/kit-${version}"
     guard:require tool:go
-    cp -R "${kit_root}/bin" "${kit_root}/libexec" "${kit_root}/modules" "${kit_root}/packages" \
-      "${staging}/kit-${version}/"
-    if ! build-kittui "${version}" "${staging}/kit-${version}/libexec"
+    # A release is its tag: what the tag's commit holds, whatever the disk has since, so an edit not committed and a
+    # file git does not track never ship.
+    top=$(git -C "${kit_root}" rev-parse --show-toplevel)
+    if ! git -C "${top}" rev-parse --verify --quiet "refs/tags/${tag}^{commit}" >/dev/null
+    then
+      refuse-tag "${tag} is not a tag in this repository; tag the commit to release first"
+    fi
+    mkdir -p "${into}" "${staging}/kit-${version}" "${staging}/source"
+    git -C "${top}" archive --format=tar "refs/tags/${tag}" kit projects/tui | tar --extract --directory "${staging}/source"
+    cp -R "${staging}/source/kit/bin" "${staging}/source/kit/libexec" "${staging}/source/kit/modules" \
+      "${staging}/source/kit/packages" "${staging}/kit-${version}/"
+    if ! build-kittui "${version}" "${staging}/kit-${version}/libexec" "${staging}/source"
     then
       error "kittui could not be built for kit ${version}; see above"
       exit 1
@@ -169,7 +180,7 @@ case "${verb}" in
     flags=()
     [[ "${version}" == *-* ]] && flags+=(--prerelease)
     gh release create "${tag}" "${into}/kit-${version}.tar.gz" "${into}/kit-${version}.tar.gz.sha256" \
-      --title "kit ${version}" --notes "${notes}" "${flags[@]}"
+      --verify-tag --title "kit ${version}" --notes "${notes}" "${flags[@]}"
     ok "released kit ${version}"
     summary "✅ Released kit ${version}."
     ;;

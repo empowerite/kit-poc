@@ -160,7 +160,9 @@ platform() {
   export FAKES="${BATS_TEST_TMPDIR}/gofakes"
   mkdir -p "${FAKES}"
   ln -s "${BATS_TEST_DIRNAME}/fakes/fake-go" "${FAKES}/go"
-  PATH="${FAKES}:${PATH}" "${BATS_TEST_DIRNAME}/../bin/release" pack release/9.9.9 "${BATS_TEST_TMPDIR}/rel" >/dev/null 2>&1
+  release-repo "${BATS_TEST_TMPDIR}/release-repo" release/9.9.9
+  PATH="${FAKES}:${PATH}" "${BATS_TEST_TMPDIR}/release-repo/bin/release" pack release/9.9.9 "${BATS_TEST_TMPDIR}/rel" \
+    >/dev/null 2>&1
   tar -xzf "${BATS_TEST_TMPDIR}/rel/kit-9.9.9.tar.gz" -C "${BATS_TEST_TMPDIR}/rel"
   run terminal "env PATH='$(without-kittui)' '${BATS_TEST_TMPDIR}/rel/kit-9.9.9/bin/kit' tui -- commit"
   [ "$status" -eq 0 ]

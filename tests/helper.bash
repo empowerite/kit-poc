@@ -499,6 +499,29 @@ later-release() {
   printf '\n## Added in %s\n\nA new rule.\n' "${version}" >> "$1/packages/kit/files/repo/.kit/rules/json.md"
 }
 
+# release-repo <dir> <tag>… makes a repository at <dir> that holds this checkout's last commit with the disk's files on
+# top, committed, and tags that commit with each <tag>. bin/release packs the commit a tag names, from the repository
+# it is in, so a test that packs runs the copy's bin/release.
+release-repo() {
+  local dir=$1 root file
+  shift
+  root=$(cd "${BATS_TEST_DIRNAME}/.." && pwd)
+  git init --quiet --initial-branch=main "${dir}"
+  git -C "${dir}" fetch --quiet "${root}" HEAD
+  git -C "${dir}" checkout --quiet FETCH_HEAD
+  while IFS= read -r -d '' file
+  do
+    [[ ! -e "${root}/${file}" ]] || printf '%s\0' "${file}"
+  done < <(git -C "${root}" ls-files -z --cached --others --exclude-standard) \
+    | tar -C "${root}" --null -T - -cf - | tar -C "${dir}" -xf -
+  git -C "${dir}" add --all
+  git -C "${dir}" commit --quiet --allow-empty --message 'the disk'
+  for file in "$@"
+  do
+    git -C "${dir}" tag "${file}" 2>/dev/null || true
+  done
+}
+
 helper:isolate
 
 # ----------------------------------------------------------------------------------------------------------------------

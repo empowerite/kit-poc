@@ -179,8 +179,10 @@ The release workflow runs three commands:
 3. `bin/release fetch` downloads the published release as any machine does, through the loader, checks it against
    that digest, and runs `kit version` in it. A release that cannot be fetched fails the run.
 
-`bin/release pack` builds the same tarball locally. `bin/release publish` refuses to publish a release anywhere but
-the CI runner, so only the workflow publishes releases. A pre-release can be published from a developer machine.
+`bin/release pack` builds the same tarball locally, from what the tag's commit holds and not the files on disk, so
+the tag comes first. `bin/release publish` creates the release for a tag that exists and never makes one. It
+refuses to publish a release anywhere but the CI runner, so only the workflow publishes releases. A pre-release can
+be published from a developer machine.
 
 A release is permanent. A pre-release is deleted, tag and all, once no branch contains its commit, which happens when
 the branch it was tagged on is deleted. A pre-release on `main` stays.

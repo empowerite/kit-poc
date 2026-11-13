@@ -6,8 +6,20 @@ bats_require_minimum_version 1.5.0
 
 load helper
 
+# bin/release packs the commit a tag names, from the repository it is in, so the tests run it in a copy of this one,
+# tagged for each version a test packs. Only the copy is changed, and teardown puts it back.
+setup_file() {
+  export RELEASE_REPO="${BATS_FILE_TMPDIR}/repo"
+  release-repo "${RELEASE_REPO}" release/9.9.9 release/9.9.5 release/9.9.9-rc.1 \
+    "release/$(sed -n 's/^version=//p' "${BATS_TEST_DIRNAME}/../README.md" | head -n 1)"
+}
+
+teardown() {
+  git -C "${RELEASE_REPO}" checkout --quiet -- . && git -C "${RELEASE_REPO}" clean --quiet --force -d
+}
+
 setup() {
-  repo_bin=$(cd "${BATS_TEST_DIRNAME}/../bin" && pwd)
+  repo_bin=${RELEASE_REPO}/bin
   # go is a fake: each build writes, at its -o path, a script that names the platform it was built for
   fakes="${BATS_TEST_TMPDIR}/fakes"
   mkdir -p "${fakes}"
@@ -77,6 +89,23 @@ setup() {
   [ "$status" -eq 0 ]
   [ "$("${work}/unpacked/kit-${version}/bin/kit" version)" = "${version}" ]
   grep --quiet "^version: ${version}$" kit.yml
+}
+
+@test "pack packs the tag's commit, not the disk: an edit made since and a file never committed are not in it" {
+  printf '# edited after the tag\n' >> "${RELEASE_REPO}/kit/bin/kit-version"
+  printf 'x\n' > "${RELEASE_REPO}/kit/modules/bash/stray.sh"
+  run "${repo_bin}/release" pack release/9.9.9 "${work}"
+  [ "$status" -eq 0 ]
+  mkdir unpacked && tar --extract --gzip --file kit-9.9.9.tar.gz --directory unpacked
+  [ ! -e unpacked/kit-9.9.9/modules/bash/stray.sh ]
+  git -C "${RELEASE_REPO}" show release/9.9.9:kit/bin/kit-version | cmp - unpacked/kit-9.9.9/bin/kit-version
+}
+
+@test "pack refuses a tag the repository does not have, and leaves neither file" {
+  run "${repo_bin}/release" pack release/9.9.8 "${work}"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"release/9.9.8 is not a tag in this repository; tag the commit to release first"* ]]
+  [ -z "$(ls "${work}")" ]
 }
 
 @test "pack refuses, and leaves neither file, when no digest comes back" {
@@ -183,7 +212,8 @@ install-lines() {
   run env GITHUB_ACTIONS=true "${repo_bin}/release" publish release/9.9.9
   [ "$status" -eq 0 ]
   [ "$(wc -l < "${fakes}/go.calls" | tr -d ' ')" -eq 4 ]
-  grep -q '^release create release/9\.9\.9 /[^ ]*/kit-9\.9\.9\.tar\.gz /[^ ]*/kit-9\.9\.9\.tar\.gz\.sha256 --title' "${fakes}/gh.calls"
+  # the tag must exist already: gh would otherwise make one at the default branch's head
+  grep -q '^release create release/9\.9\.9 /[^ ]*/kit-9\.9\.9\.tar\.gz /[^ ]*/kit-9\.9\.9\.tar\.gz\.sha256 --verify-tag --title' "${fakes}/gh.calls"
   run ! grep -q 'kittui' "${fakes}/gh.calls"
   grep -q '^kit-9\.9\.9/libexec/kittui-darwin-arm64$' "${fakes}/listing"
 }
