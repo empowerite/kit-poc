@@ -40,7 +40,8 @@ here by area and number: Serve 8 is item 8 under its Serve heading.
 
 ## Global Constraints
 
-- kit commit only, never kit submit or push; every subject starts with `#86`, the issue for this plan.
+- kit commit only, never kit submit or push; every subject starts with `#86`, the issue for this plan. Tasks 4 and 5
+  are issue #345's, and their subjects start with it.
 - `export PATH=$PWD/kit/bin:$PATH` before `kit commit`.
 - Peers share the worktree: stage named paths only, guard that the index holds only them, never leave anything staged.
 - Everything under `kit/` is written for a consumer, and a path in it is written from `kit/`: `modules/bash/x.sh`.
@@ -49,10 +50,11 @@ here by area and number: Serve 8 is item 8 under its Serve heading.
   new flag is added to the header's usage line and described there, and `docs/` says the same.
 - `.github/workflows/tutorials.yml` is this repository's own file, as `release.yml` is; `kit-ci.yml` is an installed
   copy and is not touched. Every `uses:` is `owner/repo@<40-hex>  # v<version>`, which `kit lint` holds.
-- `projects/tui` stays at or above 98% statement coverage. No test reaches the network or opens a browser.
-- Bats runs as `KIT_TOOLCHAIN=mise kit/bin/kit tools run bats <file>`; vitest as `npx vitest run` in
-  `projects/tutorials/`, after `npm ci --no-audit --no-fund`; Go as `go test ./internal/tutorials/` in
-  `projects/tui/`. A test block below gives each test's name and assertions; a comment gives what it sets up.
+- The gate refuses a statement of `projects/tui` that no test reaches. No test reaches the network or opens a browser.
+- The tools are the kit toolchain's: `export PATH="$PWD/kit/bin:$(kit/bin/kit tools path | paste -sd: -):$PATH"`.
+  Bats then runs as `bats <file>`; vitest as `npx vitest run` in `projects/tutorials/`, after
+  `npm ci --no-audit --no-fund`; Go as `go test ./internal/tutorials/` in `projects/tui/`. A test block below gives
+  each test's name and assertions; a comment gives what it sets up.
 
 ## Review Focus
 
@@ -78,7 +80,7 @@ here by area and number: Serve 8 is item 8 under its Serve heading.
 the host is written; `tutorials:line <version>`, which prints `main` for `unreleased`, the version for one with a
 suffix, and `<major>.<minor>` for a release; and `tutorials:base <version>`, `KIT_TUTORIALS_BASE` or `<site><line>/`.
 
-- [ ] **Step 1: Write the failing tests.** In `tests/tutorials.bats`, set
+- [x] **Step 1: Write the failing tests.** In `tests/tutorials.bats`, set
   `site=https://empowerite.github.io/kit/tutorials` above `setup`, write `${site}` for every
   `https://kit.empowerite.dev/tutorials`, replace the first test, and add the other two (Command line 23):
 
@@ -95,16 +97,16 @@ KIT_TUTORIALS_CATALOGUE=/nonesuch run --separate-stderr "${kit_root}/bin/kit" tu
 [ "$("${kit_root}/bin/kit" syntax tutorials --match -- --text --tag ui first | jq .status)" -eq 0 ]
 ```
 
-- [ ] **Step 2: Run `tests/tutorials.bats`.** Expected: the first fails with `tutorials:line: command not found`, the
+- [x] **Step 2: Run `tests/tutorials.bats`.** Expected: the first fails with `tutorials:line: command not found`, the
   second on `first`, status 2, the third on status 0, and four more on the old host.
-- [ ] **Step 3: Change the module and the verb.** Write the three functions. `tutorials:choices` returns 1 where the
+- [x] **Step 3: Change the module and the verb.** Write the three functions. `tutorials:choices` returns 1 where the
   catalogue is missing, so the guard asks nothing and `tutorials:json` refuses with 1. The usage becomes two lines,
   `kit tutorials [--text | --json | --jq] [--tag <audience>…]` and `kit tutorials [--text] [--tag <audience>…]
   <tutorial>`, and lines 71 to 75 go. Line 2 reads `lists kit's tutorials, and opens one, in kittui or the browser`.
   The docs name the one host, and say what the header says (Documents 4): on a terminal a tutorial named opens
   kittui's screen on its card; with `--text`, or in a pipe, its title and link print and it opens in the browser.
-- [ ] **Step 4: Run it again**, then `kit syntax --check`. Expected: all pass.
-- [ ] **Step 5: Commit** the six files, subject `#86 kit: the tutorials are one site, and exit 1 without a catalogue`.
+- [x] **Step 4: Run it again**, then `kit syntax --check`. Expected: all pass.
+- [x] **Step 5: Commit** the six files, subject `#86 kit: the tutorials are one site, and exit 1 without a catalogue`.
 
 ## Task 2: The build checks what it built
 
@@ -123,7 +125,7 @@ KIT_TUTORIALS_CATALOGUE=/nonesuch run --separate-stderr "${kit_root}/bin/kit" tu
   `dist` that is not a fragment, `//…`, or a URL with a scheme is resolved against its page's address under the
   base, its query and fragment dropped, and must be inside the base and name a file (Infrastructure 16, 18).
 
-- [ ] **Step 1: Write the failing tests** in `src/build.test.ts`. `dist(files)` writes the files, less those that
+- [x] **Step 1: Write the failing tests** in `src/build.test.ts`. `dist(files)` writes the files, less those that
   are `null`, under a fresh `mkdtemp` directory and returns it; `shell` is `index.html`'s title and `<!--page-->`.
 
 ```ts
@@ -146,13 +148,13 @@ expect(filled(shell, { path: "x/", title: "$&" }, "<article>echo $$ $& $'x'</art
 expect(() => filled(shell, { path: "x/", title: "X" }, "")).toThrow("x/: the page rendered empty");
 ```
 
-- [ ] **Step 2: Run `npx vitest run src/build.test.ts`.** Expected: fail, `./build` does not resolve.
-- [ ] **Step 3: Write `src/build.ts`, and use it in `vite.config.ts`.** `base` is
+- [x] **Step 2: Run `npx vitest run src/build.test.ts`.** Expected: fail, `./build` does not resolve.
+- [x] **Step 3: Write `src/build.ts`, and use it in `vite.config.ts`.** `base` is
   `siteBase(process.env.TUTORIALS_BASE)`; `prerender` fills each route through `filled`, puts the route's path
   before the message of a render that throws, and then throws `verify`'s problems over the routes' paths. `check`
   in `package.json` ends at `TUTORIALS_BASE=/kit/tutorials/main/ vite build`. The README and `bin/ci:13` say so.
-- [ ] **Step 4: Run `npm run check`.** Expected: it passes, and `dist/kit-tutorials/dollar-signs/` is gone.
-- [ ] **Step 5: Commit** them, subject `#86 tutorials: the build refuses an empty page, a dead link, and a bad base`.
+- [x] **Step 4: Run `npm run check`.** Expected: it passes, and `dist/kit-tutorials/dollar-signs/` is gone.
+- [x] **Step 5: Commit** them, subject `#86 tutorials: the build refuses an empty page, a dead link, and a bad base`.
 
 ## Task 3: Links from the page, a not-found page, and `<Since>`
 
@@ -165,7 +167,7 @@ expect(() => filled(shell, { path: "x/", title: "X" }, "")).toThrow("x/: the pag
 stays relative to the base, for the layout and the home page; `NotFound`, the route `*`; and
 `entry(prerendered: boolean, pathname: string, base: string): "hydrate" | "render" | "leave"`.
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
 
 ```tsx
 // src/reader.test.tsx, test "a page's link resolves against the page, the layout's against the base, and both keep ?kit="
@@ -187,38 +189,67 @@ expect(sinceState("0.5.1", "0.5.0-rc.1")).toBe("newer");
 expect(screen.getByText(/To upgrade, install kit 0\.4\.9 or later, then run/)).toBeTruthy();
 ```
 
-- [ ] **Step 2: Run `npx vitest run`.** Expected: the five files fail.
-- [ ] **Step 3: Write them.** `main.tsx` calls `entry(root.firstElementChild !== null, location.pathname,
+- [x] **Step 2: Run `npx vitest run`.** Expected: the five files fail.
+- [x] **Step 3: Write them.** `main.tsx` calls `entry(root.firstElementChild !== null, location.pathname,
   import.meta.env.BASE_URL)`. `prerender` also writes `dist/404.html` from `render("404.html")`, and gives `verify`
   that path. The spec's line 83, "says which version they need, and says how to upgrade", is a second paragraph in
   `<Since>` when the reader's kit is older: `To upgrade, install kit <version> or later, then run <code>kit
   update</code>.` The links in `whats-new.mdx` and `changelog/0.1.0.mdx` become `../kit-tutorials/`, and the README
   says a link is written from its page, as on the web.
-- [ ] **Step 4: Run `npm run check`.** Expected: it passes, and `dist/404.html` holds "No such page".
-- [ ] **Step 5: Commit** them, subject `#86 tutorials: links resolve from their page, and no page says so`.
+- [x] **Step 4: Run `npm run check`.** Expected: it passes, and `dist/404.html` holds "No such page".
+- [x] **Step 5: Commit** them, subject `#86 tutorials: links resolve from their page, and no page says so`.
 
-## Task 4: `bin/tutorials` refuses a page it cannot place, and gains `site`, `publish`, and `retire`
+## Task 4: `bin/tutorials` gains `site`, `publish`, and `retire`
 
-**Files:** Modify `bin/tutorials:2-17,44-50,73-79`, `tests/tutorials-catalogue.bats`, `README.md:275`, its `bin/` row.
+**Files:** Modify `bin/tutorials:2-55,147-353`, `tests/tutorials-catalogue.bats:2-5,13,23-46,162-349`, and
+`README.md`, the `bin/` row of § Maintaining.
 
-**Interfaces:** Consumes `tutorials:line` and `tutorials:base` (Task 1). Produces:
+**Interfaces:** Consumes `tutorials:line` and `tutorials:site` (Task 1). Produces:
 
-- `bin/tutorials site <ref>` prints four `key=value` lines, as `GITHUB_OUTPUT` reads them, for `main` or a
-  `release/<version>` tag, and refuses any other ref with 1. It alone sources `kit/modules/bash/1st.sh`, as
-  `tests/tutorials.bats`' first test does, and it ignores `KIT_TUTORIALS_BASE`.
-- `bin/tutorials publish <directory> <dist>` clones `gh-pages` from `TUTORIALS_PAGES`, by default origin's URL, or
-  starts the branch where there is none; replaces `<directory>` whole; keeps an empty `.nojekyll`; for
-  `tutorials/main`, copies `<dist>/404.html` to the root; commits as `github-actions[bot]` when anything changed; and
-  pushes. A refused push starts again from a fresh clone, five times at most. It exits 2 for a directory not shaped
-  `tutorials/<name>`, and 1 for a dist with no `index.html` or a fifth refusal.
-- `bin/tutorials retire` removes each `tutorials/<version>-<suffix>` whose tag `release/<version>-<suffix>` is not in
-  `TUTORIALS_PAGES`, in one commit, printing `retired <directory>` for each.
+- `bin/tutorials site <ref>` prints four `key=value` lines, as `GITHUB_OUTPUT` reads them, `line`, `directory`,
+  `base`, and `url`, for `main` or a `release/<version>` tag, and refuses any other ref with 1. It sources
+  `kit/modules/bash/1st.sh`, as `tests/tutorials.bats`' first test does, and it ignores `KIT_TUTORIALS_BASE`. Where
+  `GITHUB_REPOSITORY` is set, as on a runner, it refuses a repository whose Pages address,
+  `https://<owner>.github.io/<repository>/`, does not start the address `tutorials:site` prints.
+- `bin/tutorials publish <directory> <dist>` asks `gh auth setup-git` for git's credentials; takes the `gh-pages`
+  branch of `TUTORIALS_PAGES`, by default origin's URL, one commit deep, or starts the branch where there is none;
+  replaces `<directory>` whole; keeps an empty `.nojekyll`; for `tutorials/main`, copies `<dist>/404.html` to the
+  root; commits as `github-actions[bot]` when anything changed; and pushes. A refused push starts again from the
+  branch as it then stands, five times at most. It exits 2 for a directory not shaped `tutorials/<name>`, and 1
+  anywhere but on a runner, for a dist with no `index.html`, or `404.html` for `tutorials/main`, and for a fifth
+  refusal.
+- `bin/tutorials retire [--dry-run]` removes each `tutorials/<version>-<suffix>` whose tag
+  `release/<version>-<suffix>` is not in `TUTORIALS_PAGES`, in one commit, saying `retired <directory>` for each.
+  It exits 1 anywhere but on a runner, and when the tags cannot be read. With `--dry-run` it runs anywhere, says what
+  it would remove, and changes nothing.
 
-- [ ] **Step 1: Write the failing tests**, with `site` as Task 1 sets it and four helpers. `broken <page> <text>`
-  runs `catalogue` over a copy of the `ok` fixture with that one more page, its text written by `printf '%b'`.
-  `pages` makes a bare repository and exports `TUTORIALS_PAGES`. `built <text>` makes and prints
-  `${BATS_TEST_TMPDIR}/dist-<text>`, whose `index.html` and `404.html` say `<text>`. `online <path>` prints a file
-  of the branch, by `git --git-dir="${TUTORIALS_PAGES}" show "gh-pages:$1"`, and `listed` is `ls-tree` there.
+- [x] **Step 1: Write the failing tests** in `tests/tutorials-catalogue.bats`, with `site` as Task 1 sets it and
+  four helpers. `pages` makes a bare repository, exports `TUTORIALS_PAGES` and `GITHUB_ACTIONS`, and puts a `gh`
+  that records its arguments first on `PATH`. `built <text>` makes and prints `${BATS_TEST_TMPDIR}/dist-<text>`,
+  whose `index.html` and `404.html` say `<text>`. `online <path>` prints a file of the branch, by
+  `git --git-dir="${TUTORIALS_PAGES}" show "gh-pages:$1"`, and `listed` is `ls-tree` there. The tests:
+  - "site says which copy a ref builds, and a pre-release never names its line's"
+  - "the address kit opens for a version is the directory its ref publishes, on this repository's Pages"
+  - "the workflow builds the copy site names, and publishes the build to the directory site names" (Task 5)
+  - "publish and retire run on a runner alone"
+  - "publish replaces one copy whole, leaves the others, and main's gives the site its 404 page"
+  - "a push that is refused is tried again on the branch as it then stands, five times at most"
+  - "retire removes the copy of each pre-release whose tag is gone, and nothing else"
+- [x] **Step 2: Run `tests/tutorials-catalogue.bats`.** Expected: the seven fail, six with
+  `usage: bin/tutorials catalogue` and the workflow's with no file to read.
+- [x] **Step 3: Write them.** `publish` and `retire` need git and gh alone. The header and the usage name all four
+  subcommands; the test file's line 2 and README's `bin/` row name `bin/tutorials`.
+- [x] **Step 4: Run it again**, then `kit lint bin/tutorials` and `kit generate --check kit/modules/tutorials.yml`.
+  Expected: all pass.
+- [x] **Step 5: Commit**, with Task 5, subject `#345 tutorials: a workflow publishes each copy of the site to
+  gh-pages`.
+
+## Task 4a: `bin/tutorials catalogue` refuses a page it cannot place
+
+**Files:** Modify `bin/tutorials:27-32,77-105,121-129`, and `tests/tutorials-catalogue.bats`.
+
+- [ ] **Step 1: Write the failing test.** `broken <page> <text>` runs `catalogue` over a copy of the `ok` fixture
+  with that one more page, its text written by `printf '%b'`.
 
 ```bash
 # @test "a page the catalogue cannot place is refused, naming the file and why" (Infrastructure 30): status 1 each time
@@ -228,137 +259,54 @@ broken gamma/index.mdx '---\ntitle: G\ntop: "true"\nsummary: s\nglyph: g\naudien
 [[ "${stderr}" == *'gamma/index.mdx: top is true or false, not "true"'* ]]
 broken 'My Page/index.mdx' '---\ntitle: G\ntop: true\nsummary: s\nglyph: g\naudience: [ui]\n---\n'
 [[ "${stderr}" == *"My Page/index.mdx: a tutorial's id is lower-case letters, digits, and hyphens"* ]]
-# @test "site says which copy a ref builds, and a pre-release never names its line's"
-run "${repo_root}/bin/tutorials" site release/0.4.7
-[ "$output" = "$(printf '%s\n' line=0.4 directory=tutorials/0.4 base=/kit/tutorials/0.4/ url="${site}/0.4/")" ]
-KIT_TUTORIALS_BASE=http://localhost:5173/ run "${repo_root}/bin/tutorials" site release/0.5.0-rc.1
-[[ "$output" == "line=0.5.0-rc.1"*"directory=tutorials/0.5.0-rc.1"*"base=/kit/tutorials/0.5.0-rc.1/"* ]]
-run "${repo_root}/bin/tutorials" site main
-[[ "$output" == "line=main"*"directory=tutorials/main"* ]]
-run --separate-stderr "${repo_root}/bin/tutorials" site feature/x
-[[ "$status" -eq 1 && "$stderr" == *"feature/x has no copy of the tutorials: main and a release tag have one"* ]]
-# @test "publish replaces one copy whole, leaves the others, and main's gives the site its 404 page"
-# pages; old.html is added to "$(built one)"; tutorials/main is published from one, three, and three; tutorials/0.1 from two
-[ "$(online tutorials/main/index.html)$(online tutorials/0.1/index.html)$(online 404.html)" = threetwothree ]
-[ "$(listed -r --name-only gh-pages | grep -c -e '^\.nojekyll$' -e old.html)" -eq 1 ]
-[ "$(git --git-dir="${TUTORIALS_PAGES}" rev-list --count gh-pages)" -eq 3 ]
-# then `publish ../x "$(built one)"` has status 2, and `publish tutorials/0.2 "${BATS_TEST_TMPDIR}"` has status 1
-# @test "a push that is refused is tried again on the branch as it then stands"
-# pages; tutorials/main is published; then the bare repository gets an executable update hook that refuses once:
-printf '#!/bin/sh\n[ -e refused ] && exit 0\ntouch refused\nexit 1\n' > "${TUTORIALS_PAGES}/hooks/update"
-"${repo_root}/bin/tutorials" publish tutorials/0.1 "$(built two)"
-[[ -e "${TUTORIALS_PAGES}/refused" && "$(online tutorials/0.1/index.html)" == two ]]
-# @test "retire removes the copy of each pre-release whose tag is gone, and nothing else"
-# pages; main, 0.1, 0.1.0-rc.7, and 0.1.0-rc.8 are published; the bare repository gets the tag release/0.1.0-rc.8
-run "${repo_root}/bin/tutorials" retire
-[[ "$status" -eq 0 && "$output" == *"retired tutorials/0.1.0-rc.7"* ]]
-[ "$(listed --name-only gh-pages tutorials/ | paste -s -d ' ' -)" = "tutorials/0.1 tutorials/0.1.0-rc.8 tutorials/main" ]
 ```
 
-- [ ] **Step 2: Run `tests/tutorials-catalogue.bats`.** Expected: the first fails, the page skipped and the status
-  0, and the other four fail with `usage: bin/tutorials catalogue`.
-- [ ] **Step 3: Write them.** In `catalogue`, the first two refusals stand before line 47's `continue`, and the id's
-  after line 50, held to `^[a-z0-9][a-z0-9-]*$`. `publish` and `retire` need git alone. The header and the usage
-  name all four subcommands; the test file's line 2 and README's `bin/` row name `bin/tutorials`.
+- [ ] **Step 2: Run `tests/tutorials-catalogue.bats`.** Expected: it fails, the page skipped and the status 0.
+- [ ] **Step 3: Write it.** In `row`, the first two refusals stand before line 83's `"skip"`, and the id's is held
+  to `^[a-z0-9][a-z0-9-]*$` where the loop names the id, at lines 124 to 128. The header's list of refusals, at
+  lines 27 to 32, names the three.
 - [ ] **Step 4: Run it again**, then `kit lint bin/tutorials` and `kit generate --check kit/modules/tutorials.yml`.
   Expected: all pass.
-- [ ] **Step 5: Commit** the three files, subject `#86 tutorials: bin/tutorials publishes and retires a copy`.
+- [ ] **Step 5: Commit** the two files, subject `#86 tutorials: the catalogue refuses a page it cannot place`.
 
 ## Task 5: The workflow
 
-**Files:** Create `.github/workflows/tutorials.yml`. Modify `.github/workflows/retire-pre-releases.yml:1-8,28-31`,
-`README.md` § Release, `projects/tutorials/README.md` (a section, Publishing).
+**Files:** Create `.github/workflows/tutorials.yml`. Modify `.github/workflows/retire-pre-releases.yml:1-10,40-43`,
+`README.md`, the last paragraphs of § Release, and `projects/tutorials/README.md:44-88`, the section Publishing.
 
-- [ ] **Step 1: Write `.github/workflows/tutorials.yml`**, with a blank line between its top-level keys, jobs, and
-  steps, and the closing line of dashes, as `release.yml` has them:
-
-```yaml
-# tutorials.yml - builds one copy of the tutorials site and publishes it as a directory of the gh-pages branch
-# ----------------------------------------------------------------------------------------------------------------------
-# A push to main publishes tutorials/main/; a release tag, release/0.1.0, its line's, tutorials/0.1/; a pre-release
-# tag, release/0.1.0-rc.8, its own. GitHub Pages serves the branch. The build runs npm's packages, so its job only
-# reads; the job that writes runs none of them. A newer push to the same ref replaces an older run, and two refs at
-# once both land, since bin/tutorials publish tries a refused push again. see: bin/tutorials
-name: tutorials
-on:
-  push:
-    branches: [main]
-    tags: ['release/*']
-  workflow_dispatch:
-permissions: {}
-concurrency:
-  group: tutorials-${{ github.ref }}
-  cancel-in-progress: true
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-    outputs:
-      directory: ${{ steps.site.outputs.directory }}
-    steps:
-      - name: checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          persist-credentials: false
-      - name: tools
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c  # v4.3.0
-      - name: site
-        id: site
-        run: bin/tutorials site "${GITHUB_REF_NAME}" >> "${GITHUB_OUTPUT}"
-      - name: build
-        working-directory: projects/tutorials
-        env:
-          TUTORIALS_BASE: ${{ steps.site.outputs.base }}
-          TUTORIALS_LINE: ${{ steps.site.outputs.line }}
-        run: npm ci --no-audit --no-fund && npm run build
-      - name: upload
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
-        with:
-          name: site
-          path: projects/tutorials/dist/
-          if-no-files-found: error
-          retention-days: 1
-  publish:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write
-    steps:
-      - name: checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          persist-credentials: false
-      - name: download
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
-        with:
-          name: site
-          path: ${{ runner.temp }}/site
-      - name: publish
-        env:
-          GH_TOKEN: ${{ github.token }}
-          DIRECTORY: ${{ needs.build.outputs.directory }}
-        run: gh auth setup-git && bin/tutorials publish "${DIRECTORY}" "${RUNNER_TEMP}/site"
-```
-
-- [ ] **Step 2: Add a step to `retire-pre-releases.yml`**, after `retire` and with the same `env`: its name is
-  `retire the tutorials`, and it runs `gh auth setup-git && bin/tutorials retire`. The header gains a sentence on it.
-- [ ] **Step 3: Write the two README passages**: which ref publishes which copy, where it is served, and that a
-  pre-release's copy goes with its tag.
-- [ ] **Step 4: Run `kit lint .github/workflows/tutorials.yml .github/workflows/retire-pre-releases.yml`.**
-  Expected: actionlint and `pinned` pass. The four SHAs are their tags' commits, read from GitHub on 2026-11-10.
-- [ ] **Step 5: Commit** the four files, subject `#86 tutorials: a workflow publishes each copy to gh-pages`.
+- [x] **Step 1: Write `.github/workflows/tutorials.yml`**, with a blank line between its top-level keys, jobs, and
+  steps, and the closing line of dashes, as `release.yml` has them. It runs on a push to `main`, on a push of a
+  `release/*` tag, and by hand; a newer push to the same ref cancels an older run. Its two jobs:
+  - `build`, whose token reads: `checkout`, without the credentials kept; `trust`, `kit-tools-cache`, and `tools`, as
+    `release.yml` has them, for node; `site`, `bin/tutorials site "${GITHUB_REF_NAME}" >> "${GITHUB_OUTPUT}"`;
+    `build`, `npm ci --no-audit --no-fund` and `npm run build` with `TUTORIALS_BASE` and `TUTORIALS_LINE` set from
+    `site`'s `base` and `line`; and `upload`, of `projects/tutorials/dist/`, kept a day.
+  - `publish`, which alone writes: `checkout`; `download`, to `${{ runner.temp }}/site`; and `publish`,
+    `bin/tutorials publish "${DIRECTORY}" "${RUNNER_TEMP}/site"`, with `GH_TOKEN` and the directory `site` named.
+  The top-level `permissions` grant `contents: read`, which the workflows template asks for, and `publish` asks for
+  `contents: write`. The pins: `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1`, v7.0.1, and
+  `actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9`, v6.1.0, as `release.yml` has them;
+  `actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9`, v7.0.2; and
+  `actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333`, v8.0.2.
+- [x] **Step 2: Add a step to `retire-pre-releases.yml`**, after `retire` and with the same `env`: its name is
+  `retire-the-tutorials`, and it runs `bin/tutorials retire`. The header gains a sentence on it.
+- [x] **Step 3: Write the two README passages**: which ref publishes which copy, where it is served, that a
+  pre-release's copy goes with its tag, and what an owner turns on once.
+- [x] **Step 4: Run `kit lint .github/workflows/tutorials.yml .github/workflows/retire-pre-releases.yml`.**
+  Expected: actionlint and `pinned` pass. The two artifact actions' SHAs are their tags' commits, read from GitHub on
+  2026-11-10; `empowerite/infrastructure` pins the same two.
+- [x] **Step 5: Commit**, with Task 4.
 
 Nothing in either workflow file runs before the branch is pushed, since this one starts only from `main` or a
-`release/*` tag. Unexercised until then: mise on the runner, the artifact between the jobs, `gh auth setup-git` with
-the job's token, the push to `gh-pages`, Pages' own build, and the served addresses. The checklist is their test.
+`release/*` tag. Unexercised until then: the kit toolchain's node on the runner, the artifact between the jobs,
+`gh auth setup-git` with the job's token, the push to `gh-pages`, Pages' own build, and the served addresses. The
+checklist is their test.
 
 ## Task 6: kittui's screen says what happened, and takes the keys a list takes
 
-**Files:** Modify `projects/tui/internal/tutorials/tutorials.go:1-26,47-51,98-118,173-178,193-214,328-350,438-441`,
-`view.go:67-80,120-124`, `helpers_test.go:46-61`, `tutorials_test.go`, and the five goldens' last line.
+**Files:** Modify `projects/tui/internal/tutorials/tutorials.go:1-46,117-121,190-203,287-292,350-369,563-596,706-717`,
+`view.go:107-123,164-167`, `helpers_test.go:46-61`, `tutorials_test.go`, and the seven goldens' last line. `parse`,
+at lines 190 to 203, reads `--tag=<audience>` at HEAD, so that part of Step 3 is built.
 
 **Interfaces:** Produces `reachable(ctx context.Context, url string) error`, a HEAD within `reachLimit`, three
 seconds, nil for a status under 400; `Model.reach`, which `New` sets to it and `fake` to a recorder (`browser` gains

@@ -269,7 +269,7 @@ Work here follows [.kit/workflow.md](.kit/workflow.md), from the `workflow` pack
 | `kit/bin/` | the kit CLI, `kit`, and its verbs |
 | `kit/modules/` | the modules the verbs share: `bash/` and `jq/`, one directory per language |
 | `kit/packages/` | everything a release delivers |
-| `bin/` | this repository's own commands, not on `PATH`: its gate, `bin/ci`; `bin/refresh`; and `bin/release` |
+| `bin/` | this repository's own commands, not on `PATH`: its gate, `bin/ci`; `bin/refresh`; `bin/release`; and `bin/tutorials` |
 | `docs/` | the documentation, with the packages' pages under `docs/packages/` |
 
 [docs/architecture.md](docs/architecture.md) describes how the pieces fit, with diagrams.
@@ -351,5 +351,20 @@ the CI runner, so only the workflow publishes releases. A pre-release can be pub
 
 A release is permanent. A pre-release is deleted, tag and all, once no branch contains its commit, which happens when
 the branch it was tagged on is deleted. A pre-release on `main` stays.
+
+The tutorials workflow publishes the site that `kit tutorials` opens. GitHub Pages serves the `gh-pages` branch, and
+each copy of the site is one directory of it:
+
+| Push | Directory | Whose kit opens it |
+| --- | --- | --- |
+| to `main` | `tutorials/main/` | a checkout's |
+| of the tag `release/X.Y.Z` | `tutorials/X.Y/` | every `X.Y` release's |
+| of the tag `release/X.Y.Z-<suffix>` | `tutorials/X.Y.Z-<suffix>/` | that pre-release's |
+
+`bin/tutorials site` names the copy a ref builds, at the address `kit tutorials` opens. The build runs with a token
+that only reads, and `bin/tutorials publish` then replaces the copy's directory in one commit and pushes it.
+`bin/tutorials publish` refuses to run anywhere but the CI runner, so only the workflow publishes the site. A
+pre-release's copy is removed once its tag is deleted. Pages is turned on once, in the repository's settings; see
+[Publishing](projects/tutorials/README.md#publishing).
 
 The branch ruleset is managed in [empowerite/infrastructure](https://github.com/empowerite/infrastructure).

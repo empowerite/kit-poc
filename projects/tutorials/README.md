@@ -41,6 +41,52 @@ A build reads two variables:
 `package.json` denies `fsevents` its install script, through `allowScripts`: the package ships its macOS binary
 built, and only the file watchers of Vite and Rollup load it.
 
+## Publishing
+
+The tutorials workflow, `.github/workflows/tutorials.yml`, publishes the site, and nothing else does:
+`bin/tutorials publish` refuses to run anywhere but on the CI runner. GitHub Pages serves this repository's `gh-pages`
+branch, and each copy of the site is one directory of that branch:
+
+| Push | Directory | Address |
+| --- | --- | --- |
+| to `main` | `tutorials/main/` | `https://empowerite.github.io/kit/tutorials/main/` |
+| of the tag `release/X.Y.Z` | `tutorials/X.Y/` | `https://empowerite.github.io/kit/tutorials/X.Y/` |
+| of the tag `release/X.Y.Z-<suffix>` | `tutorials/X.Y.Z-<suffix>/` | `https://empowerite.github.io/kit/tutorials/X.Y.Z-<suffix>/` |
+
+The workflow has two jobs:
+
+1. `build` asks `bin/tutorials site` which copy the ref is, and builds it with `TUTORIALS_BASE` and `TUTORIALS_LINE`
+   set from the answer. The address comes from `kit/modules/bash/tutorials.sh`, where kit reads it too, so the copy a
+   ref builds is the one that ref's kit opens. The build runs npm's packages, so the job's token only reads.
+2. `publish` is handed `dist/`, and runs `bin/tutorials publish`, which replaces the copy's directory in one commit
+   and pushes it. Every other copy stays as it is. The copy for `main` also gives the branch its `404.html`. A push
+   that is refused, as when another copy landed first, is tried again on the branch as it then stands.
+
+A pre-release's copy goes with its tag. When a branch is deleted, the retire workflow deletes the pre-releases that
+were made from it, and `bin/tutorials retire` then removes the copy of each pre-release whose tag is gone.
+`bin/tutorials retire --dry-run` says what it would remove, and changes nothing.
+
+Pages is turned on once, by an owner of the repository. Until then the branch holds the copies and no address
+answers:
+
+1. Push a branch that holds the workflow, then start its first run: merge to `main`, or tag a pre-release with
+   `kit release`. When the run ends, `git ls-remote origin gh-pages` shows the branch.
+2. Turn Pages on. In the repository's settings, under Pages, choose "Deploy from a branch", the branch `gh-pages`,
+   and the folder `/ (root)`. From a terminal, this does the same:
+
+   ```bash
+   gh api --method POST repos/empowerite/kit/pages -f 'source[branch]=gh-pages' -f 'source[path]=/'
+   ```
+
+3. Check that the site answers. Once `main` has published, this prints 200, and for an address under it that is no
+   page it prints 404:
+
+   ```bash
+   curl --silent --output /dev/null --write-out '%{http_code}\n' https://empowerite.github.io/kit/tutorials/main/
+   ```
+
+   Then `kit tutorials --text` prints links that open.
+
 ## Content
 
 Every MDX file under `src/content/` is a page, served at a path relative to the base:

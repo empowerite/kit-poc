@@ -1,9 +1,25 @@
 #!/usr/bin/env bash
-# tutorials - writes the catalogue of the top-level tutorials, the body of a region in kit/modules/tutorials.yml
+# tutorials - writes the catalogue of the tutorials, and publishes the copies of their site to the gh-pages branch
 # ----------------------------------------------------------------------------------------------------------------------
-# kit tutorials lists the tutorials from kit/modules/tutorials.yml, and that file's catalogue region is this script's
-# output, so the list is never typed twice: a page's front matter is the only place a tutorial is described. Run
-# `kit generate kit/modules/tutorials.yml` to rewrite the region; `kit generate --check` fails when it is stale.
+# bin/tutorials catalogue | site <ref> | publish <directory> <dist> | retire [--dry-run]
+#
+# The tutorials' site and their catalogue are this repository's, so this is its command, not one of the kit's verbs.
+#
+#   catalogue                   prints the catalogue of the top-level tutorials, the body of a region in
+#                               kit/modules/tutorials.yml.
+#   site <ref>                  says which copy of the site a ref builds, as four key=value lines that GITHUB_OUTPUT
+#                               reads: line, the line of kit; directory, the copy's directory on the gh-pages branch;
+#                               base, the path it is served at, the build's TUTORIALS_BASE; and url, its address. The
+#                               ref is main or a release tag, release/<version>; any other is refused.
+#   publish <directory> <dist>  replaces <directory> of the gh-pages branch with the built site <dist>, in one
+#                               commit, and pushes it. Only a runner publishes, from the tutorials workflow.
+#   retire [--dry-run]          removes the copy of each pre-release whose tag is gone, in one commit, and pushes
+#                               it. Only a runner retires; with --dry-run it says what it would remove, anywhere.
+#
+# The catalogue. kit tutorials lists the tutorials from kit/modules/tutorials.yml, and that file's catalogue region is
+# this script's output, so the list is never typed twice: a page's front matter is the only place a tutorial is
+# described. Run `kit generate kit/modules/tutorials.yml` to rewrite the region; `kit generate --check` fails when it
+# is stale.
 #
 # The tutorials are of two kinds. An online tutorial is a top-level page of the site: a page with `top: true`, at
 # <id>/index.mdx under the project's src/content/, listed with its path on the site. A tutorial that ships with the kit
@@ -15,10 +31,28 @@
 # an audience; one with an audience that audiences.yml does not list; or a top-level page that is not at
 # <id>/index.mdx.
 #
-#   bin/tutorials catalogue
-#
 # TUTORIALS_PROJECT names the project, projects/tutorials by default, and TUTORIALS_SHIPPED the directory of the pages
 # that ship with the kit, kit/modules/tutorials by default, where none is no error; the tests point both at fixtures.
+#
+# The site. GitHub Pages serves the gh-pages branch of this repository, and each copy of the site is one directory of
+# it: tutorials/main/ for the default branch, tutorials/<major>.<minor>/ for a release, one copy for every patch
+# release of the line, and tutorials/<version>/ for a pre-release, its own. kit opens a tutorial at the address
+# modules/bash/tutorials.sh names for its version, and site reads the line and the address there, so the copy a ref
+# builds is the one that ref's kit opens. On a runner, site refuses a repository whose Pages are at another address
+# than the one kit opens.
+#
+# publish asks the branch as it stands, replaces the one directory whole, leaves every other copy as it is, keeps an
+# empty .nojekyll at the root, so Pages serves the files as they are, and, for tutorials/main, copies the build's
+# 404.html to the root, the page Pages serves for an address with no file. A build that changes nothing commits
+# nothing. A push the repository refuses, as when another copy landed first, starts again from the branch as it then
+# stands, five times at most. git pushes, with the credentials `gh auth setup-git` gives it for the runner's token.
+#
+# TUTORIALS_PAGES names the repository whose gh-pages branch is written, origin's by default; the tests point it at a
+# repository of their own. A <dist> that is not absolute is read from the repository's root.
+#
+# Exits 0 when it did what it says, 1 on a refusal, and 2 on a usage error.
+#
+# see: .github/workflows/tutorials.yml, .github/workflows/retire-pre-releases.yml, projects/tutorials/README.md
 
 set -o errexit -o nounset -o pipefail
 
@@ -110,12 +144,210 @@ catalogue() {
     | yq -p json -o yaml -P '.'
 }
 
-case "${1:-}" in
-  catalogue) catalogue ;;
-  *)
-    printf 'usage: bin/tutorials catalogue\n' >&2
-    exit 2
+usage() {
+  echo "usage: bin/tutorials catalogue | site <ref> | publish <directory> <dist> | retire [--dry-run]" >&2
+}
+
+# site <ref> prints the copy of the site a ref builds: its line, its directory on the branch, its base path, and its
+# address. The address is modules/bash/tutorials.sh's, whatever KIT_TUTORIALS_BASE says: that one is for a site
+# served on this machine. Pages serves a repository's branch at https://<owner>.github.io/<repository>/, so the
+# directory is the address's path after the repository.
+site() {
+  local ref=$1 version='' line address path directory pages
+  case "${ref}" in
+    (main) version=$(release:unreleased) ;;
+    (release/*) ! releases:valid "${ref#release/}" || version=${ref#release/} ;;
+  esac
+  if [[ -z "${version}" ]]
+  then
+    error "'${ref}' has no copy of the tutorials: main and a release tag have one"
+    exit 1
+  fi
+  line=$(tutorials:line "${version}")
+  address=$(tutorials:site)
+  path=/${address#*://*/}
+  directory=${path#/*/}${line}
+  if [[ -n "${GITHUB_REPOSITORY:-}" ]]
+  then
+    pages=https://${GITHUB_REPOSITORY%%/*}.github.io/${GITHUB_REPOSITORY#*/}/
+    if [[ "${address,,}" != "${pages,,}"* ]]
+    then
+      error "kit opens its tutorials at ${address}, and the Pages of ${GITHUB_REPOSITORY} are at ${pages}:" \
+        "nothing is built for an address kit never opens"
+      exit 1
+    fi
+  fi
+  printf '%s\n' "line=${line}" "directory=${directory}" "base=${path}${line}/" "url=${address}${line}/"
+}
+
+# on-runner refuses a desk: the site is published, and a copy retired, by a workflow and nowhere else.
+on-runner() {
+  [[ -z "${GITHUB_ACTIONS:-}" ]] || return 0
+  error "the tutorials are published by the tutorials workflow, not from a desk: it runs on a push to main and of" \
+    "a release tag, and a deleted branch retires the copies of its pre-releases"
+  exit 1
+}
+
+# branch <into> makes <into> a repository on the gh-pages branch as the pages repository has it now, one commit deep,
+# or on an empty gh-pages where the repository has none yet. It returns 1 when the repository does not answer. It
+# reads pages.
+branch() {
+  local into=$1 status=0
+  git ls-remote --exit-code --heads "${pages}" gh-pages >/dev/null || status=$?
+  (( status == 0 || status == 2 )) || return 1
+  git init --quiet --initial-branch=gh-pages "${into}" || return 1
+  git -C "${into}" remote add origin "${pages}" || return 1
+  (( status == 0 )) || return 0
+  git -C "${into}" fetch --quiet --depth 1 origin gh-pages && git -C "${into}" reset --quiet --hard FETCH_HEAD
+}
+
+# land <change> changes the gh-pages branch in one commit, and pushes it. <change> is a function: it is given a copy
+# of the branch, edits the files there, and sets subject, the commit's. land sets landed: yes when the commit is on
+# the branch, and no when the change left the branch as it is, so nothing was committed, or when dry is set, where it
+# stops after the change. A push the repository refuses is tried again, on a fresh copy of the branch as it then
+# stands, five times at most; then it says what git said, and exits 1. Call it as a plain command, never in a
+# condition, where bash would let a step of it fail unseen. It reads pages, dry, and refused.
+land() {
+  local change=$1 scratch copy try
+  scratch=$(mktemp -d)
+  # shellcheck disable=SC2064  # expanded now on purpose: the path is fixed from here on
+  trap "rm -rf '${scratch}'" EXIT
+  for try in 1 2 3 4 5
+  do
+    copy=${scratch}/${try}
+    if ! branch "${copy}"
+    then
+      error "${pages} did not answer for its gh-pages branch; nothing is changed there"
+      exit 1
+    fi
+    "${change}" "${copy}"
+    landed=no
+    [[ -z "${dry}" ]] || return 0
+    git -C "${copy}" add --all
+    ! git -C "${copy}" diff --cached --quiet || return 0
+    git -C "${copy}" -c user.name='github-actions[bot]' \
+      -c user.email='41898282+github-actions[bot]@users.noreply.github.com' -c commit.gpgsign=false \
+      commit --quiet --message "${subject}"
+    landed=yes
+    ! git -C "${copy}" push --quiet origin gh-pages 2> "${scratch}/refusal" || return 0
+  done
+  cat "${scratch}/refusal" >&2
+  error "${refused}: the push to gh-pages was refused ${try} times"
+  exit 1
+}
+
+# replace-copy <copy> is publish's change: it replaces the directory whole with the built site, keeps the empty
+# .nojekyll, and gives the root main's 404.html. It reads directory and dist.
+replace-copy() {
+  rm -rf "${1:?}/${directory}"
+  mkdir -p "$1/${directory}"
+  cp -R "${dist}/." "$1/${directory}/"
+  : > "$1/.nojekyll"
+  [[ "${directory}" != tutorials/main ]] || cp "${dist}/404.html" "$1/404.html"
+  subject="${directory}: the site as built${GITHUB_SHA:+ at ${GITHUB_SHA}}"
+}
+
+# retire-copies <copy> is retire's change: it removes each tutorials/<version>-<suffix> whose tag,
+# release/<version>-<suffix>, the pages repository no longer has, and lists them in retired. It reads live, the tags
+# the repository has, each by its ref.
+retire-copies() {
+  local path name
+  retired=()
+  for path in "$1"/tutorials/*/
+  do
+    name=${path%/}
+    name=${name##*/}
+    [[ "${name}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-.+$ ]] || continue
+    ! list:among "refs/tags/release/${name}" "${live[@]}" || continue
+    rm -rf "${path}"
+    retired+=("tutorials/${name}")
+  done
+  subject="retired: ${retired[*]}"
+}
+
+verb=${1:-}
+case "${verb}" in
+  (catalogue)
+    (( $# == 1 )) || { usage; exit 2; }
+    catalogue
+    exit 0
     ;;
+  (site | publish | retire) ;;
+  (*) usage; exit 2
+esac
+shift
+
+# catalogue, which kit generate runs, needs none of the kit's modules; the rest take its messages from them, and site
+# the tutorials' address.
+# shellcheck source=SCRIPTDIR/../kit/modules/bash/1st.sh
+source kit/modules/bash/1st.sh
+dry=''
+
+case "${verb}" in
+  (site)
+    (( $# == 1 )) || { usage; exit 2; }
+    use tutorials releases
+    site "$1"
+    ;;
+  (publish)
+    (( $# == 2 )) || { usage; exit 2; }
+    directory=$1
+    dist=$2
+    [[ "${directory}" =~ ^tutorials/[A-Za-z0-9][A-Za-z0-9.-]*$ ]] || { usage; exit 2; }
+    on-runner
+    needs=(index.html)
+    [[ "${directory}" != tutorials/main ]] || needs+=(404.html)
+    for page in "${needs[@]}"
+    do
+      if [[ ! -f "${dist}/${page}" ]]
+      then
+        error "no built site at ${dist}: it has no ${page}"
+        exit 1
+      fi
+    done
+    guard:require tool:git tool:gh || exit 1
+    pages=${TUTORIALS_PAGES:-$(git remote get-url origin)}
+    gh auth setup-git
+    step "publishing ${directory} to the gh-pages branch of ${pages}"
+    refused="${directory} is not published"
+    land replace-copy
+    if [[ "${landed}" == yes ]]
+    then
+      ok "published ${directory}"
+      summary "✅ Published ${directory} to the gh-pages branch."
+    else
+      ok "${directory} is as published: the build changed nothing"
+      summary "✅ ${directory} is as published: the build changed nothing."
+    fi
+    ;;
+  (retire)
+    (( $# <= 1 )) || { usage; exit 2; }
+    [[ $# -eq 0 || "$1" == --dry-run ]] || { usage; exit 2; }
+    dry=${1:-}
+    [[ -n "${dry}" ]] || on-runner
+    guard:require tool:git || exit 1
+    pages=${TUTORIALS_PAGES:-$(git remote get-url origin)}
+    if [[ -z "${dry}" ]]
+    then
+      guard:require tool:gh || exit 1
+      gh auth setup-git
+    fi
+    # a pre-release's copy goes when its tag is gone; when the tags cannot be read, nothing is retired
+    if ! list:read live git ls-remote --tags --refs "${pages}" 'refs/tags/release/*'
+    then
+      error "${pages} did not answer for its tags; nothing is retired"
+      exit 1
+    fi
+    live=("${live[@]##*$'\t'}")
+    retired=()
+    refused='no copy is retired'
+    land retire-copies
+    for directory in "${retired[@]}"
+    do
+      step "${dry:+would have }retired ${directory}: the tag release/${directory#tutorials/} is gone"
+    done
+    ok "copies of the tutorials ${dry:+that would be }retired: ${#retired[@]}"
+    [[ -n "${dry}" ]] || summary "✅ Copies of the tutorials retired: ${#retired[@]}."
 esac
 
 # ----------------------------------------------------------------------------------------------------------------------
