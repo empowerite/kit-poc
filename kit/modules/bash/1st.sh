@@ -816,6 +816,7 @@ guard:system-command() (
 
 # guard:jq <verb> <argument>… replaces the process with the verb run again, --jq given as --json, from the directory
 # the command was typed in, its output formatted by jq ., and the verb's status kept: --jq for every verb at once.
+# The workspace kit --workspace=<workspace> named is handed on, since the loader reads it from that option alone.
 guard:jq() {
   local verb=$1 arg replaced=false
   local -a args=()
@@ -830,7 +831,7 @@ guard:jq() {
   done
   # shellcheck disable=SC2016  # the script is single-quoted for bash -c, its arguments after it
   exec bash -o pipefail -c 'cd "$1" && shift && "$@" | jq .' guard:jq "${kit_invoked_in:-.}" "${kit_root}/bin/kit" \
-    "${verb}" "${args[@]}"
+    ${KIT_WORKSPACE:+"--workspace=${KIT_WORKSPACE}"} "${verb}" "${args[@]}"
 }
 
 # guard:unknown-verb <word> refuses a word no verb answers, in the words every refusal of one uses. When a verb is one

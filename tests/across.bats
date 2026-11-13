@@ -199,6 +199,40 @@ EOF
   [ "$(jq -c .errors <<<"$output")" = '[]' ]
 }
 
+@test "--jq over a workspace prints what --json prints there, formatted: the workspace is handed on" {
+  two-desks
+  local json
+  # in a member, where a call without the workspace would answer for that repository alone and exit 0
+  cd "${BATS_TEST_TMPDIR}/code/a"
+  json=$("${kit_root}/bin/kit" --workspace=w workspace repos --json | jq .)
+  [ "$(jq -c '[.rows[].repository]' <<<"${json}")" = '["github.com/o/a","github.com/o/b","github.com/o/c"]' ]
+  run "${kit_root}/bin/kit" --workspace=w workspace repos --jq
+  [ "$status" -eq 0 ]
+  [ "$output" = "${json}" ]
+  json=$("${kit_root}/bin/kit" --workspace=w flow incoming --no-fetch --json | jq .)
+  run "${kit_root}/bin/kit" --workspace=w flow incoming --no-fetch --jq
+  [ "$status" -eq 0 ]
+  [ "$output" = "${json}" ]
+  [ "$(jq -c '[.rows[].member]' <<<"$output")" = '["github.com/o/a","github.com/o/b"]' ]
+  json=$("${kit_root}/bin/kit" --workspace=w workspaces --current --json | jq .)
+  run "${kit_root}/bin/kit" --workspace=w workspaces --current --jq
+  [ "$status" -eq 0 ]
+  [ "$output" = "${json}" ]
+  [ "$(jq -r .name <<<"$output")" = w ]
+  # outside a repository, where a call without the workspace is refused
+  cd "${BATS_TEST_TMPDIR}"
+  run "${kit_root}/bin/kit" --workspace=w workspace repos --jq
+  [ "$status" -eq 0 ]
+  [ "$(jq -c '[.rows[].repository]' <<<"$output")" = '["github.com/o/a","github.com/o/b","github.com/o/c"]' ]
+  # --workspace=none is handed on too: no group, though one was used last
+  "${kit_root}/bin/kit" workspaces --use=w
+  json=$("${kit_root}/bin/kit" --workspace=none workspaces --current --json | jq .)
+  run "${kit_root}/bin/kit" --workspace=none workspaces --current --jq
+  [ "$status" -eq 0 ]
+  [ "$output" = "${json}" ]
+  [ "$(jq -r .kind <<<"$output")" = none ]
+}
+
 @test "kit workspace repos in a repository lists it alone; outside one, without --workspace=, it refuses with 2" {
   desk-at "${BATS_TEST_TMPDIR}/code/a" github.com/o/a
   cd "${BATS_TEST_TMPDIR}/code/a"
