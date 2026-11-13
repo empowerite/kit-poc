@@ -184,3 +184,13 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
 }
 
 # ----------------------------------------------------------------------------------------------------------------------
+
+@test "a remote fetched for the first time has its branches new, none gone" {
+  git init --quiet --bare --initial-branch=main "${work}/fresh.git"
+  git push --quiet "${work}/fresh.git" main:main main:feature
+  git remote add fresh "${work}/fresh.git"
+  run kit flow incoming --json
+  [ "$status" -eq 0 ]
+  [ "$(jq -c '.remotes[] | select(.name == "fresh") | .branches' <<<"$output")" \
+    = '{"new":["feature","main"],"updated":[],"gone":[]}' ]
+}

@@ -386,7 +386,7 @@ flow:json-list() {
 # flow:fetch-diff <before> <after> prints what changed between two flow:refs snapshots, one line each: new,
 # moved, or gone; the ref; the old sha, or -; and the new sha, or -.
 flow:fetch-diff() {
-  awk 'NR == FNR { old[$1] = $2; next }
+  awk 'FILENAME == ARGV[1] { old[$1] = $2; next }
        !($1 in old) { print "new", $1, "-", $2; next }
        old[$1] != $2 { print "moved", $1, old[$1], $2 }
        { delete old[$1] }
