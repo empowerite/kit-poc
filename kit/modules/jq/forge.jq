@@ -486,9 +486,18 @@ def gitlab_branch_for_issue($n):
 def gitlab_pr_state:
   .[0].state // empty | {merged: "MERGED", closed: "CLOSED", locked: "CLOSED"}[.] // "OPEN";
 
-# ado_closed reads a work item and gives true when its state is a closing one of Azure Boards' process templates:
-# Closed, Done, or Removed, as the ado tracker reads them.
-def ado_closed: (.fields["System.State"] // "") | IN("Closed", "Done", "Removed");
+# ado_closing($closed; $removed) gives the states Azure Boards reads as closed: Closed, Done, and Removed, the closing
+# states of its process templates, and the closed state and the removed state a repository or a tracker's record names,
+# each where it names one. A close sets one of these, so a work item kit closed reads as closed.
+def ado_closing($closed; $removed):
+  ["Closed", "Done", "Removed", $closed, $removed] | map(select(. != null and . != "")) | unique;
+
+# ado_closed($closing) reads a work item and gives true when its state is one of $closing, as ado_closing gives them.
+def ado_closed($closing): (.fields["System.State"] // "") as $state | $closing | index([$state]) != null;
+
+# ado_wiql($closing) gives $closing as the list a WIQL query's NOT IN takes: each state in single quotes, a quote in
+# a name doubled, apart by commas.
+def ado_wiql($closing): $closing | map("'\(gsub("'"; "''"))'") | join(", ");
 
 # ado_text reads the HTML Azure Boards keeps a work item's description in and gives the text a Markdown reader would
 # take from it: a heading as ## and its text, a list item as - and its text, a paragraph, a division, or a line break

@@ -15,7 +15,7 @@
 # The provider needs the az CLI with its azure-devops extension. No other part of the kit needs az.
 #
 # A work item is CLOSED in the states Closed, Done, and Removed (the closing states of Azure DevOps' process
-# templates) and OPEN in every other state. Closing a work item sets the record's closed_state, or, when it is not
+# templates) and in the record's closed_state and removed_state, and OPEN in every other state. Closing a work item sets the record's closed_state, or, when it is not
 # planned or a duplicate, its removed_state (default: Removed); a duplicate also gets a comment naming the original,
 # as Azure DevOps has no duplicate reason. Without a closed_state it closes to Closed, and to Done where its type has
 # no Closed: the Agile and CMMI processes close a work item to Closed, and the Basic process, which a new
@@ -34,7 +34,7 @@ tracker/ado:assignees() { tracker/ado:read "$1" '.fields["System.AssignedTo"].un
 # tracker/ado:body prints the work item's description, which Azure Boards keeps as HTML, as forge.jq's ado_text reads
 # it, and nothing for an empty one.
 tracker/ado:body() {
-  # shellcheck disable=SC2154  # kit_jq is exported by modules/bash/1st.sh
+  # shellcheck disable=SC2016,SC2154  # the program is jq's; kit_jq is exported by modules/bash/1st.sh
   tracker/ado:read "$1" -L "${kit_jq}" 'import "forge" as forge;
     .fields["System.Description"] // "" | strings | forge::ado_text | select(. != "")'
 }
@@ -106,7 +106,7 @@ tracker/ado:new-url() {
 # query is read a page at a time, by id, as modules/bash/forge/ado.sh reads it: a read that answers 1000 is followed
 # by the next, and a list that reaches forge_list_limit fails.
 tracker/ado:open-issues() {
-  local org project page pages='' seen
+  local org project page pages='' seen closing
   local -i after=0 count=0 total=0
   org=$(tracker/ado:organization) || return 1
   project=$(tracker:field "${TRACKER_PREFIX}" project)
@@ -116,13 +116,16 @@ tracker/ado:open-issues() {
     return 1
   fi
   guard:require tool:az || return 1
+  closing=$(tracker/ado:closing) || return 1
+  closing=$(jq --null-input --raw-output -L "${kit_jq}" --argjson closing "${closing}" \
+    'import "forge" as forge; forge::ado_wiql($closing)') || return 1
   while :
   do
     # shellcheck disable=SC2154  # kit_jq is exported by modules/bash/1st.sh
     if ! page=$(az boards query --project "${project}" --org "${org}" --output json --wiql \
       "SELECT [System.Id], [System.Title], [System.AssignedTo], [System.Tags], [System.CreatedDate],
               [System.IterationPath] FROM WorkItems
-       WHERE [System.TeamProject] = @project AND [System.State] NOT IN ('Closed', 'Done', 'Removed')
+       WHERE [System.TeamProject] = @project AND [System.State] NOT IN (${closing})
          AND [System.Id] > ${after}
        ORDER BY [System.Id] ASC" 2>/dev/null) || ! seen=$(jq --raw-output -L "${kit_jq}" --argjson after "${after}" \
       'import "forge" as forge; forge::ado_page($after)' <<<"${page:-[]}" 2>/dev/null)
@@ -144,7 +147,11 @@ tracker/ado:open-issues() {
 }
 
 tracker/ado:state() {
-  tracker/ado:read "$1" 'if (.fields["System.State"] | IN("Closed", "Done", "Removed")) then "CLOSED" else "OPEN" end'
+  local closing
+  closing=$(tracker/ado:closing) || return 1
+  # shellcheck disable=SC2016,SC2154  # the program is jq's; kit_jq is exported by modules/bash/1st.sh
+  tracker/ado:read "$1" -L "${kit_jq}" --argjson closing "${closing}" \
+    'import "forge" as forge; if forge::ado_closed($closing) then "CLOSED" else "OPEN" end'
 }
 
 tracker/ado:title() { tracker/ado:read "$1" '.fields["System.Title"]'; }
@@ -165,6 +172,14 @@ tracker/ado:url() {
 }
 
 # The seam's calls end here; what follows is this provider's own.
+
+# tracker/ado:closing prints the states the provider reads as closed, as a JSON array: Closed, Done, and Removed, and the
+# record's closed_state and removed_state, as the closes set them.
+tracker/ado:closing() {
+  jq --null-input --compact-output -L "${kit_jq}" --arg closed "$(tracker:field "${TRACKER_PREFIX}" closed_state)" \
+    --arg removed "$(tracker:field "${TRACKER_PREFIX}" removed_state)" \
+    'import "forge" as forge; forge::ado_closing($closed; $removed)'
+}
 
 # shellcheck disable=SC2154  # TRACKER_PREFIX is set by tracker:of and tracker:at for the call
 tracker/ado:organization() {

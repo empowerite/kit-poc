@@ -249,11 +249,19 @@ forge/ado:issue-create() {
 }
 
 forge/ado:issue-state() {
-  local item
+  local item closing
+  closing=$(forge/ado:closing) || return 1
   forge/ado:ask item "the state of #$1" boards work-item show --id "$1" || return 1
-  forge/ado:fold "the state of #$1" "${item}" --raw-output \
-    'import "forge" as forge; if (.fields["System.State"] | strings // error) and forge::ado_closed then "CLOSED"
-     else "OPEN" end'
+  forge/ado:fold "the state of #$1" "${item}" --raw-output --argjson closing "${closing}" \
+    'import "forge" as forge; if (.fields["System.State"] | strings // error) and forge::ado_closed($closing)
+     then "CLOSED" else "OPEN" end'
+}
+
+# forge/ado:closing prints the states the provider reads as closed, as a JSON array: Closed, Done, and Removed, and the
+# closed_state and removed_state of forge_settings.ado, as the closes set them.
+forge/ado:closing() {
+  jq --null-input --compact-output -L "${kit_jq}" --arg closed "$(forge:setting ado closed_state)" \
+    --arg removed "$(forge:setting ado removed_state)" 'import "forge" as forge; forge::ado_closing($closed; $removed)'
 }
 
 forge/ado:issue-title() {
@@ -328,16 +336,19 @@ forge/ado:noun() { printf '!\tpull request\n'; }
 # work items oldest first. The query gives no address, so each work item's is as forge/ado:issue-url prints it, under
 # the project's.
 forge/ado:open-issues() {
-  local page pages='' seen project repo item
+  local page pages='' seen project repo item closing
   local -i after=0 count=0 total=0
   IFS=$'\t' read -r _ project repo < <(forge/ado:place) || return 1
   item=$(forge/ado:issue-url '') || return 1
+  closing=$(forge/ado:closing) || return 1
+  closing=$(forge/ado:fold 'the closing states' "${closing}" --raw-output 'import "forge" as forge; forge::ado_wiql(.)') \
+    || return 1
   while :
   do
     forge/ado:ask page 'the work items' boards query --project "${project}" --wiql \
       "SELECT [System.Id], [System.Title], [System.AssignedTo], [System.Tags], [System.CreatedDate],
               [System.IterationPath] FROM WorkItems
-       WHERE [System.TeamProject] = @project AND [System.State] NOT IN ('Closed', 'Done', 'Removed')
+       WHERE [System.TeamProject] = @project AND [System.State] NOT IN (${closing})
          AND [System.Id] > ${after}
        ORDER BY [System.Id] ASC" || return 1
     seen=$(forge/ado:fold 'the work items' "${page}" --raw-output --argjson after "${after}" \
@@ -417,11 +428,13 @@ forge/ado:pr-body() {
 # forge/ado:pr-closing-issues prints the work items linked to the pull request, which its completion can close. They
 # are the project's, so each is named the repository's, as kit linked asks.
 forge/ado:pr-closing-issues() {
-  local items repo
+  local items repo closing
+  closing=$(forge/ado:closing) || return 1
   forge/ado:ask items "the work items pull request !$1 links" repos pr work-item list --id "$1" || return 1
   repo=$(forge/ado:repo) || return 1
   forge/ado:fold "the work items pull request !$1 links" "${items:-[]}" --raw-output --arg repo "${repo}" \
-    'import "forge" as forge; .[] | "\(.id) \(if forge::ado_closed then "CLOSED" else "OPEN" end) \($repo)"'
+    --argjson closing "${closing}" \
+    'import "forge" as forge; .[] | "\(.id) \(if forge::ado_closed($closing) then "CLOSED" else "OPEN" end) \($repo)"'
 }
 
 # forge/ado:pr-create opens the draft, or the change ready for review when the draft is false, and links the work

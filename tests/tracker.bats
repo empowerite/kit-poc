@@ -134,6 +134,27 @@ JSON
   [ "$output" = $'update --id 4521 --assigned-to  \nupdate --id 4521 --state Closed \nupdate --id 4521 --state Removed \nupdate --id 4521 --discussion Duplicate of AB#4522 \nupdate --id 4521 --state Removed ' ]
 }
 
+@test "an Azure Boards work item closed to the state the record names reads as closed, and the open work items leave it out" {
+  printf '    closed_state: Resolved\n    removed_state: "Won'"'"'t Fix"\n' >> kit.yml
+  for state in Resolved "Won't Fix" Done Active
+  do
+    jq --null-input --arg state "${state}" '{id: 4521, fields: {"System.Title": "Fix it", "System.State": $state}}' \
+      > "${FAKE_DIR}/item.json"
+    route az 'boards work-item show --id 4521 *' item.json
+    run in_tracker tracker:of 'AB#4521' state
+    case "${state}" in
+      (Active) [ "$output" = OPEN ] || { echo "${state}: ${output}"; false; } ;;
+      (*) [ "$output" = CLOSED ] || { echo "${state}: ${output}"; false; } ;;
+    esac
+  done
+  fixture none.json <<<'[]'
+  route az 'boards query *' none.json
+  run in_tracker tracker:at 'AB#' open-issues
+  [ "$status" -eq 0 ]
+  grep --quiet --fixed-strings "[System.State] NOT IN ('Closed', 'Done', 'Removed', 'Resolved', 'Won''t Fix')" \
+    "${FAKE_DIR}/az.calls"
+}
+
 @test "a close an Azure Boards tracker refuses names the record's field and what az said, and Done closes for Closed" {
   fixture active.json <<<'{"id": 4521, "fields": {"System.Title": "Fix it", "System.State": "Doing"}}'
   fixture refused.txt <<<"ERROR: The field 'State' contains a value that is not in the list of supported values"

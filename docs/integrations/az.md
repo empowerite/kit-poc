@@ -100,7 +100,7 @@ rest. kit's `tracker/ado.sh` uses these commands.
 | Capability | Command |
 | --- | --- |
 | Title | `az boards work-item show --id "${n}" --org "${org}" --output json`, `.fields["System.Title"]` |
-| State | the same, `.fields["System.State"]`; kit reads Closed, Done, and Removed as closed |
+| State | the same, `.fields["System.State"]`; kit reads Closed, Done, Removed, and the `closed_state` and `removed_state` as closed, in the query for open work items too |
 | Assignees | the same, `.fields["System.AssignedTo"].uniqueName` |
 | Caller | `az account show --query user.name --output tsv` |
 | Issue page | none; kit builds `${org}/${project}/_workitems/edit/${n}` |
