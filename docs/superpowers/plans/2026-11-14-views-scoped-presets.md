@@ -152,7 +152,7 @@ or app scope keeps that difference only, so a tab's own base, such as Underway's
 func Delta(applied Preset, p grid.Panel, fields []Field) Preset
 ```
 
-- [ ] **Step 1: Write the failing tests** in `edit_test.go`: a panel equal to what is applied gives nothing
+- [x] **Step 1: Write the failing tests** in `edit_test.go`: a panel equal to what is applied gives nothing
   (`TestDeltaOfNothingChangedIsEmpty`); a filter added gives that filter alone (`TestDeltaGivesAnAddedFilter`); a filter
   the panel lacks gives `Off` in the filter facet (`TestDeltaSwitchesOffARemovedFilter`); a changed grouping gives the
   panel's whole list of groups, and a grouping removed gives `Off` in the place facet for each group that went
@@ -160,11 +160,12 @@ func Delta(applied Preset, p grid.Panel, fields []Field) Preset
   hidden gives a column placement (`TestDeltaShowsAHiddenColumn`); a rendering changed gives it, and one removed gives
   `Off` in the render facet; and resolving the applied preset beneath the delta sets the panel's panel
   (`TestDeltaOverTheAppliedSetsThePanel`, for each case above).
-- [ ] **Step 2: Run them to see them fail.**
-- [ ] **Step 3: Implement `Delta`.** Normalize both sides as `Views.Same` does, through `Preset.Panel` and `PresetOf`, then
-  compare per field and facet; a list facet that differs is given whole.
-- [ ] **Step 4: Run the package's tests**, coverage whole.
-- [ ] **Step 5: Commit** the files.
+- [x] **Step 2: Run them to see them fail.**
+- [x] **Step 3: Implement `Delta`.** Normalize both sides as `Views.Same` does, through `Preset.Panel` and `PresetOf`, then
+  compare per field and facet; a list facet that differs is given whole, and a sort key whose direction turned is a
+  change. A panel with its columns in another order says every column's position, so the delta lists them all.
+- [x] **Step 4: Run the package's tests**, coverage whole.
+- [x] **Step 5: Commit** the files.
 
 ## Task 4: Views on the stack
 
