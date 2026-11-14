@@ -187,16 +187,17 @@ func (v Views) SaveAt(name string, l Level, base string, p grid.Panel) (Scoped, 
   scope keeps the panel's `Delta` over the whole stack beneath; at tab scope it keeps the panel's `Delta` over the
   global and app layers alone, which with none active is the preset `SaveAs` keeps today.
 
-- [ ] **Step 1: Write the failing tests:** `TestStackOrder` (global, app, base, tab, edit, each in the order activated),
-  `TestStackSkipsAnActiveNameThatIsGone`, `TestStackWithNothingActiveIsTheBase`, `TestAppliedResolvesTheStack`,
-  `TestSaveAtGlobalKeepsTheEditAlone` (a tab whose base filters state saves a global grouping without that filter),
-  `TestSaveAtTabWithNothingActiveIsSaveAs`, `TestSaveAtRefusesAReservedName` (Review Focus 5), `TestSaveAtRefusals`
-  (unnamed, a team's name, an edit as a scope), `TestIsReadsTheStack` (a table set as its base with a global preset
-  active is that base; with none active `Is` is as it is today).
-- [ ] **Step 2: Run them to see them fail.**
-- [ ] **Step 3: Implement.** `Is` compares against the stack's applied preset only where a scope has an active name.
-- [ ] **Step 4: Run the package's tests.** Existing `views_test.go` cases pass unchanged.
-- [ ] **Step 5: Commit** the files.
+- [x] **Step 1: Write the failing tests:** `TestStackOrder` (global, app, base, tab, edit, each in the order
+  activated), `TestStackSkipsAnActiveNameThatIsGone`, `TestSavingAtAScopeDoesNotChangeTheView` (a saved preset is
+  active, and the view after saving is the panel before it), `TestStackWithNothingActiveIsTheBase`,
+  `TestAppliedResolvesTheStack`, `TestSaveAtGlobalKeepsTheEditAlone` (a tab whose base filters state saves a global
+  grouping without that filter), `TestSaveAtTabWithNothingActiveIsSaveAs`, `TestSaveAtRefusesAReservedName` (Review
+  Focus 5), `TestSaveAtRefusals` (unnamed, a team's name, an edit as a scope), `TestIsReadsTheStack` (a table set as
+  its base with a global preset active is that base; with none active `Is` is as it is today).
+- [x] **Step 2: Run them to see them fail.**
+- [x] **Step 3: Implement.** `Is` compares against the stack's applied preset only where a scope has an active name.
+- [x] **Step 4: Run the package's tests.** Existing `views_test.go` cases pass unchanged.
+- [x] **Step 5: Commit** the files.
 
 ## Task 5: The stack line and the card
 

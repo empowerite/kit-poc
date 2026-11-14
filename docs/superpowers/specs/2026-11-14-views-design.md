@@ -198,6 +198,14 @@ My calls, open to change:
 - A not-applicable constraint is dim, and a crossed-out name means an unsaved edit, because one cue should mean one
   thing.
 - A global preset's name may not equal any tab's built-in name.
+- A preset's name is unique among the person's presets of a table, whatever the scope, so saving under a name at one
+  scope never leaves two presets of that name.
+- A preset saved at global or app scope is active there at once, so saving does not change what the person sees.
+- Saving at global or app scope keeps what the panel says beyond the rest of the stack, with the preset of that name
+  taken out of it, so saving under an existing name changes that preset and drops what it said that the panel no longer
+  says.
+- A preset saved at a broader scope is beneath a table's own view, so where the table's view says the same of a field in
+  a facet, the view wins. The stack line says which layer decided, so the person sees why.
 - The resolution lands before the line that shows it, so the model is tested before the screens use it.
 
 ## What is left to the builder

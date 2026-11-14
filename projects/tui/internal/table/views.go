@@ -32,6 +32,13 @@ type Views struct {
 	Starred []string
 	Team    []Preset
 	Shares  bool
+
+	// Scoped is the person's presets of global and app scope, and which are active in each scope; App and Tab name the
+	// table's app and the table, which the scopes are keyed by; and Reserved is every name of every table's own views, which
+	// no preset of global or app scope may take.
+	Scoped   Scoped
+	App, Tab string
+	Reserved []string
 }
 
 // Favorites gives the names of the views the person starred, in their order, but those that name a view since gone,
@@ -178,11 +185,11 @@ func (v Views) Same(a, b Preset) bool {
 // rows as they loaded; else the first of its views it is as; none when it differs from every one.
 func (v Views) Is(t Table) string {
 	now, chosen := v.Current(t.View), v.Chosen(t.ViewName)
-	if v.Same(now, chosen) || t.Grouped != nil && v.Same(now, *t.Grouped) {
+	if v.Same(now, v.stacked(chosen)) || t.Grouped != nil && v.Same(now, *t.Grouped) {
 		return chosen.Name
 	}
 	for _, p := range v.All() {
-		if v.Same(now, p) {
+		if v.Same(now, v.stacked(p)) {
 			return p.Name
 		}
 	}
