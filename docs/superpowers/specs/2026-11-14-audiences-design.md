@@ -15,10 +15,11 @@ kit is a proof of concept for a software development life cycle (SDLC) that work
 A question such as "what is waiting on me?" has the same shape on GitHub, GitLab, Azure DevOps, and Jira. If kit
 asks the question of the work and not of the tool, a migration from one tool to another changes a provider and a
 mapping, and leaves every view, filter, and habit of the people who read the work as it was. Migrations are where
-enterprises lose that continuity, so the proof of concept is built to keep it.
+enterprises lose that continuity, so the proof of concept is built to keep it. It is working software that reads real
+tools, not a demonstration with staged data.
 
-Nobody uses kittui yet. These audiences are the ones the proof of concept is shown to. They come from what each role
-does, not from interviews, and the owner is to correct them.
+Nobody uses kittui yet. These audiences are the ones the first release serves. They come from what each role does, not
+from interviews, and the owner is to correct them.
 
 This page is the first of three. The second gives every field one meaning across every tab: `issue.id`, not `id`. The
 third lets a person's filters, sorting, and grouping follow them from tab to tab. Both need to know who the readers
@@ -37,6 +38,8 @@ are, so this page comes first.
   theirs to save.
 - Permissions. In the first release every person sees every role, and kit adds no access rule of its own. What a person
   may read or change is controlled outside kit, by the services the rows come from, and kit never widens it.
+- A currency or a rate card. A cost carries the units a service bills in, such as runner minutes and model tokens, and
+  kit converts none of them to money in the first release.
 - Research with real users. No user exists yet, and this page says so where it matters.
 
 ## Anti-goals
@@ -300,8 +303,8 @@ vocabulary, which the second page fixes by naming the field for the work: `issue
 
 Three ways to record audiences were considered.
 
-1. A fixed set of views per role. kit ships "Developer", "FinOps", and the rest, each a set of saved views. It is easy
-   to demonstrate. It builds the role into the product, so a person who is both a developer and a team lead must pick
+1. A fixed set of views per role. kit ships "Developer", "FinOps", and the rest, each a set of saved views. It is the
+   quickest to build. It builds the role into the product, so a person who is both a developer and a team lead must pick
    one, and a tool's own terms leak into the views.
 2. Questions first, with roles as named sets of questions. Every question is a statement about entities and
    relations, and a view answers one. A role is a list, and a person may hold several. It costs more thought before
@@ -326,20 +329,18 @@ to change.
   not follow a person across tabs.
 - The questions. They come from what each role is known to do, and no user confirmed them.
 - Naming FinOps as the largest gap, because the entities design has no entity for money.
-- Taking agent spend, CI spend, and utilization during CI and test as FinOps measures, as the owner said.
+- Taking agent spend, CI spend, and utilization during CI and test as FinOps measures, as the owner said, and a cost
+  in billing units, not money, as the owner decided.
 
 ## Open questions
 
-- Which audiences does the proof of concept's first demonstration show, and which is the migration it shows: from
-  which tool to which?
+- Which audiences does the first release serve first, and which migration must it carry: from which tool to which?
 - Is "my team's" part of the first release, or is "mine" enough? It decides whether ownership enters the second page.
 - Does a view carry to a tab that totals, such as an executive's, or only to tabs of rows?
 - Does the first release read as of a date, which an auditor needs, or only as of now? It decides whether the second
   page names a time field on every entity.
 - Which services report spend and utilization, and which report none? kit reads what a service reports and measures
   nothing itself, so a service that reports none leaves the tab empty.
-- Which unit does a cost carry: money, which needs a rate card, or the units a service bills in, such as minutes and
-  tokens, which need none? It decides whether the second page holds a currency.
 
 ## What follows
 
