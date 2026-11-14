@@ -16,16 +16,24 @@ import (
 	"syscall"
 )
 
-// PresetsVersion is the version of the presets file.
-const PresetsVersion = 2
+// PresetsVersion is the version of the presets file that holds presets of global and app scope, and which are active.
+// A file that holds none of them is written as baseVersion, which every kittui reads.
+const (
+	PresetsVersion = 3
+	baseVersion    = 2
+)
 
-// presetsFile is the presets file: its version, the person's presets, by table, their favorites, by table, and the
-// panel each table was last left as, by table.
+// presetsFile is the presets file: its version, the person's presets, by table, their favorites, by table, the panel
+// each table was last left as, by table, and, from version 3, the presets of global scope, the presets of each app,
+// and the names of the presets active in each scope.
 type presetsFile struct {
 	Version   int                 `json:"version"`
 	Stages    map[string][]Preset `json:"stages"`
 	Favorites map[string][]string `json:"favorites,omitempty"`
 	Last      map[string]Preset   `json:"last,omitempty"`
+	Global    []Preset            `json:"global,omitempty"`
+	Apps      map[string][]Preset `json:"apps,omitempty"`
+	Active    map[string][]string `json:"active,omitempty"`
 }
 
 // PresetsPath gives the file the person's presets are kept in: kit/presets.json under XDG_CONFIG_HOME, else under
@@ -60,7 +68,8 @@ func ReadFavorites(path string) map[string][]string {
 // readFile gives the presets file as it reads, its maps never nil; empty for no file named. A file that is not there is
 // the error, as os.ReadFile says; one that does not read, or is of another version, is the error too.
 func readFile(path string) (presetsFile, error) {
-	out := presetsFile{Stages: map[string][]Preset{}, Favorites: map[string][]string{}, Last: map[string]Preset{}}
+	out := presetsFile{Stages: map[string][]Preset{}, Favorites: map[string][]string{}, Last: map[string]Preset{},
+		Apps: map[string][]Preset{}, Active: map[string][]string{}}
 	if path == "" {
 		return out, nil
 	}
@@ -72,7 +81,7 @@ func readFile(path string) (presetsFile, error) {
 	if err == nil {
 		err = json.Unmarshal(data, &file)
 	}
-	if err == nil && file.Version != PresetsVersion {
+	if err == nil && file.Version != baseVersion && file.Version != PresetsVersion {
 		err = fmt.Errorf("version %d, not %d", file.Version, PresetsVersion)
 	}
 	if err != nil {
@@ -81,6 +90,9 @@ func readFile(path string) (presetsFile, error) {
 	maps.Copy(out.Stages, file.Stages)
 	maps.Copy(out.Favorites, file.Favorites)
 	maps.Copy(out.Last, file.Last)
+	out.Global = file.Global
+	maps.Copy(out.Apps, file.Apps)
+	maps.Copy(out.Active, file.Active)
 	return out, nil
 }
 
@@ -99,7 +111,10 @@ func writeFile(path string, file presetsFile) error {
 	if path == "" {
 		return nil
 	}
-	file.Version = PresetsVersion
+	file.Version = baseVersion
+	if len(file.Global)+len(file.Apps)+len(file.Active) > 0 {
+		file.Version = PresetsVersion
+	}
 	if len(file.Favorites) == 0 {
 		file.Favorites = nil
 	}

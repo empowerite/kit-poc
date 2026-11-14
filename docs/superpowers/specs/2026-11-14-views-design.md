@@ -160,6 +160,8 @@ gains the active presets for each scope.
 
 - A preset in a tab's list, as today, has the tab's scope, so files written before this change keep their meaning.
 - Presets of global and app scope are listed under their own keys, and each scope keeps its active names in order.
+- A file that holds no global or app presets and no active names is written as it is today, so a kittui that does not
+  know scopes reads it. A file that holds them is a new version, and an older kittui refuses it, and names the version.
 - A global name may not be a built-in's name on any tab, so "Default" is never a person's.
 - Saving merges with the file as it is, as it does today, so another kittui's changes to the same file are kept. The
   merge works by name within a scope.

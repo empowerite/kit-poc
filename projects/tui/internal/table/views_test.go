@@ -134,7 +134,7 @@ func TestThePersonsPresetsAreKeptInAFileOfTheirOwn(t *testing.T) {
 	if got, err := ReadPresets(file); err != nil || got["issues"][0].Name != "Mine" {
 		t.Errorf("read back: %v %+v", err, got)
 	}
-	for content, says := range map[string]string{"{not json": "does not read as presets", `{"version": 1}`: "version 1, not 2"} {
+	for content, says := range map[string]string{"{not json": "does not read as presets", `{"version": 1}`: "version 1, not 3"} {
 		if err := os.WriteFile(file, []byte(content), 0o600); err != nil {
 			t.Fatal(err)
 		}

@@ -35,7 +35,8 @@ reading as it does today. `Views` builds the stack, and the preset line draws it
    (Task 1).
 3. A version 2 file reads as tab-scoped presets, and a file with no presets reads as empty (Task 2).
 4. Two kittuis saving a global preset of one name keep each other's other presets (Task 2).
-5. A global name equal to a built-in's name on any tab is refused (Task 3).
+5. A global name equal to a built-in's name on any tab is refused (Task 4).
+6. Saving a global preset from a tab whose base filters state keeps the grouping alone, never the filter (Task 4).
 
 ---
 
@@ -43,10 +44,11 @@ reading as it does today. `Views` builds the stack, and the preset line draws it
 
 - `table/resolve.go`, `table/resolve_test.go`: the layers, the resolution, and the provenance. Pure; no I/O.
 - `table/catalog.go`: `Preset` gains `Add`, `Setting` gains `Off`.
-- `table/store.go`, `table/store_test.go`: the file's version 3 and its scopes.
+- `table/scoped.go`, `table/scoped_test.go`, `table/store.go`: the file's version 3 and its scopes.
+- `table/edit.go`, `table/edit_test.go`: an unsaved edit as a layer.
 - `table/views.go`, `table/views_test.go`: `Views` builds the stack and saves at a scope.
-- `table/presets.go`, `table/draw.go`: the stack line and the constraint card (Task 4).
-- `flow/views.go`, `table/sheet.go`: the two hosts load and keep the scopes (Task 5).
+- `table/presets.go`, `table/draw.go`: the stack line and the constraint card (Task 5).
+- `flow/views.go`, `table/sheet.go`: the two hosts load and keep the scopes (Task 6).
 
 ## Task 1: The resolution
 
@@ -75,7 +77,7 @@ func (p Provenance) Why(field string, facet Facet) (Constraint, bool) // the one
   facets, `FacetPlace`, `FacetOrder`, or `FacetSort`, that append instead of replace. `Setting` gains `Off FacetSet`
   (`json:"off,omitempty"`). The names are `Resolve`, not `Fold`, because the package's `Fold` opens and closes groups.
 
-- [ ] **Step 1: Write the failing tests** in `resolve_test.go`, table-driven, each with its stack and the resolved
+- [x] **Step 1: Write the failing tests** in `resolve_test.go`, table-driven, each with its stack and the resolved
   preset: `TestResolveNarrowestWins` (a tab's filter on `state` replaces a global one on `state`; a filter on
   `assignee` beside it stands), `TestResolveListReplaces` (global groups `org`, `repo`; a tab layer groups `state`:
   the result groups `state` alone), `TestResolveListAdds` (the same with `Add: [FacetPlace]` groups `org`, `repo`,
@@ -87,76 +89,115 @@ func (p Provenance) Why(field string, facet Facet) (Constraint, bool) // the one
   sort"), `TestResolveInapplicableListKeepsBroader` (Review Focus 1), `TestResolveProvenance` (each of `InForce`,
   `Overridden`, `Off` is reported for the layer that gave it), and `TestResolvedPanelEqualsApplied` (`Preset.Panel` of
   the resolution's preset sets the same panel as a single layer stating the same).
-- [ ] **Step 2: Run them to see them fail:** `cd projects/tui && go test ./internal/table -run TestResolve` fails to build.
-- [ ] **Step 3: Implement `Resolve`.** Gather each layer's settings for the fields `fields` has, in `fields` order, judging
+- [x] **Step 2: Run them to see them fail:** `cd projects/tui && go test ./internal/table -run TestResolve` fails to build.
+- [x] **Step 3: Implement `Resolve`.** Gather each layer's settings for the fields `fields` has, in `fields` order, judging
   applicability as `Preset.Panel` does: hidden needs a label, a group needs `Group`, a sort needs `Sort` or `One`, a
   filter needs `Filter`, a rendering must be one of `Renderings`, flat needs `One`. A layer's list facet gives entries
   only through applicable settings. Keep state per facet, with the owner layer of each entry; a layer's `Off` clears the
   facet first, and the setting's own value for it is ignored. Build the result as a `Preset` with groups numbered from
   1 by depth, sorts from 1 by priority, positions from 1.
-- [ ] **Step 4: Run the tests:** `go test -cover ./internal/table` passes, and `resolve.go` is covered whole.
-- [ ] **Step 5: Commit** `table/resolve.go`, `table/resolve_test.go`, `table/catalog.go`: `#590 kittui: a stack of presets
+- [x] **Step 4: Run the tests:** `go test -cover ./internal/table` passes, and `resolve.go` is covered whole.
+- [x] **Step 5: Commit** `table/resolve.go`, `table/resolve_test.go`, `table/catalog.go`: `#590 kittui: a stack of presets
   resolves into the one preset a tab applies, and says what each layer decided`.
 
 ## Task 2: The file keeps scopes
 
-**Files:** Modify `table/store.go`, `table/store_test.go`.
+**Files:** Create `table/scoped.go`, `table/scoped_test.go`. Modify `table/store.go`, and the two tests that name the
+file's version, `table/views_test.go` and `flow/views_test.go`.
 
 **Interfaces:**
 
-- Consumes: `Preset`, with `Add`.
+- Consumes: `Preset`, with `Add`, and `merged`, the merge `KeepPresets` uses.
 - Produces:
 
 ```go
-const PresetsVersion = 3
+const PresetsVersion = 3 // a file that holds scoped presets; any other is written as version 2, which every kittui reads
 type Scoped struct {
     Global []Preset            // the person's presets at global scope
     Apps   map[string][]Preset // by app
-    Active map[string][]string // active names, by scope key: "global", "app:<name>", "tab:<stage>"
+    Active map[string][]string // active names in order, by scope key
 }
+func ScopeKey(l Level, name string) string // "global", "app:<name>", "tab:<name>"; an edit has none
 func ReadScoped(path string) (Scoped, error)
 func KeepScoped(path string, was, now Scoped) (Scoped, error) // merges by name within a scope, as KeepPresets does
-func ScopeKey(l Level, name string) string
 ```
 
-- [ ] **Step 1: Write the failing tests:** `TestReadVersionTwo` (a version 2 file reads: its tab presets as today,
-  `Scoped` empty), `TestReadScopedRoundTrip`, `TestKeepScopedMergesByName` (Review Focus 4: another kittui's global
-  preset stays when this one saves a different one; a preset this kittui deleted stays gone), `TestKeepScopedActive`
-  (active names keep their order), `TestWriteVersionThree`.
-- [ ] **Step 2: Run them to see them fail:** `go test ./internal/table -run 'TestRead|TestKeepScoped|TestWrite'`.
-- [ ] **Step 3: Implement.** `readFile` accepts versions 2 and 3 and holds the new keys, never nil; `writeFile` writes 3.
-  `KeepScoped` reuses `merged` and the lock `KeepPresets` uses, keyed by preset name within each list.
-- [ ] **Step 4: Run the package's tests**, coverage whole on the new code.
-- [ ] **Step 5: Commit** both files: `#590 kittui: the presets file keeps global and app presets, and which are active`.
+- [x] **Step 1: Write the failing tests** in `scoped_test.go`: a version 2 file reads as no scoped presets and keeps
+  its tab presets; a missing file is `os.ErrNotExist`; another version is refused and named; a round trip is version 3;
+  a file with none stays version 2 (Review Focus 3); two writers keep each other's global and app presets, and one's
+  delete stays a delete (Review Focus 4); active names keep their order; a scope with nothing is left out; a file that
+  does not read is not written over; a folder that takes no new file is reported.
+- [x] **Step 2: Run them to see them fail:** `go test ./internal/table -run Scoped` fails to build.
+- [x] **Step 3: Implement.** `readFile` reads versions 2 and 3 and holds the new keys, never nil; `writeFile` writes 3
+  only for a file that holds them. `KeepScoped` takes the lock `KeepPresets` takes and merges each list with `merged`.
+- [x] **Step 4: Run the package's tests**, coverage whole. The two tests that used a version as an example of another
+  one now use versions 1 and 4, because 3 is read.
+- [x] **Step 5: Commit** the files: `#590 kittui: the presets file keeps global and app presets, and which are active`.
 
-## Task 3: Views on the stack
+## Task 3: The edit is a layer
+
+A person's unsaved edit is the difference between the panel and what the stack beneath already gives. Saving at global
+or app scope keeps that difference only, so a tab's own base, such as Underway's filter on state, never travels.
+
+**Files:** Create `table/edit.go`, `table/edit_test.go`.
+
+**Interfaces:**
+
+- Consumes: `Resolve`, `PresetOf`, `Layer`, `grid.Panel`.
+- Produces:
+
+```go
+// Delta gives what a panel says that a preset the table applies does not: its settings where they differ, and a switch
+// off, in the facet, for what the preset gave and the panel no longer has.
+func Delta(applied Preset, p grid.Panel, fields []Field) Preset
+```
+
+- [ ] **Step 1: Write the failing tests** in `edit_test.go`: a panel equal to what is applied gives nothing
+  (`TestDeltaOfNothingChangedIsEmpty`); a filter added gives that filter alone (`TestDeltaGivesAnAddedFilter`); a filter
+  the panel lacks gives `Off` in the filter facet (`TestDeltaSwitchesOffARemovedFilter`); a changed grouping gives the
+  panel's whole list of groups, and a grouping removed gives `Off` in the place facet for each group that went
+  (`TestDeltaGivesTheWholeListThatChanged`); the same for the sort keys and the columns' order; a column shown that was
+  hidden gives a column placement (`TestDeltaShowsAHiddenColumn`); a rendering changed gives it, and one removed gives
+  `Off` in the render facet; and resolving the applied preset beneath the delta sets the panel's panel
+  (`TestDeltaOverTheAppliedSetsThePanel`, for each case above).
+- [ ] **Step 2: Run them to see them fail.**
+- [ ] **Step 3: Implement `Delta`.** Normalize both sides as `Views.Same` does, through `Preset.Panel` and `PresetOf`, then
+  compare per field and facet; a list facet that differs is given whole.
+- [ ] **Step 4: Run the package's tests**, coverage whole.
+- [ ] **Step 5: Commit** the files.
+
+## Task 4: Views on the stack
 
 **Files:** Modify `table/views.go`, `table/views_test.go`.
 
 **Interfaces:**
 
-- Consumes: `Resolve`, `Scoped`, `Layer`.
+- Consumes: `Resolve`, `Delta`, `Scoped`, `Layer`.
 - Produces:
 
 ```go
 type Views struct { /* today's fields */; Scoped Scoped; App string; Tab string; Reserved []string }
-func (v Views) Stack(edit *Preset) []Layer // global actives, app actives, the base, tab actives, the edit
-func (v Views) Applied(edit *Preset) (Preset, Provenance)
-func (v Views) SaveAt(name string, l Level, p grid.Panel) (Scoped, []Preset, error)
+func (v Views) Stack(base string, edit *Preset) []Layer // global actives, app actives, the base, tab actives, the edit
+func (v Views) Applied(base string, p *grid.Panel) (Preset, Provenance) // the stack resolved, the edit being p's delta
+func (v Views) SaveAt(name string, l Level, base string, p grid.Panel) (Scoped, []Preset, error)
 ```
 
-  `Reserved` is every built-in name of every tab, which a global name may not equal.
+  `Reserved` is every built-in name of every tab, which a global or app name may not equal. `SaveAt` at global or app
+  scope keeps the panel's `Delta` over the whole stack beneath; at tab scope it keeps the panel's `Delta` over the
+  global and app layers alone, which with none active is the preset `SaveAs` keeps today.
 
-- [ ] **Step 1: Write the failing tests:** `TestStackOrder`, `TestApplied` equals the base when nothing is active,
-  `TestSaveAtGlobalRefusesReservedName` (Review Focus 5), `TestSaveAtOverwritesByName`, `TestIsComparesApplicablePart`
-  (a view with a global constraint the tab lacks is still checked as the preset it was set as).
+- [ ] **Step 1: Write the failing tests:** `TestStackOrder` (global, app, base, tab, edit, each in the order activated),
+  `TestStackSkipsAnActiveNameThatIsGone`, `TestStackWithNothingActiveIsTheBase`, `TestAppliedResolvesTheStack`,
+  `TestSaveAtGlobalKeepsTheEditAlone` (a tab whose base filters state saves a global grouping without that filter),
+  `TestSaveAtTabWithNothingActiveIsSaveAs`, `TestSaveAtRefusesAReservedName` (Review Focus 5), `TestSaveAtRefusals`
+  (unnamed, a team's name, an edit as a scope), `TestIsReadsTheStack` (a table set as its base with a global preset
+  active is that base; with none active `Is` is as it is today).
 - [ ] **Step 2: Run them to see them fail.**
-- [ ] **Step 3: Implement.** `Is` compares the applied preset's applicable part, so a partly applicable preset is
-  checked. `SaveAt` at the tab scope behaves as `SaveAs` does today.
+- [ ] **Step 3: Implement.** `Is` compares against the stack's applied preset only where a scope has an active name.
 - [ ] **Step 4: Run the package's tests.** Existing `views_test.go` cases pass unchanged.
-- [ ] **Step 5: Commit** the files: `#590 kittui: a table's views are a stack, and a preset saves at a scope`.
+- [ ] **Step 5: Commit** the files.
 
-## Task 4: The stack line and the card
+## Task 5: The stack line and the card
 
 Held until no peer has work under `projects/tui/` uncommitted, because it changes goldens.
 
@@ -173,7 +214,7 @@ everywhere.
 - [ ] **Step 4: Run all tests**; regenerate goldens only on a tree with no peer work, and read each diff.
 - [ ] **Step 5: Commit** the files.
 
-## Task 5: The selection follows
+## Task 6: The selection follows
 
 **Files:** Modify `flow/views.go`, `table/sheet.go`, their tests.
 
@@ -187,7 +228,7 @@ keeping of active names when a person activates or deactivates a preset.
 - [ ] **Step 4: Run all tests.**
 - [ ] **Step 5: Commit** the files.
 
-## Task 6: The page that says so
+## Task 7: The page that says so
 
 **Files:** Modify `docs/apps.md` (the presets chapter), the tutorial for views.
 

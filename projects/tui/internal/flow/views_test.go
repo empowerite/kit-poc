@@ -451,7 +451,7 @@ func TestClicksOpenThePresetsAndChooseOne(t *testing.T) {
 func TestAPresetsFileThatDoesNotReadIsSaidAndLeftAsItIs(t *testing.T) {
 	file := filepath.Join(t.TempDir(), "presets.json")
 	for content, says := range map[string]string{"{not json": "does not read as presets",
-		`{"version": 3, "stages": {}}`: "version 3, not 2"} {
+		`{"version": 4, "stages": {}}`: "version 4, not 3"} {
 		if err := os.WriteFile(file, []byte(content), 0o644); err != nil {
 			t.Fatal(err)
 		}
