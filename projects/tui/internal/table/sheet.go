@@ -753,9 +753,12 @@ func (s *Sheet) controlClick(x int) {
 		return
 	}
 	if spot, ok := SpotAt(ControlSpots(s, s.controlLeft(), s.presetLine()), x); ok {
-		if spot.Field == "" {
+		switch {
+		case spot.Card != nil:
+			// the card of a dim chip opens where the screen keeps the scopes
+		case spot.Field == "":
 			s.cols = Columns{Open: true}
-		} else {
+		default:
 			s.pop = OpenChip(s, spot)
 		}
 		return

@@ -201,20 +201,27 @@ func (v Views) SaveAt(name string, l Level, base string, p grid.Panel) (Scoped, 
 
 ## Task 5: The stack line and the card
 
-Held until no peer has work under `projects/tui/` uncommitted, because it changes goldens.
+**Files:** Create `table/stackline.go`, `table/stackline_test.go`. Modify `table/draw.go`, `table/sheet.go`,
+`table/resolve.go`.
 
-**Files:** Modify `table/presets.go`, `table/draw.go`, `table/popover.go`, and their tests and goldens.
+**Interfaces:** Consumes `Views.Applied`. Produces `StackChips(h Host) []StackChip`, a chip per active layer with its
+scope and a dim chip, carrying its `Card`, per constraint not in force; `ConstraintCard`, with `Lines` and `Choose`,
+that says a constraint's layer and offers off here, off in this app, off everywhere, or on again; `Views.SwitchOff` and
+`Views.SwitchOn`, which keep the switch as a preset of its own at a level ("Off here", "Off in this app", "Off
+everywhere"), active there; and `ControlSpot.Card`. The control line draws the chips before the filters' and the dim
+ones after, and a click on 📇 Fields still opens the columns dialog.
 
-**Interfaces:** Consumes `Views.Applied`. Produces `StackLine(h Host) string`, the chips of the layers in force, each with
-its scope; `ConstraintCard`, the popover that says a constraint's layer and offers off here, off in this app, off
-everywhere.
+- [x] **Step 1: Write the failing tests:** the stack chips for a stack of three, a dim chip with its reason, the
+  card's lines, each off choice writing a layer with `Off`, and on again taking it away.
+- [x] **Step 2: Run them to see them fail.**
+- [x] **Step 3: Implement**, plain clicks only. A constraint a narrower layer switched off, that the table could not
+  use anyway, is no longer listed.
+- [x] **Step 4: Run all tests**; no golden changed, because no screen holds scopes yet.
+- [x] **Step 5: Commit** the files.
 
-- [ ] **Step 1: Write the failing tests:** the stack line for a stack of three, a dim not-applicable chip with its reason,
-  a plain click on a chip opening its card, and each off choice writing a layer with `Off`.
-- [ ] **Step 2: Run them to see them fail.**
-- [ ] **Step 3: Implement** from the sketch in the design, plain clicks only.
-- [ ] **Step 4: Run all tests**; regenerate goldens only on a tree with no peer work, and read each diff.
-- [ ] **Step 5: Commit** the files.
+Left to Task 6, because opening the card and keeping its choice need the host to hold the scopes: the sheet and the
+flow screen open `ConstraintCard` on a click on a dim chip, which `Sheet.controlClick` ignores for now, draw it as a
+layer, and keep what `Choose` gives with `KeepScoped`. The presets' menu's sections by scope come with it.
 
 ## Task 6: The selection follows
 

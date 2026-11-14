@@ -490,3 +490,11 @@ func (r *resolving) preset() Preset {
 	}
 	return out
 }
+
+// Without gives the set without the facet.
+func (s FacetSet) Without(f Facet) FacetSet {
+	if k := slices.Index(facets, f); k >= 0 {
+		return s &^ (1 << k)
+	}
+	return s
+}

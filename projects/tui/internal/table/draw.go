@@ -421,9 +421,11 @@ func Control(h Host, left, tail string) (string, int) {
 }
 
 // ControlSpot is what a click on the control line's right part reaches, from its first screen column to the one past
-// its last: a filter's chip, by the field it filters, or, with no field, FieldsButton.
+// its last: a filter's chip, by the field it filters; a dim chip of the stack line, by the constraint it says is not in
+// force; or, with neither, FieldsButton.
 type ControlSpot struct {
 	Field       string
+	Card        *Constraint
 	From, Until int
 }
 
@@ -452,6 +454,22 @@ func control(h Host, left, tail string) (string, int, []ControlSpot) {
 		selected = style.Tint(strconv.Itoa(n)+" selected") + "  "
 	}
 	ids, texts := chipsOf(h)
+	cards := make([]*Constraint, len(texts))
+	// the stack line's chips stand before the filters', and are targets only where a constraint is not in force
+	stack := StackChips(h)
+	var named []string
+	for _, c := range stack {
+		if c.Card == nil {
+			named = append(named, c.Text)
+		}
+	}
+	ids, texts, cards = append(make([]string, len(named)), ids...), append(named, texts...),
+		append(make([]*Constraint, len(named)), cards...)
+	for _, c := range stack {
+		if c.Card != nil {
+			ids, texts, cards = append(ids, ""), append(texts, c.Text), append(cards, c.Card)
+		}
+	}
 	if tail != "" {
 		button = FieldsButton + "  "
 		// two spaces either side of the chips
@@ -474,7 +492,9 @@ func control(h Host, left, tail string) (string, int, []ControlSpot) {
 	end := start + max(0, ansi.StringWidth(chips)-2)
 	var spots []ControlSpot
 	for k, x := 0, start; k < len(texts) && x < end; k++ {
-		spots = append(spots, ControlSpot{Field: ids[k], From: x, Until: min(x+ansi.StringWidth(texts[k]), end)})
+		if ids[k] != "" || cards[k] != nil {
+			spots = append(spots, ControlSpot{Field: ids[k], Card: cards[k], From: x, Until: min(x+ansi.StringWidth(texts[k]), end)})
+		}
 		x += ansi.StringWidth(texts[k]) + 2
 	}
 	at := start + ansi.StringWidth(chips)

@@ -508,3 +508,13 @@ func TestResolveSortsNumberedByPriority(t *testing.T) {
 		t.Errorf("got %+v, want %+v", got, want)
 	}
 }
+
+func TestFacetSetWithout(t *testing.T) {
+	s := Facets(FacetFilter, FacetSort)
+	if got := s.Without(FacetFilter); got != Facets(FacetSort) || got.Has(FacetFilter) {
+		t.Errorf("without filter: %v", got)
+	}
+	if got := s.Without("nothing"); got != s {
+		t.Errorf("without a name that is no facet: %v", got)
+	}
+}
