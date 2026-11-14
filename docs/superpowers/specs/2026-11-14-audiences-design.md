@@ -25,6 +25,19 @@ This page is the first of three. The second gives every field one meaning across
 third lets a person's filters, sorting, and grouping follow them from tab to tab. Both need to know who the readers
 are, so this page comes first.
 
+## Scope of the first release
+
+The owner's decisions, 2026-11-14:
+
+- The developer's perspective comes first. The vocabulary and the views that follow a person are designed and checked
+  against a developer's questions before any other audience's. The other audiences are described here and built
+  later, in an order the owner sets.
+- Teams come later, as peers and as a hierarchy. The first release has no team slice, no "my team's" filter, and no
+  ownership by a team. The Team lead, FinOps, and Executive audiences lean on teams, so they wait for them.
+- Work is read as of now. The first release has no as-of reads, so the Auditor's as-of questions wait.
+- A view probably carries onto a tab that totals, as well as onto tabs of rows. Wherever a view applies, its boundary
+  is clear, and every tab says which view is in force and which of its parts the tab applies and which it ignores.
+
 ## Goals
 
 - Name each audience, with the questions it asks, worded without any tool's own terms.
@@ -166,7 +179,7 @@ Questions:
 Reads: issue, iteration, change, review, person, team.
 
 Mine: my team's, not mine. The relation is membership in a team, then any relation one of the members holds. "Mine"
-and "my team's" are different filters, and a team lead moves between them.
+and "my team's" are different filters, and a team lead moves between them. Teams are not in the first release.
 
 ### Executive
 
@@ -280,11 +293,11 @@ Each gap is a candidate for the second page, not a decision.
 | --- | --- | --- |
 | Cost, budget, usage | FinOps, Executive | no entity holds money, runner minutes, or tokens, and nothing charges them to a team |
 | Utilization, runner | FinOps, DevOps | no entity holds the machine a job ran on, or the share of its capacity the job used |
-| Ownership | DevOps, SecOps, Team lead | a team owns a repository, a pipeline, or an environment, and the design lists no such relation |
+| Ownership | DevOps, SecOps, Team lead | a team owns a repository, a pipeline, or an environment, and the design lists no such relation; teams wait for a later release, as peers and as a hierarchy |
 | Relation to a person | every audience | "mine" is a different relation on each entity, and the design names none of them |
 | Severity, age, time to fix | SecOps | a finding holds none of them as a field |
 | Aggregates | Executive | the design describes rows, and an executive reads totals and rates |
-| As-of reads | Auditor | the design holds what is true now, and an auditor asks what was true on a date |
+| As-of reads | Auditor | the design holds what is true now, and an auditor asks what was true on a date; the first release reads as of now only |
 | Population and sample | Auditor | an auditor counts every subject in a scope and draws a sample, which no tab does |
 | Export | Auditor | an auditor hands a view to someone who has no kit, so it must leave as a document |
 
@@ -335,16 +348,14 @@ to change.
 ## Open questions
 
 - Which audiences does the first release serve first, and which migration must it carry: from which tool to which?
-- Is "my team's" part of the first release, or is "mine" enough? It decides whether ownership enters the second page.
-- Does a view carry to a tab that totals, such as an executive's, or only to tabs of rows?
-- Does the first release read as of a date, which an auditor needs, or only as of now? It decides whether the second
-  page names a time field on every entity.
+- On a tab that totals, does a view's filter narrow the totals, or are the totals of every row with the filter shown
+  beside them? The third page settles it, because it decides where a view's boundary lies.
 - Which services report spend and utilization, and which report none? kit reads what a service reports and measures
   nothing itself, so a service that reports none leaves the tab empty.
 
 ## What follows
 
-1. The field vocabulary: an `entity.field` name for every field of every tab, the relations that "mine" reads, the
-   shape of a role definition, and the gaps above that the owner accepts.
-2. Views that follow a person: how filters, sorting, and grouping carry from tab to tab on that vocabulary, and how a
-   field a tab lacks is ignored.
+1. The field vocabulary, for the developer's tabs first: an `entity.field` name for every field of every tab, the
+   relations that "mine" reads, the shape of a role definition, and the gaps above that the owner accepts.
+2. Views that follow a person: how filters, sorting, and grouping carry from tab to tab on that vocabulary, how a
+   field a tab lacks is ignored, and how every tab says which view is in force and what the tab applies of it.
