@@ -35,7 +35,8 @@ are, so this page comes first.
 
 - A fixed list of roles, or a fixed set of views per role. An organization defines its roles, and a person's views are
   theirs to save.
-- Permissions. What a role may see is the service's own rule, and kit never widens it.
+- Permissions. In the first release every person sees every role, and kit adds no access rule of its own. What a person
+  may read or change is controlled outside kit, by the services the rows come from, and kit never widens it.
 - Research with real users. No user exists yet, and this page says so where it matters.
 
 ## Anti-goals
@@ -221,12 +222,14 @@ How a role works:
   or for a selection of them. See [Configuration](2026-11-09-entities-design.md#configuration).
 - A role is a preference, not a setting. It decides what a person sees. At the same reach the person wins over the
   organization, so a person may add a view to a role, hide one, or reorder them.
-- A person may hold several roles. A team lead who also writes code holds two, and sees the tabs and views of both.
+- Every person sees every role in the first release. A role is a lens a person picks, not a grant, so choosing the
+  Controller role shows what an auditor looks at and lets the person read nothing the services do not already allow.
+- A person may use several roles. A team lead who also writes code picks two, and sees the tabs and views of both.
 - A role may name an entity or a field a tab lacks. The tab ignores it, as it ignores a preset's setting for a field it
   lacks, and a role never refuses a tab.
-- The first release lets a person choose their roles. Later the organization's directory can assign them, through the
-  identity capability: the members of a team hold the role the organization maps to that team. See
-  [Actors](2026-11-09-entities-design.md#actors).
+- A person picks their roles, and no one assigns them. Later the organization's directory could suggest a role by
+  team, through the identity capability, as a default the person may change. See
+  [Actors](2026-11-09-entities-design.md#actors). It would stay a default, never an access rule.
 - The starter set is a package like any other. An organization that takes it gets the seven audiences, and one that
   replaces it gets its own roles and none of ours.
 
@@ -309,6 +312,8 @@ to change.
   release manager reads like DevOps here.
 - That a role is a preference the organization owns, held in the places the entities design gives such a value, and
   that kit ships the seven audiences as a starter package and holds no role of its own.
+- That every person sees every role in the first release, so a role carries no access. Services control access and
+  change to information, and a row a person may not read does not reach their tab.
 - That the entities and fields a role names keep kit's names while the role's own name is free. Otherwise a view could
   not follow a person across tabs.
 - The questions. They come from what each role is known to do, and no user confirmed them.
@@ -320,8 +325,6 @@ to change.
   which tool to which?
 - Is "my team's" part of the first release, or is "mine" enough? It decides whether ownership enters the second page.
 - Does a view carry to a tab that totals, such as an executive's, or only to tabs of rows?
-- How does a person get a role in the first release, when the directory is not built: their own choice, or a role
-  assigned in the workspace's file?
 - Does the first release read as of a date, which an auditor needs, or only as of now? It decides whether the second
   page names a time field on every entity.
 - Is the AI spend of agents a FinOps question in the first release? The entities design has an agent entity and no
