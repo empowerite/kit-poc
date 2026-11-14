@@ -34,9 +34,12 @@ The owner's decisions, 2026-11-14:
   later, in an order the owner sets.
 - Teams come later, as peers and as a hierarchy. The first release has no team slice, no "my team's" filter, and no
   ownership by a team. The Team lead, FinOps, and Executive audiences lean on teams, so they wait for them.
-- Work is read as of now. The first release has no as-of reads, so the Auditor's as-of questions wait.
-- A view probably carries onto a tab that totals, as well as onto tabs of rows. Wherever a view applies, its boundary
-  is clear, and every tab says which view is in force and which of its parts the tab applies and which it ignores.
+- Time has two kinds, and the model holds both. An instant is "as of a date", as a balance sheet is. A period is "from
+  a date to a date", as an income statement is. Each may be absolute or relative. The first release reads an instant as
+  now only, so the Auditor's as-of questions wait.
+- A total is a group's heading in the outline the tables already draw, so a view applies to totals as it applies to
+  rows. Wherever a view applies, its boundary is clear, and every tab says which view is in force and which of its
+  parts the tab applies and which it ignores.
 
 ## Goals
 
@@ -194,8 +197,7 @@ Questions:
 Reads: milestone, release, control, waiver, deployment, *cost*.
 
 Mine: the organization or the group of teams a person answers for. An executive reads aggregates, counts and rates
-and not rows, so a view for them stands for a tab that totals; see
-[Open questions](#open-questions).
+and not rows, so a view for them is a grouping with totals, as the outline draws one.
 
 ### Auditor
 
@@ -278,8 +280,9 @@ Findings from the table:
   field on every tab that shows work.
 - Organization and repository nest: a person who groups by organization, then repository, expects both groups on
   every tab that has both fields. This is the case that started this work.
-- Time is a window, not a value. A view that carries "the last 7 days" carries a relative window, so a saved view
-  does not freeze to a date.
+- Time is of two kinds. An instant, "as of a date", describes state, as a balance sheet does. A period, "from a date to
+  a date", describes events, as an income statement does. A view that carries time says which kind, and whether it is
+  absolute, as "the 2026 close", or relative, as "the last 7 days". Neither kind is the general case of the other.
 - An auditor's slices are not a person's. A control, a period, and an as-of date describe a scope, so a carried filter
   is either a relation to a person or a scope, and the second page names both.
 - State means a different set of values on each entity. A view that carries "open" carries a meaning that must exist
@@ -348,8 +351,6 @@ to change.
 ## Open questions
 
 - Which audiences does the first release serve first, and which migration must it carry: from which tool to which?
-- On a tab that totals, does a view's filter narrow the totals, or are the totals of every row with the filter shown
-  beside them? The third page settles it, because it decides where a view's boundary lies.
 - Which services report spend and utilization, and which report none? kit reads what a service reports and measures
   nothing itself, so a service that reports none leaves the tab empty.
 
