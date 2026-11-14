@@ -3,10 +3,10 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A person's presets stack at global, app, and tab scope, fold into the one preset a tab applies, and each tab
+**Goal:** A person's presets stack at global, app, and tab scope, resolve into the one preset a tab applies, and each tab
 says what it applied and why.
 
-**Architecture:** A pure fold in `projects/tui/internal/table` turns an ordered stack of layers into an ordinary
+**Architecture:** A pure resolution in `projects/tui/internal/table` turns an ordered stack of layers into an ordinary
 `Preset`, which `Preset.Panel` already applies, and reports provenance. The presets file gains scopes and active names,
 reading as it does today. `Views` builds the stack, and the preset line draws it.
 
@@ -41,16 +41,16 @@ reading as it does today. `Views` builds the stack, and the preset line draws it
 
 ## File structure
 
-- `table/fold.go`, `table/fold_test.go`: the layers, the fold, and the provenance. Pure; no I/O.
+- `table/resolve.go`, `table/resolve_test.go`: the layers, the resolution, and the provenance. Pure; no I/O.
 - `table/catalog.go`: `Preset` gains `Add`, `Setting` gains `Off`.
 - `table/store.go`, `table/store_test.go`: the file's version 3 and its scopes.
 - `table/views.go`, `table/views_test.go`: `Views` builds the stack and saves at a scope.
 - `table/presets.go`, `table/draw.go`: the stack line and the constraint card (Task 4).
 - `flow/views.go`, `table/sheet.go`: the two hosts load and keep the scopes (Task 5).
 
-## Task 1: The fold
+## Task 1: The resolution
 
-**Files:** Create `table/fold.go`, `table/fold_test.go`. Modify `table/catalog.go` (the `Preset` and `Setting` structs).
+**Files:** Create `table/resolve.go`, `table/resolve_test.go`. Modify `table/catalog.go` (the `Preset` and `Setting` structs).
 
 **Interfaces:**
 
@@ -66,35 +66,37 @@ type Constraint struct {
     Off bool; Status Status; Reason string
 }
 type Provenance struct{ Constraints []Constraint }
-func Fold(layers []Layer, fields []Field) (Preset, Provenance)
+func Resolve(layers []Layer, fields []Field) (Preset, Provenance)
 func (p Provenance) Why(field string, facet Facet) (Constraint, bool) // the one in force
 ```
 
-- `Preset` gains `Add []Facet` (`json:"add,omitempty"`), the list facets, `FacetPlace`, `FacetOrder`, or `FacetSort`,
-  that append instead of replace. `Setting` gains `Off []Facet` (`json:"off,omitempty"`).
+- `type FacetSet uint8`, comparable so `Setting` stays comparable, with `Facets(...Facet) FacetSet`, `Has(Facet) bool`,
+  and a JSON form that is a list of facet names. `Preset` gains `Add FacetSet` (`json:"add,omitempty"`), the list
+  facets, `FacetPlace`, `FacetOrder`, or `FacetSort`, that append instead of replace. `Setting` gains `Off FacetSet`
+  (`json:"off,omitempty"`). The names are `Resolve`, not `Fold`, because the package's `Fold` opens and closes groups.
 
-- [ ] **Step 1: Write the failing tests** in `fold_test.go`, table-driven, each with its stack and the folded preset:
-  `TestFoldNarrowestWins` (a tab's filter on `state` replaces a global one on `state`; a filter on `assignee` beside it
-  stands), `TestFoldListReplaces` (global groups `org`, `repo`; a tab layer groups `state`: the result groups `state`
-  alone), `TestFoldListAdds` (the same with `Add: [FacetPlace]` groups `org`, `repo`, `state`, depths 1 to 3),
-  `TestFoldOff` (a tab layer with `Off: [FacetFilter]` on `assignee` removes the global filter, and a later layer that
-  gives it again restores it), `TestFoldHiddenStays` (hidden until a later layer places the field),
-  `TestFoldAbsentFieldNotApplicable` (a global filter on a field `fields` lacks gives a `NotApplicable` constraint
-  with Reason "no such field", and the folded preset has no filter), `TestFoldCannotSort` (a sort on a field with
-  `Sort: false` and `One: ""` is `NotApplicable`, Reason "cannot sort"), `TestFoldInapplicableListKeepsBroader` (Review
-  Focus 1), `TestFoldProvenance` (each of `InForce`, `Overridden`, `Off` is reported for the layer that gave it),
-  and `TestFoldFoldedPanelEqualsApplied` (`Preset.Panel` of the fold's preset sets the same panel as a single layer
-  stating the same).
-- [ ] **Step 2: Run them to see them fail:** `cd projects/tui && go test ./internal/table -run TestFold` fails to build.
-- [ ] **Step 3: Implement `Fold`.** Gather each layer's settings for the fields `fields` has, in `fields` order, judging
+- [ ] **Step 1: Write the failing tests** in `resolve_test.go`, table-driven, each with its stack and the resolved
+  preset: `TestResolveNarrowestWins` (a tab's filter on `state` replaces a global one on `state`; a filter on
+  `assignee` beside it stands), `TestResolveListReplaces` (global groups `org`, `repo`; a tab layer groups `state`:
+  the result groups `state` alone), `TestResolveListAdds` (the same with `Add: [FacetPlace]` groups `org`, `repo`,
+  `state`, depths 1 to 3), `TestResolveOff` (a tab layer with `Off: [FacetFilter]` on `assignee` removes the global
+  filter, and a later layer that gives it again restores it), `TestResolveHiddenStays` (hidden until a later layer
+  places the field), `TestResolveAbsentFieldNotApplicable` (a global filter on a field `fields` lacks gives a
+  `NotApplicable` constraint with Reason "no such field", and the resolved preset has no filter),
+  `TestResolveCannotSort` (a sort on a field with `Sort: false` and `One: ""` is `NotApplicable`, Reason "cannot
+  sort"), `TestResolveInapplicableListKeepsBroader` (Review Focus 1), `TestResolveProvenance` (each of `InForce`,
+  `Overridden`, `Off` is reported for the layer that gave it), and `TestResolvedPanelEqualsApplied` (`Preset.Panel` of
+  the resolution's preset sets the same panel as a single layer stating the same).
+- [ ] **Step 2: Run them to see them fail:** `cd projects/tui && go test ./internal/table -run TestResolve` fails to build.
+- [ ] **Step 3: Implement `Resolve`.** Gather each layer's settings for the fields `fields` has, in `fields` order, judging
   applicability as `Preset.Panel` does: hidden needs a label, a group needs `Group`, a sort needs `Sort` or `One`, a
   filter needs `Filter`, a rendering must be one of `Renderings`, flat needs `One`. A layer's list facet gives entries
   only through applicable settings. Keep state per facet, with the owner layer of each entry; a layer's `Off` clears the
   facet first, and the setting's own value for it is ignored. Build the result as a `Preset` with groups numbered from
   1 by depth, sorts from 1 by priority, positions from 1.
-- [ ] **Step 4: Run the tests:** `go test -cover ./internal/table` passes, and `fold.go` is covered whole.
-- [ ] **Step 5: Commit** `table/fold.go`, `table/fold_test.go`, `table/catalog.go`: `#590 kittui: a stack of presets
-  folds into the one preset a tab applies, and says what each layer decided`.
+- [ ] **Step 4: Run the tests:** `go test -cover ./internal/table` passes, and `resolve.go` is covered whole.
+- [ ] **Step 5: Commit** `table/resolve.go`, `table/resolve_test.go`, `table/catalog.go`: `#590 kittui: a stack of presets
+  resolves into the one preset a tab applies, and says what each layer decided`.
 
 ## Task 2: The file keeps scopes
 
@@ -133,7 +135,7 @@ func ScopeKey(l Level, name string) string
 
 **Interfaces:**
 
-- Consumes: `Fold`, `Scoped`, `Layer`.
+- Consumes: `Resolve`, `Scoped`, `Layer`.
 - Produces:
 
 ```go

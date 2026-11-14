@@ -104,17 +104,21 @@ type EnumValue struct {
 // Preset is a stage's panel as a Preset keeps it, one of the stage's own or one the person saved: its name, and what it
 // says of each field it names, by id. A field it does not name takes the catalog's placement, and no sort, filter, or
 // rendering. Whether shared values fold and shared emoji show are kittui's settings, every view's alike; a file whose
-// presets still say them is read as ever, and what they say is passed over.
+// presets still say them is read as ever, and what they say is passed over. Add names the list facets, the groups,
+// the columns' order, or the sort keys, whose entries the preset appends to those of the broader presets in a stack,
+// where it would replace them.
 type Preset struct {
 	Name   string             `json:"name"`
 	Fields map[string]Setting `json:"fields,omitempty"`
+	Add    FacetSet           `json:"add,omitempty"`
 }
 
 // Setting is what a preset says of one field, three things apart: its placement, a column at a position, from 1, a
 // group at a depth, from 1, the outermost first, or hidden, or none for the catalog's; its sort, asc or desc at a
 // priority, from 1, or none; and, for a field a filter can narrow, the values to include or to exclude. A person's
 // filter also knows @me, the caller's login, and none. Rendering pins one of the field's renderings, and Flat says
-// that a field that holds a list stands once per value.
+// that a field that holds a list stands once per value. Off names the facets of the field the setting switches off, so
+// what broader presets in a stack said of them no longer holds.
 type Setting struct {
 	Placement string       `json:"placement,omitempty"`
 	Position  int          `json:"position,omitempty"`
@@ -124,6 +128,7 @@ type Setting struct {
 	Filter    *ValueFilter `json:"filter,omitempty"`
 	Rendering string       `json:"rendering,omitempty"`
 	Flat      bool         `json:"flat,omitempty"`
+	Off       FacetSet     `json:"off,omitempty"`
 }
 
 // ValueFilter is a preset's filter on a field: the values its rows must hold one of, or those they must hold none of.

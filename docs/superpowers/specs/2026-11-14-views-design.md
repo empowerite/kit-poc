@@ -55,7 +55,8 @@ every tab to say what it applied.
   entities design says reach for which repositories a value covers.
 - Layer: a preset at a scope, in the stack of one tab.
 - Stack: the layers in force on a tab, from the broadest scope to the narrowest, then the edits not yet saved.
-- Fold: the rule that turns a stack into the one preset a tab applies.
+- Resolution: the rule that turns a stack into the one preset a tab applies. It is not the outline's fold, which opens
+  and closes groups.
 - Constraint: one instruction of a layer about one field in one facet.
 - Provenance: which layer decided a constraint, and why one that did not decide stands as it does.
 - App and tab: an app is one of kittui's apps. A tab is one of an app's pages, and draws one stage, a read kit makes.
@@ -99,7 +100,7 @@ A layer instructs each field in five facets.
 
 The groups, the columns' order, and the sort keys are lists. The rest are decided field by field.
 
-## The fold
+## The resolution
 
 A tab's stack, from the broadest layer to the narrowest, is:
 
@@ -108,22 +109,26 @@ A tab's stack, from the broadest layer to the narrowest, is:
 3. the tab's base preset, then the presets active at the tab, in order;
 4. the edits not yet saved.
 
-The fold starts from nothing and applies each layer in turn, so a later layer is the narrower.
+The resolution starts from nothing and applies each layer in turn, so a later layer is the narrower.
 
 - A per-field facet, the filter and the render, is set by the layer that gives it. A later layer that gives the same
   field the same facet replaces it. Different fields never interact, so two filters on different fields both hold.
 - A list facet, when the layer gives any of its entries, replaces the list, unless the layer lists the facet under
   `add`, which appends the layer's entries after the list so far, the fields already in it left where they are.
-- A hidden field stays hidden until a later layer places it as a column or a group.
+- A hidden field stays hidden until a later layer places it as a column or a group. A layer that places a field as a
+  column, or gives it a position, takes it out of the groups, and one that hides it takes it out of the groups and the
+  order.
+- A layer's way to draw a field, its rendering and whether it stands once per value, replaces the broader layers' way as
+  a whole.
 - A layer switches a constraint off by naming the field and the facet under `off`. The constraint stays off for every
   narrower layer, until one gives it again.
 - A field a datasource lacks, and a facet the field cannot take, a sort on a field that cannot sort, are not applied.
-  The layer that gave them keeps them, and the fold reports each as not applicable.
+  The layer that gave them keeps them, and the resolution reports each as not applicable.
 
-The fold gives the one preset the tab applies, in the form presets already have, so the table's existing application of
-a preset is unchanged. It also gives the provenance: for each constraint of each field, the layer that decided it, the
-layers it overrode, and, for a constraint that is not in force, whether it was switched off, overridden, or not
-applicable, and why.
+The resolution gives the one preset the tab applies, in the form presets already have, so the table's existing
+application of a preset is unchanged. It also gives the provenance: for each constraint of each field, the layer that
+decided it, the layers it overrode, and, for a constraint that is not in force, whether it was switched off,
+overridden, or not applicable, and why.
 
 A built-in preset states only what differs from the catalog, so a built-in that says nothing about grouping leaves a
 global grouping alone. A built-in that groups by member replaces a global grouping on its tab, because its scope is the
@@ -165,13 +170,13 @@ Three ways to carry a preset across tabs were considered.
 
 1. A preset's name is global, and its settings are ignored where a tab lacks the field. It is the smallest change. A
    person cannot narrow a global preset for one tab, and a filter that does not apply misleads.
-2. A stack of presets at scopes, folded narrowest first. A person defines something once, narrows it where needed, and
-   sees what applied. It costs a fold, a scope on each preset, and a line that shows the stack.
+2. A stack of presets at scopes, resolved narrowest first. A person defines something once, narrows it where needed, and
+   sees what applied. It costs a resolution, a scope on each preset, and a line that shows the stack.
 3. The model of a pivot table, with a row axis, a column axis, and measures, and views as saved pivots. It is the most
    general. It decides far more than this change needs, and the tables lack the column axis.
 
 This page takes the second, as the owner's reasoning leads to it: a global preset that follows a person, and a mixin of
-smaller scope over it. The third stays open as a later step, since the fold does not prevent it.
+smaller scope over it. The third stays open as a later step, since the resolution does not prevent it.
 
 ## Decisions
 
@@ -191,7 +196,7 @@ My calls, open to change:
 - A not-applicable constraint is dim, and a crossed-out name means an unsaved edit, because one cue should mean one
   thing.
 - A global preset's name may not equal any tab's built-in name.
-- The fold lands before the line that shows it, so the model is tested before the screens use it.
+- The resolution lands before the line that shows it, so the model is tested before the screens use it.
 
 ## What is left to the builder
 
