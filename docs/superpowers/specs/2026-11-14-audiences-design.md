@@ -130,18 +130,25 @@ more often reads everyone's, so the filter they carry is usually a severity or a
 
 Questions:
 
-- What did runs cost this month, by team and by repository?
+- What did CI cost this month, by team, by repository, and by pipeline?
+- What did agents spend, per person, per issue, and per change?
+- How much of a runner's capacity did a run use, and where did a job wait or sit idle?
+- How long does a test run take, what does it cost, and which tests take most of it?
 - Which environments run and are used by no one?
 - Which artifacts and stored evidence cost the most to keep, and which are past their retention?
-- What did agents spend, per person and per issue?
 - Which team's spend is growing faster than its output?
 
-Reads: run, artifact, artifact store, environment, agent, team, *cost*, *budget*.
+Agent spend, CI spend, and utilization during CI and test are the three kinds of measure this audience reads. Spend is
+money, or the units it is billed in: runner minutes and model tokens. Utilization is the share of a resource's capacity
+that work used, so it tells FinOps whether spend bought work or idle time.
+
+Reads: run, job, test run, artifact, artifact store, environment, agent, team, *runner*, *cost*, *budget*, *usage*,
+*utilization*.
 
 Mine: the team a person is on, and the people on that team. A FinOps reader seldom means themselves.
 
-This is the audience the entities design serves least. It names no cost, no budget, and no usage, and it has no way to
-charge anything to a team. The gap is the largest in this page.
+This is the audience the entities design serves least. It names no cost, no budget, no usage, and no utilization, and
+it has no way to charge anything to a team. The gap is the largest in this page.
 
 ### Team lead
 
@@ -268,7 +275,8 @@ Each gap is a candidate for the second page, not a decision.
 
 | Gap | Needed by | Why |
 | --- | --- | --- |
-| Cost, budget, usage | FinOps, Executive | no entity holds money, minutes, or tokens, and nothing charges them to a team |
+| Cost, budget, usage | FinOps, Executive | no entity holds money, runner minutes, or tokens, and nothing charges them to a team |
+| Utilization, runner | FinOps, DevOps | no entity holds the machine a job ran on, or the share of its capacity the job used |
 | Ownership | DevOps, SecOps, Team lead | a team owns a repository, a pipeline, or an environment, and the design lists no such relation |
 | Relation to a person | every audience | "mine" is a different relation on each entity, and the design names none of them |
 | Severity, age, time to fix | SecOps | a finding holds none of them as a field |
@@ -318,6 +326,7 @@ to change.
   not follow a person across tabs.
 - The questions. They come from what each role is known to do, and no user confirmed them.
 - Naming FinOps as the largest gap, because the entities design has no entity for money.
+- Taking agent spend, CI spend, and utilization during CI and test as FinOps measures, as the owner said.
 
 ## Open questions
 
@@ -327,8 +336,10 @@ to change.
 - Does a view carry to a tab that totals, such as an executive's, or only to tabs of rows?
 - Does the first release read as of a date, which an auditor needs, or only as of now? It decides whether the second
   page names a time field on every entity.
-- Is the AI spend of agents a FinOps question in the first release? The entities design has an agent entity and no
-  cost for it.
+- Which services report spend and utilization, and which report none? kit reads what a service reports and measures
+  nothing itself, so a service that reports none leaves the tab empty.
+- Which unit does a cost carry: money, which needs a rate card, or the units a service bills in, such as minutes and
+  tokens, which need none? It decides whether the second page holds a currency.
 
 ## What follows
 
