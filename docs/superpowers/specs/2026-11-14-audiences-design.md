@@ -1,9 +1,9 @@
 # Audiences: design
 
 An audience is a role that reads the state of software work through kit: a developer, a platform engineer, a security
-engineer, a person who answers for cost, or a person who answers for a team's results. This page describes each
-audience by the questions it asks of the work, the entities that answer them, and what "mine" means to it. The
-entities are the ones in [the entities design](2026-11-09-entities-design.md).
+engineer, a person who answers for cost, a person who answers for a team's results, or an auditor who checks the work
+from outside it. This page describes each audience by the questions it asks of the work, the entities that answer
+them, and what "mine" means to it. The entities are the ones in [the entities design](2026-11-09-entities-design.md).
 
 ## Intent
 
@@ -66,6 +66,7 @@ are, so this page comes first.
 | FinOps | what the work costs and who it is charged to | runs, artifacts, environments, agents, teams |
 | Team lead | one team's flow and health | issues, iterations, changes, reviews, people |
 | Executive | many teams' results and risk, in aggregate | milestones, releases, controls, deployments |
+| Auditor | whether the work met its obligations, as of a date, for someone outside it | controls, evidence, approvals, waivers, changes |
 
 The sections below list each audience's questions. Each question is worded to pass the anti-goal above. An entity in
 italics is one the entities design does not hold yet; see [What the entities lack](#what-the-entities-lack).
@@ -163,6 +164,33 @@ Mine: the organization or the group of teams a person answers for. An executive 
 and not rows, so a view for them stands for a tab that totals; see
 [Open questions](#open-questions).
 
+### Auditor
+
+An auditor may be internal, in a risk or compliance group, or external, a firm that certifies the organization against
+a standard. They differ from SecOps in three ways. They act on no one's behalf in the work, so what they read must hold
+without trusting the people who did it. They read as of a date, not as of now. And they test a population and a sample
+of it, not the open items.
+
+Questions:
+
+- Which controls applied between two dates, and which are met, from evidence that no desk could have made?
+- Of every production change in the period, how many had a review by someone other than the author, and which did not?
+- Which sample of changes shows the whole chain: issue, review, checks, approval, deployment?
+- Which waivers were in force on a given date, who granted them, and had they expired?
+- What did the policy say on the date of this change, and which version applied?
+- Is the evidence still held for the retention period, and does its signature verify?
+
+Reads: control, evidence, evidence store, approval, waiver, policy, change, review, deployment, and the chain between
+them.
+
+Mine: none. An auditor's subject is a scope, a control or a period or a system, and not themselves. They carry the
+scope from tab to tab, so it is the one audience whose carried filter is never a relation to a person.
+
+An auditor needs three things no other audience needs: a date every view can be read as of, a population that can be
+counted and sampled, and a view that can be handed over whole. The entities design keeps evidence outside the platform
+that made it, which serves an auditor's need for independence. It holds no history, no sample, and no export; see
+[What the entities lack](#what-the-entities-lack).
+
 ## What every audience slices by
 
 A view that follows a person must carry the slices every audience shares. This table says which slices each audience
@@ -176,6 +204,7 @@ reaches for, most often first.
 | FinOps | team, environment, repository, time |
 | Team lead | team, iteration, state, assignee |
 | Executive | organization, team, milestone, time |
+| Auditor | control, period, as-of date, environment |
 
 Findings from the table:
 
@@ -186,6 +215,8 @@ Findings from the table:
   every tab that has both fields. This is the case that started this work.
 - Time is a window, not a value. A view that carries "the last 7 days" carries a relative window, so a saved view
   does not freeze to a date.
+- An auditor's slices are not a person's. A control, a period, and an as-of date describe a scope, so a carried filter
+  is either a relation to a person or a scope, and the second page names both.
 - State means a different set of values on each entity. A view that carries "open" carries a meaning that must exist
   on every tab it reaches, or the filter does nothing there.
 
@@ -200,6 +231,9 @@ Each gap is a candidate for the second page, not a decision.
 | Relation to a person | every audience | "mine" is a different relation on each entity, and the design names none of them |
 | Severity, age, time to fix | SecOps | a finding holds none of them as a field |
 | Aggregates | Executive | the design describes rows, and an executive reads totals and rates |
+| As-of reads | Auditor | the design holds what is true now, and an auditor asks what was true on a date |
+| Population and sample | Auditor | an auditor counts every subject in a scope and draws a sample, which no tab does |
+| Export | Auditor | an auditor hands a view to someone who has no kit, so it must leave as a document |
 
 ## What a migration changes
 
@@ -230,9 +264,9 @@ to change.
 
 ## My calls
 
-- The six audiences. The owner named Dev, DevOps, SecOps, FinOps, and management "at various levels". I split
-  management into a team lead and an executive, and I left out release manager, QA, support, and an auditor. A release
-  manager reads like DevOps here, and an auditor reads like SecOps.
+- The seven audiences. The owner named Dev, DevOps, SecOps, FinOps, and management "at various levels", and later an
+  auditor. I split management into a team lead and an executive, and I left out release manager, QA, and support. A
+  release manager reads like DevOps here.
 - The questions. They come from what each role is known to do, and no user confirmed them.
 - Naming FinOps as the largest gap, because the entities design has no entity for money.
 
@@ -242,6 +276,8 @@ to change.
   which tool to which?
 - Is "my team's" part of the first release, or is "mine" enough? It decides whether ownership enters the second page.
 - Does a view carry to a tab that totals, such as an executive's, or only to tabs of rows?
+- Does the first release read as of a date, which an auditor needs, or only as of now? It decides whether the second
+  page names a time field on every entity.
 - Is the AI spend of agents a FinOps question in the first release? The entities design has an agent entity and no
   cost for it.
 
