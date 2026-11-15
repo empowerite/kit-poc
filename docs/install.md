@@ -19,19 +19,10 @@ kit serves every repository, whatever release each one pins.
 
 On macOS, Linux, or Windows Subsystem for Linux (WSL). A stable release is named by a version such as `0.1.0`, and a
 release candidate by one with a suffix, such as `0.1.0-rc.7`. The [releases](https://github.com/empowerite/kit/releases)
-page lists both. With `gh`, set `version` to the newest of either kind:
+page lists both. Set `version` to the one you want:
 
 ```sh
-# stable
-version=$(gh release list --repo empowerite/kit --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName | ltrimstr("release/")')
-# or the newest release candidate
-version=$(gh release list --repo empowerite/kit --limit 20 --json tagName,isPrerelease --jq '[.[] | select(.isPrerelease)][0].tagName | ltrimstr("release/")')
-```
-
-Without `gh`, set it by hand, as `version=0.1.0`. Until the first stable release is out, the stable line finds nothing;
-use a release candidate. Then:
-
-```sh
+version=0.1.0
 release="https://github.com/empowerite/kit/releases/download/release/${version}"
 curl --fail --location --output "kit-${version}.tar.gz" "${release}/kit-${version}.tar.gz"
 curl --fail --location --output "kit-${version}.tar.gz.sha256" "${release}/kit-${version}.tar.gz.sha256"
@@ -48,6 +39,17 @@ shasum --algorithm 256 --check "kit-${version}.tar.gz.sha256" &&
 - The tarball holds one directory, `kit-<version>/`, which lands in `~/.local/share/`, and `~/.local/bin/kit` is a
   link to its loader. Put `~/.local/bin` on your `PATH` if it is not there.
 - The download brings kit alone. [Requirements](#requirements) lists what kit needs beside it.
+
+To take the newest of either kind, set `version` with `gh` in place of its first line:
+
+```sh
+# stable
+version=$(gh release list --repo empowerite/kit --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName | ltrimstr("release/")')
+# or the newest release candidate
+version=$(gh release list --repo empowerite/kit --limit 20 --json tagName,isPrerelease --jq '[.[] | select(.isPrerelease)][0].tagName | ltrimstr("release/")')
+```
+
+Until the first stable release is out, the stable line finds nothing; use a release candidate.
 
 To move to a later release, run the lines again with its version. The earlier release stays in `~/.local/share/`
 until you remove it.
