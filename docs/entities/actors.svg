@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 907" width="1000" height="907" role="img" aria-labelledby="title desc">
+  <title id="title">Actors</title>
+  <desc id="desc">Entities of the Actors domain: Account, Person, Team, Bot, Agent, and Role, and how an actor's accounts, groups, and rights relate.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+    text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; fill: #0f172a; }
+    .title { font-size: 24px; font-weight: 700; }
+    .intro { font-size: 13.5px; fill: #475569; }
+    .h { font-size: 15px; font-weight: 700; }
+    .w { font-size: 12.5px; fill: #1e293b; }
+    .k { font-size: 11px; font-weight: 700; fill: #64748b; letter-spacing: .06em; }
+    .ho { font-size: 12px; fill: #475569; }
+    .m { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11.5px; fill: #334155; }
+    .f { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; fill: #334155; }
+    .lbl { font-size: 11.5px; fill: #475569; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
+    .sec { font-size: 12px; font-weight: 700; fill: #475569; letter-spacing: .07em; }
+    .edge { stroke: #475569; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .dash { stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+  <rect x="0.5" y="0.5" width="999" height="906" rx="14" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="32" y="22" width="6" height="28" rx="3" fill="#b45309"/>
+  <text class="title" x="50" y="45" style="fill:#78350f">Actors</text>
+  <text class="intro" x="32" y="72">An actor is anything that acts: it opens an issue, pushes a commit, approves a change, or runs a deployment. Identity is a seam: the organization's</text>
+  <text class="intro" x="32" y="91">directory answers, and kit stores none.</text>
+  <g transform="translate(698,30)"><circle cx="5" cy="0" r="4.5" fill="#16a34a"/><text class="ho" x="16" y="3.5" style="font-size:11.5px">in kit today</text><circle cx="112" cy="0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/><text class="ho" x="123" y="3.5" style="font-size:11.5px">not modelled yet</text></g>
+  <rect x="32.0" y="581.0" width="936.0" height="166.0" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="sec" x="48.0" y="605.0">THE IDENTITY SEAM</text>
+  <rect x="32.0" y="763.0" width="936.0" height="112.0" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="sec" x="48.0" y="787.0">RULES</text>
+<clipPath id="c1"><rect x="32.0" y="122.0" width="248.0" height="172.0" rx="9"/></clipPath>
+<rect x="32.0" y="122.0" width="248.0" height="172.0" rx="9" fill="#ffffff"/>
+<rect x="32.0" y="122.0" width="248.0" height="30" fill="#fef3c7" clip-path="url(#c1)"/>
+<line x1="32.0" y1="152.0" x2="280.0" y2="152.0" stroke="#b45309" stroke-opacity=".35"/>
+<text class="h" x="44.0" y="142.5" style="fill:#78350f">Account</text>
+<text class="w" x="44.0" y="176.0">an actor's identity on one service</text>
+<text class="ho" x="44.0" y="197.0"><tspan class="k">HOLDS</tspan>  service, login or id</text>
+<line x1="44.0" y1="232.0" x2="268.0" y2="232.0" stroke="#e2e8f0"/>
+<circle cx="51.0" cy="242.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="62.0" y="246.0">the tracker call me · git</text>
+<text class="f" x="62.0" y="260.0">user.name, user.email,</text>
+<text class="f" x="62.0" y="274.0">user.signingkey</text>
+<rect x="32.0" y="122.0" width="248.0" height="172.0" rx="9" fill="none" stroke="#b45309" stroke-width="1.5"/>
+<clipPath id="c2"><rect x="376.0" y="122.0" width="248.0" height="172.0" rx="9"/></clipPath>
+<rect x="376.0" y="122.0" width="248.0" height="172.0" rx="9" fill="#ffffff"/>
+<rect x="376.0" y="122.0" width="248.0" height="30" fill="#f8fafc" clip-path="url(#c2)"/>
+<line x1="376.0" y1="152.0" x2="624.0" y2="152.0" stroke="#b45309" stroke-opacity=".35"/>
+<text class="h" x="388.0" y="142.5" style="fill:#78350f">Person</text>
+<text class="w" x="388.0" y="176.0">a human, known by one handle across</text>
+<text class="w" x="388.0" y="193.0">every service</text>
+<text class="ho" x="388.0" y="214.0"><tspan class="k">HOLDS</tspan>  handle, display name; accounts</text>
+<text class="ho" x="388.0" y="230.0">come from the directory</text>
+<line x1="388.0" y1="246.0" x2="612.0" y2="246.0" stroke="#e2e8f0"/>
+<circle cx="395.0" cy="256.5" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+<text class="f" x="406.0" y="260.0">not modelled · each service's</text>
+<text class="f" x="406.0" y="274.0">login stands in</text>
+<rect x="376.0" y="122.0" width="248.0" height="172.0" rx="9" fill="none" stroke="#b45309" stroke-width="1.5" stroke-dasharray="6 4"/>
+<clipPath id="c3"><rect x="720.0" y="122.0" width="248.0" height="172.0" rx="9"/></clipPath>
+<rect x="720.0" y="122.0" width="248.0" height="172.0" rx="9" fill="#ffffff"/>
+<rect x="720.0" y="122.0" width="248.0" height="30" fill="#f8fafc" clip-path="url(#c3)"/>
+<line x1="720.0" y1="152.0" x2="968.0" y2="152.0" stroke="#b45309" stroke-opacity=".35"/>
+<text class="h" x="732.0" y="142.5" style="fill:#78350f">Team</text>
+<text class="w" x="732.0" y="176.0">a named group of people</text>
+<text class="ho" x="732.0" y="197.0"><tspan class="k">HOLDS</tspan>  handle, members, its</text>
+<text class="ho" x="732.0" y="213.0">counterpart on each service</text>
+<line x1="732.0" y1="260.0" x2="956.0" y2="260.0" stroke="#e2e8f0"/>
+<circle cx="739.0" cy="270.5" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+<text class="f" x="750.0" y="274.0">not modelled</text>
+<rect x="720.0" y="122.0" width="248.0" height="172.0" rx="9" fill="none" stroke="#b45309" stroke-width="1.5" stroke-dasharray="6 4"/>
+<clipPath id="c4"><rect x="32.0" y="366.0" width="248.0" height="175.0" rx="9"/></clipPath>
+<rect x="32.0" y="366.0" width="248.0" height="175.0" rx="9" fill="#ffffff"/>
+<rect x="32.0" y="366.0" width="248.0" height="30" fill="#fef3c7" clip-path="url(#c4)"/>
+<line x1="32.0" y1="396.0" x2="280.0" y2="396.0" stroke="#b45309" stroke-opacity=".35"/>
+<text class="h" x="44.0" y="386.5" style="fill:#78350f">Bot</text>
+<text class="w" x="44.0" y="420.0">a service account that acts for no</text>
+<text class="w" x="44.0" y="437.0">person: Dependabot, a release bot</text>
+<text class="ho" x="44.0" y="458.0"><tspan class="k">HOLDS</tspan>  its account on each service</text>
+<line x1="44.0" y1="493.0" x2="268.0" y2="493.0" stroke="#e2e8f0"/>
+<circle cx="51.0" cy="503.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="62.0" y="507.0">linked_exempt names bots by</text>
+<text class="f" x="62.0" y="521.0">login</text>
+<rect x="32.0" y="366.0" width="248.0" height="175.0" rx="9" fill="none" stroke="#b45309" stroke-width="1.5"/>
+<clipPath id="c5"><rect x="376.0" y="366.0" width="248.0" height="175.0" rx="9"/></clipPath>
+<rect x="376.0" y="366.0" width="248.0" height="175.0" rx="9" fill="#ffffff"/>
+<rect x="376.0" y="366.0" width="248.0" height="30" fill="#fef3c7" clip-path="url(#c5)"/>
+<line x1="376.0" y1="396.0" x2="624.0" y2="396.0" stroke="#b45309" stroke-opacity=".35"/>
+<text class="h" x="388.0" y="386.5" style="fill:#78350f">Agent</text>
+<text class="w" x="388.0" y="420.0">a harness session acting for a</text>
+<text class="w" x="388.0" y="437.0">person: a Claude Code session, a</text>
+<text class="w" x="388.0" y="454.0">Codex run</text>
+<text class="ho" x="388.0" y="475.0"><tspan class="k">HOLDS</tspan>  harness, the person it acts for,</text>
+<text class="ho" x="388.0" y="491.0">its worktree</text>
+<line x1="388.0" y1="507.0" x2="612.0" y2="507.0" stroke="#e2e8f0"/>
+<circle cx="395.0" cy="517.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="406.0" y="521.0">harness adapters, context.md</text>
+<rect x="376.0" y="366.0" width="248.0" height="175.0" rx="9" fill="none" stroke="#b45309" stroke-width="1.5"/>
+<clipPath id="c6"><rect x="720.0" y="366.0" width="248.0" height="175.0" rx="9"/></clipPath>
+<rect x="720.0" y="366.0" width="248.0" height="175.0" rx="9" fill="#ffffff"/>
+<rect x="720.0" y="366.0" width="248.0" height="30" fill="#f8fafc" clip-path="url(#c6)"/>
+<line x1="720.0" y1="396.0" x2="968.0" y2="396.0" stroke="#b45309" stroke-opacity=".35"/>
+<text class="h" x="732.0" y="386.5" style="fill:#78350f">Role</text>
+<text class="w" x="732.0" y="420.0">what an actor may do in a repository</text>
+<text class="w" x="732.0" y="437.0">or environment</text>
+<text class="ho" x="732.0" y="458.0"><tspan class="k">HOLDS</tspan>  name, the service's own role it</text>
+<text class="ho" x="732.0" y="474.0">maps to</text>
+<line x1="732.0" y1="493.0" x2="956.0" y2="493.0" stroke="#e2e8f0"/>
+<circle cx="739.0" cy="503.5" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+<text class="f" x="750.0" y="507.0">not modelled · the forge</text>
+<text class="f" x="750.0" y="521.0">enforces its own</text>
+<rect x="720.0" y="366.0" width="248.0" height="175.0" rx="9" fill="none" stroke="#b45309" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text class="ho" x="48" y="633.0">Providers: the forge's own teams (GitHub teams, GitLab groups), or a command over the organization's directory.</text>
+  <text class="m" style="font-size:12px" x="48" y="655.0">person &lt;service&gt; &lt;account&gt;</text>
+  <text class="w" x="268.8" y="655.0">the handle of the person who owns that account, or nothing</text>
+  <text class="m" style="font-size:12px" x="48" y="679.0">accounts &lt;handle&gt;</text>
+  <text class="w" x="268.8" y="679.0">the person's accounts, by service</text>
+  <text class="m" style="font-size:12px" x="48" y="703.0">teams [&lt;handle&gt;]</text>
+  <text class="w" x="268.8" y="703.0">every team, or the teams the person is on</text>
+  <text class="m" style="font-size:12px" x="48" y="727.0">members &lt;team&gt;</text>
+  <text class="w" x="268.8" y="727.0">the team's members, by handle</text>
+  <circle cx="54" cy="807.0" r="2.2" fill="#b45309"/>
+  <text class="w" x="66" y="811.0">An agent always acts for a person, so evidence of its act names both and "who did this" never ends at a session id.</text>
+  <circle cx="54" cy="829.0" r="2.2" fill="#b45309"/>
+  <text class="w" x="66" y="833.0">Git counts as a service; a person's git identity, the name, email, and signing key on their commits, is one of their accounts.</text>
+  <circle cx="54" cy="851.0" r="2.2" fill="#b45309"/>
+  <text class="w" x="66" y="855.0">The caller is the account the service's CLI is signed in as, then the person the directory says owns it.</text>
+  <path class="edge" d="M 280.0 137.0 H 376.0"/>
+  <text class="lbl" text-anchor="middle" x="328.0" y="130.0">belongs to</text>
+  <path class="edge" d="M 624.0 137.0 H 720.0"/>
+  <text class="lbl" text-anchor="middle" x="672.0" y="130.0">member of</text>
+  <path class="edge" d="M 156.0 366.0 V 294.0"/>
+  <text class="lbl" x="164.0" y="334.0">acts through</text>
+  <path class="edge" d="M 500.0 366.0 V 294.0"/>
+  <text class="lbl" x="508.0" y="334.0">acts for</text>
+  <path class="edge" d="M 844.0 366.0 V 294.0"/>
+  <text class="lbl" x="852.0" y="334.0">granted to a team</text>
+  <path class="edge dash" d="M 749.8 366.0 V 330.0 H 599.2 V 294.0"/>
+  <text class="lbl" text-anchor="middle" x="644.5" y="323.0">or to a person</text>
+</svg>

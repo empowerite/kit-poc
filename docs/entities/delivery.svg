@@ -1,0 +1,201 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1177" width="1200" height="1177" role="img" aria-labelledby="title desc">
+  <title id="title">Delivery</title>
+  <desc id="desc">Entities of the Delivery domain: Gate, Pipeline, Run, Check, Release, Artifact, Artifact store, Environment, Deployment, Target, and Fleet, from a pipeline's run to a deployment's target.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+    text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; fill: #0f172a; }
+    .title { font-size: 24px; font-weight: 700; }
+    .intro { font-size: 13.5px; fill: #475569; }
+    .h { font-size: 15px; font-weight: 700; }
+    .w { font-size: 12.5px; fill: #1e293b; }
+    .k { font-size: 11px; font-weight: 700; fill: #64748b; letter-spacing: .06em; }
+    .ho { font-size: 12px; fill: #475569; }
+    .m { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11.5px; fill: #334155; }
+    .f { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; fill: #334155; }
+    .lbl { font-size: 11.5px; fill: #475569; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
+    .sec { font-size: 12px; font-weight: 700; fill: #475569; letter-spacing: .07em; }
+    .edge { stroke: #475569; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .dash { stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+  <rect x="0.5" y="0.5" width="1199" height="1176" rx="14" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="32" y="22" width="6" height="28" rx="3" fill="#be123c"/>
+  <text class="title" x="50" y="45" style="fill:#881337">Delivery</text>
+  <text class="intro" x="32" y="72">What is built, released, and run. A run builds an artifact, named by its digest; a deployment puts that digest in an environment, so a running target traces back to its commit.</text>
+  <g transform="translate(898,30)"><circle cx="5" cy="0" r="4.5" fill="#16a34a"/><text class="ho" x="16" y="3.5" style="font-size:11.5px">in kit today</text><circle cx="112" cy="0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/><text class="ho" x="123" y="3.5" style="font-size:11.5px">not modelled yet</text></g>
+  <rect x="32.0" y="1011.0" width="1136.0" height="134.0" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="sec" x="48.0" y="1035.0">RULES</text>
+<clipPath id="c1"><rect x="32.0" y="103.0" width="227.0" height="172.0" rx="9"/></clipPath>
+<rect x="32.0" y="103.0" width="227.0" height="172.0" rx="9" fill="#ffffff"/>
+<rect x="32.0" y="103.0" width="227.0" height="30" fill="#ffe4e6" clip-path="url(#c1)"/>
+<line x1="32.0" y1="133.0" x2="259.0" y2="133.0" stroke="#be123c" stroke-opacity=".35"/>
+<text class="h" x="44.0" y="123.5" style="fill:#881337">Gate</text>
+<text class="w" x="44.0" y="157.0">the repository's own CI command</text>
+<text class="ho" x="44.0" y="178.0"><tspan class="k">HOLDS</tspan>  the gate setting</text>
+<line x1="44.0" y1="241.0" x2="247.0" y2="241.0" stroke="#e2e8f0"/>
+<circle cx="51.0" cy="251.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="62.0" y="255.0">kit gate</text>
+<rect x="32.0" y="103.0" width="227.0" height="172.0" rx="9" fill="none" stroke="#be123c" stroke-width="1.5"/>
+<clipPath id="c2"><rect x="335.0" y="103.0" width="227.0" height="172.0" rx="9"/></clipPath>
+<rect x="335.0" y="103.0" width="227.0" height="172.0" rx="9" fill="#ffffff"/>
+<rect x="335.0" y="103.0" width="227.0" height="30" fill="#ffe4e6" clip-path="url(#c2)"/>
+<line x1="335.0" y1="133.0" x2="562.0" y2="133.0" stroke="#be123c" stroke-opacity=".35"/>
+<text class="h" x="347.0" y="123.5" style="fill:#881337">Pipeline</text>
+<text class="w" x="347.0" y="157.0">a CI or CD definition in the</text>
+<text class="w" x="347.0" y="174.0">repository</text>
+<text class="ho" x="347.0" y="195.0"><tspan class="k">HOLDS</tspan>  its file, the events that start it</text>
+<line x1="347.0" y1="241.0" x2="550.0" y2="241.0" stroke="#e2e8f0"/>
+<circle cx="354.0" cy="251.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="365.0" y="255.0">the delivered kit-ci.yml</text>
+<rect x="335.0" y="103.0" width="227.0" height="172.0" rx="9" fill="none" stroke="#be123c" stroke-width="1.5"/>
+<clipPath id="c3"><rect x="638.0" y="103.0" width="227.0" height="172.0" rx="9"/></clipPath>
+<rect x="638.0" y="103.0" width="227.0" height="172.0" rx="9" fill="#ffffff"/>
+<rect x="638.0" y="103.0" width="227.0" height="30" fill="#ffe4e6" clip-path="url(#c3)"/>
+<line x1="638.0" y1="133.0" x2="865.0" y2="133.0" stroke="#be123c" stroke-opacity=".35"/>
+<text class="h" x="650.0" y="123.5" style="fill:#881337">Run</text>
+<text class="w" x="650.0" y="157.0">one execution of a pipeline</text>
+<text class="ho" x="650.0" y="178.0"><tspan class="k">HOLDS</tspan>  pipeline, commit, change,</text>
+<text class="ho" x="650.0" y="194.0">actor, status, its jobs, its logs, its</text>
+<text class="ho" x="650.0" y="210.0">identity</text>
+<line x1="650.0" y1="241.0" x2="853.0" y2="241.0" stroke="#e2e8f0"/>
+<circle cx="657.0" cy="251.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="668.0" y="255.0">kit flow builds</text>
+<rect x="638.0" y="103.0" width="227.0" height="172.0" rx="9" fill="none" stroke="#be123c" stroke-width="1.5"/>
+<clipPath id="c4"><rect x="941.0" y="103.0" width="227.0" height="172.0" rx="9"/></clipPath>
+<rect x="941.0" y="103.0" width="227.0" height="172.0" rx="9" fill="#ffffff"/>
+<rect x="941.0" y="103.0" width="227.0" height="30" fill="#ffe4e6" clip-path="url(#c4)"/>
+<line x1="941.0" y1="133.0" x2="1168.0" y2="133.0" stroke="#be123c" stroke-opacity=".35"/>
+<text class="h" x="953.0" y="123.5" style="fill:#881337">Check</text>
+<text class="w" x="953.0" y="157.0">a named result reported on a</text>
+<text class="w" x="953.0" y="174.0">commit or change</text>
+<text class="ho" x="953.0" y="195.0"><tspan class="k">HOLDS</tspan>  name, status, the run that</text>
+<text class="ho" x="953.0" y="211.0">reported it</text>
+<line x1="953.0" y1="227.0" x2="1156.0" y2="227.0" stroke="#e2e8f0"/>
+<circle cx="960.0" cy="237.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="971.0" y="241.0">forge seam checks · kit</text>
+<text class="f" x="971.0" y="255.0">ci's four</text>
+<rect x="941.0" y="103.0" width="227.0" height="172.0" rx="9" fill="none" stroke="#be123c" stroke-width="1.5"/>
+<clipPath id="c5"><rect x="335.0" y="339.0" width="227.0" height="158.0" rx="9"/></clipPath>
+<rect x="335.0" y="339.0" width="227.0" height="158.0" rx="9" fill="#ffffff"/>
+<rect x="335.0" y="339.0" width="227.0" height="30" fill="#ffe4e6" clip-path="url(#c5)"/>
+<line x1="335.0" y1="369.0" x2="562.0" y2="369.0" stroke="#be123c" stroke-opacity=".35"/>
+<text class="h" x="347.0" y="359.5" style="fill:#881337">Release</text>
+<text class="w" x="347.0" y="393.0">a version published from a tag</text>
+<text class="ho" x="347.0" y="414.0"><tspan class="k">HOLDS</tspan>  tag, notes, artifacts</text>
+<line x1="347.0" y1="449.0" x2="550.0" y2="449.0" stroke="#e2e8f0"/>
+<circle cx="354.0" cy="459.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="365.0" y="463.0">kit release · kit flow</text>
+<text class="f" x="365.0" y="477.0">releases</text>
+<rect x="335.0" y="339.0" width="227.0" height="158.0" rx="9" fill="none" stroke="#be123c" stroke-width="1.5"/>
+<clipPath id="c6"><rect x="638.0" y="339.0" width="227.0" height="158.0" rx="9"/></clipPath>
+<rect x="638.0" y="339.0" width="227.0" height="158.0" rx="9" fill="#ffffff"/>
+<rect x="638.0" y="339.0" width="227.0" height="30" fill="#ffe4e6" clip-path="url(#c6)"/>
+<line x1="638.0" y1="369.0" x2="865.0" y2="369.0" stroke="#be123c" stroke-opacity=".35"/>
+<text class="h" x="650.0" y="359.5" style="fill:#881337">Artifact</text>
+<text class="w" x="650.0" y="393.0">an output of a run, named by its</text>
+<text class="w" x="650.0" y="410.0">digest</text>
+<text class="ho" x="650.0" y="431.0"><tspan class="k">HOLDS</tspan>  digest, name, media type, the</text>
+<text class="ho" x="650.0" y="447.0">run that built it</text>
+<line x1="650.0" y1="463.0" x2="853.0" y2="463.0" stroke="#e2e8f0"/>
+<circle cx="657.0" cy="473.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="668.0" y="477.0">the release tarball</text>
+<rect x="638.0" y="339.0" width="227.0" height="158.0" rx="9" fill="none" stroke="#be123c" stroke-width="1.5"/>
+<clipPath id="c7"><rect x="941.0" y="339.0" width="227.0" height="158.0" rx="9"/></clipPath>
+<rect x="941.0" y="339.0" width="227.0" height="158.0" rx="9" fill="#ffffff"/>
+<rect x="941.0" y="339.0" width="227.0" height="30" fill="#ffe4e6" clip-path="url(#c7)"/>
+<line x1="941.0" y1="369.0" x2="1168.0" y2="369.0" stroke="#be123c" stroke-opacity=".35"/>
+<text class="h" x="953.0" y="359.5" style="fill:#881337">Artifact store</text>
+<text class="w" x="953.0" y="393.0">where artifacts are kept</text>
+<text class="ho" x="953.0" y="414.0"><tspan class="k">HOLDS</tspan>  service, location, retention</text>
+<line x1="953.0" y1="463.0" x2="1156.0" y2="463.0" stroke="#e2e8f0"/>
+<circle cx="960.0" cy="473.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="971.0" y="477.0">GitHub release assets</text>
+<rect x="941.0" y="339.0" width="227.0" height="158.0" rx="9" fill="none" stroke="#be123c" stroke-width="1.5"/>
+<clipPath id="c8"><rect x="32.0" y="561.0" width="227.0" height="192.0" rx="9"/></clipPath>
+<rect x="32.0" y="561.0" width="227.0" height="192.0" rx="9" fill="#ffffff"/>
+<rect x="32.0" y="561.0" width="227.0" height="30" fill="#f8fafc" clip-path="url(#c8)"/>
+<line x1="32.0" y1="591.0" x2="259.0" y2="591.0" stroke="#be123c" stroke-opacity=".35"/>
+<text class="h" x="44.0" y="581.5" style="fill:#881337">Target</text>
+<text class="w" x="44.0" y="615.0">one concrete place an</text>
+<text class="w" x="44.0" y="632.0">environment runs on: a cluster's</text>
+<text class="w" x="44.0" y="649.0">namespace, a host, a function, a</text>
+<text class="w" x="44.0" y="666.0">store listing</text>
+<text class="ho" x="44.0" y="687.0"><tspan class="k">HOLDS</tspan>  environment, address, what</text>
+<text class="ho" x="44.0" y="703.0">it runs now</text>
+<line x1="44.0" y1="719.0" x2="247.0" y2="719.0" stroke="#e2e8f0"/>
+<circle cx="51.0" cy="729.5" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+<text class="f" x="62.0" y="733.0">not modelled</text>
+<rect x="32.0" y="561.0" width="227.0" height="192.0" rx="9" fill="none" stroke="#be123c" stroke-width="1.5" stroke-dasharray="6 4"/>
+<clipPath id="c9"><rect x="335.0" y="561.0" width="227.0" height="192.0" rx="9"/></clipPath>
+<rect x="335.0" y="561.0" width="227.0" height="192.0" rx="9" fill="#ffffff"/>
+<rect x="335.0" y="561.0" width="227.0" height="30" fill="#f8fafc" clip-path="url(#c9)"/>
+<line x1="335.0" y1="591.0" x2="562.0" y2="591.0" stroke="#be123c" stroke-opacity=".35"/>
+<text class="h" x="347.0" y="581.5" style="fill:#881337">Environment</text>
+<text class="w" x="347.0" y="615.0">a named place software is</text>
+<text class="w" x="347.0" y="632.0">deployed to: development, staging,</text>
+<text class="w" x="347.0" y="649.0">production</text>
+<text class="ho" x="347.0" y="670.0"><tspan class="k">HOLDS</tspan>  name, its protection:</text>
+<text class="ho" x="347.0" y="686.0">required checks, approvers,</text>
+<text class="ho" x="347.0" y="702.0">branch limits</text>
+<line x1="347.0" y1="719.0" x2="550.0" y2="719.0" stroke="#e2e8f0"/>
+<circle cx="354.0" cy="729.5" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+<text class="f" x="365.0" y="733.0">not modelled</text>
+<rect x="335.0" y="561.0" width="227.0" height="192.0" rx="9" fill="none" stroke="#be123c" stroke-width="1.5" stroke-dasharray="6 4"/>
+<clipPath id="c10"><rect x="638.0" y="561.0" width="227.0" height="192.0" rx="9"/></clipPath>
+<rect x="638.0" y="561.0" width="227.0" height="192.0" rx="9" fill="#ffffff"/>
+<rect x="638.0" y="561.0" width="227.0" height="30" fill="#f8fafc" clip-path="url(#c10)"/>
+<line x1="638.0" y1="591.0" x2="865.0" y2="591.0" stroke="#be123c" stroke-opacity=".35"/>
+<text class="h" x="650.0" y="581.5" style="fill:#881337">Deployment</text>
+<text class="w" x="650.0" y="615.0">an artifact deployed to an</text>
+<text class="w" x="650.0" y="632.0">environment</text>
+<text class="ho" x="650.0" y="653.0"><tspan class="k">HOLDS</tspan>  artifact digest, environment,</text>
+<text class="ho" x="650.0" y="669.0">run, actor, time, status</text>
+<line x1="650.0" y1="719.0" x2="853.0" y2="719.0" stroke="#e2e8f0"/>
+<circle cx="657.0" cy="729.5" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+<text class="f" x="668.0" y="733.0">not modelled</text>
+<rect x="638.0" y="561.0" width="227.0" height="192.0" rx="9" fill="none" stroke="#be123c" stroke-width="1.5" stroke-dasharray="6 4"/>
+<clipPath id="c11"><rect x="335.0" y="817.0" width="227.0" height="158.0" rx="9"/></clipPath>
+<rect x="335.0" y="817.0" width="227.0" height="158.0" rx="9" fill="#ffffff"/>
+<rect x="335.0" y="817.0" width="227.0" height="30" fill="#f8fafc" clip-path="url(#c11)"/>
+<line x1="335.0" y1="847.0" x2="562.0" y2="847.0" stroke="#be123c" stroke-opacity=".35"/>
+<text class="h" x="347.0" y="837.5" style="fill:#881337">Fleet</text>
+<text class="w" x="347.0" y="871.0">the targets of one environment</text>
+<text class="w" x="347.0" y="888.0">taken together</text>
+<text class="ho" x="347.0" y="909.0"><tspan class="k">HOLDS</tspan>  environment, targets, the</text>
+<text class="ho" x="347.0" y="925.0">version each runs</text>
+<line x1="347.0" y1="941.0" x2="550.0" y2="941.0" stroke="#e2e8f0"/>
+<circle cx="354.0" cy="951.5" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+<text class="f" x="365.0" y="955.0">not modelled</text>
+<rect x="335.0" y="817.0" width="227.0" height="158.0" rx="9" fill="none" stroke="#be123c" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <circle cx="54" cy="1055.0" r="2.2" fill="#be123c"/>
+  <text class="w" x="66" y="1059.0">An artifact is identified by its digest, never by its name or tag, because a tag can move.</text>
+  <circle cx="54" cy="1077.0" r="2.2" fill="#be123c"/>
+  <text class="w" x="66" y="1081.0">A deployment names the artifact's digest, so the chain from a running target back to its commit holds.</text>
+  <circle cx="54" cy="1099.0" r="2.2" fill="#be123c"/>
+  <text class="w" x="66" y="1103.0">A fleet makes drift visible: the targets of one environment running different versions.</text>
+  <circle cx="54" cy="1121.0" r="2.2" fill="#be123c"/>
+  <text class="w" x="66" y="1125.0">kit reads environments and deployments from the service filling cd, or from a command provider over an organization's own deployment tool.</text>
+  <path class="edge" d="M 259.0 118.0 H 335.0"/>
+  <text class="lbl" text-anchor="middle" x="297.0" y="111.0">run by</text>
+  <path class="edge" d="M 562.0 118.0 H 638.0"/>
+  <text class="lbl" text-anchor="middle" x="600.0" y="111.0">runs as</text>
+  <path class="edge" d="M 865.0 118.0 H 941.0"/>
+  <text class="lbl" text-anchor="middle" x="903.0" y="111.0">reports</text>
+  <path class="edge" d="M 751.5 275.0 V 339.0"/>
+  <text class="lbl" x="759.5" y="311.0">builds</text>
+  <path class="edge" d="M 562.0 354.0 H 638.0"/>
+  <text class="lbl" text-anchor="middle" x="600.0" y="347.0">publishes</text>
+  <path class="edge" d="M 865.0 354.0 H 941.0"/>
+  <text class="lbl" text-anchor="middle" x="903.0" y="347.0">kept in</text>
+  <path class="edge" d="M 751.5 497.0 V 561.0"/>
+  <text class="lbl" x="759.5" y="533.0">deployed as</text>
+  <path class="edge" d="M 638.0 576.0 H 562.0"/>
+  <text class="lbl" text-anchor="middle" x="600.0" y="569.0">to</text>
+  <path class="edge" d="M 335.0 576.0 H 259.0"/>
+  <text class="lbl" text-anchor="middle" x="297.0" y="569.0">runs on</text>
+  <path class="edge" d="M 448.5 817.0 V 753.0"/>
+  <text class="lbl" x="456.5" y="789.0">groups the targets of</text>
+</svg>

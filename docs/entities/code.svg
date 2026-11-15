@@ -1,0 +1,181 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 866" width="1200" height="866" role="img" aria-labelledby="title desc">
+  <title id="title">Code</title>
+  <desc id="desc">Entities of the Code domain: Workspace, Repository, Remote, Checkout, Worktree, Branch, Commit, Tag, Change, and Review, and how git and the forge hold them.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+    text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; fill: #0f172a; }
+    .title { font-size: 24px; font-weight: 700; }
+    .intro { font-size: 13.5px; fill: #475569; }
+    .h { font-size: 15px; font-weight: 700; }
+    .w { font-size: 12.5px; fill: #1e293b; }
+    .k { font-size: 11px; font-weight: 700; fill: #64748b; letter-spacing: .06em; }
+    .ho { font-size: 12px; fill: #475569; }
+    .m { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11.5px; fill: #334155; }
+    .f { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; fill: #334155; }
+    .lbl { font-size: 11.5px; fill: #475569; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
+    .sec { font-size: 12px; font-weight: 700; fill: #475569; letter-spacing: .07em; }
+    .edge { stroke: #475569; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .dash { stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+  <rect x="0.5" y="0.5" width="1199" height="865" rx="14" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="32" y="22" width="6" height="28" rx="3" fill="#15803d"/>
+  <text class="title" x="50" y="45" style="fill:#14532d">Code</text>
+  <text class="intro" x="32" y="72">What git and the forge hold. These entities exist in kit today, through git and the forge seam, and keep their meaning.</text>
+  <g transform="translate(898,30)"><circle cx="5" cy="0" r="4.5" fill="#16a34a"/><text class="ho" x="16" y="3.5" style="font-size:11.5px">in kit today</text><circle cx="112" cy="0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/><text class="ho" x="123" y="3.5" style="font-size:11.5px">not modelled yet</text></g>
+  <rect x="32.0" y="766.0" width="1136.0" height="68.0" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="sec" x="48.0" y="790.0">RULE</text>
+<clipPath id="c1"><rect x="32.0" y="103.0" width="188.8" height="156.0" rx="9"/></clipPath>
+<rect x="32.0" y="103.0" width="188.8" height="156.0" rx="9" fill="#ffffff"/>
+<rect x="32.0" y="103.0" width="188.8" height="30" fill="#dcfce7" clip-path="url(#c1)"/>
+<line x1="32.0" y1="133.0" x2="220.8" y2="133.0" stroke="#15803d" stroke-opacity=".35"/>
+<text class="h" x="44.0" y="123.5" style="fill:#14532d">Workspace</text>
+<text class="w" x="44.0" y="157.0">one repository, or a named</text>
+<text class="w" x="44.0" y="174.0">group of them</text>
+<text class="m" x="44.0" y="196.0"><tspan class="k" style="font-family:inherit">REF</tspan>  its name</text>
+<line x1="44.0" y1="225.0" x2="208.8" y2="225.0" stroke="#e2e8f0"/>
+<circle cx="51.0" cy="235.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="62.0" y="239.0">kit workspaces</text>
+<rect x="32.0" y="103.0" width="188.8" height="156.0" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+<clipPath id="c2"><rect x="268.8" y="103.0" width="188.8" height="156.0" rx="9"/></clipPath>
+<rect x="268.8" y="103.0" width="188.8" height="156.0" rx="9" fill="#ffffff"/>
+<rect x="268.8" y="103.0" width="188.8" height="30" fill="#dcfce7" clip-path="url(#c2)"/>
+<line x1="268.8" y1="133.0" x2="457.6" y2="133.0" stroke="#15803d" stroke-opacity=".35"/>
+<text class="h" x="280.8" y="123.5" style="fill:#14532d">Repository</text>
+<text class="w" x="280.8" y="157.0">a member, named by host</text>
+<text class="w" x="280.8" y="174.0">and path</text>
+<text class="m" x="280.8" y="196.0"><tspan class="k" style="font-family:inherit">REF</tspan>  </text>
+<text class="m" x="280.8" y="211.0">github.com/empowerite/kit</text>
+<line x1="280.8" y1="225.0" x2="445.6" y2="225.0" stroke="#e2e8f0"/>
+<circle cx="287.8" cy="235.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="298.8" y="239.0">kit workspace repos</text>
+<rect x="268.8" y="103.0" width="188.8" height="156.0" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+<clipPath id="c3"><rect x="505.6" y="103.0" width="188.8" height="156.0" rx="9"/></clipPath>
+<rect x="505.6" y="103.0" width="188.8" height="156.0" rx="9" fill="#ffffff"/>
+<rect x="505.6" y="103.0" width="188.8" height="30" fill="#dcfce7" clip-path="url(#c3)"/>
+<line x1="505.6" y1="133.0" x2="694.4" y2="133.0" stroke="#15803d" stroke-opacity=".35"/>
+<text class="h" x="517.6" y="123.5" style="fill:#14532d">Remote</text>
+<text class="w" x="517.6" y="157.0">a repository's named URL,</text>
+<text class="w" x="517.6" y="174.0">with its forge</text>
+<text class="m" x="517.6" y="196.0"><tspan class="k" style="font-family:inherit">REF</tspan>  the repository's,</text>
+<text class="m" x="517.6" y="211.0">and the remote's name</text>
+<line x1="517.6" y1="225.0" x2="682.4" y2="225.0" stroke="#e2e8f0"/>
+<circle cx="524.6" cy="235.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="535.6" y="239.0">kit workspace remotes</text>
+<rect x="505.6" y="103.0" width="188.8" height="156.0" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+<clipPath id="c4"><rect x="268.8" y="323.0" width="188.8" height="170.0" rx="9"/></clipPath>
+<rect x="268.8" y="323.0" width="188.8" height="170.0" rx="9" fill="#ffffff"/>
+<rect x="268.8" y="323.0" width="188.8" height="30" fill="#dcfce7" clip-path="url(#c4)"/>
+<line x1="268.8" y1="353.0" x2="457.6" y2="353.0" stroke="#15803d" stroke-opacity=".35"/>
+<text class="h" x="280.8" y="343.5" style="fill:#14532d">Checkout</text>
+<text class="w" x="280.8" y="377.0">a clone on this machine; the</text>
+<text class="w" x="280.8" y="394.0">desk is its main worktree</text>
+<text class="m" x="280.8" y="416.0"><tspan class="k" style="font-family:inherit">REF</tspan>  a path</text>
+<line x1="280.8" y1="459.0" x2="445.6" y2="459.0" stroke="#e2e8f0"/>
+<circle cx="287.8" cy="469.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="298.8" y="473.0">kit workspace repos</text>
+<rect x="268.8" y="323.0" width="188.8" height="170.0" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+<clipPath id="c5"><rect x="505.6" y="323.0" width="188.8" height="170.0" rx="9"/></clipPath>
+<rect x="505.6" y="323.0" width="188.8" height="170.0" rx="9" fill="#ffffff"/>
+<rect x="505.6" y="323.0" width="188.8" height="30" fill="#dcfce7" clip-path="url(#c5)"/>
+<line x1="505.6" y1="353.0" x2="694.4" y2="353.0" stroke="#15803d" stroke-opacity=".35"/>
+<text class="h" x="517.6" y="343.5" style="fill:#14532d">Worktree</text>
+<text class="w" x="517.6" y="377.0">a linked worktree of a</text>
+<text class="w" x="517.6" y="394.0">checkout, one per issue</text>
+<text class="m" x="517.6" y="416.0"><tspan class="k" style="font-family:inherit">REF</tspan>  a path</text>
+<line x1="517.6" y1="445.0" x2="682.4" y2="445.0" stroke="#e2e8f0"/>
+<circle cx="524.6" cy="455.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="535.6" y="459.0">kit work · kit</text>
+<text class="f" x="535.6" y="473.0">workspace worktrees</text>
+<rect x="505.6" y="323.0" width="188.8" height="170.0" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+<clipPath id="c6"><rect x="742.4" y="323.0" width="188.8" height="170.0" rx="9"/></clipPath>
+<rect x="742.4" y="323.0" width="188.8" height="170.0" rx="9" fill="#ffffff"/>
+<rect x="742.4" y="323.0" width="188.8" height="30" fill="#dcfce7" clip-path="url(#c6)"/>
+<line x1="742.4" y1="353.0" x2="931.2" y2="353.0" stroke="#15803d" stroke-opacity=".35"/>
+<text class="h" x="754.4" y="343.5" style="fill:#14532d">Branch</text>
+<text class="w" x="754.4" y="377.0">a branch on a remote or</text>
+<text class="w" x="754.4" y="394.0">local, with its upstream</text>
+<text class="m" x="754.4" y="416.0"><tspan class="k" style="font-family:inherit">REF</tspan>  the repository's,</text>
+<text class="m" x="754.4" y="431.0">and the branch</text>
+<line x1="754.4" y1="445.0" x2="919.2" y2="445.0" stroke="#e2e8f0"/>
+<circle cx="761.4" cy="455.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="772.4" y="459.0">kit workspace</text>
+<text class="f" x="772.4" y="473.0">branches</text>
+<rect x="742.4" y="323.0" width="188.8" height="170.0" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+<clipPath id="c7"><rect x="979.2" y="323.0" width="188.8" height="170.0" rx="9"/></clipPath>
+<rect x="979.2" y="323.0" width="188.8" height="170.0" rx="9" fill="#ffffff"/>
+<rect x="979.2" y="323.0" width="188.8" height="30" fill="#dcfce7" clip-path="url(#c7)"/>
+<line x1="979.2" y1="353.0" x2="1168.0" y2="353.0" stroke="#15803d" stroke-opacity=".35"/>
+<text class="h" x="991.2" y="343.5" style="fill:#14532d">Commit</text>
+<text class="w" x="991.2" y="377.0">a commit, with its issue,</text>
+<text class="w" x="991.2" y="394.0">signature, and author</text>
+<text class="m" x="991.2" y="416.0"><tspan class="k" style="font-family:inherit">REF</tspan>  …@&lt;sha&gt;</text>
+<line x1="991.2" y1="459.0" x2="1156.0" y2="459.0" stroke="#e2e8f0"/>
+<circle cx="998.2" cy="469.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="1009.2" y="473.0">kit workspace commits</text>
+<rect x="979.2" y="323.0" width="188.8" height="170.0" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+<clipPath id="c8"><rect x="505.6" y="557.0" width="188.8" height="173.0" rx="9"/></clipPath>
+<rect x="505.6" y="557.0" width="188.8" height="173.0" rx="9" fill="#ffffff"/>
+<rect x="505.6" y="557.0" width="188.8" height="30" fill="#dcfce7" clip-path="url(#c8)"/>
+<line x1="505.6" y1="587.0" x2="694.4" y2="587.0" stroke="#15803d" stroke-opacity=".35"/>
+<text class="h" x="517.6" y="577.5" style="fill:#14532d">Review</text>
+<text class="w" x="517.6" y="611.0">an approval, a request for</text>
+<text class="w" x="517.6" y="628.0">changes, or a thread on a</text>
+<text class="w" x="517.6" y="645.0">change</text>
+<text class="m" x="517.6" y="667.0"><tspan class="k" style="font-family:inherit">REF</tspan>  the change's</text>
+<line x1="517.6" y1="682.0" x2="682.4" y2="682.0" stroke="#e2e8f0"/>
+<circle cx="524.6" cy="692.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="535.6" y="696.0">forge seam: review</text>
+<text class="f" x="535.6" y="710.0">threads</text>
+<rect x="505.6" y="557.0" width="188.8" height="173.0" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+<clipPath id="c9"><rect x="742.4" y="557.0" width="188.8" height="173.0" rx="9"/></clipPath>
+<rect x="742.4" y="557.0" width="188.8" height="173.0" rx="9" fill="#ffffff"/>
+<rect x="742.4" y="557.0" width="188.8" height="30" fill="#dcfce7" clip-path="url(#c9)"/>
+<line x1="742.4" y1="587.0" x2="931.2" y2="587.0" stroke="#15803d" stroke-opacity=".35"/>
+<text class="h" x="754.4" y="577.5" style="fill:#14532d">Change</text>
+<text class="w" x="754.4" y="611.0">a pull request or merge</text>
+<text class="w" x="754.4" y="628.0">request, in the forge's own</text>
+<text class="w" x="754.4" y="645.0">word</text>
+<text class="m" x="754.4" y="667.0"><tspan class="k" style="font-family:inherit">REF</tspan>  …#3 on GitHub, …!3</text>
+<text class="m" x="754.4" y="682.0">on GitLab</text>
+<line x1="754.4" y1="696.0" x2="919.2" y2="696.0" stroke="#e2e8f0"/>
+<circle cx="761.4" cy="706.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="772.4" y="710.0">kit flow changes</text>
+<rect x="742.4" y="557.0" width="188.8" height="173.0" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+<clipPath id="c10"><rect x="979.2" y="557.0" width="188.8" height="173.0" rx="9"/></clipPath>
+<rect x="979.2" y="557.0" width="188.8" height="173.0" rx="9" fill="#ffffff"/>
+<rect x="979.2" y="557.0" width="188.8" height="30" fill="#dcfce7" clip-path="url(#c10)"/>
+<line x1="979.2" y1="587.0" x2="1168.0" y2="587.0" stroke="#15803d" stroke-opacity=".35"/>
+<text class="h" x="991.2" y="577.5" style="fill:#14532d">Tag</text>
+<text class="w" x="991.2" y="611.0">a tag, annotated or</text>
+<text class="w" x="991.2" y="628.0">lightweight</text>
+<text class="m" x="991.2" y="650.0"><tspan class="k" style="font-family:inherit">REF</tspan>  the repository's,</text>
+<text class="m" x="991.2" y="665.0">and the tag</text>
+<line x1="991.2" y1="696.0" x2="1156.0" y2="696.0" stroke="#e2e8f0"/>
+<circle cx="998.2" cy="706.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="1009.2" y="710.0">kit workspace tags</text>
+<rect x="979.2" y="557.0" width="188.8" height="173.0" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+  <circle cx="54" cy="810.0" r="2.2" fill="#15803d"/>
+  <text class="w" x="66" y="814.0">A signed commit proves who wrote it, not that it was checked: commit signing stays an authorship rule, apart from Trust.</text>
+  <path class="edge" d="M 220.8 118.0 H 268.8"/>
+  <text class="lbl" text-anchor="middle" x="244.8" y="111.0">contains</text>
+  <path class="edge" d="M 457.6 118.0 H 505.6"/>
+  <text class="lbl" text-anchor="middle" x="481.6" y="111.0">has</text>
+  <path class="edge" d="M 363.2 259.0 V 323.0"/>
+  <text class="lbl" x="371.2" y="295.0">cloned as</text>
+  <path class="edge" d="M 457.6 338.0 H 505.6"/>
+  <text class="lbl" text-anchor="middle" x="481.6" y="331.0">holds</text>
+  <path class="edge" d="M 694.4 338.0 H 742.4"/>
+  <text class="lbl" text-anchor="middle" x="718.4" y="331.0">is on</text>
+  <path class="edge" d="M 931.2 338.0 H 979.2"/>
+  <text class="lbl" text-anchor="middle" x="955.2" y="331.0">has</text>
+  <path class="edge" d="M 836.8 493.0 V 557.0"/>
+  <text class="lbl" x="844.8" y="529.0">opened as</text>
+  <path class="edge" d="M 694.4 572.0 H 742.4"/>
+  <text class="lbl" text-anchor="middle" x="718.4" y="565.0">on</text>
+  <path class="edge" d="M 1073.6 557.0 V 493.0"/>
+  <text class="lbl" x="1081.6" y="529.0">points at</text>
+</svg>

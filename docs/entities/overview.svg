@@ -1,0 +1,268 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 738" width="1240" height="738" role="img" aria-labelledby="title desc">
+  <title id="title">kit's entities</title>
+  <desc id="desc">Overview of kit's entities: ten domains, the entities each holds, and the provenance chain that runs from an issue to where its code runs.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+    text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; fill: #0f172a; }
+    .title { font-size: 24px; font-weight: 700; }
+    .intro { font-size: 13.5px; fill: #475569; }
+    .h { font-size: 15px; font-weight: 700; }
+    .w { font-size: 12.5px; fill: #1e293b; }
+    .k { font-size: 11px; font-weight: 700; fill: #64748b; letter-spacing: .06em; }
+    .ho { font-size: 12px; fill: #475569; }
+    .m { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11.5px; fill: #334155; }
+    .f { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; fill: #334155; }
+    .lbl { font-size: 11.5px; fill: #475569; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
+    .sec { font-size: 12px; font-weight: 700; fill: #475569; letter-spacing: .07em; }
+    .edge { stroke: #475569; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .dash { stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+  <rect x="0.5" y="0.5" width="1239" height="737" rx="14" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="32" y="22" width="6" height="28" rx="3" fill="#15803d"/>
+  <text class="title" x="50" y="45" style="fill:#14532d">kit's entities</text>
+  <text class="intro" x="32" y="72">Ten domains hold what kit names. Everything is a subject, named by a reference, and labels, conversations, events, and evidence are all about a subject. Each domain has a diagram of</text>
+  <text class="intro" x="32" y="91">its own.</text>
+  <rect x="32.0" y="122" width="220.8" height="218" rx="12" fill="#fff" stroke="#b45309" stroke-width="1.5"/>
+  <clipPath id="o00"><rect x="32.0" y="122" width="220.8" height="218" rx="12"/></clipPath>
+  <rect x="32.0" y="122" width="220.8" height="50" fill="#fef3c7" clip-path="url(#o00)"/>
+  <line x1="32.0" y1="172" x2="252.8" y2="172" stroke="#b45309" stroke-opacity=".35"/>
+  <text class="h" style="font-size:16px;fill:#78350f" x="46.0" y="144">Actors</text>
+  <text class="ho" style="font-size:11.5px" x="46.0" y="162">who does the work</text>
+  <rect x="44.0" y="186" width="59.0" height="22" rx="11" fill="#fef3c7" stroke="#b45309" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#78350f" x="73.5" y="201">Person</text>
+  <rect x="109.0" y="186" width="49.5" height="22" rx="11" fill="#fef3c7" stroke="#b45309" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#78350f" x="133.8" y="201">Agent</text>
+  <rect x="164.6" y="186" width="36.4" height="22" rx="11" fill="#fef3c7" stroke="#b45309" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#78350f" x="182.8" y="201">Bot</text>
+  <rect x="44.0" y="214" width="62.6" height="22" rx="11" fill="#fef3c7" stroke="#b45309" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#78350f" x="75.3" y="229">Account</text>
+  <rect x="112.6" y="214" width="49.9" height="22" rx="11" fill="#fef3c7" stroke="#b45309" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#78350f" x="137.6" y="229">Team</text>
+  <rect x="168.5" y="214" width="43.0" height="22" rx="11" fill="#fef3c7" stroke="#b45309" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#78350f" x="190.0" y="229">Role</text>
+  <rect x="270.8" y="122" width="220.8" height="218" rx="12" fill="#fff" stroke="#0369a1" stroke-width="1.5"/>
+  <clipPath id="o01"><rect x="270.8" y="122" width="220.8" height="218" rx="12"/></clipPath>
+  <rect x="270.8" y="122" width="220.8" height="50" fill="#e0f2fe" clip-path="url(#o01)"/>
+  <line x1="270.8" y1="172" x2="491.6" y2="172" stroke="#0369a1" stroke-opacity=".35"/>
+  <text class="h" style="font-size:16px;fill:#0c4a6e" x="284.8" y="144">Platform</text>
+  <text class="ho" style="font-size:11.5px" x="284.8" y="162">the systems kit talks to</text>
+  <rect x="282.8" y="186" width="62.6" height="22" rx="11" fill="#e0f2fe" stroke="#0369a1" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#0c4a6e" x="314.1" y="201">Service</text>
+  <rect x="351.4" y="186" width="73.4" height="22" rx="11" fill="#e0f2fe" stroke="#0369a1" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#0c4a6e" x="388.1" y="201">Capability</text>
+  <rect x="282.8" y="214" width="59.7" height="22" rx="11" fill="#e0f2fe" stroke="#0369a1" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#0c4a6e" x="312.6" y="229">Binding</text>
+  <rect x="348.5" y="214" width="69.2" height="22" rx="11" fill="#e0f2fe" stroke="#0369a1" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#0c4a6e" x="383.0" y="229">Provider</text>
+  <rect x="509.6" y="122" width="220.8" height="218" rx="12" fill="#fff" stroke="#15803d" stroke-width="1.5"/>
+  <clipPath id="o02"><rect x="509.6" y="122" width="220.8" height="218" rx="12"/></clipPath>
+  <rect x="509.6" y="122" width="220.8" height="50" fill="#dcfce7" clip-path="url(#o02)"/>
+  <line x1="509.6" y1="172" x2="730.4" y2="172" stroke="#15803d" stroke-opacity=".35"/>
+  <text class="h" style="font-size:16px;fill:#14532d" x="523.6" y="144">Code</text>
+  <text class="ho" style="font-size:11.5px" x="523.6" y="162">what git and the forge hold</text>
+  <rect x="521.6" y="186" width="80.9" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="562.1" y="201">Workspace</text>
+  <rect x="608.5" y="186" width="79.3" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="648.2" y="201">Repository</text>
+  <rect x="521.6" y="214" width="60.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="551.6" y="229">Remote</text>
+  <rect x="587.6" y="214" width="69.2" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="622.2" y="229">Checkout</text>
+  <rect x="521.6" y="242" width="71.4" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="557.3" y="257">Worktree</text>
+  <rect x="599.0" y="242" width="59.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="628.5" y="257">Branch</text>
+  <rect x="521.6" y="270" width="61.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="552.1" y="285">Commit</text>
+  <rect x="588.6" y="270" width="39.4" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="608.3" y="285">Tag</text>
+  <rect x="634.0" y="270" width="59.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="663.5" y="285">Change</text>
+  <rect x="521.6" y="298" width="60.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="551.6" y="313">Review</text>
+  <rect x="748.4" y="122" width="220.8" height="218" rx="12" fill="#fff" stroke="#6d28d9" stroke-width="1.5"/>
+  <clipPath id="o03"><rect x="748.4" y="122" width="220.8" height="218" rx="12"/></clipPath>
+  <rect x="748.4" y="122" width="220.8" height="50" fill="#ede9fe" clip-path="url(#o03)"/>
+  <line x1="748.4" y1="172" x2="969.2" y2="172" stroke="#6d28d9" stroke-opacity=".35"/>
+  <text class="h" style="font-size:16px;fill:#4c1d95" x="762.4" y="144">Work</text>
+  <text class="ho" style="font-size:11.5px" x="762.4" y="162">what is planned and tracked</text>
+  <rect x="760.4" y="186" width="65.6" height="22" rx="11" fill="#ede9fe" stroke="#6d28d9" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#4c1d95" x="793.2" y="201">Tracker</text>
+  <rect x="832.0" y="186" width="47.8" height="22" rx="11" fill="#ede9fe" stroke="#6d28d9" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#4c1d95" x="855.9" y="201">Issue</text>
+  <rect x="885.8" y="186" width="64.8" height="22" rx="11" fill="#ede9fe" stroke="#6d28d9" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#4c1d95" x="918.2" y="201">Mapping</text>
+  <rect x="760.4" y="214" width="65.1" height="22" rx="11" fill="#ede9fe" stroke="#6d28d9" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#4c1d95" x="792.9" y="229">Iteration</text>
+  <rect x="831.5" y="214" width="72.0" height="22" rx="11" fill="#ede9fe" stroke="#6d28d9" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#4c1d95" x="867.5" y="229">Milestone</text>
+  <rect x="760.4" y="242" width="52.5" height="22" rx="11" fill="#ede9fe" stroke="#6d28d9" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#4c1d95" x="786.6" y="257">Board</text>
+  <rect x="818.9" y="242" width="49.5" height="22" rx="11" fill="#ede9fe" stroke="#6d28d9" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#4c1d95" x="843.6" y="257">Label</text>
+  <rect x="987.2" y="122" width="220.8" height="218" rx="12" fill="#fff" stroke="#be123c" stroke-width="1.5"/>
+  <clipPath id="o04"><rect x="987.2" y="122" width="220.8" height="218" rx="12"/></clipPath>
+  <rect x="987.2" y="122" width="220.8" height="50" fill="#ffe4e6" clip-path="url(#o04)"/>
+  <line x1="987.2" y1="172" x2="1208.0" y2="172" stroke="#be123c" stroke-opacity=".35"/>
+  <text class="h" style="font-size:16px;fill:#881337" x="1001.2" y="144">Delivery</text>
+  <text class="ho" style="font-size:11.5px" x="1001.2" y="162">what is built, released, and run</text>
+  <rect x="999.2" y="186" width="63.2" height="22" rx="11" fill="#ffe4e6" stroke="#be123c" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#881337" x="1030.8" y="201">Pipeline</text>
+  <rect x="1068.4" y="186" width="39.4" height="22" rx="11" fill="#ffe4e6" stroke="#be123c" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#881337" x="1088.1" y="201">Run</text>
+  <rect x="1113.8" y="186" width="52.5" height="22" rx="11" fill="#ffe4e6" stroke="#be123c" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#881337" x="1140.1" y="201">Check</text>
+  <rect x="999.2" y="214" width="43.0" height="22" rx="11" fill="#ffe4e6" stroke="#be123c" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#881337" x="1020.7" y="229">Gate</text>
+  <rect x="1048.2" y="214" width="62.6" height="22" rx="11" fill="#ffe4e6" stroke="#be123c" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#881337" x="1079.5" y="229">Release</text>
+  <rect x="1116.8" y="214" width="60.3" height="22" rx="11" fill="#ffe4e6" stroke="#be123c" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#881337" x="1146.9" y="229">Artifact</text>
+  <rect x="999.2" y="242" width="93.6" height="22" rx="11" fill="#ffe4e6" stroke="#be123c" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#881337" x="1046.0" y="257">Artifact store</text>
+  <rect x="1098.8" y="242" width="89.8" height="22" rx="11" fill="#ffe4e6" stroke="#be123c" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#881337" x="1143.7" y="257">Environment</text>
+  <rect x="999.2" y="270" width="83.3" height="22" rx="11" fill="#ffe4e6" stroke="#be123c" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#881337" x="1040.8" y="285">Deployment</text>
+  <rect x="1088.5" y="270" width="56.1" height="22" rx="11" fill="#ffe4e6" stroke="#be123c" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#881337" x="1116.5" y="285">Target</text>
+  <rect x="999.2" y="298" width="46.6" height="22" rx="11" fill="#ffe4e6" stroke="#be123c" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#881337" x="1022.5" y="313">Fleet</text>
+  <rect x="32.0" y="358" width="220.8" height="190" rx="12" fill="#fff" stroke="#0f766e" stroke-width="1.5"/>
+  <clipPath id="o10"><rect x="32.0" y="358" width="220.8" height="190" rx="12"/></clipPath>
+  <rect x="32.0" y="358" width="220.8" height="50" fill="#ccfbf1" clip-path="url(#o10)"/>
+  <line x1="32.0" y1="408" x2="252.8" y2="408" stroke="#0f766e" stroke-opacity=".35"/>
+  <text class="h" style="font-size:16px;fill:#134e4a" x="46.0" y="380">Trust</text>
+  <text class="ho" style="font-size:11.5px" x="46.0" y="398">what shows the work can be trusted</text>
+  <rect x="44.0" y="422" width="69.2" height="22" rx="11" fill="#ccfbf1" stroke="#0f766e" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#134e4a" x="78.6" y="437">Evidence</text>
+  <rect x="119.2" y="422" width="59.7" height="22" rx="11" fill="#ccfbf1" stroke="#0f766e" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#134e4a" x="149.0" y="437">Finding</text>
+  <rect x="44.0" y="450" width="102.5" height="22" rx="11" fill="#ccfbf1" stroke="#0f766e" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#134e4a" x="95.3" y="465">Evidence store</text>
+  <rect x="152.5" y="450" width="53.1" height="22" rx="11" fill="#ccfbf1" stroke="#0f766e" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#134e4a" x="179.1" y="465">Policy</text>
+  <rect x="44.0" y="478" width="43.0" height="22" rx="11" fill="#ccfbf1" stroke="#0f766e" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#134e4a" x="65.5" y="493">Rule</text>
+  <rect x="93.0" y="478" width="59.7" height="22" rx="11" fill="#ccfbf1" stroke="#0f766e" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#134e4a" x="122.8" y="493">Control</text>
+  <rect x="158.6" y="478" width="58.3" height="22" rx="11" fill="#ccfbf1" stroke="#0f766e" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#134e4a" x="187.8" y="493">Waiver</text>
+  <rect x="44.0" y="506" width="69.2" height="22" rx="11" fill="#ccfbf1" stroke="#0f766e" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#134e4a" x="78.6" y="521">Approval</text>
+  <rect x="270.8" y="358" width="220.8" height="190" rx="12" fill="#fff" stroke="#475569" stroke-width="1.5"/>
+  <clipPath id="o11"><rect x="270.8" y="358" width="220.8" height="190" rx="12"/></clipPath>
+  <rect x="270.8" y="358" width="220.8" height="50" fill="#e2e8f0" clip-path="url(#o11)"/>
+  <line x1="270.8" y1="408" x2="491.6" y2="408" stroke="#475569" stroke-opacity=".35"/>
+  <text class="h" style="font-size:16px;fill:#1e293b" x="284.8" y="380">Tools</text>
+  <text class="ho" style="font-size:11.5px" x="284.8" y="398">what runs on a desk and in CI</text>
+  <rect x="282.8" y="422" width="43.0" height="22" rx="11" fill="#e2e8f0" stroke="#475569" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#1e293b" x="304.3" y="437">Tool</text>
+  <rect x="331.8" y="422" width="86.5" height="22" rx="11" fill="#e2e8f0" stroke="#475569" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#1e293b" x="375.0" y="437">Tool catalog</text>
+  <rect x="282.8" y="450" width="72.8" height="22" rx="11" fill="#e2e8f0" stroke="#475569" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#1e293b" x="319.2" y="465">Toolchain</text>
+  <rect x="282.8" y="478" width="138.6" height="22" rx="11" fill="#e2e8f0" stroke="#475569" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#1e293b" x="352.1" y="493">Dependency manager</text>
+  <rect x="509.6" y="358" width="220.8" height="190" rx="12" fill="#fff" stroke="#4338ca" stroke-width="1.5"/>
+  <clipPath id="o12"><rect x="509.6" y="358" width="220.8" height="190" rx="12"/></clipPath>
+  <rect x="509.6" y="358" width="220.8" height="50" fill="#e0e7ff" clip-path="url(#o12)"/>
+  <line x1="509.6" y1="408" x2="730.4" y2="408" stroke="#4338ca" stroke-opacity=".35"/>
+  <text class="h" style="font-size:16px;fill:#312e81" x="523.6" y="380">Configuration</text>
+  <text class="ho" style="font-size:11.5px" x="523.6" y="398">who decides, for which repos</text>
+  <rect x="521.6" y="422" width="56.4" height="22" rx="11" fill="#e0e7ff" stroke="#4338ca" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#312e81" x="549.8" y="437">Owner</text>
+  <rect x="584.0" y="422" width="52.5" height="22" rx="11" fill="#e0e7ff" stroke="#4338ca" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#312e81" x="610.3" y="437">Reach</text>
+  <rect x="642.5" y="422" width="69.8" height="22" rx="11" fill="#e0e7ff" stroke="#4338ca" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#312e81" x="677.4" y="437">Selection</text>
+  <rect x="521.6" y="450" width="56.7" height="22" rx="11" fill="#e0e7ff" stroke="#4338ca" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#312e81" x="549.9" y="465">Setting</text>
+  <rect x="584.3" y="450" width="82.3" height="22" rx="11" fill="#e0e7ff" stroke="#4338ca" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#312e81" x="625.4" y="465">Preference</text>
+  <rect x="521.6" y="478" width="63.0" height="22" rx="11" fill="#e0e7ff" stroke="#4338ca" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#312e81" x="553.1" y="493">Answer</text>
+  <rect x="590.6" y="478" width="79.9" height="22" rx="11" fill="#e0e7ff" stroke="#4338ca" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#312e81" x="630.6" y="493">Local state</text>
+  <rect x="748.4" y="358" width="220.8" height="190" rx="12" fill="#fff" stroke="#be185d" stroke-width="1.5"/>
+  <clipPath id="o13"><rect x="748.4" y="358" width="220.8" height="190" rx="12"/></clipPath>
+  <rect x="748.4" y="358" width="220.8" height="50" fill="#fce7f3" clip-path="url(#o13)"/>
+  <line x1="748.4" y1="408" x2="969.2" y2="408" stroke="#be185d" stroke-opacity=".35"/>
+  <text class="h" style="font-size:16px;fill:#831843" x="762.4" y="380">Conversation</text>
+  <text class="ho" style="font-size:11.5px" x="762.4" y="398">where people talk about the work</text>
+  <rect x="760.4" y="422" width="92.4" height="22" rx="11" fill="#fce7f3" stroke="#be185d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#831843" x="806.6" y="437">Conversation</text>
+  <rect x="858.8" y="422" width="67.8" height="22" rx="11" fill="#fce7f3" stroke="#be185d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#831843" x="892.7" y="437">Message</text>
+  <rect x="760.4" y="450" width="62.6" height="22" rx="11" fill="#fce7f3" stroke="#be185d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#831843" x="791.7" y="465">Channel</text>
+  <rect x="829.0" y="450" width="49.5" height="22" rx="11" fill="#fce7f3" stroke="#be185d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#831843" x="853.8" y="465">Event</text>
+  <rect x="884.5" y="450" width="49.5" height="22" rx="11" fill="#fce7f3" stroke="#be185d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#831843" x="909.3" y="465">Route</text>
+  <rect x="987.2" y="358" width="220.8" height="190" rx="12" fill="#fff" stroke="#4d7c0f" stroke-width="1.5"/>
+  <clipPath id="o14"><rect x="987.2" y="358" width="220.8" height="190" rx="12"/></clipPath>
+  <rect x="987.2" y="358" width="220.8" height="50" fill="#ecfccb" clip-path="url(#o14)"/>
+  <line x1="987.2" y1="408" x2="1208.0" y2="408" stroke="#4d7c0f" stroke-opacity=".35"/>
+  <text class="h" style="font-size:16px;fill:#365314" x="1001.2" y="380">kit's content</text>
+  <text class="ho" style="font-size:11.5px" x="1001.2" y="398">what a release delivers</text>
+  <rect x="999.2" y="422" width="62.6" height="22" rx="11" fill="#ecfccb" stroke="#4d7c0f" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#365314" x="1030.5" y="437">Release</text>
+  <rect x="1067.8" y="422" width="59.0" height="22" rx="11" fill="#ecfccb" stroke="#4d7c0f" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#365314" x="1097.3" y="437">Source</text>
+  <rect x="999.2" y="450" width="65.6" height="22" rx="11" fill="#ecfccb" stroke="#4d7c0f" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#365314" x="1032.0" y="465">Package</text>
+  <rect x="1070.8" y="450" width="56.1" height="22" rx="11" fill="#ecfccb" stroke="#4d7c0f" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#365314" x="1098.8" y="465">Bundle</text>
+  <rect x="1132.9" y="450" width="43.0" height="22" rx="11" fill="#ecfccb" stroke="#4d7c0f" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#365314" x="1154.3" y="465">Kind</text>
+  <rect x="999.2" y="478" width="63.9" height="22" rx="11" fill="#ecfccb" stroke="#4d7c0f" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#365314" x="1031.1" y="493">Rule file</text>
+  <rect x="1069.1" y="478" width="46.6" height="22" rx="11" fill="#ecfccb" stroke="#4d7c0f" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#365314" x="1092.3" y="493">Style</text>
+  <rect x="1121.6" y="478" width="70.2" height="22" rx="11" fill="#ecfccb" stroke="#4d7c0f" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#365314" x="1156.7" y="493">Template</text>
+  <rect x="999.2" y="506" width="56.1" height="22" rx="11" fill="#ecfccb" stroke="#4d7c0f" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#365314" x="1027.2" y="521">Region</text>
+  <rect x="32.0" y="576.0" width="1176.0" height="130.0" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="sec" x="48.0" y="600.0">PROVENANCE: THE CHAIN THAT RUNS THROUGH THE DOMAINS, FROM AN ISSUE TO WHERE ITS CODE RUNS</text>
+  <rect x="48.0" y="614" width="87.6" height="50" rx="9" fill="#ede9fe" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#4c1d95" x="91.8" y="643.5">Issue</text>
+  <path class="edge" style="stroke-width:1.4" d="M 138.6 639.0 H 150.6"/>
+  <rect x="153.6" y="614" width="87.6" height="50" rx="9" fill="#dcfce7" stroke="#15803d" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#14532d" x="197.5" y="643.5">Branch</text>
+  <path class="edge" style="stroke-width:1.4" d="M 244.3 639.0 H 256.3"/>
+  <rect x="259.3" y="614" width="87.6" height="50" rx="9" fill="#dcfce7" stroke="#15803d" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#14532d" x="303.1" y="636.0">Signed</text>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#14532d" x="303.1" y="651.0">commits</text>
+  <path class="edge" style="stroke-width:1.4" d="M 349.9 639.0 H 361.9"/>
+  <rect x="364.9" y="614" width="87.6" height="50" rx="9" fill="#dcfce7" stroke="#15803d" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#14532d" x="408.7" y="643.5">Change</text>
+  <path class="edge" style="stroke-width:1.4" d="M 455.5 639.0 H 467.5"/>
+  <rect x="470.5" y="614" width="87.6" height="50" rx="9" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#134e4a" x="514.4" y="636.0">Reviews,</text>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#134e4a" x="514.4" y="651.0">approvals</text>
+  <path class="edge" style="stroke-width:1.4" d="M 561.2 639.0 H 573.2"/>
+  <rect x="576.2" y="614" width="87.6" height="50" rx="9" fill="#ffe4e6" stroke="#be123c" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#881337" x="620.0" y="643.5">Run</text>
+  <path class="edge" style="stroke-width:1.4" d="M 666.8 639.0 H 678.8"/>
+  <rect x="681.8" y="614" width="87.6" height="50" rx="9" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#134e4a" x="725.6" y="643.5">Evidence</text>
+  <path class="edge" style="stroke-width:1.4" d="M 772.5 639.0 H 784.5"/>
+  <rect x="787.5" y="614" width="87.6" height="50" rx="9" fill="#ffe4e6" stroke="#be123c" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#881337" x="831.3" y="643.5">Artifact</text>
+  <path class="edge" style="stroke-width:1.4" d="M 878.1 639.0 H 890.1"/>
+  <rect x="893.1" y="614" width="87.6" height="50" rx="9" fill="#ffe4e6" stroke="#be123c" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#881337" x="936.9" y="643.5">Release</text>
+  <path class="edge" style="stroke-width:1.4" d="M 983.7 639.0 H 995.7"/>
+  <rect x="998.7" y="614" width="87.6" height="50" rx="9" fill="#ffe4e6" stroke="#be123c" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#881337" x="1042.5" y="643.5">Deployment</text>
+  <path class="edge" style="stroke-width:1.4" d="M 1089.4 639.0 H 1101.4"/>
+  <rect x="1104.4" y="614" width="87.6" height="50" rx="9" fill="#ffe4e6" stroke="#be123c" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#881337" x="1148.2" y="643.5">Target</text>
+  <text class="ho" x="48" y="694.0">Each pill takes its domain's color. Release is two entities: a version published from a tag (Delivery), and a kit version, one tarball (kit's content).</text>
+</svg>

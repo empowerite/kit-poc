@@ -76,6 +76,8 @@ a release, or a deployment. Labels, conversations, events, and evidence are all 
 | [Conversation](#conversation) | where people talk about the work | Conversation, Message, Channel, Event, Route |
 | [kit's content](#kits-content) | what a release delivers | Release, Source, Package, Bundle, Kind, Rule file, Style, Template, Region |
 
+![kit's entities: ten domains and the provenance chain that runs through them](../../entities/overview.svg)
+
 ```mermaid
 flowchart LR
   Account --> Person
@@ -119,6 +121,8 @@ Thinking the whole model through leaves five ideas that each replace several spe
 
 An actor is anything that acts: it opens an issue, pushes a commit, approves a change, or runs a deployment.
 
+![Actors: an account belongs to a person, a person is a member of a team, a bot acts through an account, an agent acts for a person, and a role is granted to a team or a person](../../entities/actors.svg)
+
 | Entity | What it is | Holds | Today |
 | --- | --- | --- | --- |
 | Person | a human, known by one handle across every service | handle, display name; accounts come from the directory | not modelled; each service's login stands in |
@@ -159,6 +163,8 @@ A service is one system kit talks to: github.com, a self-hosted GitLab, an Azure
 workspace, a container registry. A capability is a job a service does, and each capability is a seam. A binding says
 which service fills a capability for a repository. A provider is kit's code, or an organization's command, that speaks
 to one kind of service ([architecture.md](../../architecture.md#code-forges-seams-and-providers)).
+
+![Platform: a provider speaks to a service, a service fills a capability, a binding chooses the service for a capability, and what each service fills today](../../entities/platform.svg)
 
 | Capability | What the service does | Seam today |
 | --- | --- | --- |
@@ -210,6 +216,8 @@ bind:
 These entities exist in kit today, through git and the forge seam, and keep their meaning. See
 [workspaces.md](../../workspaces.md).
 
+![Code: a workspace contains repositories, a repository has remotes and checkouts, a checkout holds worktrees on branches, a branch has commits and is opened as a change, a review is on a change, and a tag points at a commit](../../entities/code.svg)
+
 | Entity | What it is | Reference | Today |
 | --- | --- | --- | --- |
 | Workspace | one repository, or a named group of them | its name | `kit workspaces` |
@@ -230,6 +238,8 @@ A signed commit proves who wrote it, not that it was checked: commit signing sta
 
 A tracker is a service filling the tracking capability; [trackers.md](../../trackers.md) holds what exists. An issue
 is one item in a tracker, named by a reference whose prefix picks the tracker.
+
+![Work: a tracker holds issues, a mapping maps their work fields, and iterations, milestones, boards, and labels are set on an issue](../../entities/work.svg)
 
 kit reads and writes issues through a fixed set of work fields. Each tracker holds some of them natively. The rest
 it holds by convention, which a mapping declares.
@@ -277,6 +287,8 @@ subject; see [Conversation](#conversation).
 
 ## Delivery
 
+![Delivery: a gate is run by a pipeline, a pipeline runs as a run that reports checks and builds an artifact, a release publishes artifacts, and a deployment puts an artifact in an environment whose targets make a fleet](../../entities/delivery.svg)
+
 | Entity | What it is | Holds | Today |
 | --- | --- | --- | --- |
 | Pipeline | a CI or CD definition in the repository | its file, the events that start it | the delivered `kit-ci.yml` |
@@ -301,6 +313,8 @@ subject; see [Conversation](#conversation).
 
 Evidence is made only in CI, by a run whose identity the CI service vouches for, and it leaves the platform that
 made it. A desk runs the same checks and gets findings: the same output, advisory, unsigned, never evidence.
+
+![Trust: a policy holds rules, a waiver excuses a control, evidence satisfies a control and is kept in an evidence store, a finding is its unsigned twin, and the chain of provenance from an issue to a target](../../entities/trust.svg)
 
 | Entity | What it is | Holds |
 | --- | --- | --- |
@@ -336,6 +350,8 @@ A tool is a program the work runs on a desk or in CI: `gh`, `jq`, `opa`, `markdo
 and pins tools, and a dependency manager pins a language's packages on top; both exist, in
 [toolchains.md](../../toolchains.md). What is new is the catalog of approved tools.
 
+![Tools: a catalog approves tools, a toolchain installs them, and a dependency manager runs on a toolchain](../../entities/tools.svg)
+
 | Entity | What it is | Holds | Today |
 | --- | --- | --- | --- |
 | Tool | a program the work runs | name, version, where it resolves | `kit tools` |
@@ -351,6 +367,8 @@ and pins tools, and a dependency manager pins a language's packages on top; both
 ## Configuration
 
 A value has an owner, who decides it, and a reach, the repositories it applies to.
+
+![Configuration: who decides a value, by owner and by reach, and what a setting, a preference, an answer, and local state are](../../entities/configuration.svg)
 
 | Owner | all | selected | one repository |
 | --- | --- | --- | --- |
@@ -388,6 +406,8 @@ selected:
 
 A conversation is a thread about a subject, whose messages live in one or more services: the comments on an issue or
 a change in the forge, and a thread in Slack. Either side can answer, and kit carries each message to the other.
+
+![Conversation: an event about a subject goes by a route to a channel, which holds conversations of messages mirrored across the forge and Slack](../../entities/conversation.svg)
 
 | Entity | What it is | Holds |
 | --- | --- | --- |
@@ -431,6 +451,8 @@ what it reports from a desk-like process is a finding.
 
 These entities exist and keep their meaning; [packages.md](../../packages.md) and
 [architecture.md](../../architecture.md) define them.
+
+![kit's content: a source pins a release, a release ships packages, a bundle bundles packages, a package delivers rule files, styles, and templates, each for a kind, and a region is part of a file kit owns](../../entities/content.svg)
 
 | Entity | What it is |
 | --- | --- |
