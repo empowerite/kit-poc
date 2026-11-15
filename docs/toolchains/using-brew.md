@@ -52,7 +52,7 @@ runs anything in it and which installing kit gives none of; see [install.md](../
 
 The two formulae install the same command, so only one is installed at a time. `kit` names the newest stable release
 and `kit-rc` the newest release candidate. Until the first stable release is out, there is only `kit-rc`, which names
-`0.1.0-rc.7`; the tap's formulae are updated by hand until a release of kit rewrites them.
+`0.1.0-rc.7`; each release of kit writes its formula into the tap.
 
 ## brew fills in
 

@@ -1,0 +1,30 @@
+# {{name}} - {{about}}
+#
+# Written by `bin/release tap` of https://github.com/empowerite/kit when a release is published; do not edit it by
+# hand, since the next release writes it again. Change projects/homebrew/formula.rb.in in kit instead.
+class {{class}} < Formula
+  desc "Rules for AI coding agents, and checks that they followed them"
+  homepage "https://github.com/empowerite/kit"
+  url "https://github.com/empowerite/kit/releases/download/release/{{version}}/kit-{{version}}.tar.gz"
+  sha256 "{{sha256}}"
+  license "MIT"
+
+  # What kit stands on before it chooses a toolchain. git is not here: Homebrew needs it already.
+  depends_on "bash"
+  depends_on "jq"
+  depends_on "yq"
+
+  conflicts_with "{{other}}", because: "both install kit"
+
+  def install
+    libexec.install Dir["*"]
+    # The release carries kittui for four platforms; keep this machine's, which is the one kit tui picks.
+    keep = "kittui-#{OS.mac? ? "darwin" : "linux"}-#{Hardware::CPU.arm? ? "arm64" : "amd64"}"
+    (libexec/"libexec").glob("kittui-*").each { |f| f.unlink if f.basename.to_s != keep }
+    bin.install_symlink libexec/"bin/kit"
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/kit version")
+  end
+end

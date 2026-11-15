@@ -170,7 +170,7 @@ kittui's tests are Go tests; see [Testing](projects/tui/README.md#testing) in it
 `kit release <version> --dry-run` checks the rules and tags nothing. It prints the commit, the tag, and what the
 push would send. `kit flow releases` lists what the code forge published.
 
-The release workflow runs three commands:
+The release workflow runs four commands:
 
 1. `bin/release verify` rejects a tag that is not `release/<version>`, and a release tag on a commit not on `main`.
 2. `bin/release publish` packs `kit/`, a `version` file, and the `kittui` binaries into `kit-<version>.tar.gz`. It
@@ -178,6 +178,12 @@ The release workflow runs three commands:
    It publishes the tarball with a `.sha256` file that holds the tarball's digest.
 3. `bin/release fetch` downloads the published release as any machine does, through the loader, checks it against
    that digest, and runs `kit version` in it. A release that cannot be fetched fails the run.
+4. `bin/release tap` writes the release into the Homebrew tap,
+   [empowerite/homebrew-tap](https://github.com/empowerite/homebrew-tap), from `projects/homebrew/formula.rb.in`: a
+   release becomes `Formula/kit.rb`, which follows stable, and a pre-release `Formula/kit-rc.rb`, which follows release
+   candidates. It opens a pull request on the tap and squash-merges it, so GitHub signs the commit that lands, as the
+   tap's rules require. The workflow's own token cannot write to another repository, so the step needs the secret
+   `HOMEBREW_TAP_TOKEN`: a token for the tap with contents and pull requests write.
 
 `bin/release pack` builds the same tarball locally, from what the tag's commit holds and not the files on disk, so
 the tag comes first. `bin/release publish` creates the release for a tag that exists and never makes one. It
