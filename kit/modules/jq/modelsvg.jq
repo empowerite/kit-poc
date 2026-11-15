@@ -400,9 +400,25 @@ def ports($cards):
 # track_gap is how far apart two tracks in one gap or gutter are, so two lines never merge into one band.
 def track_gap: 6;
 
-# gap_size($n) is the height of a gap between rows that carries $n tracks: 56, or more, so the tracks fit track_gap
-# apart with 22 above and under them, where the nearest row of labels sits.
-def gap_size($n): [row_gap, 44 + track_gap * ($n - 1)] | max;
+# gap_bands($n; $over; $under) is a gap between rows that carries $n tracks, with $over and $under, the bands above and
+# under the tracks where the labels of the card over the gap and of the card under it sit: {h, mid}. Its height is 56,
+# or more, so the tracks fit track_gap apart around mid, between the two bands.
+def gap_bands($n; $over; $under):
+  ([row_gap, $over + $under + track_gap * ([$n - 1, 0] | max)] | max) as $h
+  | {h: $h, mid: ($over + ($h - $over - $under) / 2)};
+
+# label_band($widths) is the band a row of labels by one card edge needs: 22 holds one row, and 34 holds a second,
+# which an edge needs when its labels, $widths, with 10 between, are wider than the card.
+def label_band($widths): if ($widths | map(. + 10) | add // 0) > card_w then 34 else 22 end;
+
+# edge_labels($cells) are the widths of the labels by each card edge that opens into a gap, for the planned lines given
+# as input: {"<gap> <col> <side>": [width]}.
+def edge_labels($cells):
+  [.[] as $l | $l.labels[]
+    | (if .role == "a" then {gap: $l.ga, card: $l.a, side: $l.sa} else {gap: $l.gb, card: $l.b, side: $l.sb} end) as $at
+    | select($at.gap != null)
+    | {key: "\($at.gap) \($cells[$at.card].col) \($at.side)", w: label_width}]
+  | group_by(.key) | map({key: .[0].key, value: map(.w)}) | from_entries;
 
 # gutter_band($n; $reach) is the gutter between columns that carries $n tracks, right of a column whose loops and stubs
 # reach $reach: {w, lo, hi}, its width and the stretch its tracks are spread in. The tracks keep clear of the loops,
@@ -434,7 +450,7 @@ def tracks($layout):
       | .key as $i
       | .value.gap as $g
       | $layout.gaps[$g] as $gap
-      | {key: "\(.value.key) \($g)", value: track_at($n; $i; $gap.y + $gap.h / 2)}),
+      | {key: "\(.value.key) \($g)", value: track_at($n; $i; $gap.y + $gap.mid)}),
     ([$plans[] | select(.gutter != null) | {gutter, key}] | group_by(.gutter)[] | sort_by(.key)
       | length as $n | to_entries[]
       | .key as $i
@@ -442,32 +458,51 @@ def tracks($layout):
       | {key: "\(.value.key) gutter", value: track_at($n; $i; $gutter.x + ($gutter.lo + $gutter.hi) / 2)})]
   | from_entries;
 
+# side_gap is how far apart the ends on the right side of a card are at least, so their labels stack clear of each
+# other.
+def side_gap: 20;
+
+# side_heights is how tall each card must be to hold the ends on its right side side_gap apart, for the planned lines
+# given as input: {Entity: height}, 30 for the band and side_gap above, between, and under the ends. A loop has two
+# ends there and a stub one.
+def side_heights:
+  [.[] | select(.sa == "right") | {card: .a, n: (if .kind == "loop" then 2 else 1 end)}]
+  | group_by(.card) | map({key: .[0].card, value: (30 + side_gap * ((map(.n) | add) + 1))}) | from_entries;
+
 # layout($name) is where each card of a domain goes, and the gaps and gutters between them: {cards: {Entity: {row, col,
 # x, y, w, h, card}}, gaps: [{y, h}], gutters: {"<k>": {x, w, lo, hi}}, plans, width, intro, top, bottom}. The lines
 # are planned on the grid first, so each gap and gutter is sized for the tracks, loops, and stubs it holds, and the
-# columns and rows after a wide one move along. Gap g lies under row g, and gutter k right of column k - 1. The first
-# row starts under the title and the intro, wrapped to the width of the cards.
+# columns and rows after a wide one move along. A row is as tall as its tallest card, or as side_heights asks of a card
+# in it, whichever is more, and the plan does not depend on it. Gap g lies under row g, and gutter k right of column
+# k - 1. The first row starts under the title and the intro, wrapped to the width of the cards.
 def layout($name):
   . as $model
   | grid($name) as $g
   | ($model | lines_of($g.names) | plans($g.cells)) as $plans
   | ($plans | counts) as $n
   | ($plans | reach_right($g.cells)) as $reach
+  | ($plans | side_heights) as $tall
+  | [range(0; $g.nrows) as $r
+      | [$g.heights[$r], ($g.names[] | select($g.cells[.].row == $r) | $tall[.] // 0)] | max] as $heights
   | [range(1; $g.ncols + 1) as $k | gutter_band($n.gutters["\($k)"] // 0; $reach["\($k - 1)"] // 0)] as $bands
   | [foreach range(0; $g.ncols) as $c (margin; if $c == 0 then . else . + card_w + $bands[$c - 1].w end)] as $xs
   | ([(if $g.ncols == 0 then 0 else $xs[-1] + card_w - margin end), 2 * card_w + col_gap] | max) as $width
   | ($model.domains[$name].intro | lines(13.5; $width; false)) as $intro
   | (44 + 14 + ($intro | length) * 19 + 26) as $top
-  | [range(0; $g.nrows) as $r | gap_size($n.gaps["\($r)"] // 0)] as $gh
-  | [foreach range(0; $g.nrows) as $r ($top; if $r == 0 then . else . + $g.heights[$r - 1] + $gh[$r - 1] end)] as $ys
+  | ($plans | edge_labels($g.cells)) as $edges
+  | [range(0; $g.nrows) as $r
+      | gap_bands($n.gaps["\($r)"] // 0;
+          ([range(0; $g.ncols) as $c | label_band($edges["\($r) \($c) bottom"] // [])] | max // 22);
+          ([range(0; $g.ncols) as $c | label_band($edges["\($r) \($c) top"] // [])] | max // 22))] as $gh
+  | [foreach range(0; $g.nrows) as $r ($top; if $r == 0 then . else . + $heights[$r - 1] + $gh[$r - 1].h end)] as $ys
   | {width: $width, intro: $intro, top: $top,
-     bottom: (if $g.nrows == 0 then $top - row_gap else $ys[-1] + $g.heights[-1] end),
-     gaps: [range(0; $g.nrows) as $r | {y: ($ys[$r] + $g.heights[$r]), h: $gh[$r]}],
+     bottom: (if $g.nrows == 0 then $top - row_gap else $ys[-1] + $heights[-1] end),
+     gaps: [range(0; $g.nrows) as $r | {y: ($ys[$r] + $heights[$r])} + $gh[$r]],
      gutters: ([range(1; $g.ncols + 1) as $k | {key: "\($k)", value: ({x: ($xs[$k - 1] + card_w)} + $bands[$k - 1])}]
        | from_entries),
      cards: (reduce $g.names[] as $e ({};
        $g.cells[$e] as $c
-       | .[$e] = {row: $c.row, col: $c.col, x: $xs[$c.col], y: $ys[$c.row], w: card_w, h: $g.heights[$c.row],
+       | .[$e] = {row: $c.row, col: $c.col, x: $xs[$c.col], y: $ys[$c.row], w: card_w, h: $heights[$c.row],
            card: $g.cards[$e]})),
      plans: $plans};
 
@@ -492,23 +527,40 @@ def points($ports; $tracks):
       | [[$pa[0], $pa[1]], [$pa[0], $ya], [$x, $ya], [$x, $yb], [$pb[0], $yb], [$pb[0], $pb[1]]]
     end;
 
-# candidates($x; $y; $side; $leg) are the places a label can take by the end of a line at ($x, $y), nearest first. On
-# the right side, ($x, $y) is past the tip of a stub or the bend of a loop, and the label goes 6 further, level with it,
-# then over and under it. Elsewhere, the label goes beside the leg the line runs straight from its end, $leg long, a row
-# of text at a time, under a bottom end and over a top end: right of the leg, left of it, on it, then 12 and 24 further
-# right and left. The row nearest the end is always a candidate, and the rows past the leg come last.
-def candidates($x; $y; $side; $leg):
+# candidates($x; $y; $side; $leg; $wide) are the places a label can take by the end of a line at ($x, $y), nearest
+# first. On the right side, ($x, $y) is past the tip of a stub or the bend of a loop, and the label goes 6 further,
+# level with it, then over and under it. Elsewhere, the label goes beside the leg the line runs straight from its end,
+# $leg long, a row of text at a time, under a bottom end and over a top end: right of the leg, left of it, then 12 and
+# 24 further right and left; the rows past the leg come after. Last, on its own leg, in a row at least 12 from the end,
+# so the text never covers the line's own arrowhead. With $wide, the places are the wider search place takes when none
+# of those is clear: in 6 steps along the side, up to 36 on the right side and 48 elsewhere.
+def candidates($x; $y; $side; $leg; $wide):
   if $side == "right" then
-    {x: ($x + 6), y: ($y + 4), anchor: "start"}, {x: ($x + 6), y: ($y - 6), anchor: "start"},
-    {x: ($x + 6), y: ($y + 14), anchor: "start"}
+    if $wide then
+      (range(1; 7) as $k | {x: ($x + 6), y: ($y + 4 + 6 * $k)}, {x: ($x + 6), y: ($y + 4 - 6 * $k)}),
+      (range(1; 7) as $k | {x: ($x + 6 + 6 * $k), y: ($y + 4)})
+      | . + {anchor: "start"}
+    else
+      {x: ($x + 6), y: ($y + 4), anchor: "start"}, {x: ($x + 6), y: ($y - 6), anchor: "start"},
+      {x: ($x + 6), y: ($y + 14), anchor: "start"}
+    end
   else
-    ([range(0; 8) | select(. == 0 or 13 + . * 12 + 3 <= $leg)] as $beside
+    [([range(0; 8) | select(. == 0 or 13 + . * 12 + 3 <= $leg)] as $beside
       | $beside[], (range(0; 8) | select(IN($beside[]) | not)))
-    | (if $side == "top" then -5 - . * 12 else 13 + . * 12 end) as $dy
-    | {x: ($x + 5), y: ($y + $dy), anchor: "start"}, {x: ($x - 5), y: ($y + $dy), anchor: "end"},
-      {x: $x, y: ($y + $dy), anchor: "middle"},
-      ((12, 24) as $more
-        | {x: ($x + 5 + $more), y: ($y + $dy), anchor: "start"}, {x: ($x - 5 - $more), y: ($y + $dy), anchor: "end"})
+      | if $side == "top" then -5 - . * 12 else 13 + . * 12 end] as $rows
+    | if $wide then
+        $rows[] as $dy
+        | range(1; 9) as $k
+        | {x: ($x + 5 + 6 * $k), y: ($y + $dy), anchor: "start"}, {x: ($x - 5 - 6 * $k), y: ($y + $dy), anchor: "end"}
+      else
+        ($rows[] as $dy
+          | {x: ($x + 5), y: ($y + $dy), anchor: "start"}, {x: ($x - 5), y: ($y + $dy), anchor: "end"},
+            ((12, 24) as $more
+              | {x: ($x + 5 + $more), y: ($y + $dy), anchor: "start"},
+                {x: ($x - 5 - $more), y: ($y + $dy), anchor: "end"})),
+        ($rows[] | select(if $side == "top" then . <= -17 else . >= 25 end)
+          | {x: $x, y: ($y + .), anchor: "middle"})
+      end
   end;
 
 # box($w) is the box [x0, y0, x1, y1] the letters of a label $w wide cover at its place: from the cap height to the
@@ -523,11 +575,23 @@ def overlaps($a; $b): $a[0] < $b[2] and $b[0] < $a[2] and $a[1] < $b[3] and $b[1
 # label_reach is how far the text of a label may be from the end of its line, in x and in y, so it reads as that end's.
 def label_reach: 40;
 
+# cost($walls; $placed; $segments; $key) is what a candidate place for a label of the line $key costs, given as input:
+# 1000 for each card, label placed before it, or segment of another line within 3 that it covers, and for reaching
+# left of the diagram; 3 for each segment of its own line it crosses.
+def cost($walls; $placed; $segments; $key):
+  .box as $b
+  | 1000 * ([$walls[], ($placed[].box | [.[0] - 6, .[1], .[2] + 6, .[3]]) | select(overlaps(.; $b))] | length)
+    + (if $b[0] < 4 then 1000 else 0 end)
+    + 1000 * ([$segments[] | select(.key != $key) | .box | [.[0] - 3, .[1] - 3, .[2] + 3, .[3] + 3]
+      | select(overlaps(.; $b))] | length)
+    + 3 * ([$segments[] | select(.key == $key) | .box | [.[0] - 1, .[1] - 1, .[2] + 1, .[3] + 1]
+      | select(overlaps(.; $b))] | length);
+
 # place($lines; $ports; $cards; $paths) are the labels of the lines, in the lines' order: {key, role, at, text, far, x,
-# y, anchor, box}, where at is the entity at the label's end. The widest is placed first. Each takes the candidate
-# within label_reach of its end that costs least. A card, a label placed before it, or another line within 3 that it
-# covers costs 1000, as does reaching left of the diagram. Its own line crossed costs 3. Each candidate costs one more
-# than the one before it, so the nearest wins a tie.
+# y, anchor, box, clear}, where at is the entity at the label's end. The widest is placed first. Each takes, among its
+# candidates within label_reach of its end, the one whose cost plus its rank is least, so the nearest wins a tie. When
+# none costs less than 1000, it searches wider before it takes the cheapest; clear is false when even that one costs
+# 1000 or more.
 def place($lines; $ports; $cards; $paths):
   [$cards[] | [.x, .y, .x + .w, .y + .h]] as $walls
   | [$paths[] as $p | $p.points | range(1; length) as $i | [.[$i - 1], .[$i]]
@@ -541,33 +605,32 @@ def place($lines; $ports; $cards; $paths):
     | $label.w as $w
     | ($paths[] | select(.key == $label.key) | .points | if $label.role == "a" then . else reverse end) as $route
     | ($route[0][1] - $route[1][1] | fabs) as $leg
+    | $route[0] as $end
     | (if $label.port[2] == "right"
         then $label.port[0] + (if $label.kind == "stub" then stub_out else loop_out end) else $label.port[0] end) as $x
-    | [candidates($x; $label.port[1]; $label.port[2]; $leg),
+    # near($all) keeps the places within label_reach of the end, or the first when none is.
+    | def near($all):
+        [$all[] | {x: (.x | tenth), y: (.y | tenth), anchor} | .box = (box($w) | map(tenth))] as $boxed
+        | [$boxed[] | .box as $b
+            | select(([0, $b[0] - $end[0], $end[0] - $b[2]] | max) <= label_reach
+              and ([0, $b[1] - $end[1], $end[1] - $b[3]] | max) <= label_reach)]
+        | if length == 0 then [$boxed[0]] else . end;
+      # best($options) is the cheapest of $options: {cost, rank, at}.
+      def best($options):
+        [$options | to_entries[]
+          | {rank: .key, cost: (.value | cost($walls; $placed; $segments; $label.key)), at: .value}]
+        | map(.cost += .rank) | min_by([.cost, .rank]);
+      near([candidates($x; $label.port[1]; $label.port[2]; $leg; false),
         (if ($label.port[2] == "top" or $label.port[2] == "bottom") and ($route | length) >= 3 then
           (if $route[2][0] > $route[1][0] then 1 else -1 end) as $d
           | (-4, 12) as $dy
           | {x: ($route[1][0] + 5 * $d), y: ($route[1][1] + $dy), anchor: (if $d > 0 then "start" else "end" end)}
-        else empty end)
-        | {x: (.x | tenth), y: (.y | tenth), anchor} | .box = (box($w) | map(tenth))] as $all
-    | $route[0] as $end
-    | ([$all[] | .box as $b
-        | select(([0, $b[0] - $end[0], $end[0] - $b[2]] | max) <= label_reach
-          and ([0, $b[1] - $end[1], $end[1] - $b[3]] | max) <= label_reach)]
-      | if length == 0 then [$all[0]] else . end) as $options
-    | ([$options | to_entries[] | .key as $rank | .value.box as $b
-        | {rank: $rank, cost: ($rank
-            + 1000 * ([$walls[], ($placed[].box | [.[0] - 6, .[1], .[2] + 6, .[3]]) | select(overlaps(.; $b))]
-              | length)
-            + (if $b[0] < 4 then 1000 else 0 end)
-            + 1000 * ([$segments[] | select(.key != $label.key) | .box | [.[0] - 3, .[1] - 3, .[2] + 3, .[3] + 3]
-              | select(overlaps(.; $b))] | length)
-            + 3 * ([$segments[] | select(.key == $label.key) | .box | [.[0] - 1, .[1] - 1, .[2] + 1, .[3] + 1]
-              | select(overlaps(.; $b))] | length)),
-           at: .value}]
-      | min_by([.cost, .rank]).at) as $at
+        else empty end)]) as $first
+    | best($first) as $pick
+    | (if $pick.cost - $pick.rank < 1000 then $pick
+      else best($first + near([candidates($x; $label.port[1]; $label.port[2]; $leg; true)])) end) as $pick
     | . + [{order: $label.order, key: $label.key, role: $label.role, at: $label.at, text: $label.text,
-        far: $label.far} + $at])
+        far: $label.far} + $pick.at + {clear: ($pick.cost - $pick.rank < 1000)}])
   | sort_by(.order) | map(del(.order));
 
 # routes($layout) are the lines of a domain laid out as $layout: {paths: [{key, kind, a, b, class, points}], labels}.
@@ -697,8 +760,11 @@ def legend($right):
   + "<text class=\"ho\" x=\"16\" y=\"3.5\" style=\"font-size:11.5px\">held by kit</text>" + dot(112; 0; false)
   + "<text class=\"ho\" x=\"123\" y=\"3.5\" style=\"font-size:11.5px\">not held yet</text></g>";
 
-# domain($name) is the diagram of a domain, as SVG text: a card for each of its entities, where layout puts it.
-def domain($name):
+# render($name) is the diagram of a domain and what it could not keep clear: {svg, crowded}. svg is the SVG text, a
+# card for each of the domain's entities where layout puts it, with every line and label. crowded are the names,
+# sorted, of the entities with a label that place could not keep clear of the cards, the other labels, and the other
+# lines.
+def render($name):
   . as $model
   | layout($name) as $l
   | colour($name) as $colour
@@ -715,7 +781,10 @@ def domain($name):
      ($names[] as $n | draw_card($l.cards[$n]; $colour)),
      ($r.labels[] | draw_label),
      "</svg>"]
-  | join("\n");
+  | {svg: join("\n"), crowded: ([$r.labels[] | select(.clear | not) | .at] | unique)};
+
+# domain($name) is the diagram of a domain, as SVG text.
+def domain($name): render($name).svg;
 
 # panels is where each domain's panel of the overview goes, {domain: {row, x, y, w, h, title, intro, pills}}: five
 # to a row, by name, each as tall as the tallest of its row. A pill is an entity's name, wrapped into rows across the

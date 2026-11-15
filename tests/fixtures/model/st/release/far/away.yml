@@ -1,0 +1,4 @@
+# Another domain's entity, which a relation of S goes to.
+entity: Away
+layer: logical
+means: away

@@ -326,7 +326,7 @@ setup() {
   fresh-repo
   real=$(command -v jq)
   mkdir "${BATS_TEST_TMPDIR}/fake"
-  printf '#!/usr/bin/env bash\nfor a in "$@"; do [[ "$a" != *modelsvg::domain* ]] || { echo "jq: error: boom" >&2; exit 5; }; done\nexec %q "$@"\n' \
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do [[ "$a" != *modelsvg::render* ]] || { echo "jq: error: boom" >&2; exit 5; }; done\nexec %q "$@"\n' \
     "${real}" > "${BATS_TEST_TMPDIR}/fake/jq"
   chmod +x "${BATS_TEST_TMPDIR}/fake/jq"
   PATH="${BATS_TEST_TMPDIR}/fake:${PATH}" run kit model "--release=${fixtures}/svg/release" svg --domain=org
@@ -353,4 +353,26 @@ setup() {
   chmod +x "${BATS_TEST_TMPDIR}/fake/jq"
   PATH="${BATS_TEST_TMPDIR}/fake:${PATH}" kit model "--release=${fixtures}/lab/release" svg --domain=lab > lab.svg
   cmp lab.svg "${fixtures}/lab/lab.svg"
+}
+
+@test "kit model svg names on stderr an entity whose labels it cannot keep clear, keeps them out of the SVG, and exits 0" {
+  fresh-repo
+  mkdir -p empty .kit/model/crowd
+  {
+    printf 'entity: A\nlayer: logical\nmeans: thirty relations to B\nrelations:\n'
+    for i in $(seq 1 30)
+    do
+      printf '  toward%s: {to: B, derived: x}\n' "${i}"
+    done
+  } > .kit/model/crowd/a.yml
+  printf 'entity: B\nlayer: logical\nmeans: the end of thirty lines\n' > .kit/model/crowd/b.yml
+  run --separate-stderr kit model --release=empty svg --domain=crowd
+  [ "$status" -eq 0 ]
+  [[ "${stderr}" == *"the labels of B could not all be kept clear"* ]]
+  [ "$(grep -c . <<<"${stderr}")" -eq 1 ]
+  [[ "${lines[0]}" == '<svg xmlns='* ]]
+  [[ "$output" != *"could not"* ]]
+  printf '%s\n' "$output" > out.svg
+  yq -p=xml . < out.svg > /dev/null
+  [ "$(grep -c '<path class="edge' out.svg)" -eq 30 ]
 }

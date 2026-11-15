@@ -1,0 +1,13 @@
+# Seven derived relations down the column, and a relation that is its own inverse.
+entity: P0
+layer: logical
+means: entity P0
+relations:
+  to2: {to: P2, derived: x}
+  to3: {to: P3, derived: x}
+  to4: {to: P4, derived: x}
+  to5: {to: P5, derived: x}
+  to6: {to: P6, derived: x}
+  to7: {to: P7, derived: x}
+  to8: {to: P8, derived: x}
+  selfish: {to: P0, arity: many, inverse: P0.selfish}

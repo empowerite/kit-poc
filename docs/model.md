@@ -216,13 +216,23 @@ Each line has a track of its own in each gap and gutter, and each end has a poin
 two lines share a track or an end.
 
 The lines are planned on the grid of cards before anything has a size, so the plan says how many tracks each gap and
-gutter carries. Tracks are 6 apart. A gap is 56 high, or higher when its tracks need it, with 22 above and under them
-for the labels. A gutter is 64 wide, or wider: the loops and stubs of the column left of it, with their labels, come
-first, then 8 of clear room, then its tracks, then 18 before the next column.
+gutter carries. Tracks are 6 apart.
+
+- A gap is 56 high, or higher when its tracks need it. Above the tracks is a band for the labels of the card over the
+  gap, and under them a band for the labels of the card under it: 22, one row of labels, or 34, two rows, when the
+  labels by one card edge, with 10 between, are wider than the card.
+- A gutter is 64 wide, or wider: the loops and stubs of the column left of it, with their labels, come first, then 8
+  of clear room, then its tracks, then 18 before the next column.
+- A row is as tall as its tallest card, and as tall as a card with n ends on its right side needs to hold them 20
+  apart: 30 + 20(n + 1). The plan is made before any size, and no size changes it.
 
 The lines are drawn first, then the cards, then the labels. Each label has a white halo and sits within 40 units of its
 own end. It takes the nearest place there that covers no card and no other label, and stays at least 3 from every
-other line, when there is one. The widest labels are placed first.
+other line. The widest labels are placed first. A label set on its own line is tried last, and only 12 or more from its
+end, so it never covers its own arrowhead. When no place is clear, the search widens, in steps of 6 along the side, up
+to 36 on the right side of a card and 48 on its top or bottom. When even that finds none, the label takes the cheapest
+place, and `kit model svg` names its entity in a warning on stderr. The SVG is unchanged by it, and the exit status
+stays 0.
 
 The overview draws a panel for each domain, five to a row, by name: the domain's name and intro, and its entities as
 pills, a stub's dashed. A domain of the release has a fixed color, and `config` and `configuration` share one. Any

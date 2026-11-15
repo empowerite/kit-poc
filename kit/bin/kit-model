@@ -20,7 +20,8 @@
 # svg prints a diagram of the model as SVG, the same bytes for the same model under any locale. --domain= draws a card
 # for each entity of the domain, and a line for each pair of inverse relations, with the name and arity of each
 # relation at the end it goes to; a derived relation is dashed, and a relation to another domain's entity is a short
-# arrow with that entity's name. --overview draws a panel for each domain, with its entities.
+# arrow with that entity's name. --overview draws a panel for each domain, with its entities. When a label of the domain
+# cannot be kept clear of the other lines and labels, it is still drawn, and a warning on stderr names its entity.
 #
 # Arguments:
 #   --release=<dir>    a model directory that exists, read in place of the release's modules/model; given once
@@ -105,12 +106,27 @@ then
   error "no ${kind} named ${name}; the ${plural} are: ${known_list}; run: kit help model"
   exit 2
 fi
-# the function that prints the table or the diagram of the named entity or domain
-case "${syntax_literals[0]} ${kind}" in
-  ("table entity") call=model::fields ;;
-  ("table domain") call=model::relations ;;
-  (*) call=modelsvg::domain
-esac
-model-jq "${call}(\$name)" --arg name "${name}"
+if [[ "${syntax_literals[0]}" == table ]]
+then
+  # the function that prints the table of the named entity or domain
+  case "${kind}" in
+    (entity) call=model::fields ;;
+    (domain) call=model::relations
+  esac
+  model-jq "${call}(\$name)" --arg name "${name}"
+  exit
+fi
+# The diagram comes after a first line that names, as JSON, the entities whose labels could not all be kept clear; each
+# is a warning on stderr, and the status stays 0.
+drawn=$(model-jq "modelsvg::render(\$name) | (.crowded | tojson), .svg" --arg name "${name}") || {
+  printf '%s\n' "${drawn}"
+  exit 1
+}
+printf '%s\n' "${drawn#*$'\n'}"
+while IFS= read -r entity
+do
+  warn "the labels of ${entity} could not all be kept clear of the other lines and labels in the diagram of ${name};"\
+    "a layout hint in its domain.yml can give it room"
+done < <(jq --raw-output '.[]' <<<"${drawn%%$'\n'*}")
 
 # ----------------------------------------------------------------------------------------------------------------------

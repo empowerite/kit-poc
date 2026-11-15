@@ -1,0 +1,11 @@
+# Six derived relations down the column.
+entity: P1
+layer: logical
+means: entity P1
+relations:
+  to3: {to: P3, derived: x}
+  to4: {to: P4, derived: x}
+  to5: {to: P5, derived: x}
+  to6: {to: P6, derived: x}
+  to7: {to: P7, derived: x}
+  to8: {to: P8, derived: x}
