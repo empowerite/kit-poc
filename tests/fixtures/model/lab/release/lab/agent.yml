@@ -1,0 +1,7 @@
+# A pair with Lease, and a relation that is its own inverse.
+entity: Agent
+layer: logical
+means: who works
+relations:
+  leases: {to: Lease, arity: many, inverse: Lease.holder}
+  friends: {to: Agent, arity: many, inverse: Agent.friends}

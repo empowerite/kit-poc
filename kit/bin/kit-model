@@ -42,18 +42,22 @@ set -o errexit -o nounset -o pipefail
 # shellcheck source=modules/bash/1st.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
 kit:enter
-use model
+use model file
 guard:arguments model "$@" || exit $?
 
-# model-jq <program> [<jq argument>…] runs a jq program over the built model, with the model modules imported.
-# It prints the program's output, or else jq's message and returns 1: jq's own status, 3 or 5, is none of the verb's.
+# model-jq <program> [<jq argument>…] runs a jq program over the built model, with the model modules imported. It
+# prints the program's output, and keeps what jq writes to stderr out of it. When jq fails, it prints that output,
+# then jq's message, and returns 1, because jq's own status, 3 or 5, is none of the verb's.
 model-jq() {
   local program=$1 out
   shift
+  # shellcheck disable=SC2154  # jq_errors is set by file:temp
   if ! out=$(jq -L "${kit_root}/modules/jq" --raw-output "$@" \
-    'import "model" as model; import "modelsvg" as modelsvg; model::build | '"${program}" <<<"${loaded}" 2>&1)
+    'import "model" as model; import "modelsvg" as modelsvg; model::build | '"${program}" \
+    <<<"${loaded}" 2>"${jq_errors}")
   then
-    printf '%s\n' "${out}"
+    [[ -z "${out}" ]] || printf '%s\n' "${out}"
+    cat "${jq_errors}"
     return 1
   fi
   printf '%s\n' "${out}"
@@ -67,6 +71,7 @@ then
   exit 2
 fi
 loaded=$(model:load ${release:+"${release}"}) || exit 1
+file:temp jq_errors jq || exit 1
 if [[ "${syntax_literals[0]}" == check ]]
 then
   # The findings, one a line, then the count.

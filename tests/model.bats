@@ -333,3 +333,22 @@ setup() {
   [ "$status" -eq 1 ]
   [ "$output" = 'jq: error: boom' ]
 }
+
+# The golden diagram of the lab domain: eleven entities with no hints, so the layout and the router place everything. A
+# change to either shows as a diff of tests/fixtures/model/lab/lab.svg. To write it afresh, from the repository root:
+#   kit/bin/kit model --release=tests/fixtures/model/lab/release svg --domain=lab > tests/fixtures/model/lab/lab.svg
+@test "kit model svg --domain=lab prints the golden diagram, byte for byte" {
+  fresh-repo
+  kit model "--release=${fixtures}/lab/release" svg --domain=lab > lab.svg
+  cmp lab.svg "${fixtures}/lab/lab.svg"
+}
+
+@test "a warning jq writes to stderr stays out of kit model svg's diagram" {
+  fresh-repo
+  real=$(command -v jq)
+  mkdir "${BATS_TEST_TMPDIR}/fake"
+  printf '#!/usr/bin/env bash\necho "jq: warning: noise" >&2\nexec %q "$@"\n' "${real}" > "${BATS_TEST_TMPDIR}/fake/jq"
+  chmod +x "${BATS_TEST_TMPDIR}/fake/jq"
+  PATH="${BATS_TEST_TMPDIR}/fake:${PATH}" kit model "--release=${fixtures}/lab/release" svg --domain=lab > lab.svg
+  cmp lab.svg "${fixtures}/lab/lab.svg"
+}

@@ -202,14 +202,21 @@ Each relation of the domain is a line:
   `1`, `0..1`, `0..*`, or `1..*`, and an ordered relation adds `{ordered}`.
 - A derived relation is a dashed arrow to where it goes, with its name, its arity, and `derived` at that end. A relation
   whose inverse does not name it back is a solid arrow, labelled the same way, without `derived`.
-- A relation to its own entity, or a pair on one entity, is a loop on the side of the card where the next cell is free,
-  right, then left, or else under it. A relation that is its own inverse has one label.
+- A relation to its own entity, or a pair on one entity, is a loop on the right side of the card when the cell to its
+  right is free, or else on the left side when the cell to its left is free. When both cells hold cards, the loop is
+  drawn under the card, in the gap below its row. A relation that is its own inverse has one label.
 - A relation to an entity of another domain is a short arrow down from the card, with that entity's name in grey. That
   entity has no card, so a diagram holds only its own domain.
 
-A line leaves and reaches the bottom or top of a card and turns in the gap between rows. Two lines between one pair of
-cards meet each card at different points. A line may pass behind a card. The lines are drawn first, then the cards, then
-the labels, each with a white halo, at the place nearest its end that covers no card and no other label.
+A line leaves and reaches the bottom or top of a card, and runs only in the gaps between rows and the gutters between
+columns, so it never passes through a card. A line between a card and the row under it, or two cards of one row, runs
+along one track in the gap between them. Any other line runs along a track in the gap by its first card, along a track
+in a gutter between the two cards' columns, and along a track in the gap by its other card. Each line has a track of
+its own in each gap and gutter, and each end has a point of its own on its card's edge, so no two lines share a track
+or an end.
+
+The lines are drawn first, then the cards, then the labels. Each label has a white halo and sits within 40 units of its
+own end, at the nearest place there that covers no card and no other label, when there is one.
 
 The overview draws a panel for each domain, five to a row, by name: the domain's name and intro, and its entities as
 pills, a stub's dashed. A domain of the release has a fixed color, and `config` and `configuration` share one. Any
@@ -218,3 +225,11 @@ other domain takes one of six more, by its place among the sorted names of the m
 The output is the same bytes for the same model, run again or under any locale. Every object is read in sorted order,
 every coordinate is rounded to one decimal, and the text of a name, a sentence, or an intro is escaped, so a `<`, a
 `&`, or a quote leaves the SVG well-formed.
+
+`tests/fixtures/model/lab/lab.svg` is the diagram of an eleven-entity domain with no layout hints, and
+`tests/model.bats` compares the output with it byte for byte, so a change to the layout or the router shows as a diff.
+After a change you mean, write it afresh from the repository root:
+
+```bash
+kit/bin/kit model --release=tests/fixtures/model/lab/release svg --domain=lab > tests/fixtures/model/lab/lab.svg
+```

@@ -7,7 +7,7 @@
 #   colour   a domain's tint, stroke, and dark text color
 #   cards    what a card of an entity holds, and how tall it is
 #   layout   where each card of a domain goes: the row and column its hint gives, or else by layering
-#   edges    the lines between the cards, routed through the gaps between rows, and the labels at their ends
+#   edges    the lines between the cards, on tracks in the gaps and gutters between them, and the labels at their ends
 #   svg      domain($name), a domain's diagram, and overview, a panel for each domain
 #
 # The output is the same bytes for the same model, under any locale: every object is read by sorted key, every number
@@ -341,24 +341,51 @@ def free($cards; $me; $step):
 def loop_side($cards; $me):
   if free($cards; $me; 1) then "right" elif free($cards; $me; -1) then "left" else "bottom" end;
 
-# ends($cards) are the ends of the lines, given as input, on their cards: {key, role, card, side, other}, where other is
-# the x of the middle of the card at the line's other end. A stub has one end, at the bottom of its card.
+# plans($cards) is how each line, given as input, runs: the line with {sa, sb, ga, gb, gutter}. sa and sb are the sides
+# of the cards its two ends meet. ga and gb are the row gaps a top or bottom end opens into: the gap under the card's
+# row for the bottom, and the gap above it for the top, where gap g lies under row g. A line whose two ends open into
+# one gap runs along a track in that gap. Any other line runs along a track in the gap of its first end, along a track
+# in a gutter between two columns, and along a track in the gap of its other end, so it never crosses a card. Its
+# gutter lies between the two cards' columns, or right of the column they share: the one fewer lines have taken, then
+# the one nearest the middle, then the leftmost.
+def plans($cards):
+  (reduce .[] as $l ({load: {}, plans: []};
+    . as $state
+    | (if $l.kind == "loop" then loop_side($cards; $l.a) else null end) as $loop
+    | ($loop // (if $l.kind == "stub" then "bottom" else side_of($cards; $l.a; $l.b) end)) as $sa
+    | (if $l.kind == "stub" then null else ($loop // side_of($cards; $l.b; $l.a)) end) as $sb
+    | (if $sa == "top" then $cards[$l.a].row - 1 elif $sa == "bottom" then $cards[$l.a].row else null end) as $ga
+    | (if $sb == "top" then $cards[$l.b].row - 1 elif $sb == "bottom" then $cards[$l.b].row else null end) as $gb
+    | (if $ga != null and $gb != null and $ga != $gb then
+        [$cards[$l.a].col, $cards[$l.b].col] as $c
+        | (($c[0] + $c[1] + 1) / 2) as $mid
+        | (if $c[0] == $c[1] then [$c[0] + 1] else [range(($c | min) + 1; ($c | max) + 1)] end)
+        | min_by([($state.load["\(.)"] // 0), (. - $mid | fabs), .])
+      else null end) as $gutter
+    | .plans += [$l + {sa: $sa, sb: $sb, ga: $ga, gb: $gb, gutter: $gutter}]
+    | if $gutter == null then . else .load["\($gutter)"] += 1 end)).plans;
+
+# ends($cards) are the ends of the planned lines, given as input: {key, role, card, side, room, other}. room names the
+# ends that share a stretch of card edge: the ends that open into one gap in one column, from the card over it and the
+# card under it together, or else the ends on one side of a card. other is the x of the middle of the card at the
+# line's other end. A stub has one end.
 def ends($cards):
   [.[]
-    | (if .kind == "loop" then loop_side($cards; .a) else null end) as $loop
-    | {key, role: "a", card: .a,
-        side: ($loop // (if .kind == "stub" then "bottom" else side_of($cards; .a; .b) end)),
+    | {key, role: "a", card: .a, side: .sa,
+        room: (if .ga == null then "side \(.a) \(.sa)" else "gap \(.ga) \($cards[.a].col)" end),
         other: (if .kind == "stub" then 1000000 else $cards[.b].x + $cards[.b].w / 2 end)},
       (if .kind == "stub" then empty
       else
-        {key, role: "b", card: .b, side: ($loop // side_of($cards; .b; .a)), other: ($cards[.a].x + $cards[.a].w / 2)}
+        {key, role: "b", card: .b, side: .sb,
+          room: (if .gb == null then "side \(.b) \(.sb)" else "gap \(.gb) \($cards[.b].col)" end),
+          other: ($cards[.a].x + $cards[.a].w / 2)}
       end)];
 
-# ports($cards) is where each end, given as input, meets its card, {"<key> <role>": [x, y, side]}: the ends on one side
-# of a card are spread evenly along it, below the band on the left and the right, ordered by the x of their other ends,
-# then by key and role, so two lines between one pair of cards never meet a card at one point.
+# ports($cards) is where each end, given as input, meets its card, {"<key> <role>": [x, y, side]}. The ends that share
+# a room are spread evenly along it, below the band on the left and the right, ordered by the x of their other ends,
+# then by key and role. So no two lines end at one point, and the legs of two lines in one gap never share an x.
 def ports($cards):
-  reduce (group_by([.card, .side])[] | sort_by([.other, .key, .role]) | length as $n | to_entries[]
+  reduce (group_by(.room)[] | sort_by([.other, .key, .role]) | length as $n | to_entries[]
     | .key as $i
     | .value as $end
     | $cards[$end.card] as $c
@@ -371,46 +398,50 @@ def ports($cards):
         end) as $p ({};
     .[$p.at] = [$p.x, $p.y, $p.side]);
 
-# lane_offsets are the heights below the top of a gap between rows that a line can run along, from the middle out.
-def lane_offsets: [28, 22, 34, 16, 40];
+# track_at($n; $i; $mid; $room) is where track $i of $n lies: the tracks are spread around $mid, 6 apart, or closer, so
+# that all of them fit in $room.
+def track_at($n; $i; $mid; $room): $mid + ($i - ($n - 1) / 2) * ([6, $room / ($n + 1)] | min) | tenth;
 
-# lanes($cards; $rows; $ports) is the y each line, given as input, turns along in the gap under a row, {key: y}. A line
-# between two rows takes the gap above the lower card, and a line within a row, or a loop under its card, the gap under
-# its row; a line whose two ends are one above the other, and a loop on a card's side, turn nowhere. By gap, then key,
-# a line takes the first lane where no line already there overlaps it.
-def lanes($cards; $rows; $ports):
-  [.[] | select(.kind != "stub")
-    | $ports["\(.key) a"] as $pa
-    | $ports["\(.key) b"] as $pb
-    | [$cards[.a].row, $cards[.b].row] as $r
-    | select($pa[2] == "top" or $pa[2] == "bottom")
-    | select($r[0] == $r[1] or ($pa[0] - $pb[0] | fabs) >= 1)
-    | {key, gap: (if $r[0] == $r[1] then $r[0] else ($r | max) - 1 end), lo: ([$pa[0], $pb[0]] | min),
-        hi: ([$pa[0], $pb[0]] | max)}]
-  | sort_by([.gap, .key])
-  | (reduce .[] as $s ({taken: {}, at: {}};
-      . as $state
-      | ([lane_offsets[] as $o
-          | select(any($state.taken["\($s.gap) \($o)"][]?; .[0] < $s.hi + 6 and $s.lo - 6 < .[1]) | not) | $o][0]
-        // lane_offsets[0]) as $o
-      | .taken["\($s.gap) \($o)"] += [[$s.lo, $s.hi]]
-      | .at[$s.key] = $rows[$s.gap].y + $rows[$s.gap].h + $o)).at;
+# tracks($rows) is where each planned line, given as input, runs in the gaps and the gutter it uses: {"<key> <gap>": y,
+# "<key> gutter": x}. Each line has a track of its own in each, by key: around the middle of a gap, in its middle 44,
+# and around the middle of a gutter, in its middle 28, which leaves 18 on each side for the loops on the cards' sides.
+def tracks($rows):
+  . as $plans
+  | [([$plans[] | select(.ga != null and .gb != null) | {gap: (.ga, .gb), key}] | unique | group_by(.gap)[]
+      | length as $n | to_entries[]
+      | .key as $i
+      | .value.gap as $g
+      | {key: "\(.value.key) \($g)", value: track_at($n; $i; $rows[$g].y + $rows[$g].h + row_gap / 2; 44)}),
+    ([$plans[] | select(.gutter != null) | {gutter, key}] | group_by(.gutter)[]
+      | length as $n | to_entries[]
+      | .key as $i
+      | (margin + .value.gutter * (card_w + col_gap) - col_gap / 2) as $mid
+      | {key: "\(.value.key) gutter", value: track_at($n; $i; $mid; 28)})]
+  | from_entries;
 
 # outward($side) is which way a line leaves a card's side: 1 to the right, -1 to the left.
 def outward($side): if $side == "left" then -1 else 1 end;
 
-# points($ports; $lanes) are the points of a line, given as input, from a to b: straight down 24 for a stub; out 18 from
-# the side, along it, and back for a loop on a card's side; straight across for two ends one above the other; else down
-# or up to its lane, along it, and to the other end.
-def points($ports; $lanes):
+# points($ports; $tracks) are the points of a planned line, given as input, from a to b: straight down 24 for a stub;
+# out 14 from the side, along it, and back for a loop on a card's side; for a line within one gap, to its track, along
+# it, and to the other end; for any other, to its track in its first gap, along it to the gutter, along the gutter to
+# its track in the other gap, along that, and to the other end.
+def points($ports; $tracks):
   $ports["\(.key) a"] as $pa
   | $ports["\(.key) b"] as $pb
   | if .kind == "stub" then [[$pa[0], $pa[1]], [$pa[0], $pa[1] + 24]]
-    elif $pa[2] == "right" or $pa[2] == "left" then
-      ($pa[0] + 18 * outward($pa[2])) as $out
+    elif .ga == null then
+      ($pa[0] + 14 * outward(.sa)) as $out
       | [[$pa[0], $pa[1]], [$out, $pa[1]], [$out, $pb[1]], [$pb[0], $pb[1]]]
-    elif $lanes[.key] == null then [[$pa[0], $pa[1]], [$pb[0], $pb[1]]]
-    else [[$pa[0], $pa[1]], [$pa[0], $lanes[.key]], [$pb[0], $lanes[.key]], [$pb[0], $pb[1]]] end;
+    elif .ga == .gb then
+      $tracks["\(.key) \(.ga)"] as $y
+      | [[$pa[0], $pa[1]], [$pa[0], $y], [$pb[0], $y], [$pb[0], $pb[1]]]
+    else
+      $tracks["\(.key) \(.ga)"] as $ya
+      | $tracks["\(.key) \(.gb)"] as $yb
+      | $tracks["\(.key) gutter"] as $x
+      | [[$pa[0], $pa[1]], [$pa[0], $ya], [$x, $ya], [$x, $yb], [$pb[0], $yb], [$pb[0], $pb[1]]]
+    end;
 
 # candidates($x; $y; $side; $leg) are the places a label can take by the end of a line at ($x, $y), nearest first:
 # beside the tip of a stub, right then left; past a loop on a card's side, then over and under the end of it; or beside
@@ -420,7 +451,7 @@ def candidates($x; $y; $side; $leg):
   if $side == "right" or $side == "left" then
     outward($side) as $d
     | (if $d > 0 then "start" else "end" end) as $anchor
-    | {x: ($x + 24 * $d), y: ($y + 4), anchor: $anchor}, {x: ($x + 5 * $d), y: ($y - 4), anchor: $anchor},
+    | {x: ($x + 20 * $d), y: ($y + 4), anchor: $anchor}, {x: ($x + 5 * $d), y: ($y - 4), anchor: $anchor},
       {x: ($x + 5 * $d), y: ($y + 12), anchor: $anchor}
   else
     (if $side == "tip" then 28, 40, 16, 52, 4
@@ -439,6 +470,9 @@ def box($w): if .anchor == "start" then [.x, .y - 8.5, .x + $w, .y + 2.5] else [
 
 # overlaps($a; $b) is true when two boxes overlap.
 def overlaps($a; $b): $a[0] < $b[2] and $b[0] < $a[2] and $a[1] < $b[3] and $b[1] < $a[3];
+
+# label_reach is how far the text of a label may be from the end of its line, in x and in y, so it reads as that end's.
+def label_reach: 40;
 
 # place($lines; $ports; $cards; $paths) are the labels of the lines: {key, role, at, text, far, x, y, anchor, box},
 # where at is the entity at the label's end. Each takes the candidate that costs least: a card or a label placed
@@ -463,7 +497,12 @@ def place($lines; $ports; $cards; $paths):
           | (-4, 12) as $dy
           | {x: ($route[1][0] + 5 * $d), y: ($route[1][1] + $dy), anchor: (if $d > 0 then "start" else "end" end)}
         else empty end)
-        | {x: (.x | tenth), y: (.y | tenth), anchor} | .box = (box($w) | map(tenth))] as $options
+        | {x: (.x | tenth), y: (.y | tenth), anchor} | .box = (box($w) | map(tenth))] as $all
+    | $route[0] as $end
+    | ([$all[] | .box as $b
+        | select(([0, $b[0] - $end[0], $end[0] - $b[2]] | max) <= label_reach
+          and ([0, $b[1] - $end[1], $end[1] - $b[3]] | max) <= label_reach)]
+      | if length == 0 then [$all[0]] else . end) as $options
     | ([$options | to_entries[] | .key as $rank | .value.box as $b
         | {rank: $rank, cost: ($rank
             + 1000 * ([$walls[], ($placed[].box | [.[0] - 6, .[1], .[2] + 6, .[3]]) | select(overlaps(.; $b))]
@@ -477,12 +516,12 @@ def place($lines; $ports; $cards; $paths):
 # routes($layout) are the lines of a domain laid out as $layout: {paths: [{key, kind, a, b, class, points}], labels}.
 def routes($layout):
   ($layout.cards | keys) as $names
-  | lines_of($names) as $lines
+  | (lines_of($names) | plans($layout.cards)) as $lines
   | ($lines | ends($layout.cards) | ports($layout.cards)) as $ports
-  | ($lines | lanes($layout.cards; $layout.rows; $ports)) as $lanes
+  | ($lines | tracks($layout.rows)) as $tracks
   | [$lines[]
       | {key, kind, a, b, class: ("edge" + (if .both then " both" else "" end) + (if .dashed then " dash" else "" end)),
-          points: points($ports; $lanes)}] as $paths
+          points: points($ports; $tracks)}] as $paths
   | {paths: $paths, labels: place($lines; $ports; $layout.cards; $paths)};
 
 # edges($name) are the lines of a domain's diagram and their labels, as routes gives them.
@@ -534,15 +573,16 @@ def head($w; $h; $title; $desc; $colour; $intro):
     "  </defs>",
     "  <rect x=\"0.5\" y=\"0.5\" width=\"\($w - 1 | num)\" height=\"\($h - 1 | num)\" rx=\"14\" fill=\"#ffffff\""
     + " stroke=\"#e2e8f0\"/>",
-    "  <rect x=\"\(margin)\" y=\"22\" width=\"6\" height=\"28\" rx=\"3\" fill=\"\($colour.stroke)\"/>",
-    "  <text class=\"title\" x=\"\(margin + 18)\" y=\"45\" style=\"fill:\($colour.dark)\">\($title | text)</text>",
+    "  <rect x=\"\(margin | num)\" y=\"22\" width=\"6\" height=\"28\" rx=\"3\" fill=\"\($colour.stroke)\"/>",
+    "  <text class=\"title\" x=\"\(margin + 18 | num)\" y=\"45\" style=\"fill:\($colour.dark)\">"
+    + "\($title | text)</text>",
     ($intro | to_entries[]
-      | "  <text class=\"intro\" x=\"\(margin)\" y=\"\(72 + .key * 19 | num)\">\(.value | text)</text>");
+      | "  <text class=\"intro\" x=\"\(margin | num)\" y=\"\(72 + .key * 19 | num)\">\(.value | text)</text>");
 
 # band($x; $y; $w; $h; $r) is the path of a band $h tall across the top of a box with corners of radius $r.
 def band($x; $y; $w; $h; $r):
-  "M \($x | num) \($y + $h | num) V \($y + $r | num) A \($r) \($r) 0 0 1 \($x + $r | num) \($y | num)"
-  + " H \($x + $w - $r | num) A \($r) \($r) 0 0 1 \($x + $w | num) \($y + $r | num) V \($y + $h | num) Z";
+  "M \($x | num) \($y + $h | num) V \($y + $r | num) A \($r | num) \($r | num) 0 0 1 \($x + $r | num) \($y | num)"
+  + " H \($x + $w - $r | num) A \($r | num) \($r | num) 0 0 1 \($x + $w | num) \($y + $r | num) V \($y + $h | num) Z";
 
 # dot($cx; $cy; $held) is the dot that says whether something is held: green and filled, or hollow.
 def dot($cx; $cy; $held):

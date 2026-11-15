@@ -1,0 +1,7 @@
+# An inverse that names no relation back, drawn as an arrow.
+entity: Tag
+layer: native
+tool: git
+means: a name for a commit
+relations:
+  commit: {to: Commit, inverse: Commit.tags}

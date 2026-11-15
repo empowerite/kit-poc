@@ -1,0 +1,12 @@
+# Pairs within the domain, and one with another domain's Forge.
+entity: Repo
+layer: native
+tool: git
+means: a repository of commits
+fields:
+  path: {type: Path, status: held, read-by: "work path"}
+relations:
+  worktrees: {to: Worktree, arity: many, inverse: Worktree.repo}
+  branches: {to: Branch, arity: many, inverse: Branch.repo}
+  remotes: {to: Remote, arity: many, inverse: Remote.repo}
+  forge: {to: Forge, inverse: Forge.repos}
