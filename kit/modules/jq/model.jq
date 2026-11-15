@@ -59,6 +59,19 @@ def refine($group; $label; $path; $new):
           + (if $group == "fields" then "arity and an enum subset" else "arity" end)]
       end);
 
+# sound($doc; $group; $name; $path) is {members, findings} for the fields or relations ($group) of a file's document: the
+# members that are mappings of keys, and a finding for each that is not, and for a $group that is not a mapping. $name is
+# the entity. members is null when the file does not give $group, or gives it as something that is not a mapping.
+def sound($doc; $group; $name; $path):
+  if ($doc | has($group)) | not then {members: null, findings: []}
+  elif ($doc[$group] | type) != "object" then
+    {members: null, findings: ["\($path) gives \($group) on \($name) as something that is not a mapping"]}
+  else
+    {members: ($doc[$group] | with_entries(select(.value | type == "object"))),
+     findings: [$doc[$group] | to_entries[] | select(.value | type != "object")
+       | "\($path) gives \($name).\(.key) as something that is not a mapping of keys"]}
+  end;
+
 # define($files) is {entities, paths, findings}: each entity file's entity, the first definition of a name standing,
 # and a later one a finding. paths holds the path of the file that defines each entity.
 def define($files):
@@ -67,8 +80,14 @@ def define($files):
     | if .entities[$name] != null then
         .findings += ["\($name) is defined twice (\(.paths[$name]), \($f.path))"]
       else
-        .entities[$name] = ({domain: $f.domain, origin: $f.origin}
-          + ($f.doc | with_entries(select(.key | IN(entity_keys[])))))
+        (reduce ("fields", "relations") as $group ({entity: ({domain: $f.domain, origin: $f.origin}
+            + ($f.doc | with_entries(select(.key | IN(entity_keys[]) and (IN("fields", "relations") | not))))),
+            findings: []};
+          sound($f.doc; $group; $name; $f.path) as $s
+          | .findings += $s.findings
+          | if $s.members != null then .entity[$group] = $s.members else . end)) as $built
+        | .entities[$name] = $built.entity
+        | .findings += $built.findings
         | .paths[$name] = $f.path
       end);
 
@@ -82,20 +101,16 @@ def extend($f):
         .findings += ["\($f.path) sets \($k) on \($name), which it extends and does not define; \($k) is the defining"
           + " file\u0027s to set"])
       | reduce ("fields", "relations") as $group (.;
-          if ($f.doc | has($group)) and ($f.doc[$group] | type) != "object" then
-            .findings += ["\($f.path) gives \($group) on \($name) as something that is not a mapping"]
-          else
-            reduce (($f.doc[$group] // {}) | keys_unsorted[]) as $m (.;
+          sound($f.doc; $group; $name; $f.path) as $s
+          | .findings += $s.findings
+          | reduce (($s.members // {}) | keys_unsorted[]) as $m (.;
               "\($name).\($m)" as $label
-              | if ($f.doc[$group][$m] | type) != "object" then
-                  .findings += ["\($f.path) gives \($label) as something that is not a mapping of keys"]
-                elif .entities[$name][$group][$m] == null then .entities[$name][$group][$m] = $f.doc[$group][$m]
+              | if .entities[$name][$group][$m] == null then .entities[$name][$group][$m] = $s.members[$m]
                 else
-                  (.entities[$name][$group][$m] | refine($group; $label; $f.path; $f.doc[$group][$m])) as $r
+                  (.entities[$name][$group][$m] | refine($group; $label; $f.path; $s.members[$m])) as $r
                   | .entities[$name][$group][$m] = $r.value
                   | .findings += $r.findings
-                end)
-          end)
+                end))
     end;
 
 # build gives the model of a document: {domains, entities, findings}. Every file that defines an entity is applied before

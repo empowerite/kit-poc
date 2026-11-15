@@ -92,3 +92,19 @@ import "model" as model; model::build | [.findings, .entities.Commit.fields, .en
 import "model" as model; model::build | [.findings, .entities.Commit.fields]
 {"files": [{"domain": "code", "origin": "release", "path": "m/commit.yml", "doc": {"entity": "Commit", "fields": {"a": {"type": "Text", "arity": "many"}, "b": {"type": "Text"}}}}, {"domain": "mine", "origin": "repository", "path": "r/commit.yml", "doc": {"extends": "Commit", "fields": {"a": {"arity": null}, "b": {"arity": 1}}}}]}
 [["r/commit.yml sets the arity of Commit.a to something that is not a string, and an extension may only narrow it", "r/commit.yml sets the arity of Commit.b to something that is not a string, and an extension may only narrow it"], {"a": {"type": "Text", "arity": "many"}, "b": {"type": "Text"}}]
+
+# an entity file with fields that is not a mapping is a finding, and the entity holds no fields; its relations still apply
+import "model" as model; model::build | [.findings, .entities.Commit]
+{"files": [{"domain": "code", "origin": "repository", "path": "r/commit.yml", "doc": {"entity": "Commit", "means": "x", "fields": ["a"], "relations": {"r": {"to": "Commit"}}}}]}
+[["r/commit.yml gives fields on Commit as something that is not a mapping"], {"domain": "code", "origin": "repository", "means": "x", "relations": {"r": {"to": "Commit"}}}]
+
+# an entity file with relations that is not a mapping is a finding
+import "model" as model; model::build | [.findings, .entities.Commit]
+{"files": [{"domain": "code", "origin": "repository", "path": "r/commit.yml", "doc": {"entity": "Commit", "fields": {"a": {"type": "Text"}}, "relations": null}}]}
+[["r/commit.yml gives relations on Commit as something that is not a mapping"], {"domain": "code", "origin": "repository", "fields": {"a": {"type": "Text"}}}]
+
+# an entity file with a null field or a field that is not a mapping is a finding that names the field, and the other fields
+# stay; an extends can then still add to the entity
+import "model" as model; model::build | [.findings, .entities.Commit.fields]
+{"files": [{"domain": "code", "origin": "repository", "path": "r/commit.yml", "doc": {"entity": "Commit", "fields": {"a": null, "b": "Text", "c": {"type": "Int"}}}}, {"domain": "code", "origin": "repository", "path": "r/more.yml", "doc": {"extends": "Commit", "fields": {"a": {"type": "Text"}}}}]}
+[["r/commit.yml gives Commit.a as something that is not a mapping of keys", "r/commit.yml gives Commit.b as something that is not a mapping of keys"], {"c": {"type": "Int"}, "a": {"type": "Text"}}]
