@@ -26,8 +26,8 @@
 #                             into a cache of its own, checks it against the digest published beside it, and runs
 #                             kit version in it, which must print the tag's version. The release workflow runs it
 #                             after publish, so a release no machine can fetch fails the run that published it.
-#   formula <tag> <sha256>    prints the Homebrew formula for the release: kit.rb for a release, kit-rc.rb for a
-#                             pre-release, from projects/homebrew/formula.rb.in, with the digest of the tarball.
+#   formula <tag> <sha256>    prints the Homebrew formula, Formula/kit.rb, for the release, from
+#                             projects/homebrew/formula.rb.in, with the digest of the tarball.
 #   tap <tag>                 writes that formula into the tap, empowerite/homebrew-tap, as a pull request that it
 #                             merges: the digest is the one published beside the release, so what Homebrew checks is
 #                             what the loader checks. KIT_TAP names another tap. It runs after fetch, so a release no
@@ -88,23 +88,12 @@ download-lines() {
   printf '%s\n' "${lines}"
 }
 
-# formula <version> <sha256> prints the Homebrew formula for a release: kit.rb for a version with no suffix, kit-rc.rb
-# for one with a suffix, each declaring a conflict with the other, since both install the command kit.
+# formula <version> <sha256> prints the Homebrew formula for a release: Formula/kit.rb.
 formula() {
-  local version=$1 sha256=$2 name=kit other=kit-rc about class=Kit text
-  about='the stable release of kit, which keeps AI coding agents trustworthy. kit-rc is the release candidate.'
-  if [[ "${version}" == *-* ]]
-  then
-    name=kit-rc other=kit class=KitRc
-    about='the newest release candidate of kit, for those who want it before it is stable. kit is the stable release.'
-  fi
+  local text
   text=$(<"${kit_root}/../projects/homebrew/formula.rb.in") || return 1
-  text=${text//'{{name}}'/${name}}
-  text=${text//'{{about}}'/${about}}
-  text=${text//'{{class}}'/${class}}
-  text=${text//'{{version}}'/${version}}
-  text=${text//'{{sha256}}'/${sha256}}
-  text=${text//'{{other}}'/${other}}
+  text=${text//'{{version}}'/$1}
+  text=${text//'{{sha256}}'/$2}
   printf '%s\n' "${text}"
 }
 
@@ -241,14 +230,20 @@ case "${verb}" in
     (( $# == 1 )) || { usage; exit 2; }
     tag=$1
     version=$(tag-version "${tag}")
-    if [[ "${version}" != *-* && -z "${GITHUB_ACTIONS:-}" ]]
+    # Homebrew follows stable releases; a release candidate comes by download.
+    if [[ "${version}" == *-* ]]
+    then
+      ok "${tag} is a pre-release; the tap carries stable releases only"
+      summary "✅ ${tag} is a pre-release; the tap carries stable releases only."
+      exit 0
+    fi
+    if [[ -z "${GITHUB_ACTIONS:-}" ]]
     then
       refuse-tag "a release reaches the tap from the release workflow, not from a desk"
     fi
     guard:require tool:gh tool:git
     tap=${KIT_TAP:-empowerite/homebrew-tap}
     name=kit
-    [[ "${version}" == *-* ]] && name=kit-rc
     work=$(mktemp -d)
     # shellcheck disable=SC2064  # expanded now on purpose: the path is fixed from here on
     trap "rm -rf '${work}'" EXIT

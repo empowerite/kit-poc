@@ -1,8 +1,8 @@
-# {{name}} - {{about}}
+# kit - keeps AI coding agents trustworthy
 #
 # Written by `bin/release tap` of https://github.com/empowerite/kit when a release is published; do not edit it by
 # hand, since the next release writes it again. Change projects/homebrew/formula.rb.in in kit instead.
-class {{class}} < Formula
+class Kit < Formula
   desc "Rules for AI coding agents, and checks that they followed them"
   homepage "https://github.com/empowerite/kit"
   url "https://github.com/empowerite/kit/releases/download/release/{{version}}/kit-{{version}}.tar.gz"
@@ -13,8 +13,6 @@ class {{class}} < Formula
   depends_on "bash"
   depends_on "jq"
   depends_on "yq"
-
-  conflicts_with "{{other}}", because: "both install kit"
 
   def install
     libexec.install Dir["*"]

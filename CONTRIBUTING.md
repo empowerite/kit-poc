@@ -178,12 +178,13 @@ The release workflow runs four commands:
    It publishes the tarball with a `.sha256` file that holds the tarball's digest.
 3. `bin/release fetch` downloads the published release as any machine does, through the loader, checks it against
    that digest, and runs `kit version` in it. A release that cannot be fetched fails the run.
-4. `bin/release tap` writes the release into the Homebrew tap,
-   [empowerite/homebrew-tap](https://github.com/empowerite/homebrew-tap), from `projects/homebrew/formula.rb.in`: a
-   release becomes `Formula/kit.rb`, which follows stable, and a pre-release `Formula/kit-rc.rb`, which follows release
-   candidates. It opens a pull request on the tap and squash-merges it, so GitHub signs the commit that lands, as the
-   tap's rules require. The workflow's own token cannot write to another repository, so the step needs the secret
-   `HOMEBREW_TAP_TOKEN`: a token for the tap with contents and pull requests write.
+4. `bin/release tap` writes a release, never a pre-release, into the Homebrew tap,
+   [empowerite/homebrew-tap](https://github.com/empowerite/homebrew-tap), as `Formula/kit.rb` from
+   `projects/homebrew/formula.rb.in`. It opens a pull request on the tap and squash-merges it, so GitHub signs the
+   commit that lands, as the tap's rules require. The workflow's own token cannot write to another repository, so a
+   GitHub App installed on the tap, with contents and pull requests write, gives the step a token for the run. The
+   app's client id is the repository variable `HOMEBREW_TAP_APP_CLIENT_ID`, and its private key the secret
+   `HOMEBREW_TAP_APP_PRIVATE_KEY`.
 
 `bin/release pack` builds the same tarball locally, from what the tag's commit holds and not the files on disk, so
 the tag comes first. `bin/release publish` creates the release for a tag that exists and never makes one. It

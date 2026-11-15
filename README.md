@@ -158,11 +158,11 @@ inside WSL.
 
 Check it with `kit version` and `kit help`.
 
-With Homebrew, `brew trust empowerite/tap`, then `brew install empowerite/tap/kit` for stable or
-`brew install empowerite/tap/kit-rc` for the newest release candidate. Other ways to install, such as mise or a
-download with `gh`, are in [docs/install.md](docs/install.md). That page
-also lists what kit needs on the machine, which the download does not bring (bash 4.4 or later, git, `jq`, `yq`,
-and the linters), how kit picks which release to run, and how `kit trust --clone` works.
+With Homebrew, which carries stable releases only: `brew trust empowerite/tap`, then
+`brew install empowerite/tap/kit`. Other ways to install, such as mise or a download with `gh`, are in
+[docs/install.md](docs/install.md). That page also lists what kit needs on the machine, which the download does not
+bring (bash 4.4 or later, git, `jq`, `yq`, and the linters), how kit picks which release to run, and how
+and how `kit trust --clone` works.
 
 New to a repository that uses kit? Run `kit trust --clone`, then `kit welcome`. `kit welcome` checks your tools, your code
 forge logins, and the repository, and shows how to fix each problem. Then it explains how work flows, the terms, and

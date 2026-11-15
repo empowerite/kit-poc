@@ -123,7 +123,7 @@ retire-world() {
 # asks of it: the digest beside the release, a clone of the tap, and a pull request, which it records and merges.
 tap-world() {
   git init --quiet --bare --initial-branch=main tap.git && git clone --quiet tap.git seed 2>/dev/null
-  mkdir -p seed/Formula && printf 'old\n' > seed/Formula/kit-rc.rb
+  mkdir -p seed/Formula && printf 'old\n' > seed/Formula/kit.rb
   git -C seed add Formula && git -C seed -c user.name=a -c user.email=a@b commit --quiet --message seed && git -C seed push --quiet origin main
   printf '%s\n' '#!/usr/bin/env bash' 'printf "%s\n" "$*" >> "${FAKES}/gh.calls"' \
     'case "$1 $2" in' \
@@ -134,7 +134,7 @@ tap-world() {
   export FAKE_TAP="${PWD}/tap.git" FAKE_DIGEST=$(printf 'x%.0s' {1..64} | tr x a)
 }
 
-@test "formula writes kit.rb for a release and kit-rc.rb for a pre-release, each in conflict with the other" {
+@test "formula writes kit.rb for the version, with the digest, and refuses a digest that is not one" {
   digest=$(printf 'b%.0s' {1..64})
   run "${repo_bin}/release" formula release/1.2.3 "${digest}"
   [ "$status" -eq 0 ]
@@ -142,12 +142,7 @@ tap-world() {
   [[ "$output" == *"class Kit < Formula"* ]]
   [[ "$output" == *'url "https://github.com/empowerite/kit/releases/download/release/1.2.3/kit-1.2.3.tar.gz"'* ]]
   [[ "$output" == *"sha256 \"${digest}\""* ]]
-  [[ "$output" == *'conflicts_with "kit-rc"'* ]]
-  run "${repo_bin}/release" formula release/1.2.3-rc.2 "${digest}"
-  [[ "$output" == "# kit-rc - "* ]]
-  [[ "$output" == *"class KitRc < Formula"* ]]
-  [[ "$output" == *'release/1.2.3-rc.2/kit-1.2.3-rc.2.tar.gz'* ]]
-  [[ "$output" == *'conflicts_with "kit"'* ]]
+  [[ "$output" != *"{{"* ]]
   run "${repo_bin}/release" formula release/1.2.3 not-a-digest
   [ "$status" -eq 1 ]
   [[ "$output" == *"not-a-digest is not a sha256 digest"* ]]
@@ -155,23 +150,31 @@ tap-world() {
 
 @test "tap writes the formula with the digest published beside the release, and merges the pull request that carries it" {
   tap-world
-  run env GITHUB_ACTIONS=true KIT_TAP=empowerite/homebrew-tap "${repo_bin}/release" tap release/9.9.9-rc.1
+  run env GITHUB_ACTIONS=true KIT_TAP=empowerite/homebrew-tap "${repo_bin}/release" tap release/9.9.9
   [ "$status" -eq 0 ]
-  [[ "$output" == *"holds kit-rc 9.9.9-rc.1"* ]]
-  git -C tap.git show kit-rc-9.9.9-rc.1:Formula/kit-rc.rb | grep -q "sha256 \"${FAKE_DIGEST}\""
-  git -C tap.git show kit-rc-9.9.9-rc.1:Formula/kit-rc.rb | grep -q 'class KitRc < Formula'
-  grep -q '^pr create --repo empowerite/homebrew-tap --base main --head kit-rc-9.9.9-rc.1 ' "${fakes}/gh.calls"
-  grep -q '^pr merge kit-rc-9.9.9-rc.1 --repo empowerite/homebrew-tap --squash --delete-branch$' "${fakes}/gh.calls"
+  [[ "$output" == *"holds kit 9.9.9"* ]]
+  git -C tap.git show kit-9.9.9:Formula/kit.rb | grep -q "sha256 \"${FAKE_DIGEST}\""
+  git -C tap.git show kit-9.9.9:Formula/kit.rb | grep -q 'class Kit < Formula'
+  grep -q '^pr create --repo empowerite/homebrew-tap --base main --head kit-9.9.9 ' "${fakes}/gh.calls"
+  grep -q '^pr merge kit-9.9.9 --repo empowerite/homebrew-tap --squash --delete-branch$' "${fakes}/gh.calls"
 }
 
 @test "tap writes nothing when the tap already holds the formula" {
   tap-world
-  "${repo_bin}/release" formula release/9.9.9-rc.1 "${FAKE_DIGEST}" > seed/Formula/kit-rc.rb
+  "${repo_bin}/release" formula release/9.9.9 "${FAKE_DIGEST}" > seed/Formula/kit.rb
   git -C seed add Formula && git -C seed -c user.name=a -c user.email=a@b commit --quiet --message same && git -C seed push --quiet origin main
+  run env GITHUB_ACTIONS=true "${repo_bin}/release" tap release/9.9.9
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"holds kit 9.9.9 already"* ]]
+  run -1 grep -q '^pr ' "${fakes}/gh.calls"
+}
+
+@test "tap leaves a pre-release out of the tap, and touches nothing" {
+  tap-world
   run env GITHUB_ACTIONS=true "${repo_bin}/release" tap release/9.9.9-rc.1
   [ "$status" -eq 0 ]
-  [[ "$output" == *"holds kit-rc 9.9.9-rc.1 already"* ]]
-  run -1 grep -q '^pr ' "${fakes}/gh.calls"
+  [[ "$output" == *"release/9.9.9-rc.1 is a pre-release; the tap carries stable releases only"* ]]
+  [ ! -e "${fakes}/gh.calls" ]
 }
 
 @test "tap refuses a release from a desk, as publish does" {

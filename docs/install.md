@@ -60,14 +60,12 @@ On macOS or Linux, from the [empowerite tap](https://github.com/empowerite/homeb
 
 ```sh
 brew trust empowerite/tap
-brew install empowerite/tap/kit      # stable
-brew install empowerite/tap/kit-rc   # or the newest release candidate
+brew install empowerite/tap/kit
 ```
 
-Until you trust the tap, Homebrew refuses to load any of its formulae, so `brew trust` comes first. The two install
-the same command, so only one can be installed at a time; to change channels, `brew uninstall` one and install the
-other. `brew upgrade` stays on the channel you chose. Until the first stable release is out, there is only `kit-rc`.
-The formulae bring bash, jq, and yq, and keep the one kittui for your machine; see
+Until you trust the tap, Homebrew refuses to load any of its formulae, so `brew trust` comes first. Homebrew carries
+stable releases only; for a release candidate, install by download. `brew upgrade kit` moves to a later release. The
+formula brings bash, jq, and yq, and keeps the one kittui for your machine; see
 [using-brew.md](toolchains/using-brew.md#installing-kit-with-brew).
 
 ### mise
@@ -79,8 +77,7 @@ Add kit as a tool in your own `~/.config/mise/config.toml`:
 "github:empowerite/kit" = { version = "0.1.0", version_prefix = "release/" }
 ```
 
-mise downloads the release's tarball itself, and puts its `bin/` on `PATH`. Name a stable release as `0.1.0` or a
-release candidate as `0.1.0-rc.7`; mise's `latest` is the newest stable release, never a candidate.
+mise downloads the release's tarball itself, and puts its `bin/` on `PATH`.
 
 ### Windows
 
