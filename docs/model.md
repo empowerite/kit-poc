@@ -81,5 +81,40 @@ relation, and the file. These are findings:
 - a file other than `domain.yml` that names neither an entity nor an extension, as `<path> names neither an entity nor an
   extension`.
 - a file that names both, as `<path> names both an entity and an extension`; it defines and extends nothing.
+- an `entity:` or `extends:` that is not a string, as `<path> gives entity as something that is not a string`; the file
+  defines and extends nothing.
 
 A finding leaves the entity as it was before the file's change that caused it; the rest of the file still applies.
+
+## What the check holds
+
+`model::check`, in the same module, takes what `model::build` gives and returns the findings as an array of sentences:
+the merge's first, then the structural ones, by entity name, and in each entity its fields and then its relations, each
+by name. An empty array means the model holds. `model::stubs` gives the names of the stub entities, sorted.
+
+Any pair of arities is a valid relationship, so the check does not rule on arities. These are its findings, with
+`<L>` standing for `Entity.member`:
+
+- a field `type` that is not a scalar (`Text`, `Int`, `Bool`, `Bytes`, `Path`, `Url`, `Time`, `Hash`), an
+  `{enum: [..]}`, or the name of an entity: `<L> has type <x>, which is not a scalar, an enum, or an entity`;
+- an `arity`, on a field or a relation, that is not `one`, `option`, `many`, or `some`, `null` included: `<L> has arity
+  <x>, which is not one, option, many, or some`;
+- a `source` that is not `stored` or `derived`, and a `status` that is not `held`, `planned`, or `unused`;
+- a `held` field with no `read-by`: `<L> is held and has no read-by`; a `derived` field with no `from`;
+- a stub with fields: `<Entity> is a stub and has fields: <names>`. A stub may hold relations, the inverse sides of
+  relations into it;
+- a sum whose `variants` are not a mapping, whose variant is not a mapping of field to entity, or whose variant field
+  names no entity;
+- a relation whose `to` names no entity;
+- a relation with both an `inverse` and `derived`, or with neither, and a `derived` that is not a sentence;
+- an `inverse` that is not written `Entity.relation`, that does not exist, or that does not name this relation back:
+  `<L> names inverse <x>, which does not exist` and `<L> names inverse <x>, which does not name <L> back`;
+- a relation whose `to` is not the entity of its inverse: `<L> goes to <x>, but its inverse <y> is on <z>`. The same rule
+  holds the inverse's own `to`, from the inverse's side, so a pair is reported once;
+- a relation that is its own inverse and goes to another entity. A relation to its own entity, as
+  `Person.friends` with itself as its inverse, is symmetric and holds; so does a pair on one entity, as
+  `Organization.parent` and `Organization.children`;
+- `ordered` that is not `true` or `false`, or is set on a relation whose arity is `one` or `option`;
+- a relation into a sum, as `Worktree.head` to `Head`, whose variant holds an entity with no relation back to the
+  source: `<A>.<r> reaches <E> through <S>, and <E> has no relation back to <A>`. The sum's own inverse is an ordinary
+  pair, and a relation back from `<E>` may be derived.
