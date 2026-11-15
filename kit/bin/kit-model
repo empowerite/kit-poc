@@ -2,7 +2,7 @@
 # kit-model - checks the model of kit's entities (kit verb: files)
 # ----------------------------------------------------------------------------------------------------------------------
 # Usage:
-#   kit model [--release=<dir>] (check | table (--entity=<name> | --domain=<name>))
+#   kit model [--release=<dir>] (check | table (--entity=<name> | --domain=<name>) | svg (--domain=<name> | --overview))
 #
 # The model is the entities kit works with, one YAML file each: the release's under modules/model/, and the
 # repository's under .kit/model/, as docs/model.md says. kit model check reads both and checks them: every relation has
@@ -17,18 +17,26 @@
 # Relation | To | Arity | Ordered | Inverse | Means. Arity is 1, 0..1, 0..*, or 1..*. A name the model does not hold
 # exits 2 and names the ones it does.
 #
+# svg prints a diagram of the model as SVG, the same bytes for the same model under any locale. --domain= draws a card
+# for each entity of the domain, and a line for each pair of inverse relations, with the name and arity of each
+# relation at the end it goes to; a derived relation is dashed, and a relation to another domain's entity is a short
+# arrow with that entity's name. --overview draws a panel for each domain, with its entities.
+#
 # Arguments:
 #   --release=<dir>    a model directory that exists, read in place of the release's modules/model; given once
 #   check              checks the model
 #   table              prints a table of one entity or one domain
+#   svg                prints a diagram of one domain, or of every domain
 #   --entity=<name>    the entity whose fields the table lists
-#   --domain=<name>    the domain whose relations the table lists
+#   --domain=<name>    the domain whose relations the table lists, or whose entities the diagram draws
+#   --overview         draws a panel for each domain of the model
 #
-# Exits 0 when the model holds, 1 when it has a finding, a file cannot be read, or jq fails, and 2 on a usage error: an
-# empty --release=, one given twice, or one that is not a directory; table with neither --entity= nor --domain=, or both;
-# and a name of an entity or a domain the model does not hold.
+# Exits 0 when the model holds, or a table or a diagram is printed; 1 when the model has a finding, a file cannot be
+# read, or jq fails; and 2 on a usage error: an empty --release=, one given twice, or one that is not a directory; table
+# with neither --entity= nor --domain=, or both; svg with neither --domain= nor --overview, or both; and a name of an
+# entity or a domain the model does not hold.
 #
-# see: modules/bash/model.sh, modules/jq/model.jq, docs/model.md
+# see: modules/bash/model.sh, modules/jq/model.jq, modules/jq/modelsvg.jq, docs/model.md
 
 set -o errexit -o nounset -o pipefail
 # shellcheck source=modules/bash/1st.sh
@@ -36,6 +44,20 @@ source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
 kit:enter
 use model
 guard:arguments model "$@" || exit $?
+
+# model-jq <program> [<jq argument>…] runs a jq program over the built model, with the model modules imported.
+# It prints the program's output, or else jq's message and returns 1: jq's own status, 3 or 5, is none of the verb's.
+model-jq() {
+  local program=$1 out
+  shift
+  if ! out=$(jq -L "${kit_root}/modules/jq" --raw-output "$@" \
+    'import "model" as model; import "modelsvg" as modelsvg; model::build | '"${program}" <<<"${loaded}" 2>&1)
+  then
+    printf '%s\n' "${out}"
+    return 1
+  fi
+  printf '%s\n' "${out}"
+}
 
 # shellcheck disable=SC2154  # syntax_options is set by guard:arguments
 release=${syntax_options[--release]:-}
@@ -45,45 +67,45 @@ then
   exit 2
 fi
 loaded=$(model:load ${release:+"${release}"}) || exit 1
-# jq's own status (3, 5) is not one of the verb's, so a failure of jq is caught here, printed, and ends it with 1.
-if [[ "${syntax_literals[0]}" == table ]]
+if [[ "${syntax_literals[0]}" == check ]]
 then
-  # shellcheck disable=SC2154  # syntax_options is set by guard:arguments
-  if [[ -n "${syntax_options[--entity]+x}" ]]
-  then
-    kind=entity plural=entities name=${syntax_options[--entity]} table=fields known='[.entities | keys[]]'
-  else
-    kind=domain plural=domains name=${syntax_options[--domain]} table=relations
-    known='([.domains | keys[]] + [.entities[].domain] | unique)'
-  fi
-  if ! names=$(jq -L "${kit_root}/modules/jq" --raw-output 'import "model" as model; model::build | '"${known}"'[]' \
-    <<<"${loaded}" 2>&1)
-  then
-    printf '%s\n' "${names}"
-    exit 1
-  fi
-  if ! grep --quiet --line-regexp --fixed-strings -- "${name}" <<<"${names}"
-  then
-    error "no ${kind} named ${name}; the ${plural} are: $(paste -s -d, - <<<"${names}" | sed 's/,/, /g'); run: kit help model"
-    exit 2
-  fi
-  if ! report=$(jq -L "${kit_root}/modules/jq" --raw-output --arg name "${name}" \
-    'import "model" as model; model::build | model::'"${table}"'($name)' <<<"${loaded}" 2>&1)
-  then
+  # The findings, one a line, then the count.
+  report=$(model-jq 'model::check[], "model: \(.entities | length) entities, \(model::stubs | length) stubs"') || {
     printf '%s\n' "${report}"
     exit 1
-  fi
+  }
   printf '%s\n' "${report}"
-  exit 0
+  [[ "${report}" != *$'\n'* ]]
+  exit
 fi
-# The findings, one a line, then the count.
-if ! report=$(jq -L "${kit_root}/modules/jq" --raw-output 'import "model" as model; model::build
-  | model::check[], "model: \(.entities | length) entities, \(model::stubs | length) stubs"' <<<"${loaded}" 2>&1)
+if [[ "${syntax_literals[0]}" == svg && -n "${syntax_options[--overview]+x}" ]]
 then
-  printf '%s\n' "${report}"
-  exit 1
+  model-jq 'modelsvg::overview'
+  exit
 fi
-printf '%s\n' "${report}"
-[[ "${report}" != *$'\n'* ]]
+if [[ -n "${syntax_options[--entity]+x}" ]]
+then
+  kind=entity plural=entities name=${syntax_options[--entity]} known='[.entities | keys[]]'
+else
+  kind=domain plural=domains name=${syntax_options[--domain]}
+  known='([.domains | keys[]] + [.entities[].domain] | unique)'
+fi
+names=$(model-jq "${known}[]") || {
+  printf '%s\n' "${names}"
+  exit 1
+}
+if ! grep --quiet --line-regexp --fixed-strings -- "${name}" <<<"${names}"
+then
+  known_list=$(paste -s -d, - <<<"${names}" | sed 's/,/, /g')
+  error "no ${kind} named ${name}; the ${plural} are: ${known_list}; run: kit help model"
+  exit 2
+fi
+# the function that prints the table or the diagram of the named entity or domain
+case "${syntax_literals[0]} ${kind}" in
+  ("table entity") call=model::fields ;;
+  ("table domain") call=model::relations ;;
+  (*) call=modelsvg::domain
+esac
+model-jq "${call}(\$name)" --arg name "${name}"
 
 # ----------------------------------------------------------------------------------------------------------------------

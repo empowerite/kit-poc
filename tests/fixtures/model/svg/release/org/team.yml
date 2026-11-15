@@ -1,0 +1,8 @@
+# A sum, whose variants each hold an entity.
+entity: Team
+layer: logical
+sum: true
+means: a small team led by a person, or a whole org
+variants:
+  Small: {lead: Person}
+  Large: {org: Org}

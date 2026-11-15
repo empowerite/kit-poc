@@ -276,6 +276,8 @@ from arguments, stays inline where it is used.
 | `version.jq` | semantic versions: their precedence, which is higher, and the highest of several |
 | `workspace.jq` | kit workspace's rows, made from what git prints |
 | `leases.jq` | what a lease holds, which leases a claim overlaps, and which paths a lease leaves out |
+| `model.jq` | the model of kit's entities, merged from its files, its findings, and its tables |
+| `modelsvg.jq` | the diagrams of the model: where each card of a domain goes, and the lines and labels between them |
 
 A jq module is `<module>.jq` in `modules/jq/`, a file of `def`s. A bash module runs it with `-L "${kit_jq}"` and
 imports it under its own name, so the jq function reads as the bash function does, with `::` for `:`:

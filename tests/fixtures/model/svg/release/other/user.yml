@@ -1,0 +1,6 @@
+# The other side of Org.owner, in another domain.
+entity: User
+layer: logical
+means: an account
+relations:
+  orgs: {to: Org, arity: many, inverse: Org.owner}

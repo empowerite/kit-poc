@@ -169,3 +169,52 @@ In a cell, a `|` is written `\|` and a newline is a space. Exactly one of `--ent
 both, exits 2. A name the model does not hold exits 2 and names the entities, or domains, it does. A page holds a table
 in a `kit:generate` region whose command is `kit model table --entity=<name>`, so `kit generate --check` names the page
 when the model has changed.
+
+## The diagrams
+
+`modelsvg::domain($name)` and `modelsvg::overview`, in `kit/modules/jq/modelsvg.jq`, take what `model::build` gives and
+return SVG text. `kit model [--release=<dir>] svg --domain=<name>` prints the diagram of one domain, and `svg
+--overview` the diagram of every domain. Exactly one of `--domain=` and `--overview` is given; none, or both, exits 2.
+A domain the model does not hold exits 2 and names the domains it does.
+
+The diagram of a domain draws a card for each of its entities:
+
+- the name, on a band tinted with the domain's color;
+- what the entity means, wrapped to the card;
+- `native: <tool>` for a native entity, and `logical` for a logical one, then `over: <entities>` when it has any;
+- `N held, M planned, K unused`, its fields by status, except for a sum or a stub;
+- each variant of a sum, as `Variant(field: Type)`, one a line;
+- a footer whose dot is green when a field is held, with the verbs that read the held fields, and hollow when none is.
+
+A stub's card is dashed and grey, and has no footer.
+
+A card goes in the row and column its domain's `layout` gives it. An entity with no hint goes one column right of the
+deepest entity that needs it, where an entity needs what a relation of arity `one` or `some` goes to; one that nothing
+needs is in the first column. A cycle of needs is broken at the relation back into an entity already on the path, with
+the entities taken in name order. In a column, the entities with no hint go below the hinted ones, in name order. A row
+or column that holds no card closes up. A card is 236 wide, columns are 64 apart, rows 56 apart, and a row is as tall as
+its tallest card.
+
+Each relation of the domain is a line:
+
+- A pair of inverse relations, `A.r` to `B` and `B.s` to `A`, is one line between the two cards, with an arrow at both
+  ends. At `B`'s end it reads the name and arity of `A.r`, as `r  1`, and at `A`'s end those of `B.s`. An arity reads
+  `1`, `0..1`, `0..*`, or `1..*`, and an ordered relation adds `{ordered}`.
+- A derived relation is a dashed arrow to where it goes, with its name, its arity, and `derived` at that end. A relation
+  whose inverse does not name it back is a solid arrow, labelled the same way, without `derived`.
+- A relation to its own entity, or a pair on one entity, is a loop on the side of the card where the next cell is free,
+  right, then left, or else under it. A relation that is its own inverse has one label.
+- A relation to an entity of another domain is a short arrow down from the card, with that entity's name in grey. That
+  entity has no card, so a diagram holds only its own domain.
+
+A line leaves and reaches the bottom or top of a card and turns in the gap between rows. Two lines between one pair of
+cards meet each card at different points. A line may pass behind a card. The lines are drawn first, then the cards, then
+the labels, each with a white halo, at the place nearest its end that covers no card and no other label.
+
+The overview draws a panel for each domain, five to a row, by name: the domain's name and intro, and its entities as
+pills, a stub's dashed. A domain of the release has a fixed color, and `config` and `configuration` share one. Any
+other domain takes one of six more, by its place among the sorted names of the model's domains.
+
+The output is the same bytes for the same model, run again or under any locale. Every object is read in sorted order,
+every coordinate is rounded to one decimal, and the text of a name, a sentence, or an intro is escaped, so a `<`, a
+`&`, or a quote leaves the SVG well-formed.

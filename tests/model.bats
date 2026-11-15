@@ -247,3 +247,89 @@ setup() {
   [ "$status" -eq 1 ]
   [ "$output" = 'jq: error: boom' ]
 }
+
+# kit model svg: a diagram of a domain, and an overview of every domain.
+
+@test "kit model svg --domain= prints the domain's diagram, which yq reads as XML" {
+  fresh-repo
+  run --separate-stderr kit model "--release=${fixtures}/svg/release" svg --domain=org
+  [ "$status" -eq 0 ]
+  [[ "${lines[0]}" == '<svg xmlns="http://www.w3.org/2000/svg" '* ]]
+  [ "${lines[-1]}" = '</svg>' ]
+  printf '%s\n' "$output" > out.svg
+  yq -p=xml . < out.svg > /dev/null
+  [[ "$output" == *'>Ghost</text>'* && "$output" == *'>Person</text>'* && "$output" == *'>Team</text>'* ]]
+  [[ "$output" == *'>members  1..*</text>'* && "$output" == *'>children  0..* {ordered}</text>'* ]]
+  [[ "$output" == *'<tspan class="far">User</tspan>'* && "$output" != *'>User</text>'* ]]
+}
+
+@test "kit model svg prints the same bytes on a second run and under another locale" {
+  fresh-repo
+  LC_ALL=C kit model "--release=${fixtures}/svg/release" svg --domain=org > c.svg
+  LC_ALL=en_US.UTF-8 kit model "--release=${fixtures}/svg/release" svg --domain=org > utf8.svg
+  LC_ALL=C kit model "--release=${fixtures}/svg/release" svg --domain=org > again.svg
+  LC_ALL=C kit model "--release=${fixtures}/svg/release" svg --overview > overview-c.svg
+  LC_ALL=en_US.UTF-8 kit model "--release=${fixtures}/svg/release" svg --overview > overview-utf8.svg
+  [ -s c.svg ]
+  cmp c.svg utf8.svg
+  cmp c.svg again.svg
+  cmp overview-c.svg overview-utf8.svg
+}
+
+@test "kit model svg --overview prints a panel for each domain, which yq reads as XML" {
+  fresh-repo
+  run --separate-stderr kit model "--release=${fixtures}/svg/release" svg --overview
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" > out.svg
+  yq -p=xml . < out.svg > /dev/null
+  [[ "$output" == *'>Org</text>'* && "$output" == *'>other</text>'* && "$output" == *'>User</text>'* ]]
+}
+
+@test "kit model svg escapes a means and a name with <, &, and quotes, so the diagram stays well-formed" {
+  fresh-repo
+  mkdir -p .kit/model/mine
+  printf 'entity: Odd\nlayer: logical\nmeans: '"'"'a <b> & "c"'"'"'\nrelations:\n  "x<y": {to: Odd, derived: '"'"'a & b'"'"'}\n' > .kit/model/mine/odd.yml
+  mkdir empty
+  run --separate-stderr kit model --release=empty svg --domain=mine
+  [ "$status" -eq 0 ]
+  printf '%s\n' "$output" > out.svg
+  yq -p=xml . < out.svg > /dev/null
+  [[ "$output" == *'>a &lt;b&gt; &amp; &quot;c&quot;</text>'* ]]
+  [[ "$output" == *'>x&lt;y  1  derived</text>'* ]]
+}
+
+@test "kit model svg with neither --domain= nor --overview, or both, exits 2 and says so" {
+  fresh-repo
+  run kit model "--release=${fixtures}/svg/release" svg
+  [ "$status" -eq 2 ]
+  [[ "${lines[0]}" == "❌ kit model svg needs --domain or --overview; run: "* ]]
+  run kit model "--release=${fixtures}/svg/release" svg --domain=org --overview
+  [ "$status" -eq 2 ]
+  [[ "${lines[0]}" == "❌ --domain cannot be combined with --overview; run: "* ]]
+}
+
+@test "kit model svg names the known domains for one it does not know" {
+  fresh-repo
+  run kit model "--release=${fixtures}/svg/release" svg --domain=nope
+  [ "$status" -eq 2 ]
+  [[ "${lines[0]}" == "❌ no domain named nope; the domains are: org, other; run: "* ]]
+}
+
+@test "kit model svg with a malformed file exits 1 and prints what model:load printed" {
+  fresh-repo
+  run kit model "--release=${fixtures}/anchor/release" svg --overview
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"modules/model/code/bad.yml"*"anchor"* ]]
+}
+
+@test "a jq that fails ends kit model svg with 1 and jq's message" {
+  fresh-repo
+  real=$(command -v jq)
+  mkdir "${BATS_TEST_TMPDIR}/fake"
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do [[ "$a" != *modelsvg::domain* ]] || { echo "jq: error: boom" >&2; exit 5; }; done\nexec %q "$@"\n' \
+    "${real}" > "${BATS_TEST_TMPDIR}/fake/jq"
+  chmod +x "${BATS_TEST_TMPDIR}/fake/jq"
+  PATH="${BATS_TEST_TMPDIR}/fake:${PATH}" run kit model "--release=${fixtures}/svg/release" svg --domain=org
+  [ "$status" -eq 1 ]
+  [ "$output" = 'jq: error: boom' ]
+}

@@ -7,6 +7,7 @@
 #   colour   a domain's tint, stroke, and dark text color
 #   cards    what a card of an entity holds, and how tall it is
 #   layout   where each card of a domain goes: the row and column its hint gives, or else by layering
+#   edges    the lines between the cards, routed through the gaps between rows, and the labels at their ends
 #   svg      domain($name), a domain's diagram, and overview, a panel for each domain
 #
 # The output is the same bytes for the same model, under any locale: every object is read by sorted key, every number
@@ -69,8 +70,13 @@ def lines($size; $max; $mono):
     elif (.[length - 1] + " " + $word | width($size; $mono)) <= $max then .[length - 1] += " " + $word
     else . + [$word] end);
 
-# text is a string escaped for the text of an element and the value of an attribute.
-def text: clean | @html;
+# escape is a string escaped for the text of an element and the value of an attribute; text is a value as one line of
+# text, escaped.
+def escape: @html;
+def text: clean | escape;
+
+# tenth is a number rounded to one decimal, so the coordinate a function gives is the one num prints.
+def tenth: (. * 10 | round) / 10;
 
 # series is an array of names as an English list: A; A and B; A, B, and C.
 def series:
@@ -268,6 +274,7 @@ def layout($name):
   | ([foreach $heights[] as $h ($top; . + $h + row_gap; . - $h - row_gap)]) as $ys
   | {width: $width, intro: $intro, top: $top,
      bottom: (if ($heights | length) == 0 then $top - row_gap else $ys[-1] + $heights[-1] end),
+     rows: [range(0; $heights | length) as $i | {y: $ys[$i], h: $heights[$i]}],
      cards: (reduce $names[] as $n ({};
        ($rows | index($cells[$n].row)) as $r
        | ($cols | index($cells[$n].col)) as $c
@@ -275,21 +282,232 @@ def layout($name):
            card: $cards[$n]}))};
 
 # ----------------------------------------------------------------------------------------------------------------------
+# edges
+# ----------------------------------------------------------------------------------------------------------------------
+
+# relation_text($name) is the label of a relation at the end of its line: its name, two spaces, and its arity as 1,
+# 0..1, 0..*, or 1..*, then {ordered} for an ordered relation, and derived for a derived one.
+def relation_text($name):
+  "\($name | clean)  "
+  + (if .arity == null or (.arity | type) == "string" then (.arity | model::arity_text) // (.arity | clean)
+    else .arity | clean end)
+  + (if .ordered == true then " {ordered}" else "" end)
+  + (if .derived != null then "  derived" else "" end);
+
+# lines_of($names) are the lines of a domain whose entities are $names, by entity, then relation: {key, kind, a, b,
+# dashed, both, labels}, from a to b. kind is line, between two cards; loop, from a card to itself; or stub, to b, an
+# entity of another domain, which has no card. A pair of inverse relations is one line with an arrow at both ends, drawn
+# for the relation whose Entity.relation sorts first, and a relation that is its own inverse is a loop with one label.
+# Any other relation is an arrow from its entity to where it goes, dashed when it is derived. A label is {role, text,
+# far}: role a is at the line's start, b at its end, and far is the name of a stub's entity.
+def lines_of($names):
+  . as $model
+  | [$names[] as $e
+    | ($model.entities[$e].relations // {}) | to_entries | sort_by(.key)[]
+    | select(.value | type == "object")
+    | .key as $r
+    | .value as $rel
+    | "\($e).\($r)" as $key
+    | ($rel.to | clean) as $t
+    | ($t | IN($names[])) as $inside
+    | ($rel.inverse | if type == "string" then . else "" end) as $inv
+    | ($inv | split(".")) as $parts
+    | (if $inside and $rel.derived == null and ($parts | length) == 2 and $parts[0] == $t
+        then $model.entities[$t].relations[$parts[1]] else null end) as $other
+    | (($other | type) == "object" and $other.inverse == $key and $other.to == $e) as $paired
+    | {key: $key, a: $e, b: $t, dashed: ($rel.derived != null), both: $paired}
+    | if ($inside | not) then . + {kind: "stub", labels: [{role: "b", text: ($rel | relation_text($r)), far: $t}]}
+      elif $paired and $inv == $key then . + {kind: "loop", labels: [{role: "b", text: ($rel | relation_text($r))}]}
+      elif $paired and $inv < $key then empty
+      else
+        . + {kind: (if $e == $t then "loop" else "line" end),
+          labels: ((if $paired then [{role: "a", text: ($other | relation_text($parts[1]))}] else [] end)
+            + [{role: "b", text: ($rel | relation_text($r))}])}
+      end];
+
+# side_of($cards; $me; $other) is the side of the card $me that a line to $other meets: the top when $other is in a
+# row above, and else the bottom, so a line within a row runs under the row.
+def side_of($cards; $me; $other): if $cards[$me].row > $cards[$other].row then "top" else "bottom" end;
+
+# free($cards; $me; $step) is true when the cell $step columns from the card $me, in its row, holds no card, and is
+# in the diagram or right of it.
+def free($cards; $me; $step):
+  $cards[$me] as $c
+  | ($c.col + $step) as $col
+  | $col >= 0 and (any($cards[]; .row == $c.row and .col == $col) | not);
+
+# loop_side($cards; $me) is the side of the card $me that its loops go on: the right, or else the left, when the cell
+# beside it is free, so their labels have room, and else the bottom.
+def loop_side($cards; $me):
+  if free($cards; $me; 1) then "right" elif free($cards; $me; -1) then "left" else "bottom" end;
+
+# ends($cards) are the ends of the lines, given as input, on their cards: {key, role, card, side, other}, where other is
+# the x of the middle of the card at the line's other end. A stub has one end, at the bottom of its card.
+def ends($cards):
+  [.[]
+    | (if .kind == "loop" then loop_side($cards; .a) else null end) as $loop
+    | {key, role: "a", card: .a,
+        side: ($loop // (if .kind == "stub" then "bottom" else side_of($cards; .a; .b) end)),
+        other: (if .kind == "stub" then 1000000 else $cards[.b].x + $cards[.b].w / 2 end)},
+      (if .kind == "stub" then empty
+      else
+        {key, role: "b", card: .b, side: ($loop // side_of($cards; .b; .a)), other: ($cards[.a].x + $cards[.a].w / 2)}
+      end)];
+
+# ports($cards) is where each end, given as input, meets its card, {"<key> <role>": [x, y, side]}: the ends on one side
+# of a card are spread evenly along it, below the band on the left and the right, ordered by the x of their other ends,
+# then by key and role, so two lines between one pair of cards never meet a card at one point.
+def ports($cards):
+  reduce (group_by([.card, .side])[] | sort_by([.other, .key, .role]) | length as $n | to_entries[]
+    | .key as $i
+    | .value as $end
+    | $cards[$end.card] as $c
+    | {at: "\($end.key) \($end.role)", side: $end.side}
+      + if $end.side == "top" or $end.side == "bottom" then
+          {x: ($c.x + $c.w * ($i + 1) / ($n + 1) | tenth), y: (if $end.side == "top" then $c.y else $c.y + $c.h end)}
+        else
+          {x: (if $end.side == "right" then $c.x + $c.w else $c.x end),
+            y: ($c.y + 30 + ($c.h - 30) * ($i + 1) / ($n + 1) | tenth)}
+        end) as $p ({};
+    .[$p.at] = [$p.x, $p.y, $p.side]);
+
+# lane_offsets are the heights below the top of a gap between rows that a line can run along, from the middle out.
+def lane_offsets: [28, 22, 34, 16, 40];
+
+# lanes($cards; $rows; $ports) is the y each line, given as input, turns along in the gap under a row, {key: y}. A line
+# between two rows takes the gap above the lower card, and a line within a row, or a loop under its card, the gap under
+# its row; a line whose two ends are one above the other, and a loop on a card's side, turn nowhere. By gap, then key,
+# a line takes the first lane where no line already there overlaps it.
+def lanes($cards; $rows; $ports):
+  [.[] | select(.kind != "stub")
+    | $ports["\(.key) a"] as $pa
+    | $ports["\(.key) b"] as $pb
+    | [$cards[.a].row, $cards[.b].row] as $r
+    | select($pa[2] == "top" or $pa[2] == "bottom")
+    | select($r[0] == $r[1] or ($pa[0] - $pb[0] | fabs) >= 1)
+    | {key, gap: (if $r[0] == $r[1] then $r[0] else ($r | max) - 1 end), lo: ([$pa[0], $pb[0]] | min),
+        hi: ([$pa[0], $pb[0]] | max)}]
+  | sort_by([.gap, .key])
+  | (reduce .[] as $s ({taken: {}, at: {}};
+      . as $state
+      | ([lane_offsets[] as $o
+          | select(any($state.taken["\($s.gap) \($o)"][]?; .[0] < $s.hi + 6 and $s.lo - 6 < .[1]) | not) | $o][0]
+        // lane_offsets[0]) as $o
+      | .taken["\($s.gap) \($o)"] += [[$s.lo, $s.hi]]
+      | .at[$s.key] = $rows[$s.gap].y + $rows[$s.gap].h + $o)).at;
+
+# outward($side) is which way a line leaves a card's side: 1 to the right, -1 to the left.
+def outward($side): if $side == "left" then -1 else 1 end;
+
+# points($ports; $lanes) are the points of a line, given as input, from a to b: straight down 24 for a stub; out 18 from
+# the side, along it, and back for a loop on a card's side; straight across for two ends one above the other; else down
+# or up to its lane, along it, and to the other end.
+def points($ports; $lanes):
+  $ports["\(.key) a"] as $pa
+  | $ports["\(.key) b"] as $pb
+  | if .kind == "stub" then [[$pa[0], $pa[1]], [$pa[0], $pa[1] + 24]]
+    elif $pa[2] == "right" or $pa[2] == "left" then
+      ($pa[0] + 18 * outward($pa[2])) as $out
+      | [[$pa[0], $pa[1]], [$out, $pa[1]], [$out, $pb[1]], [$pb[0], $pb[1]]]
+    elif $lanes[.key] == null then [[$pa[0], $pa[1]], [$pb[0], $pb[1]]]
+    else [[$pa[0], $pa[1]], [$pa[0], $lanes[.key]], [$pb[0], $lanes[.key]], [$pb[0], $pb[1]]] end;
+
+# candidates($x; $y; $side; $leg) are the places a label can take by the end of a line at ($x, $y), nearest first:
+# beside the tip of a stub, right then left; past a loop on a card's side, then over and under the end of it; or beside
+# the leg the line runs straight from its end, $leg long, a row of text at a time, right then left, under a bottom end
+# and over a top end. The row nearest the end is always a candidate, and the rows past the leg come last.
+def candidates($x; $y; $side; $leg):
+  if $side == "right" or $side == "left" then
+    outward($side) as $d
+    | (if $d > 0 then "start" else "end" end) as $anchor
+    | {x: ($x + 24 * $d), y: ($y + 4), anchor: $anchor}, {x: ($x + 5 * $d), y: ($y - 4), anchor: $anchor},
+      {x: ($x + 5 * $d), y: ($y + 12), anchor: $anchor}
+  else
+    (if $side == "tip" then 28, 40, 16, 52, 4
+      else
+        ([range(0; 8) | select(. == 0 or 13 + . * 12 + 3 <= $leg)] as $beside
+          | $beside[], (range(0; 8) | select(IN($beside[]) | not)))
+        | if $side == "top" then -5 - . * 12 else 13 + . * 12 end
+      end) as $dy
+    | (if $side == "tip" then 6 else 5 end) as $dx
+    | {x: ($x + $dx), y: ($y + $dy), anchor: "start"}, {x: ($x - $dx), y: ($y + $dy), anchor: "end"}
+  end;
+
+# box($w) is the box [x0, y0, x1, y1] the letters of a label $w wide cover at its place: from the cap height to the
+# descent of an 11.5px font.
+def box($w): if .anchor == "start" then [.x, .y - 8.5, .x + $w, .y + 2.5] else [.x - $w, .y - 8.5, .x, .y + 2.5] end;
+
+# overlaps($a; $b) is true when two boxes overlap.
+def overlaps($a; $b): $a[0] < $b[2] and $b[0] < $a[2] and $a[1] < $b[3] and $b[1] < $a[3];
+
+# place($lines; $ports; $cards; $paths) are the labels of the lines: {key, role, at, text, far, x, y, anchor, box},
+# where at is the entity at the label's end. Each takes the candidate that costs least: a card or a label placed
+# before it that it covers costs 1000, as does reaching left of the diagram; each candidate costs one more than the one
+# before it, so the nearest wins a tie; and a segment of a line it crosses costs 3, so a label moves a row or two to
+# keep clear of a line, and no further, because the halo of its text hides a line it crosses.
+def place($lines; $ports; $cards; $paths):
+  [$cards[] | [.x, .y, .x + .w, .y + .h]] as $walls
+  | [$paths[].points | range(1; length) as $i | [.[$i - 1], .[$i]]
+      | [([.[0][0], .[1][0]] | min) - 1, ([.[0][1], .[1][1]] | min) - 1, ([.[0][0], .[1][0]] | max) + 1,
+         ([.[0][1], .[1][1]] | max) + 1]] as $segments
+  | reduce ($lines[] as $l | $l.labels[]
+      | . + {key: $l.key, kind: $l.kind, at: (if .role == "a" or $l.kind == "stub" then $l.a else $l.b end),
+          port: $ports["\($l.key) \(if $l.kind == "stub" then "a" else .role end)"]}) as $label ([];
+    . as $placed
+    | (($label.text + (if $label.far == null then "" else "  " + $label.far end)) | width(11.5)) as $w
+    | ($paths[] | select(.key == $label.key) | .points | if $label.role == "a" then . else reverse end) as $route
+    | ($route[0][1] - $route[1][1] | fabs) as $leg
+    | [candidates($label.port[0]; $label.port[1]; if $label.kind == "stub" then "tip" else $label.port[2] end; $leg),
+        (if ($label.port[2] == "top" or $label.port[2] == "bottom") and ($route | length) >= 3 and $leg <= 44 then
+          (if $route[2][0] > $route[1][0] then 1 else -1 end) as $d
+          | (-4, 12) as $dy
+          | {x: ($route[1][0] + 5 * $d), y: ($route[1][1] + $dy), anchor: (if $d > 0 then "start" else "end" end)}
+        else empty end)
+        | {x: (.x | tenth), y: (.y | tenth), anchor} | .box = (box($w) | map(tenth))] as $options
+    | ([$options | to_entries[] | .key as $rank | .value.box as $b
+        | {rank: $rank, cost: ($rank
+            + 1000 * ([$walls[], ($placed[].box | [.[0] - 6, .[1], .[2] + 6, .[3]]) | select(overlaps(.; $b))]
+              | length)
+            + (if $b[0] < 4 then 1000 else 0 end)
+            + 3 * ([$segments[] | select(overlaps(.; $b))] | length)),
+           at: .value}]
+      | min_by([.cost, .rank]).at) as $at
+    | . + [{key: $label.key, role: $label.role, at: $label.at, text: $label.text, far: $label.far} + $at]);
+
+# routes($layout) are the lines of a domain laid out as $layout: {paths: [{key, kind, a, b, class, points}], labels}.
+def routes($layout):
+  ($layout.cards | keys) as $names
+  | lines_of($names) as $lines
+  | ($lines | ends($layout.cards) | ports($layout.cards)) as $ports
+  | ($lines | lanes($layout.cards; $layout.rows; $ports)) as $lanes
+  | [$lines[]
+      | {key, kind, a, b, class: ("edge" + (if .both then " both" else "" end) + (if .dashed then " dash" else "" end)),
+          points: points($ports; $lanes)}] as $paths
+  | {paths: $paths, labels: place($lines; $ports; $layout.cards; $paths)};
+
+# edges($name) are the lines of a domain's diagram and their labels, as routes gives them.
+def edges($name): routes(layout($name));
+
+# ----------------------------------------------------------------------------------------------------------------------
 # svg
 # ----------------------------------------------------------------------------------------------------------------------
 
 # style is the CSS of every diagram.
 def style: [
-  "    text { font-family: Inter, -apple-system, \"Segoe UI\", Helvetica, Arial, sans-serif; font-size: 13px; fill: #0f172a; }",
+  "    text { font-family: Inter, -apple-system, \"Segoe UI\", Helvetica, Arial, sans-serif; font-size: 13px;"
+    + " fill: #0f172a; }",
   "    .title { font-size: 24px; font-weight: 700; }",
   "    .intro { font-size: 13.5px; fill: #475569; }",
   "    .h { font-size: 15px; font-weight: 700; }",
   "    .w { font-size: 12.5px; fill: #1e293b; }",
   "    .ho { font-size: 12px; fill: #475569; }",
   "    .p { font-size: 12px; }",
-  "    .m { font-family: \"SF Mono\", Menlo, Consolas, \"Liberation Mono\", monospace; font-size: 11.5px; fill: #334155; }",
-  "    .f { font-family: \"SF Mono\", Menlo, Consolas, \"Liberation Mono\", monospace; font-size: 11px; fill: #334155; }",
-  "    .lbl { font-size: 11.5px; fill: #475569; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }",
+  "    .m { font-family: \"SF Mono\", Menlo, Consolas, \"Liberation Mono\", monospace; font-size: 11.5px;"
+    + " fill: #334155; }",
+  "    .f { font-family: \"SF Mono\", Menlo, Consolas, \"Liberation Mono\", monospace; font-size: 11px;"
+    + " fill: #334155; }",
+  "    .lbl { font-size: 11.5px; fill: #475569; paint-order: stroke; stroke: #ffffff; stroke-width: 4px;"
+    + " stroke-linejoin: round; }",
   "    .far { fill: #94a3b8; }",
   "    .edge { stroke: #475569; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }",
   "    .both { marker-start: url(#arrow); }",
@@ -329,7 +547,9 @@ def band($x; $y; $w; $h; $r):
 # dot($cx; $cy; $held) is the dot that says whether something is held: green and filled, or hollow.
 def dot($cx; $cy; $held):
   if $held then "<circle cx=\"\($cx | num)\" cy=\"\($cy | num)\" r=\"4.5\" fill=\"#16a34a\"/>"
-  else "<circle cx=\"\($cx | num)\" cy=\"\($cy | num)\" r=\"4\" fill=\"#ffffff\" stroke=\"#94a3b8\" stroke-width=\"1.5\"/>"
+  else
+    "<circle cx=\"\($cx | num)\" cy=\"\($cy | num)\" r=\"4\" fill=\"#ffffff\" stroke=\"#94a3b8\""
+    + " stroke-width=\"1.5\"/>"
   end;
 
 # draw_card($at; $colour) are the lines of a card at its place in the layout: the white box, the tinted band and the
@@ -348,7 +568,8 @@ def draw_card($at; $colour):
     + (if $c.size == 15 then "" else ";font-size:\($c.size | num)px" end) + "\">\($c.name | text)</text>",
     ($c.blocks[] as $b
       | $b.lines | to_entries[]
-      | "  <text class=\"\($b.class)\" x=\"\($x + 12 | num)\" y=\"\($y + $b.top + $b.step - 5 + .key * $b.step | num)\">"
+      | "  <text class=\"\($b.class)\" x=\"\($x + 12 | num)\""
+        + " y=\"\($y + $b.top + $b.step - 5 + .key * $b.step | num)\">"
         + "\(.value | text)</text>"),
     (if $c.foot == null then empty
     else
@@ -359,8 +580,19 @@ def draw_card($at; $colour):
         ($c.foot | to_entries[]
           | "  <text class=\"f\" x=\"\($x + 30 | num)\" y=\"\($fy + 14 + .key * 14 | num)\">\(.value | text)</text>")
     end),
-    "  <rect x=\"\($x | num)\" y=\"\($y | num)\" width=\"\($at.w | num)\" height=\"\($at.h | num)\" rx=\"9\" fill=\"none\""
-    + " stroke=\"\($k.stroke)\" stroke-width=\"1.5\"" + (if $c.stub then " stroke-dasharray=\"6 4\"" else "" end) + "/>";
+    "  <rect x=\"\($x | num)\" y=\"\($y | num)\" width=\"\($at.w | num)\" height=\"\($at.h | num)\" rx=\"9\""
+    + " fill=\"none\" stroke=\"\($k.stroke)\" stroke-width=\"1.5\""
+    + (if $c.stub then " stroke-dasharray=\"6 4\"" else "" end) + "/>";
+
+# draw_path is the line of a path routes gives.
+def draw_path:
+  "  <path class=\"\(.class)\" d=\"M " + (.points | map("\(.[0] | num) \(.[1] | num)") | join(" L ")) + "\"/>";
+
+# draw_label is the text of a label routes gives, its spaces kept, with a stub's entity in grey after it.
+def draw_label:
+  "  <text class=\"lbl\" xml:space=\"preserve\" x=\"\(.x | num)\" y=\"\(.y | num)\""
+  + (if .anchor == "end" then " text-anchor=\"end\"" else "" end) + ">\(.text | escape)"
+  + (if .far == null then "" else "  <tspan class=\"far\">\(.far | escape)</tspan>" end) + "</text>";
 
 # legend($right) is the key to the footer's dot, at the top right of a diagram whose right edge is $right.
 def legend($right):
@@ -377,16 +609,20 @@ def domain($name):
   | ($l.cards | keys) as $names
   | (if ($names | length) == 0 then "The \($title) domain holds no entity."
     else "Entities of the \($title) domain: \($names | series)." end) as $desc
-  | ([$l.width + 2 * margin, 600] | max) as $w
-  | ($l.bottom + margin) as $h
+  | ($model | routes($l)) as $r
+  | ([$l.width + 2 * margin, 600, ($r.labels[] | .box[2] + margin), ($r.paths[].points[][0] + margin)] | max) as $w
+  | ([$l.bottom, ($r.labels[] | .box[3]), ($r.paths[].points[][1])] | max + margin) as $h
   | [head($w; $h; $title; $desc; $colour; $l.intro),
      (if any($l.cards[]; .card.stub | not) then legend($w - margin) else empty end),
+     ($r.paths[] | draw_path),
      ($names[] as $n | draw_card($l.cards[$n]; $colour)),
+     ($r.labels[] | draw_label),
      "</svg>"]
   | join("\n");
 
-# panels is where each domain's panel of the overview goes, {domain: {row, x, y, w, h, title, intro, pills}}: five to
-# a row, by name, each as tall as the tallest of its row. A pill is an entity's name, wrapped into rows across the panel.
+# panels is where each domain's panel of the overview goes, {domain: {row, x, y, w, h, title, intro, pills}}: five
+# to a row, by name, each as tall as the tallest of its row. A pill is an entity's name, wrapped into rows across the
+# panel.
 def panels:
   . as $model
   | domain_names as $domains
@@ -414,7 +650,8 @@ def draw_panel($p; $colour):
   "  <rect x=\"\($p.x | num)\" y=\"\($p.y | num)\" width=\"\($p.w | num)\" height=\"\($p.h | num)\" rx=\"12\""
     + " fill=\"#ffffff\"/>",
   "  <path d=\"\(band($p.x; $p.y; $p.w; $p.band; 12))\" fill=\"\($colour.tint)\"/>",
-  "  <line x1=\"\($p.x | num)\" y1=\"\($p.y + $p.band | num)\" x2=\"\($p.x + $p.w | num)\" y2=\"\($p.y + $p.band | num)\""
+  "  <line x1=\"\($p.x | num)\" y1=\"\($p.y + $p.band | num)\" x2=\"\($p.x + $p.w | num)\""
+    + " y2=\"\($p.y + $p.band | num)\""
     + " stroke=\"\($colour.stroke)\" stroke-opacity=\".35\"/>",
   "  <text class=\"h\" x=\"\($p.x + 14 | num)\" y=\"\($p.y + 22 | num)\" style=\"fill:\($colour.dark);font-size:16px\">"
     + "\($p.title | text)</text>",
@@ -425,12 +662,14 @@ def draw_panel($p; $colour):
     | (if $pill.stub then stub_colour else $colour end) as $k
     | ($p.x + 12 + $pill.x) as $x
     | ($p.y + $p.band + 14 + $pill.row * 28) as $y
-    | "  <rect x=\"\($x | num)\" y=\"\($y | num)\" width=\"\($pill.w | num)\" height=\"22\" rx=\"11\" fill=\"\($k.tint)\""
+    | "  <rect x=\"\($x | num)\" y=\"\($y | num)\" width=\"\($pill.w | num)\" height=\"22\" rx=\"11\""
+      + " fill=\"\($k.tint)\""
       + " stroke=\"\($k.stroke)\" stroke-opacity=\".7\"" + (if $pill.stub then " stroke-dasharray=\"4 3\"" else "" end)
       + "/>",
       "  <text class=\"p\" text-anchor=\"middle\" x=\"\($x + $pill.w / 2 | num)\" y=\"\($y + 15 | num)\""
       + " style=\"fill:\($k.dark)\">\($pill.name | text)</text>"),
-  "  <rect x=\"\($p.x | num)\" y=\"\($p.y | num)\" width=\"\($p.w | num)\" height=\"\($p.h | num)\" rx=\"12\" fill=\"none\""
+  "  <rect x=\"\($p.x | num)\" y=\"\($p.y | num)\" width=\"\($p.w | num)\" height=\"\($p.h | num)\" rx=\"12\""
+    + " fill=\"none\""
     + " stroke=\"\($colour.stroke)\" stroke-width=\"1.5\"/>";
 
 # overview is the diagram of the whole model, as SVG text: a panel for each domain, five to a row.
@@ -443,7 +682,8 @@ def overview:
   | (([$p[] | .y + .h] | max) // 110) as $bottom
   | [head($w; $bottom + margin; "Entities";
        "The entities of the model in \($domains | length) domains, each domain with the entities it holds.";
-       {stroke: "#475569", dark: "#0f172a"}; ["Each panel is a domain and names its entities. A dashed name is a stub."]),
+       {stroke: "#475569", dark: "#0f172a"};
+       ["Each panel is a domain and names its entities. A dashed name is a stub."]),
      ($domains[] as $d | draw_panel($p[$d]; $model | colour($d))),
      "</svg>"]
   | join("\n");

@@ -1,0 +1,12 @@
+# A pair of relations on one entity, two pairs with Person, and a relation to another domain's entity.
+entity: Org
+layer: logical
+means: an organization
+fields:
+  name: {type: Text, status: held, read-by: "orgs name"}
+relations:
+  parent: {to: Org, arity: option, inverse: Org.children}
+  children: {to: Org, arity: many, ordered: true, inverse: Org.parent}
+  members: {to: Person, arity: some, inverse: Person.org}
+  staff: {to: Person, arity: many, inverse: Person.boss}
+  owner: {to: User, inverse: User.orgs}

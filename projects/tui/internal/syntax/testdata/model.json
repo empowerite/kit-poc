@@ -2,7 +2,7 @@
   "verb": "model",
   "purpose": "checks the model of kit's entities",
   "usage": [
-    "kit model [--release=<dir>] (check | table (--entity=<name> | --domain=<name>))"
+    "kit model [--release=<dir>] (check | table (--entity=<name> | --domain=<name>) | svg (--domain=<name> | --overview))"
   ],
   "syntax": [
     [
@@ -61,6 +61,35 @@
               ],
               "repeat": false
             }
+          ],
+          [
+            {
+              "kind": "literal",
+              "name": "svg",
+              "repeat": false
+            },
+            {
+              "kind": "group",
+              "optional": false,
+              "alternatives": [
+                [
+                  {
+                    "kind": "option",
+                    "name": "domain",
+                    "value": "name",
+                    "repeat": false
+                  }
+                ],
+                [
+                  {
+                    "kind": "flag",
+                    "name": "overview",
+                    "repeat": false
+                  }
+                ]
+              ],
+              "repeat": false
+            }
           ]
         ],
         "repeat": false
@@ -77,11 +106,17 @@
     "table": {
       "description": "prints a table of one entity or one domain"
     },
+    "svg": {
+      "description": "prints a diagram of one domain, or of every domain"
+    },
     "--entity": {
       "description": "the entity whose fields the table lists"
     },
     "--domain": {
-      "description": "the domain whose relations the table lists"
+      "description": "the domain whose relations the table lists, or whose entities the diagram draws"
+    },
+    "--overview": {
+      "description": "draws a panel for each domain of the model"
     }
   }
 }

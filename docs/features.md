@@ -374,6 +374,8 @@ see: [generate.md](generate.md)
   `.kit/model/`. It prints each finding, then how many entities and stubs there are, and fails the gate on a finding.
 - `kit model table --entity=<name>` and `--domain=<name>` print an entity's fields and a domain's relations as markdown
   tables, for a page that holds them in a `kit:generate` region.
+- `kit model svg --domain=<name>` prints a diagram of a domain's entities and the relations between them, with the arity
+  at each end, and `kit model svg --overview` a panel for each domain. The same model gives the same bytes.
 
 see: [model.md](model.md)
 
