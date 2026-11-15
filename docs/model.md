@@ -80,5 +80,6 @@ relation, and the file. These are findings:
 - a key an extension may not set on the entity.
 - a file other than `domain.yml` that names neither an entity nor an extension, as `<path> names neither an entity nor an
   extension`.
+- a file that names both, as `<path> names both an entity and an extension`; it defines and extends nothing.
 
 A finding leaves the entity as it was before the file's change that caused it; the rest of the file still applies.

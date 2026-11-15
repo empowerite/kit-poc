@@ -94,10 +94,12 @@ def extend($f):
 def build:
   [.files[] | select(.path | split("/") | last == "domain.yml")] as $domain_files
   | [.files[] | select((.path | split("/") | last) != "domain.yml")] as $files
-  | [$files[] | select((.doc | type) == "object" and .doc.entity != null)] as $entity_files
+  | [$files[] | select((.doc | type) == "object" and .doc.entity != null and .doc.extends == null)] as $entity_files
   | [$files[] | select((.doc | type) == "object" and .doc.entity == null and .doc.extends != null)] as $extend_files
-  | [$files[] | select(((.doc | type) == "object" and (.doc.entity != null or .doc.extends != null)) | not)
-      | "\(.path) names neither an entity nor an extension"] as $unnamed
+  | ([$files[] | select(((.doc | type) == "object" and (.doc.entity != null or .doc.extends != null)) | not)
+      | "\(.path) names neither an entity nor an extension"]
+    + [$files[] | select((.doc | type) == "object" and .doc.entity != null and .doc.extends != null)
+      | "\(.path) names both an entity and an extension"]) as $unnamed
   | define($entity_files) as $defined
   | reduce $extend_files[] as $f ({entities: $defined.entities, findings: $defined.findings}; extend($f))
   | .findings += $unnamed

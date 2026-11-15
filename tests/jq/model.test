@@ -66,3 +66,8 @@ import "model" as model; model::build | [.findings, .entities.Commit]
 import "model" as model; model::build | [.findings, (.entities | keys)]
 {"files": [{"domain": "code", "origin": "release", "path": "m/code/domain.yml", "doc": {"name": "Code"}}, {"domain": "mine", "origin": "repository", "path": "r/typo.yml", "doc": {"entiy": "Foo"}}, {"domain": "mine", "origin": "repository", "path": "r/ok.yml", "doc": {"entity": "Bar"}}]}
 [["r/typo.yml names neither an entity nor an extension"], ["Bar"]]
+
+# a file that names both an entity and an extension is a finding that names the path, and it defines and extends nothing
+import "model" as model; model::build | [.findings, (.entities | keys), .entities.Bar.fields]
+{"files": [{"domain": "code", "origin": "release", "path": "m/bar.yml", "doc": {"entity": "Bar"}}, {"domain": "mine", "origin": "repository", "path": "r/both.yml", "doc": {"entity": "Foo", "extends": "Bar", "fields": {"a": {"type": "Text"}}}}]}
+[["r/both.yml names both an entity and an extension"], ["Bar"], null]
