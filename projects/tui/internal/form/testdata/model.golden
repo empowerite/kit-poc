@@ -1,6 +1,7 @@
  kit model - checks the model of kit's entities
 
-   --release  a model directory, read in place of the release's modules/model
+   --release  a model directory that exists, read in place of the release's modules/model; given
+              once
 
 
  kit model check

@@ -30,7 +30,7 @@
   ],
   "arguments": {
     "--release": {
-      "description": "a model directory, read in place of the release's modules/model"
+      "description": "a model directory that exists, read in place of the release's modules/model; given once"
     },
     "check": {
       "description": "checks the model"

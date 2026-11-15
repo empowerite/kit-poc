@@ -102,7 +102,7 @@ setup() {
   printf 'entity: Bad\nlayer: logical\nmeans: an entity\nrelations:\n  other: {to: Bad, arity: many}\n' > .kit/model/code/bad.yml
   run kit model check
   [ "$status" -eq 1 ]
-  [[ "${lines[0]}" == *"Bad.other"* ]]
+  [ "${lines[0]}" = "Bad.other has neither an inverse nor a derived; it has one" ]
   [ "${lines[-1]}" = 'model: 1 entities, 0 stubs' ]
 }
 
@@ -118,8 +118,8 @@ setup() {
 @test "kit model --release= reads another directory in place of the release's" {
   fresh-repo
   run kit model "--release=${fixtures}/ok/release" check
-  [[ "${lines[-1]}" == 'model: '*' entities, '*' stubs' ]]
-  [[ "${lines[-1]}" != 'model: 0 entities'* ]]
+  [ "$status" -eq 0 ]
+  [ "${lines[-1]}" = "model: 2 entities, 0 stubs" ]
 }
 
 @test "kit model check with a malformed file exits 1 and prints what model:load printed" {
@@ -137,4 +137,40 @@ setup() {
   run kit model
   [ "$status" -eq 2 ]
   [[ "$output" == *'kit help model'* ]]
+}
+
+@test "--release= with no value exits 2 and says it needs one" {
+  fresh-repo
+  run kit model --release= check
+  [ "$status" -eq 2 ]
+  [[ "${lines[0]}" == "❌ --release needs a value; run: "*"kit help model" ]]
+}
+
+@test "a --release directory that is not there exits 2 and names it" {
+  fresh-repo
+  run kit model "--release=${BATS_TEST_TMPDIR}/nowhere" check
+  [ "$status" -eq 2 ]
+  [[ "${lines[0]}" == "❌ --release=${BATS_TEST_TMPDIR}/nowhere is not a directory; run: "*"kit help model" ]]
+}
+
+@test "--release= given twice exits 2 and says so" {
+  fresh-repo
+  run kit model "--release=${fixtures}/ok/release" "--release=${fixtures}/two/release" check
+  [ "$status" -eq 2 ]
+  [[ "${lines[0]}" == "❌ --release is given twice; run: "*"kit help model" ]]
+}
+
+# The model's checks guard every shape a file can take, so no fixture makes jq abort. A jq that fails on the model's
+# program, and is the real one otherwise, stands in for a jq that cannot load the module or hits a runtime error.
+@test "a jq that fails ends kit model check with 1, jq's message, and no count" {
+  fresh-repo
+  real=$(command -v jq)
+  mkdir "${BATS_TEST_TMPDIR}/fake"
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do [[ "$a" != *model::check* ]] || { echo "jq: error: boom" >&2; exit 5; }; done\nexec %q "$@"\n' \
+    "${real}" > "${BATS_TEST_TMPDIR}/fake/jq"
+  chmod +x "${BATS_TEST_TMPDIR}/fake/jq"
+  PATH="${BATS_TEST_TMPDIR}/fake:${PATH}" run kit model check
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = 'jq: error: boom' ]
+  [[ "$output" != *'model: 0 entities'* ]]
 }

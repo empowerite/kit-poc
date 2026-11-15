@@ -12,10 +12,11 @@
 # model: 12 entities, 2 stubs. A file that cannot be read ends it with what the reader printed.
 #
 # Arguments:
-#   --release=<dir>    a model directory, read in place of the release's modules/model
+#   --release=<dir>    a model directory that exists, read in place of the release's modules/model; given once
 #   check              checks the model
 #
-# Exits 0 when the model holds, 1 when it has a finding or a file cannot be read, and 2 on a usage error.
+# Exits 0 when the model holds, 1 when it has a finding, a file cannot be read, or jq fails, and 2 on a usage error: an
+# empty --release=, one given twice, or one that is not a directory.
 #
 # see: modules/bash/model.sh, modules/jq/model.jq, docs/model.md
 
@@ -28,10 +29,21 @@ guard:arguments model "$@" || exit $?
 
 # shellcheck disable=SC2154  # syntax_options is set by guard:arguments
 release=${syntax_options[--release]:-}
+if [[ -n "${release}" && ! -d "${release}" ]]
+then
+  error "--release=${release} is not a directory; run: kit help model"
+  exit 2
+fi
 loaded=$(model:load ${release:+"${release}"}) || exit 1
-# The findings, one a line, then the count; the findings are every line but the last.
-jq -L "${kit_root}/modules/jq" --raw-output 'import "model" as model; model::build
-  | model::check[], "model: \(.entities | length) entities, \(model::stubs | length) stubs"' <<<"${loaded}" \
-  | awk '{ lines[NR] = $0 } END { for (i = 1; i <= NR; i++) print lines[i]; exit NR > 1 }'
+# The findings, one a line, then the count. jq's own status (3, 5) is not one of the verb's, so a failure of jq is
+# caught here, printed, and ends it with 1.
+if ! report=$(jq -L "${kit_root}/modules/jq" --raw-output 'import "model" as model; model::build
+  | model::check[], "model: \(.entities | length) entities, \(model::stubs | length) stubs"' <<<"${loaded}" 2>&1)
+then
+  printf '%s\n' "${report}"
+  exit 1
+fi
+printf '%s\n' "${report}"
+[[ "${report}" != *$'\n'* ]]
 
 # ----------------------------------------------------------------------------------------------------------------------

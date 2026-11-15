@@ -140,3 +140,7 @@ subcommand takes it. The repository's `.kit/model` is read as before. `kit model
 exits 2 and says to run `kit help model`.
 
 `bin/ci` runs `kit model check` after `kit syntax --check`, so a finding fails the gate.
+
+The last line is `model: N entities, M stubs` whatever N and M are, zero included. `--release=` takes a directory that
+exists, and once: an empty value, a second one, or a directory that is not there exits 2. A failure of `jq` itself
+ends it with 1 and jq's message, so no status outside 0, 1, and 2 comes out.
