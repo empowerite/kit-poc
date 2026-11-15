@@ -317,12 +317,8 @@ func (s *Sheet) Views() Views {
 	if len(own) == 0 {
 		own = []Preset{{Name: Default}}
 	}
-	names := make([]string, len(own))
-	for k, p := range own {
-		names[k] = p.Name
-	}
 	return Views{Fields: s.schema.Of(), Own: own, Saved: s.saved, Starred: s.starred, Scoped: s.scoped, App: s.name,
-		Tab: s.store, Reserved: names}
+		Tab: s.store}
 }
 
 // Columnar says whether the table has fields the columns dialog lists.
@@ -579,7 +575,7 @@ func (s *Sheet) key(k tea.KeyPressMsg) bool {
 		do, took := PresetKey(s, k)
 		switch do {
 		case DoSave:
-			s.saveNamed(strings.TrimSpace(s.tbl.Naming))
+			s.saveAs(strings.TrimSpace(s.tbl.Naming))
 		case DoRename:
 			s.rename()
 		case DoDrop:
@@ -836,16 +832,11 @@ func (s *Sheet) choose(k int) {
 		s.toggle(level, name)
 		return
 	}
-	if level, ok := PresetSaveAt(s, k); ok {
-		s.tbl.SavingAs, s.tbl.Naming, s.tbl.Renaming, s.tbl.Scoped, s.tbl.Scope = true, "", "", true, level
-		s.onControls, s.inRows, s.stop = true, false, -1
-		return
-	}
 	switch k {
 	case ItemSave:
 		s.saveAs(v.Name)
 	case ItemSaveAs:
-		s.tbl.SavingAs, s.tbl.Naming, s.tbl.Renaming, s.tbl.Scoped = true, v.Name, "", false
+		s.tbl.SavingAs, s.tbl.Naming, s.tbl.Renaming = true, v.Name, ""
 		s.onControls, s.inRows, s.stop = true, false, -1
 	case ItemManage:
 		s.manage = Manage{Open: true}
@@ -863,7 +854,7 @@ func (s *Sheet) managed(do ManageDo) {
 	case ManageFavorites:
 		s.favor(do.Name, do.Favorites)
 	case ManageRename:
-		s.tbl.SavingAs, s.tbl.Naming, s.tbl.Renaming, s.tbl.Scoped = true, do.Name, do.Name, false
+		s.tbl.SavingAs, s.tbl.Naming, s.tbl.Renaming = true, do.Name, do.Name
 		s.onControls, s.inRows, s.stop = true, false, -1
 	case ManageDelete:
 		if _, ok := s.Views().Mine(do.Name); ok && s.keep(s.Views().Delete(do.Name), "deleted") {
@@ -994,25 +985,6 @@ func (s *Sheet) open(link string) {
 		return
 	}
 	s.note = s.note.Did("opened " + link)
-}
-
-// saveNamed keeps the panel under the name typed, in the table's own presets, or, where the name was typed for a preset
-// saved everywhere or in the app, there.
-func (s *Sheet) saveNamed(name string) {
-	if !s.tbl.Scoped {
-		s.saveAs(name)
-		return
-	}
-	scoped, saved, err := s.Views().SaveAt(name, s.tbl.Scope, s.tbl.ViewName, s.tbl.View)
-	if err != nil {
-		s.refused(name, err)
-		return
-	}
-	if !s.keepStack(saved, scoped, "saved") {
-		return
-	}
-	s.tbl.SavingAs, s.tbl.Naming, s.tbl.Renaming, s.tbl.Scoped = false, "", "", false
-	s.note = s.note.Did(Save + " saved the preset " + name + " " + ScopeWord(s.tbl.Scope, s.name))
 }
 
 // keepStack keeps the person's presets of the table and those of global and app scope with their active names, as

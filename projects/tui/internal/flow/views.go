@@ -202,7 +202,7 @@ func (m Model) viewsOf(i int) table.Views { return m.viewsNamed(m.stages[i].name
 // viewsNamed gives a stage's views by its name, as viewsOf does.
 func (m Model) viewsNamed(name string) table.Views {
 	return table.Views{Fields: fieldsOf(name), Own: builtinsOf(name), Saved: m.saved[name], Starred: m.starred[name],
-		Team: m.team[name], Shares: m.teamDir != "", Scoped: m.scoped, App: string(m.app), Tab: name, Reserved: reserved()}
+		Team: m.team[name], Shares: m.teamDir != "", Scoped: m.scoped, App: string(m.app), Tab: name}
 }
 
 // views gives a stage's views, its own first, then the person's.
@@ -305,7 +305,7 @@ func (m *Model) favor(name string, starred []string) {
 // overwritten, a new one is added after theirs, and a stage's own name is refused, as those never change. What it
 // did, or why not, is in place of the keys.
 func (m *Model) savePreset() tea.Cmd {
-	m.saveNamed(strings.TrimSpace(m.stages[m.stage].Naming))
+	m.saveAs(strings.TrimSpace(m.stages[m.stage].Naming))
 	return nil
 }
 
@@ -394,7 +394,7 @@ func (m *Model) managedPreset(do table.ManageDo) {
 		m.favor(do.Name, do.Favorites)
 	case table.ManageRename:
 		s := &m.stages[m.stage]
-		s.SavingAs, s.Naming, s.Renaming, s.Scoped = true, do.Name, do.Name, false
+		s.SavingAs, s.Naming, s.Renaming = true, do.Name, do.Name
 		m.onPreset, m.inRows, m.inPanel, m.stop = true, false, false, -1
 	case table.ManageDelete:
 		if _, team := m.viewsOf(m.stage).Shared(do.Name); team {
@@ -423,11 +423,6 @@ func (m *Model) choosePreset(k int) {
 		m.toggle(level, name)
 		return
 	}
-	if level, ok := table.PresetSaveAt(m, k); ok {
-		s.SavingAs, s.Naming, s.Renaming, s.Scoped, s.Scope = true, "", "", true, level
-		m.onPreset, m.inRows, m.inPanel, m.stop = true, false, false, -1
-		return
-	}
 	switch k {
 	case table.ItemSave:
 		if _, team := m.viewsOf(m.stage).Shared(s.ViewName); team {
@@ -436,7 +431,7 @@ func (m *Model) choosePreset(k int) {
 		}
 		m.saveAs(v.Name)
 	case table.ItemSaveAs:
-		s.SavingAs, s.Naming, s.Renaming, s.Scoped = true, v.Name, "", false
+		s.SavingAs, s.Naming, s.Renaming = true, v.Name, ""
 		m.onPreset, m.inRows, m.inPanel, m.stop = true, false, false, -1
 	case table.ItemManage:
 		m.manage = table.Manage{Open: true}

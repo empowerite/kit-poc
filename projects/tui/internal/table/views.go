@@ -34,11 +34,9 @@ type Views struct {
 	Shares  bool
 
 	// Scoped is the person's presets of global and app scope, and which are active in each scope; App and Tab name the
-	// table's app and the table, which the scopes are keyed by; and Reserved is every name of every table's own views, which
-	// no preset of global or app scope may take.
+	// table's app and the table, which the scopes are keyed by.
 	Scoped   Scoped
 	App, Tab string
-	Reserved []string
 }
 
 // Favorites gives the names of the views the person starred, in their order, but those that name a view since gone,

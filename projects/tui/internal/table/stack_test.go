@@ -1,7 +1,6 @@
 package table
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -29,7 +28,6 @@ func stackViews() Views {
 			Active: map[string][]string{"global": {"By org", "Mine"}, "app:issues": {"By repo"}, "tab:things": {"Wide"}},
 		},
 		App: "issues", Tab: "things",
-		Reserved: []string{"Underway", "Compact", "Default", "By member"},
 	}
 }
 
@@ -112,127 +110,6 @@ func TestAppliedWithAPanelIsTheStackWithThePanelsEdit(t *testing.T) {
 }
 
 // Saving at global scope keeps what the person changed, never what the tab's own base says.
-func TestSaveAtGlobalKeepsTheEditAlone(t *testing.T) {
-	v := stackViews()
-	v.Scoped = Scoped{}
-	under, _ := v.Applied("Underway", nil)
-	edited := Preset{Fields: map[string]Setting{"state": under.Fields["state"], "org": grp(1), "repo": grp(2)}}
-	scoped, saved, err := v.SaveAt("By org, repo", LevelGlobal, "Underway", edited.Panel(v.Fields, grid.Panel{}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := Preset{Name: "By org, repo", Fields: map[string]Setting{"org": grp(1), "repo": grp(2)}}
-	if len(scoped.Global) != 1 || !reflect.DeepEqual(scoped.Global[0], want) {
-		t.Errorf("kept %+v, want %+v: the base's filter on state is not the person's edit", scoped.Global, want)
-	}
-	if !slices.Equal(scoped.Active["global"], []string{"By org, repo"}) {
-		t.Errorf("a preset saved is active in its scope: %q", scoped.Active["global"])
-	}
-	if !reflect.DeepEqual(saved, v.Saved) {
-		t.Errorf("the tab's presets changed: %+v", saved)
-	}
-}
-
-func TestSaveAtAppAndAgainUnderTheSameName(t *testing.T) {
-	v := stackViews()
-	v.Scoped = Scoped{}
-	panel := Preset{Fields: map[string]Setting{"org": grp(1)}}.Panel(v.Fields, grid.Panel{})
-	scoped, _, err := v.SaveAt("By org", LevelApp, "Compact", panel)
-	if err != nil || len(scoped.Apps["issues"]) != 1 || !slices.Equal(scoped.Active["app:issues"], []string{"By org"}) {
-		t.Fatalf("app: %+v, %v", scoped, err)
-	}
-	v.Scoped = scoped
-	again := Preset{Fields: map[string]Setting{"repo": grp(1)}}.Panel(v.Fields, grid.Panel{})
-	scoped, _, err = v.SaveAt("By org", LevelApp, "Compact", again)
-	if err != nil || len(scoped.Apps["issues"]) != 1 || len(scoped.Active["app:issues"]) != 1 {
-		t.Fatalf("under the same name: %+v, %v, want the one preset changed and active once", scoped, err)
-	}
-	if _, ok := scoped.Apps["issues"][0].Fields["repo"]; !ok {
-		t.Errorf("the preset was not changed: %+v", scoped.Apps["issues"][0])
-	}
-}
-
-func TestSaveAtTabWithNothingActiveIsSaveAs(t *testing.T) {
-	v := stackViews()
-	v.Scoped = Scoped{}
-	panel := Preset{Fields: map[string]Setting{"org": grp(1), "title": {Placement: PlaceHidden},
-		"state": {Sort: "desc", Priority: 1, Filter: inc("open")}, "labels": {Flat: true}}}.Panel(v.Fields, grid.Panel{})
-	scoped, saved, err := v.SaveAt("Mine too", LevelTab, "Compact", panel)
-	if err != nil {
-		t.Fatal(err)
-	}
-	want, err := v.SaveAs("Mine too", panel)
-	if err != nil || !reflect.DeepEqual(saved, want) {
-		t.Errorf("saved %+v, SaveAs keeps %+v, %v", saved, want, err)
-	}
-	if !reflect.DeepEqual(scoped, v.Scoped) {
-		t.Errorf("a tab's preset changed the scopes: %+v", scoped)
-	}
-}
-
-func TestSaveAtTabKeepsWhatTheGlobalAndAppLayersDoNotSay(t *testing.T) {
-	v := stackViews()
-	v.Scoped.Active = map[string][]string{"global": {"Mine"}}
-	panel := Preset{Fields: map[string]Setting{"assignee": {Filter: inc("@me")}, "org": grp(1)}}.Panel(v.Fields, grid.Panel{})
-	_, saved, err := v.SaveAt("Org", LevelTab, "Compact", panel)
-	if err != nil {
-		t.Fatal(err)
-	}
-	last := saved[len(saved)-1]
-	if want := (Preset{Name: "Org", Fields: map[string]Setting{"org": grp(1)}}); !reflect.DeepEqual(last, want) {
-		t.Errorf("kept %+v, want %+v: Mine is the global layer's to say", last, want)
-	}
-}
-
-func TestSaveAtRefusals(t *testing.T) {
-	v := stackViews()
-	panel := grid.Panel{}
-	cases := map[string]struct {
-		name  string
-		level Level
-		want  error
-	}{
-		"unnamed":                  {"", LevelGlobal, ErrUnnamed},
-		"a built-in of this tab":   {"Underway", LevelGlobal, ErrBuiltin},
-		"a built-in of any tab":    {"By member", LevelApp, ErrBuiltin},
-		"a built-in at the tab":    {"Compact", LevelTab, ErrBuiltin},
-		"a team's":                 {"Team's", LevelGlobal, ErrTaken},
-		"a name of another scope":  {"Wide", LevelGlobal, ErrTaken},
-		"a global name at the app": {"Mine", LevelApp, ErrTaken},
-		"a global name at the tab": {"Mine", LevelTab, ErrTaken},
-		"an app name at the tab":   {"By repo", LevelTab, ErrTaken},
-		"an edit":                  {"x", LevelEdit, ErrScope},
-	}
-	for name, c := range cases {
-		t.Run(name, func(t *testing.T) {
-			if _, _, err := v.SaveAt(c.name, c.level, "Compact", panel); !errors.Is(err, c.want) {
-				t.Errorf("got %v, want %v", err, c.want)
-			}
-		})
-	}
-}
-
-func TestSaveAtGlobalKeepsTheOtherPresetsAndTheirOrder(t *testing.T) {
-	v := stackViews()
-	panel := Preset{Fields: map[string]Setting{"assignee": {Filter: inc("bob")}}}.Panel(v.Fields, grid.Panel{})
-	scoped, _, err := v.SaveAt("Mine", LevelGlobal, "Compact", panel)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := layerNames(layersOf(scoped.Global)); !slices.Equal(got, []string{"Mine", "By org"}) {
-		t.Errorf("the preset changes where it stood and the other stays: %q", got)
-	}
-	if !slices.Equal(scoped.Active["global"], []string{"By org", "Mine"}) {
-		t.Errorf("the active order stays: %q", scoped.Active["global"])
-	}
-	if got := scoped.Global[0].Fields["assignee"].Filter; got == nil || got.Include[0] != "bob" {
-		t.Errorf("the preset was not changed: %+v", scoped.Global[0])
-	}
-	if len(stackViews().Scoped.Global) != 2 {
-		t.Error("the views' own presets were changed")
-	}
-}
-
 func TestIsReadsTheStack(t *testing.T) {
 	v := stackViews()
 	under, _ := v.Applied("Underway", nil)
@@ -269,38 +146,6 @@ func layersOf(ps []Preset) []Layer {
 
 // Saving what a person changed does not change what they see: the stack with the saved preset in it sets the panel the
 // stack with the edit set.
-func TestSavingAtAScopeDoesNotChangeTheView(t *testing.T) {
-	cases := map[string]struct {
-		level Level
-		name  string
-		panel Preset
-	}{
-		"global, new": {LevelGlobal, "Both", Preset{Fields: map[string]Setting{"org": grp(1), "assignee": {Filter: inc("@me")}}}},
-		"app, new":    {LevelApp, "Sorted", Preset{Fields: map[string]Setting{"title": {Sort: "desc", Priority: 1}}}},
-		"global, over what it was": {LevelGlobal, "Mine", Preset{Fields: map[string]Setting{"assignee": {Filter: inc("@me")},
-			"state": {Filter: inc("open")}}}},
-		"global, with what it said removed": {LevelGlobal, "Mine", Preset{}},
-	}
-	for name, c := range cases {
-		t.Run(name, func(t *testing.T) {
-			v := stackViews()
-			v.Scoped.Active = map[string][]string{"global": {"Mine"}}
-			v.Scoped.Apps = nil
-			v.Own = []Preset{{Name: "Compact"}}
-			panel := c.panel.Panel(v.Fields, grid.Panel{})
-			scoped, _, err := v.SaveAt(c.name, c.level, "Compact", panel)
-			if err != nil {
-				t.Fatal(err)
-			}
-			v.Scoped = scoped
-			saved, _ := v.Applied("Compact", nil)
-			if got := saved.Panel(v.Fields, grid.Panel{}); !reflect.DeepEqual(got, panel) {
-				t.Errorf("after saving the view is %+v, want the panel %+v", got, panel)
-			}
-		})
-	}
-}
-
 func TestStackedIsTheBaseWhereNothingIsActiveAndTheStackWhereSomethingIs(t *testing.T) {
 	v := stackViews()
 	base := v.Chosen("Underway")

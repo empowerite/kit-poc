@@ -619,9 +619,8 @@ func TestThePresetsSayWhatTheyDidInPlaceOfTheKeys(t *testing.T) {
 	if bar := last(m); strings.Contains(bar, "search") || !strings.Contains(bar, "esc") {
 		t.Errorf("the presets' keys: %q", bar)
 	}
-	// s moves on to the next line that starts with it, Save everywhere…, Save in verbs…, and round to Save As…, which
-	// enter takes; enter with no name typed says why not, in red
-	if m, _ = drive(m, testkit.Press("s"), testkit.Press("s"), testkit.Press("s"), enter, enter); m.sheet.Layered() ||
+	// s moves to Save As…, and enter takes it; enter with no name typed says why not, in red
+	if m, _ = drive(m, testkit.Press("s"), enter, enter); m.sheet.Layered() ||
 		!strings.Contains(last(m), "a preset needs a name") ||
 		!strings.Contains(m.View().Content, style.Refusal(m.sheet.Notice().Text)) {
 		t.Fatalf("Save As…, no name: layered %v, %q", m.sheet.Layered(), last(m))

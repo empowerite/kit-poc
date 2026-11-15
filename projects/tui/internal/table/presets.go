@@ -70,25 +70,18 @@ const (
 	MineHeading      = "mine"
 )
 
-// The words of the presets' menu's sections of the presets active everywhere and in the app, and of its two lines that
-// save a preset at one of them: SaveEverywhere, SaveInApp, and, where the app has no name, SaveInThisApp.
-const (
-	EverywhereHeading = "everywhere"
-	SaveEverywhere    = "Save everywhere…"
-	SaveInThisApp     = "Save in this app…"
-	SavingEverywhere  = "save everywhere as"
-	SavingInApp       = "save in app as"
-)
+// EverywhereHeading is the heading of the presets' menu's section of the presets active everywhere; the section of the
+// app's stands under "in" and its name.
+const EverywhereHeading = "everywhere"
 
 // presetLine is a line of the presets' menu: what it draws, and the view it names, none for an action, a rule, or a
 // heading; or, for a line of a preset active everywhere or in the app, that level, which a click makes active or no
-// longer; or, for a line that saves at a level, that level.
+// longer.
 type presetLine struct {
 	item   shell.Item
 	view   string
 	level  Level
 	scoped bool // the line toggles the preset of its name at its level
-	saves  bool // the line saves the panel at its level
 }
 
 // presetLines gives the presets' menu's lines: Save after its glyph, Save As…, and Manage…, a rule, then the views in sections, each under its heading where it has a view: the person's favorites, in
@@ -145,17 +138,7 @@ func presetLines(h Host) []presetLine {
 	app := cmp.Or(v.App, "this app")
 	scope(EverywhereHeading, LevelGlobal, v.Scoped.Global)
 	scope("in "+app, LevelApp, v.Scoped.Apps[v.App])
-	return append(lines, presetLine{}, presetLine{item: shell.Item{Name: SaveEverywhere}, level: LevelGlobal, saves: true},
-		presetLine{item: shell.Item{Name: SaveInApp(v.App)}, level: LevelApp, saves: true})
-}
-
-// SaveInApp gives the words of the presets' menu's line that saves a preset in the app of the name, "this app" where it
-// has none.
-func SaveInApp(app string) string {
-	if app == "" {
-		return SaveInThisApp
-	}
-	return "Save in " + app + "…"
+	return lines
 }
 
 // PresetScoped gives the level and the name of the preset active everywhere or in the app that the presets' menu's line
@@ -166,16 +149,6 @@ func PresetScoped(h Host, k int) (Level, string, bool) {
 		return 0, "", false
 	}
 	return lines[k].level, lines[k].item.Name, true
-}
-
-// PresetSaveAt gives the level the presets' menu's line k saves the panel at, everywhere or in the app, and whether it
-// is a line that does.
-func PresetSaveAt(h Host, k int) (Level, bool) {
-	lines := presetLines(h)
-	if k < 0 || k >= len(lines) || !lines[k].saves {
-		return 0, false
-	}
-	return lines[k].level, true
 }
 
 // PresetItems gives the presets' menu's lines as the menu draws them, as presetLines says.
@@ -212,9 +185,6 @@ func PresetEnabled(h Host, k int) bool {
 		return true
 	}
 	if _, _, ok := PresetScoped(h, k); ok {
-		return true
-	}
-	if _, ok := PresetSaveAt(h, k); ok {
 		return true
 	}
 	_, ok := PresetView(h, k)
@@ -289,13 +259,8 @@ func PresetLine(h Host, focused bool) string {
 	t := h.Table()
 	if focused && t.SavingAs {
 		label := SavingAsWord
-		switch {
-		case t.Renaming != "":
+		if t.Renaming != "" {
 			label = RenamingWord
-		case t.Scoped && t.Scope == LevelGlobal:
-			label = SavingEverywhere
-		case t.Scoped:
-			label = SavingInApp
 		}
 		return style.Off(label) + " " + t.Naming + "▏"
 	}

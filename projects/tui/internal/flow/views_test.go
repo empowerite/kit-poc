@@ -187,7 +187,7 @@ func TestChoosingAViewSetsThePanelAndAChangeStrikesTheNameThrough(t *testing.T) 
 		names = append(names, i.Name)
 	}
 	if !slices.Equal(names, []string{SaveIt, SaveAs, table.ManageIt, "", table.BuiltinHeading, "All Issues", "Backlog", "Underway",
-		"By Milestone", "By Iteration", "By Swimlane", "Compact", "", table.SaveEverywhere, table.SaveInApp("flow")}) ||
+		"By Milestone", "By Iteration", "By Swimlane", "Compact"}) ||
 		table.PresetItems(&m)[5].Glyph != Checked || m.presetsMenu.At != 5 {
 		t.Fatalf("the presets: %q, at %d", names, m.presetsMenu.At)
 	}
@@ -308,7 +308,7 @@ func TestSaveAsKeepsThePanelInTheFileAndTheViewComesBack(t *testing.T) {
 	}
 	// the menu lists it after a rule
 	m = drive(m, press(tea.KeyEnter))
-	if items := table.PresetItems(&m); len(items) != 17 || items[12].Name != table.MineHeading || items[13].Name != "Triage" ||
+	if items := table.PresetItems(&m); len(items) != 14 || items[12].Name != table.MineHeading || items[13].Name != "Triage" ||
 		items[13].Glyph != Checked || m.presetsMenu.At != 13 {
 		t.Errorf("the menu: %+v, at %d", items, m.presetsMenu.At)
 	}

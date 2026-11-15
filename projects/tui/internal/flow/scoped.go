@@ -11,44 +11,6 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/table"
 )
 
-// reserved gives the names of every stage's own views, which a preset saved everywhere or in the app may not take.
-func reserved() []string {
-	names := []string{table.Default}
-	for _, s := range catalog {
-		for _, p := range s.Presets {
-			if !slices.Contains(names, p.Name) {
-				names = append(names, p.Name)
-			}
-		}
-	}
-	slices.Sort(names)
-	return names
-}
-
-// saveNamed keeps the selected stage's panel under the name typed, as saveAs does, or, where the name was typed for a
-// preset saved everywhere or in the app, there.
-func (m *Model) saveNamed(name string) {
-	s := &m.stages[m.stage]
-	if !s.Scoped {
-		m.saveAs(name)
-		return
-	}
-	scoped, saved, err := m.viewsOf(m.stage).SaveAt(name, s.Scope, s.ViewName, s.View)
-	if err != nil {
-		m.refuseName(name, err)
-		return
-	}
-	before := m.scoped
-	if !m.keepStack(saved, scoped, "saved") {
-		return
-	}
-	level := s.Scope
-	s.SavingAs, s.Naming, s.Renaming, s.Scoped = false, "", "", false
-	// the stage saved from is as it was; the others now have the preset beneath them
-	m.restack(before)
-	m.done(Save + " saved the preset " + name + " " + table.ScopeWord(level, string(m.app)))
-}
-
 // keepStack keeps the person's presets of the selected stage and those of global and app scope with their active
 // names, as table.KeepViews does, and says whether it could; when it could not, the notice says why, and nothing
 // changes.

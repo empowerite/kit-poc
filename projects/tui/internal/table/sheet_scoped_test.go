@@ -24,93 +24,61 @@ func itemAt(t *testing.T, s *Sheet, name string) int {
 	return -1
 }
 
-func TestAPresetSavedEverywhereIsActiveAtOnceAndFollowsToAnotherSheet(t *testing.T) {
+// quiet is a file with a preset active everywhere that hides the note.
+func quiet(t *testing.T) string {
+	t.Helper()
 	path := filepath.Join(t.TempDir(), "presets.json")
+	if _, err := KeepScoped(path, Scoped{}, Scoped{Global: []Preset{{Name: "Quiet",
+		Fields: map[string]Setting{"note": {Placement: PlaceHidden}}}}, Active: map[string][]string{"global": {"Quiet"}}}); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func TestAPresetActiveEverywhereAppliesOnOpeningAndAClickTurnsItOffAndOn(t *testing.T) {
+	path := quiet(t)
 	s := sheet(path)
-	s.SetPanel(s.Panel().Placed("note", grid.Hidden))
-	s.choose(itemAt(t, &s, SaveEverywhere))
-	if !s.tbl.SavingAs || !s.tbl.Scoped || s.tbl.Scope != LevelGlobal {
-		t.Fatalf("naming: %+v", s.tbl)
+	if slices.Contains(s.ShownColumns(), "note") {
+		t.Fatalf("opened with Quiet active: %q", s.ShownColumns())
 	}
-	s.tbl.Naming = "Quiet"
-	pressed(&s, "enter")
-	if text := s.Notice().Text; !strings.Contains(text, "saved the preset Quiet everywhere") || s.tbl.SavingAs || s.tbl.Scoped {
-		t.Fatalf("saved: %q, %+v", text, s.tbl)
-	}
-	// saving changed nothing the person sees: the line still names the view, not struck
-	if got := s.Views().Is(s.tbl); got != Default || s.tbl.ViewName != Default {
-		t.Errorf("the line names %q, set as %q", got, s.tbl.ViewName)
-	}
-	read, err := ReadScoped(path)
-	if err != nil || len(read.Global) != 1 || read.Global[0].Name != "Quiet" || !slices.Equal(read.Active["global"], []string{"Quiet"}) {
-		t.Fatalf("the file: %v, %+v", err, read)
-	}
-	// another sheet of the file opens with it applied
-	other := sheet(path)
-	if slices.Contains(other.ShownColumns(), "note") {
-		t.Fatalf("another sheet: %q", other.ShownColumns())
-	}
-	// ✅ on its line, and a click on it stops it being active; the note shows again, and the file says so
-	k := itemAt(t, &other, "Quiet")
-	if PresetItems(&other)[k].Glyph != Checked {
+	// ✅ on its line; a click on it stops it being active; the note shows again, and the file says so
+	k := itemAt(t, &s, "Quiet")
+	if PresetItems(&s)[k].Glyph != Checked {
 		t.Error("no ✅")
 	}
-	other.choose(k)
-	if !slices.Contains(other.ShownColumns(), "note") || !strings.Contains(other.Notice().Text, "stopped Quiet being active everywhere") {
-		t.Errorf("off: %q, %q", other.ShownColumns(), other.Notice().Text)
+	s.choose(k)
+	if !slices.Contains(s.ShownColumns(), "note") || !strings.Contains(s.Notice().Text, "stopped Quiet being active everywhere") {
+		t.Errorf("off: %q, %q", s.ShownColumns(), s.Notice().Text)
 	}
 	if read, _ := ReadScoped(path); len(read.Active["global"]) != 0 || len(read.Global) != 1 {
 		t.Errorf("the file: %+v", read)
 	}
-	other.choose(itemAt(t, &other, "Quiet"))
-	if slices.Contains(other.ShownColumns(), "note") || !strings.Contains(other.Notice().Text, "made Quiet active everywhere") {
-		t.Errorf("on again: %q, %q", other.ShownColumns(), other.Notice().Text)
+	s.choose(itemAt(t, &s, "Quiet"))
+	if slices.Contains(s.ShownColumns(), "note") || !strings.Contains(s.Notice().Text, "made Quiet active everywhere") {
+		t.Errorf("on again: %q, %q", s.ShownColumns(), s.Notice().Text)
 	}
 	// what the person changed stays where the stack changes beneath it
-	other.SetPanel(other.Panel().Placed("kind", grid.Hidden))
-	other.choose(itemAt(t, &other, "Quiet"))
-	if !slices.Contains(other.ShownColumns(), "note") || slices.Contains(other.ShownColumns(), "kind") {
-		t.Errorf("the edit under a changed stack: %q", other.ShownColumns())
+	s.SetPanel(s.Panel().Placed("kind", grid.Hidden))
+	s.choose(itemAt(t, &s, "Quiet"))
+	if !slices.Contains(s.ShownColumns(), "note") || slices.Contains(s.ShownColumns(), "kind") {
+		t.Errorf("the edit under a changed stack: %q", s.ShownColumns())
+	}
+	// another sheet of the file opens as the file says
+	if other := sheet(path); !slices.Contains(other.ShownColumns(), "note") {
+		t.Errorf("another sheet: %q", other.ShownColumns())
 	}
 }
 
-func TestAPresetSavedInTheAppSaysSoAndSavingRefusesWhatItShould(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "presets.json")
+func TestAFileThatNoLongerReadsIsNotWrittenOverByAToggleAndAGhostIsLeftAlone(t *testing.T) {
+	path := quiet(t)
 	s := sheet(path)
-	s.choose(itemAt(t, &s, SaveInApp("things")))
-	if !s.tbl.Scoped || s.tbl.Scope != LevelApp {
-		t.Fatalf("naming: %+v", s.tbl)
-	}
-	// a name that is none, and one that is the table's own, are refused, and the naming goes on
-	for name, want := range map[string]string{"": "needs a name", "Default": "the table's own"} {
-		s.tbl.Naming = name
-		if pressed(&s, "enter"); !strings.Contains(s.Notice().Text, want) || !s.tbl.SavingAs {
-			t.Errorf("%q: %q", name, s.Notice().Text)
-		}
-	}
-	s.tbl.Naming = "By kind"
-	s.SetPanel(s.Panel().Placed("note", grid.Hidden))
-	pressed(&s, "enter")
-	if text := s.Notice().Text; !strings.Contains(text, "saved the preset By kind in things") {
-		t.Errorf("saved: %q", text)
-	}
-	if read, _ := ReadScoped(path); len(read.Apps["things"]) != 1 || !slices.Equal(read.Active["app:things"], []string{"By kind"}) {
-		t.Errorf("the file: %+v", read)
-	}
-	// a file that no longer reads is not written over, and the sheet says so
 	if err := os.WriteFile(path, []byte("{"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	s.choose(itemAt(t, &s, SaveEverywhere))
-	s.tbl.Naming = "Other"
-	if pressed(&s, "enter"); !strings.Contains(s.Notice().Text, "could not be saved") || !s.tbl.SavingAs {
-		t.Errorf("a bad file: %q", s.Notice().Text)
-	}
-	s.toggle(LevelApp, "By kind")
+	s.toggle(LevelGlobal, "Quiet")
 	if !strings.Contains(s.Notice().Text, "could not be changed") {
 		t.Errorf("toggle on a bad file: %q", s.Notice().Text)
 	}
-	// a preset that is not there is left alone
 	before := s.Notice().Text
 	s.toggle(LevelGlobal, "ghost")
 	if s.Notice().Text != before {

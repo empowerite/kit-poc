@@ -353,3 +353,11 @@ func TestTheCardOfADimChipTakesKeysAndClicks(t *testing.T) {
 		t.Error("no keys")
 	}
 }
+
+func TestSwitchingOffInAnAppWithNoScopedPresetsYetKeepsEveryMapUsable(t *testing.T) {
+	v := Views{Fields: resolveFields, App: "issues", Tab: "things"}
+	scoped, _, err := v.SwitchOff(Constraint{Field: "assignee", Facet: FacetFilter}, LevelApp)
+	if err != nil || len(scoped.Apps["issues"]) != 1 || !slices.Equal(scoped.Active["app:issues"], []string{OffInApp}) {
+		t.Errorf("%v, %+v", err, scoped)
+	}
+}

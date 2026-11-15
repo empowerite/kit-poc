@@ -42,13 +42,9 @@ without kit installed has no team presets.
 
 ## Presets that follow you
 
-Your presets can stand beyond one tab, so you do not set the same grouping or filter again on each.
-
-- **Save everywhere…**  keep your changes so they apply on every tab, in every app
-- **Save in this app…**  keep them for the tabs of this app
-- They stand in the menu under **everywhere** and **in** the app's name. ✅ marks those in force. Click one to turn it
-  on or off, and every tab follows.
-- The narrowest wins: the tab's own preset beats yours for the same field, and your changes in the rows beat both.
+- Presets that apply on every tab, or every tab of an app, stand in the menu under **everywhere** and **in** the app's
+  name. ✅ marks those in force. Click one to turn it on or off, and every tab follows.
+- The narrowest wins: the tab's own preset beats them for the same field, and your changes in the rows beat both.
 - A setting a tab cannot use, as a filter on a field it has not, shows dim in the line, never dropped. Click it for
   whose it is and why, and to turn it off here, in this app, or everywhere.
 

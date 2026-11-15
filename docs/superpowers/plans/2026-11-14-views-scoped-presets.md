@@ -244,6 +244,12 @@ for the name typed, the card as a layer of `Overlays`, and the two hosts' loadin
   moved by the letter s say so.
 - [x] **Step 5: Commit** the files.
 
+Backed out: "Save everywhere…" and "Save in `app`…" did not work in use. Saving kept only what the panel said
+beyond the view the tab was set as, which is nothing for a view that already says it, and a click on a preset in the
+menu toggled it, so it could not be used. `Views.SaveAt`, `Views.Reserved`, `Table.Scoped`, and the two lines are
+gone. The scopes, the stack, the toggle, the dim chips and the card stay, until the way a person makes a preset that
+follows them is decided.
+
 Open: a panel left by one kittui and restored by another whose active presets differ keeps what a preset gave that the
 other has since made inactive, as the person's own change, because only the panel is kept, never the stack it came of.
 

@@ -145,58 +145,6 @@ func KeepViews(path, store string, v Views, saved []Preset, scoped Scoped) (map[
 	return all, got, nil
 }
 
-// SaveAt gives the presets the person has with a panel saved under a name at a level, and the person's views of the
-// table. Everywhere and in an app, it keeps what the panel says that the rest of the stack does not, so a filter the
-// table's own view holds never travels to another table, and the preset is active there at once; a preset of the name
-// that was there is changed in place, and what it said that the panel no longer says is gone. On the table, it keeps
-// what the panel says beyond the presets active everywhere and in the app, as SaveAs keeps the panel where none is. A
-// preset saved at a broader scope is beneath the table's own view, so where that view says the same of a field in a
-// facet, the view wins. None, the name of a view of the table's own, and a name of any table's own at the broader levels
-// are refused, as the team's names are; so is a name of a preset at another level, and an edit as a level.
-func (v Views) SaveAt(name string, l Level, base string, p grid.Panel) (Scoped, []Preset, error) {
-	switch {
-	case l == LevelEdit:
-		return Scoped{}, nil, ErrScope
-	case name == "":
-		return Scoped{}, nil, ErrUnnamed
-	case v.Builtin(name), l != LevelTab && slices.Contains(v.Reserved, name):
-		return Scoped{}, nil, ErrBuiltin
-	case v.teams(name, ""), v.taken(name, l):
-		return Scoped{}, nil, ErrTaken
-	}
-	rest := slices.DeleteFunc(v.layers(v.Chosen(base), nil), func(layer Layer) bool {
-		return layer.Level == l && layer.Name == name
-	})
-	if l == LevelTab {
-		rest = slices.DeleteFunc(rest, func(layer Layer) bool { return layer.Level == LevelTab })
-	}
-	under, _ := Resolve(rest, v.Fields)
-	now := Delta(under, p, v.Fields)
-	now.Name = name
-	if l == LevelTab {
-		return v.Scoped, upsert(v.Saved, now), nil
-	}
-	scoped := cloneScoped(v.Scoped)
-	switch l {
-	case LevelApp:
-		scoped.Apps[v.App] = upsert(scoped.Apps[v.App], now)
-	default:
-		scoped.Global = upsert(scoped.Global, now)
-	}
-	key := ScopeKey(l, v.App)
-	if !slices.Contains(scoped.Active[key], name) {
-		scoped.Active[key] = append(scoped.Active[key], name)
-	}
-	return scoped, v.Saved, nil
-}
-
-// taken says whether the person has a preset of the name at a level other than the one given.
-func (v Views) taken(name string, except Level) bool {
-	has := func(ps []Preset) bool { return slices.ContainsFunc(ps, func(p Preset) bool { return p.Name == name }) }
-	return except != LevelGlobal && has(v.Scoped.Global) || except != LevelApp && has(v.Scoped.Apps[v.App]) ||
-		except != LevelTab && has(v.Saved)
-}
-
 // upsert gives the presets with the preset in the place of the one of its name, or after them where there is none.
 func upsert(presets []Preset, p Preset) []Preset {
 	out := slices.Clone(presets)

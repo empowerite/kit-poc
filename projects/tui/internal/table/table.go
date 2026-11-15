@@ -24,8 +24,6 @@ type Table struct {
 	Naming   string
 	SavingAs bool
 	Renaming string
-	Scoped   bool  // the name typed is for a preset saved at Scope, everywhere or in the app
-	Scope    Level // where the preset typed for is saved, while Scoped
 	View     grid.Panel
 	Grouping bool
 	Grouped  *Preset
