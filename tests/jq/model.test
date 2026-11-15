@@ -1,0 +1,62 @@
+# model.test - the model jq module, run by jq -L kit/modules/jq --run-tests
+#
+# Each case is a program, an input, and the outputs it gives, one JSON value per line, then a blank line. An input is
+# the document model:load prints: {"files": [{domain, origin, path, doc}]}.
+
+# build gathers each entity file into one entity, with the domain and origin of its file, and a domain.yml into its
+# domain; a key the file did not set is left out.
+import "model" as model; model::build
+{"files": [{"domain": "code", "origin": "release", "path": "m/code/domain.yml", "doc": {"name": "Code", "intro": "Source.", "layout": {"Commit": {"row": 0, "col": 0}}}}, {"domain": "code", "origin": "release", "path": "m/code/commit.yml", "doc": {"entity": "Commit", "layer": "native", "tool": "git", "means": "A commit.", "fields": {"id": {"type": "Hash"}}, "relations": {"parents": {"to": "Commit", "arity": "many"}}}}]}
+{"domains": {"code": {"name": "Code", "intro": "Source.", "layout": {"Commit": {"row": 0, "col": 0}}}}, "entities": {"Commit": {"domain": "code", "origin": "release", "layer": "native", "tool": "git", "means": "A commit.", "fields": {"id": {"type": "Hash"}}, "relations": {"parents": {"to": "Commit", "arity": "many"}}}}, "findings": []}
+
+# an extends adds a field
+import "model" as model; model::build | {findings, fields: .entities.Commit.fields, origin: .entities.Commit.origin}
+{"files": [{"domain": "code", "origin": "release", "path": "m/code/commit.yml", "doc": {"entity": "Commit", "fields": {"id": {"type": "Hash"}}}}, {"domain": "mine", "origin": "repository", "path": "r/mine/commit.yml", "doc": {"extends": "Commit", "fields": {"ticket": {"type": "Text", "arity": "option", "status": "planned"}}}}]}
+{"findings": [], "fields": {"id": {"type": "Hash"}, "ticket": {"type": "Text", "arity": "option", "status": "planned"}}, "origin": "release"}
+
+# an extends adds a relation, and an extends of an entity a later repository file defines, for every entity: file is
+# applied before any extends: file
+import "model" as model; model::build | {findings, relations: .entities.Commit.relations, domain: .entities.Commit.domain}
+{"files": [{"domain": "code", "origin": "release", "path": "m/code/commit.yml", "doc": {"entity": "Commit"}}, {"domain": "mine", "origin": "repository", "path": "r/mine/a.yml", "doc": {"extends": "Ticket", "relations": {"commit": {"to": "Commit"}}}}, {"domain": "mine", "origin": "repository", "path": "r/mine/b.yml", "doc": {"extends": "Commit", "relations": {"ticket": {"to": "Ticket", "arity": "option"}}}}, {"domain": "mine", "origin": "repository", "path": "r/mine/ticket.yml", "doc": {"entity": "Ticket"}}]}
+{"findings": [], "relations": {"ticket": {"to": "Ticket", "arity": "option"}}, "domain": "code"}
+
+# an extends narrows many to some, many to option, and option to one, and keeps what it does not set
+import "model" as model; model::build | [.findings, .entities.Commit.relations]
+{"files": [{"domain": "code", "origin": "release", "path": "m/commit.yml", "doc": {"entity": "Commit", "fields": {"a": {"type": "Text", "arity": "many", "means": "x"}, "b": {"type": "Text", "arity": "many"}, "c": {"type": "Text", "arity": "option"}}, "relations": {"p": {"to": "Commit", "arity": "many"}}}}, {"domain": "mine", "origin": "repository", "path": "r/commit.yml", "doc": {"extends": "Commit", "fields": {"a": {"arity": "some"}, "b": {"arity": "option"}, "c": {"arity": "one"}}, "relations": {"p": {"arity": "some"}}}}]}
+[[], {"p": {"to": "Commit", "arity": "some"}}]
+
+# an extends narrows, and the narrowed arity is what the entity holds
+import "model" as model; model::build | [.findings, (.entities.Commit.fields | map_values(.arity))]
+{"files": [{"domain": "code", "origin": "release", "path": "m/commit.yml", "doc": {"entity": "Commit", "fields": {"a": {"type": "Text", "arity": "many"}, "b": {"type": "Text", "arity": "many"}, "c": {"type": "Text", "arity": "option"}, "d": {"type": "Text", "arity": "some"}, "e": {"type": "Text"}}}}, {"domain": "mine", "origin": "repository", "path": "r/commit.yml", "doc": {"extends": "Commit", "fields": {"a": {"arity": "some"}, "b": {"arity": "option"}, "c": {"arity": "one"}, "d": {"arity": "one"}, "e": {"arity": "one"}}}}]}
+[[], {"a": "some", "b": "option", "c": "one", "d": "one", "e": "one"}]
+
+# an extends widens one to many, and some to many, and option to some: each is a finding, and the arity stays
+import "model" as model; model::build | [.findings, (.entities.Commit.fields | map_values(.arity))]
+{"files": [{"domain": "code", "origin": "release", "path": "m/commit.yml", "doc": {"entity": "Commit", "fields": {"a": {"type": "Text"}, "b": {"type": "Text", "arity": "some"}, "c": {"type": "Text", "arity": "option"}}}}, {"domain": "mine", "origin": "repository", "path": "r/commit.yml", "doc": {"extends": "Commit", "fields": {"a": {"arity": "many"}, "b": {"arity": "many"}, "c": {"arity": "some"}}}}]}
+[["r/commit.yml changes the arity of Commit.a from one to many, which does not narrow it", "r/commit.yml changes the arity of Commit.b from some to many, which does not narrow it", "r/commit.yml changes the arity of Commit.c from option to some, which does not narrow it"], {"a": null, "b": "some", "c": "option"}]
+
+# an extends changes a field's type: a finding, unless both are enums and the new values are a subset
+import "model" as model; model::build | [.findings, (.entities.Commit.fields | map_values(.type))]
+{"files": [{"domain": "code", "origin": "release", "path": "m/commit.yml", "doc": {"entity": "Commit", "fields": {"a": {"type": "Text"}, "b": {"type": {"enum": ["x", "y"]}}, "c": {"type": {"enum": ["x", "y"]}}, "d": {"type": {"enum": ["x"]}}, "e": {"type": "Text"}}}}, {"domain": "mine", "origin": "repository", "path": "r/commit.yml", "doc": {"extends": "Commit", "fields": {"a": {"type": "Int"}, "b": {"type": {"enum": ["x"]}}, "c": {"type": {"enum": ["x", "z"]}}, "d": {"type": "Text"}, "e": {"type": "Text"}}}}]}
+[["r/commit.yml changes the type of Commit.a, which an extension may only narrow to a subset of an enum", "r/commit.yml changes the type of Commit.c, which an extension may only narrow to a subset of an enum", "r/commit.yml changes the type of Commit.d, which an extension may only narrow to a subset of an enum"], {"a": "Text", "b": {"enum": ["x"]}, "c": {"enum": ["x", "y"]}, "d": {"enum": ["x"]}, "e": "Text"}]
+
+# an extends changes a relation's to, or sets a key of a field or relation other than arity and a type: findings
+import "model" as model; model::build | .findings
+{"files": [{"domain": "code", "origin": "release", "path": "m/commit.yml", "doc": {"entity": "Commit", "fields": {"a": {"type": "Text"}}, "relations": {"r": {"to": "Commit"}, "s": {"to": "Commit"}}}}, {"domain": "mine", "origin": "repository", "path": "r/commit.yml", "doc": {"extends": "Commit", "fields": {"a": {"means": "new"}}, "relations": {"r": {"to": "Other"}, "s": {"to": "Commit", "inverse": "Commit.r"}}}}]}
+["r/commit.yml sets means on Commit.a, which an extension may not change; it may set only arity and an enum subset", "r/commit.yml changes the to of Commit.r, which an extension may not change", "r/commit.yml sets inverse on Commit.s, which an extension may not change; it may set only arity"]
+
+# an entity defined twice, in the release and the repository or in the repository twice, is a finding; the first
+# definition stands
+import "model" as model; model::build | [.findings, .entities.Commit.origin, (.entities | keys)]
+{"files": [{"domain": "code", "origin": "release", "path": "m/code/commit.yml", "doc": {"entity": "Commit"}}, {"domain": "mine", "origin": "repository", "path": "r/a.yml", "doc": {"entity": "Commit", "means": "mine"}}, {"domain": "mine", "origin": "repository", "path": "r/b.yml", "doc": {"entity": "Ticket"}}, {"domain": "mine", "origin": "repository", "path": "r/c.yml", "doc": {"entity": "Ticket"}}]}
+[["Commit is defined twice (m/code/commit.yml, r/a.yml)", "Ticket is defined twice (r/b.yml, r/c.yml)"], "release", ["Commit", "Ticket"]]
+
+# an extends of an entity nobody defines is a finding that names the path
+import "model" as model; model::build | [.findings, .entities]
+{"files": [{"domain": "mine", "origin": "repository", "path": "r/x.yml", "doc": {"extends": "Ghost", "fields": {"a": {"type": "Text"}}}}]}
+[["r/x.yml extends Ghost, which no file defines"], {}]
+
+# an extends sets layer, tool, over, stub, or sum: each is the defining file's, and a finding; the entity is unchanged
+import "model" as model; model::build | [.findings, .entities.Commit]
+{"files": [{"domain": "code", "origin": "release", "path": "m/commit.yml", "doc": {"entity": "Commit", "layer": "native", "tool": "git"}}, {"domain": "mine", "origin": "repository", "path": "r/commit.yml", "doc": {"extends": "Commit", "layer": "logical", "tool": "hg", "over": ["Commit"], "stub": true, "sum": true, "means": "x", "variants": {"A": {"f": "Commit"}}}}]}
+[["r/commit.yml sets layer on Commit, which it extends and does not define; layer is the defining file's to set", "r/commit.yml sets tool on Commit, which it extends and does not define; tool is the defining file's to set", "r/commit.yml sets over on Commit, which it extends and does not define; over is the defining file's to set", "r/commit.yml sets stub on Commit, which it extends and does not define; stub is the defining file's to set", "r/commit.yml sets sum on Commit, which it extends and does not define; sum is the defining file's to set", "r/commit.yml sets means on Commit, which it extends and does not define; means is the defining file's to set", "r/commit.yml sets variants on Commit, which it extends and does not define; variants is the defining file's to set"], {"domain": "code", "origin": "release", "layer": "native", "tool": "git"}]

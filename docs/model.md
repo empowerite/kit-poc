@@ -48,3 +48,35 @@ A `domain.yml` has `name`, `intro`, and `layout: {Entity: {row, col}}`, where ea
 The release's files come first, then the repository's, each group in path order. The release directory is
 `modules/model` of the kit and the repository's is `.kit/model`, unless named. A directory that does not exist holds
 no files. A file `model:load` cannot read, or refuses, ends it with status 1 and one line that names the file.
+
+## Extending the model
+
+A repository adds to the release's model with a file that says `extends: <Entity>` where an entity file says
+`entity: <Entity>`. `kit/modules/jq/model.jq`'s `model::build` merges the files into one model: every `entity:` file is
+applied first, release files before the repository's, then every `extends:` file in the same order. So an extension may
+extend an entity another file of the repository defines.
+
+An extension may:
+
+- add a field or a relation whose name the entity does not have, with any of the keys a field or relation has;
+- narrow the `arity` of a field or relation the entity has;
+- narrow a field's enum type to a subset of its values.
+
+Narrowing follows `many` holds `some`, `option`, and `one`; `some` holds `one`; `option` holds `one`. An arity is also
+its own narrowing, and an arity not written is `one`. `some` and `option` are unrelated, and neither narrows to the
+other. A scalar type has no order, so changing a type is not narrowing unless both are `{enum: [..]}` and the new
+values are among the old. A relation's `to` does not change.
+
+An extension sets nothing else on a field or relation the entity has, and sets none of `layer`, `tool`, `over`, `stub`,
+`sum`, `means`, or `variants` on an entity: those are the defining file's. Nothing in an extension removes anything.
+
+`model::build` gives `{domains, entities, findings}`. Each finding is one sentence that names the entity, the field or
+relation, and the file. These are findings:
+
+- an entity defined by two files, as `Commit is defined twice (<path>, <path>)`; the first stands;
+- an `extends:` of a name no file defines;
+- an arity that widens, a type that changes, or a `to` that changes;
+- any other key set on a field or relation the entity has;
+- a key an extension may not set on the entity.
+
+A finding leaves the entity as it was before the file's change that caused it; the rest of the file still applies.
