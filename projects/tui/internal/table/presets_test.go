@@ -34,7 +34,7 @@ func itemNames(h Host) []string {
 
 func TestThePresetsMenuListsWhatCanBeDoneWithViewsThenTheViews(t *testing.T) {
 	h := presetting()
-	want := []string{SaveIt, SaveAs, ManageIt, "", BuiltinHeading, Default, "Grouped", MineHeading, "Mine"}
+	want := []string{SaveIt, SaveAs, ManageIt, "", BuiltinHeading, Default, "Grouped", MineHeading, "Mine", "", SaveEverywhere, SaveInThisApp}
 	if got := itemNames(h); !slices.Equal(got, want) || PresetItems(h)[5].Glyph != Checked ||
 		PresetItems(h)[5].Keys != Unstarred {
 		t.Fatalf("the menu: %q", got)
@@ -143,7 +143,7 @@ func TestThePresetLineNamesTheViewTheTableIsSetAs(t *testing.T) {
 func TestTheViewsThePersonStarredStandFirst(t *testing.T) {
 	h := presetting()
 	h.views.Starred = []string{"Mine", "gone", "Mine"}
-	want := []string{SaveIt, SaveAs, ManageIt, "", FavoritesHeading, "Mine", BuiltinHeading, Default, "Grouped"}
+	want := []string{SaveIt, SaveAs, ManageIt, "", FavoritesHeading, "Mine", BuiltinHeading, Default, "Grouped", "", SaveEverywhere, SaveInThisApp}
 	if got := itemNames(h); !slices.Equal(got, want) || PresetItems(h)[5].Keys != Starred ||
 		PresetItems(h)[7].Keys != Unstarred || !slices.Equal(h.views.Favorites(), []string{"Mine"}) {
 		t.Fatalf("the menu: %q, favorites %q", got, h.views.Favorites())
@@ -244,5 +244,80 @@ func TestThePresetSelectorIsABlockWhereItsEndsAreNotRounded(t *testing.T) {
 	got := PresetLine(h, true)
 	if !strings.HasPrefix(got, "\x1b[1;7;") || strings.Count(got, "\x1b[1;7;") != 4 || strings.Contains(got, style.PillLeft) {
 		t.Errorf("with the keyboard: %q", got)
+	}
+}
+
+// The presets active everywhere and in the app stand in sections of their own after the views, a ✅ on each that is
+// active, and a click on one makes it active, or no longer; two lines at the end save the panel everywhere or in the app.
+func TestThePresetsMenuListsWhatIsActiveEverywhereAndInTheApp(t *testing.T) {
+	h := presetting()
+	h.views.App, h.views.Tab = "issues", "things"
+	h.views.Scoped = Scoped{Global: []Preset{{Name: "Mine too"}, {Name: "Quiet"}},
+		Apps:   map[string][]Preset{"issues": {{Name: "By repo"}}},
+		Active: map[string][]string{"global": {"Quiet"}}}
+	want := []string{SaveIt, SaveAs, ManageIt, "", BuiltinHeading, Default, "Grouped", MineHeading, "Mine",
+		EverywhereHeading, "Mine too", "Quiet", "in issues", "By repo", "", SaveEverywhere, "Save in issues…"}
+	if got := itemNames(h); !slices.Equal(got, want) {
+		t.Fatalf("the menu: %q", got)
+	}
+	items := PresetItems(h)
+	if items[10].Glyph != "" || items[11].Glyph != Checked || items[13].Glyph != "" {
+		t.Errorf("the ✅: %+v", items)
+	}
+	if l, name, ok := PresetScoped(h, 11); !ok || l != LevelGlobal || name != "Quiet" {
+		t.Errorf("Quiet: %v, %q, %v", l, name, ok)
+	}
+	if l, name, ok := PresetScoped(h, 13); !ok || l != LevelApp || name != "By repo" {
+		t.Errorf("By repo: %v, %q, %v", l, name, ok)
+	}
+	for _, k := range []int{5, 9, 12, 14, -1, 99} {
+		if _, _, ok := PresetScoped(h, k); ok {
+			t.Errorf("line %d is no preset of a level", k)
+		}
+	}
+	if l, ok := PresetSaveAt(h, 15); !ok || l != LevelGlobal {
+		t.Errorf("save everywhere: %v, %v", l, ok)
+	}
+	if l, ok := PresetSaveAt(h, 16); !ok || l != LevelApp {
+		t.Errorf("save in the app: %v, %v", l, ok)
+	}
+	for _, k := range []int{5, 11, 14, -1, 99} {
+		if _, ok := PresetSaveAt(h, k); ok {
+			t.Errorf("line %d saves at a level", k)
+		}
+	}
+	for _, k := range []int{10, 11, 13, 15, 16} {
+		if !PresetEnabled(h, k) {
+			t.Errorf("line %d acts", k)
+		}
+	}
+	for _, k := range []int{9, 12, 14} {
+		if PresetEnabled(h, k) {
+			t.Errorf("line %d is a heading or a rule", k)
+		}
+	}
+	// the menu drops on the view the table is set as, never on a ✅ of a level
+	h.tbl.View = h.tbl.View.Placed("state", grid.Hidden).Placed("title", grid.Hidden)
+	if pm := (PresetMenu{}).Drop(h); pm.At != ItemSaveAs {
+		t.Errorf("dropped at %d", pm.At)
+	}
+}
+
+func TestTheSelectorSaysWhereANameTypedIsSaved(t *testing.T) {
+	h := presetting()
+	h.tbl.SavingAs = true
+	for _, tc := range []struct {
+		scoped bool
+		level  Level
+		word   string
+	}{{false, LevelGlobal, SavingAsWord}, {true, LevelGlobal, SavingEverywhere}, {true, LevelApp, SavingInApp}} {
+		h.tbl.Scoped, h.tbl.Scope = tc.scoped, tc.level
+		if got := ansi.Strip(PresetLine(h, true)); !strings.HasPrefix(got, tc.word+" ") {
+			t.Errorf("%v: %q", tc, got)
+		}
+	}
+	h.tbl.Renaming = "Mine"
+	if got := ansi.Strip(PresetLine(h, true)); !strings.HasPrefix(got, RenamingWord) {
+		t.Errorf("renaming: %q", got)
 	}
 }

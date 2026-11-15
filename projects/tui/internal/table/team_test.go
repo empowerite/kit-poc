@@ -84,7 +84,7 @@ func TestTheTeamsViewsStandBesideTheTablesAndThePersons(t *testing.T) {
 	h.views.Team, h.views.Shares = []Preset{{Name: "Ours"}, {Name: "Ours copy"}}, true
 	v := h.views
 	if names := itemNames(h); !slices.Equal(names, []string{SaveIt, SaveAs, ManageIt, "", TeamHeading, "Ours", "Ours copy",
-		BuiltinHeading, Default, "Grouped", MineHeading, "Mine"}) {
+		BuiltinHeading, Default, "Grouped", MineHeading, "Mine", "", SaveEverywhere, SaveInThisApp}) {
 		t.Fatalf("the menu: %q", names)
 	}
 	if p, ok := v.Shared("Ours"); !ok || p.Name != "Ours" || len(v.All()) != 5 {

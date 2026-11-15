@@ -6,6 +6,7 @@ package table
 import (
 	"errors"
 	"maps"
+	"reflect"
 	"slices"
 
 	"github.com/empowerite/kit/projects/tui/internal/grid"
@@ -67,6 +68,81 @@ func (v Views) stacked(base Preset) Preset {
 	}
 	out, _ := Resolve(layers, v.Fields)
 	return out
+}
+
+// Stacked gives the preset a view sets a table as, as stacked says: the view itself where nothing is active, else the
+// stack beneath and beside it resolved. Hosts apply it where they once applied the view.
+func (v Views) Stacked(base Preset) Preset { return v.stacked(base) }
+
+// Rebased gives the panel a table is set as once its views change from v to next, the person's edit kept: what the panel
+// says beyond the stack of v is laid over the stack of next, so activating a preset, or no longer, changes what the
+// stack gives and leaves what the person changed alone.
+func (v Views) Rebased(next Views, base string, p grid.Panel) grid.Panel {
+	under, _ := Resolve(v.Stack(base, nil), v.Fields)
+	edit := Delta(under, p, v.Fields)
+	out, _ := Resolve(next.Stack(base, &edit), next.Fields)
+	return out.Panel(next.Fields, p)
+}
+
+// Restored gives the preset a table opens as, of the panel it was last left as, named by the view it was set as: the
+// stack of that view with what the panel says beyond that stack laid over it. A panel left with no preset active
+// restores as it was; one left with some active no longer holds what a preset gave that has since been switched off, as
+// far as the panel was left alone by it.
+func (v Views) Restored(last Preset) Preset {
+	under, _ := Resolve(v.Stack(last.Name, nil), v.Fields)
+	edit := Delta(under, last.Panel(v.Fields, grid.Panel{}), v.Fields)
+	out, _ := Resolve(v.Stack(last.Name, &edit), v.Fields)
+	return out
+}
+
+// ErrGone refuses to activate a preset that is not there at the level.
+var ErrGone = errors.New("there is no such preset")
+
+// Toggle gives the presets active at a level once the preset of the name is made active, last, or no longer; the views
+// it was asked of are as they were. At a table, any of its views may be active. A name no preset of the level has is
+// ErrGone.
+func (v Views) Toggle(l Level, name string) (Scoped, error) {
+	if l == LevelEdit {
+		return Scoped{}, ErrScope
+	}
+	among, active := v.at(l)
+	if l == LevelTab {
+		among = v.All()
+	}
+	if !slices.ContainsFunc(among, func(p Preset) bool { return p.Name == name }) {
+		return Scoped{}, ErrGone
+	}
+	if k := slices.Index(active, name); k >= 0 {
+		active = slices.Delete(slices.Clone(active), k, k+1)
+	} else {
+		active = append(slices.Clone(active), name)
+	}
+	scoped, _ := v.replace(l, among, active)
+	return scoped, nil
+}
+
+// KeepViews keeps what a screen did to the person's views of a table in the file, from v, as the screen last read or
+// wrote them, to the presets of the table, saved, and those of global and app scope with their active names, scoped, as
+// it wants them: the file is read again and merged, as KeepPresets and KeepScoped say, so what another kittui did since
+// stays. It gives every table's presets, none where the table's own were not changed, and the scoped presets as
+// written. A file that does not read is the error, and nothing is written for the part that failed.
+func KeepViews(path, store string, v Views, saved []Preset, scoped Scoped) (map[string][]Preset, Scoped, error) {
+	got := v.Scoped
+	if !reflect.DeepEqual(scoped, v.Scoped) {
+		var err error
+		if got, err = KeepScoped(path, v.Scoped, scoped); err != nil {
+			return nil, Scoped{}, err
+		}
+	}
+	if reflect.DeepEqual(saved, v.Saved) {
+		return nil, got, nil
+	}
+	all, _, err := KeepPresets(path, store, Kept{Saved: v.Saved, Favorites: v.Starred},
+		Kept{Saved: saved, Favorites: v.Favorites()})
+	if err != nil {
+		return nil, Scoped{}, err
+	}
+	return all, got, nil
 }
 
 // SaveAt gives the presets the person has with a panel saved under a name at a level, and the person's views of the

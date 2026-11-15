@@ -2,6 +2,8 @@ package table
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"reflect"
 	"slices"
 	"testing"
@@ -296,5 +298,115 @@ func TestSavingAtAScopeDoesNotChangeTheView(t *testing.T) {
 				t.Errorf("after saving the view is %+v, want the panel %+v", got, panel)
 			}
 		})
+	}
+}
+
+func TestStackedIsTheBaseWhereNothingIsActiveAndTheStackWhereSomethingIs(t *testing.T) {
+	v := stackViews()
+	base := v.Chosen("Underway")
+	got := v.Stacked(base)
+	if got.Fields["assignee"].Filter == nil || got.Fields["repo"].Placement != PlaceGroup {
+		t.Errorf("the stack: %+v", got)
+	}
+	v.Scoped.Active = nil
+	if got := v.Stacked(base); !reflect.DeepEqual(got, base) {
+		t.Errorf("nothing active: %+v", got)
+	}
+}
+
+func TestToggleActivatesAndDeactivatesAPresetAtALevel(t *testing.T) {
+	v := stackViews()
+	scoped, err := v.Toggle(LevelGlobal, "Mine")
+	if err != nil || slices.Contains(scoped.Active["global"], "Mine") || !slices.Contains(v.Scoped.Active["global"], "Mine") {
+		t.Fatalf("off: %v, %v (the views it was asked of: %v)", err, scoped.Active, v.Scoped.Active)
+	}
+	v.Scoped = scoped
+	scoped, _ = v.Toggle(LevelGlobal, "Mine")
+	if got := scoped.Active["global"]; !slices.Equal(got, []string{"By org", "Mine"}) {
+		t.Errorf("on again goes last: %v", got)
+	}
+	scoped, _ = v.Toggle(LevelApp, "By repo")
+	if len(scoped.Active["app:issues"]) != 0 {
+		t.Errorf("the app's: %v", scoped.Active)
+	}
+	scoped, _ = v.Toggle(LevelTab, "Compact")
+	if got := scoped.Active["tab:things"]; !slices.Equal(got, []string{"Wide", "Compact"}) {
+		t.Errorf("the table's, of any of its views: %v", got)
+	}
+	if got, err := v.Toggle(LevelGlobal, "Gone"); err != ErrGone || !reflect.DeepEqual(got, Scoped{}) {
+		t.Errorf("a preset that is not there: %v, %+v", err, got)
+	}
+	if _, err := v.Toggle(LevelEdit, "Mine"); err != ErrScope {
+		t.Errorf("an edit: %v", err)
+	}
+}
+
+func TestRebasedKeepsTheEditOverAChangedStack(t *testing.T) {
+	v := stackViews()
+	base := "Underway"
+	under, _ := v.Applied(base, nil)
+	panel := under.Panel(v.Fields, grid.Panel{})
+	// the person sorts by title, an edit, then switches Mine off everywhere
+	panel = panel.Sorted("title")
+	next := v
+	next.Scoped, _ = v.Toggle(LevelGlobal, "Mine")
+	got := PresetOf(v.Rebased(next, base, panel), v.Fields)
+	if got.Fields["assignee"].Filter != nil || got.Fields["title"].Sort != "asc" || got.Fields["state"].Filter == nil {
+		t.Errorf("rebased: %+v", got)
+	}
+}
+
+func TestRestoredPutsTheLastPanelOverTheStackSoDeactivatingStillTakesAwayWhatItGave(t *testing.T) {
+	v := stackViews()
+	under, _ := v.Applied("Underway", nil)
+	last := PresetOf(under.Panel(v.Fields, grid.Panel{}).Sorted("title"), v.Fields)
+	last.Name = "Underway"
+	got := v.Restored(last)
+	if got.Fields["assignee"].Filter == nil || got.Fields["title"].Sort != "asc" {
+		t.Fatalf("restored: %+v", got)
+	}
+	// a view of the person's own, left whole, restores as it was: nothing active, the panel as left
+	plain := stackViews()
+	plain.Scoped.Active = nil
+	whole := PresetOf(plain.Chosen("Underway").Panel(plain.Fields, grid.Panel{}).Sorted("title"), plain.Fields)
+	whole.Name = "Underway"
+	if got := plain.Restored(whole); !plain.Same(got, whole) {
+		t.Errorf("a panel left with nothing active: %+v, want %+v", got, whole)
+	}
+}
+
+func TestKeepViewsKeepsTheScopedPresetsAndTheTablesApartAndTogether(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "presets.json")
+	v := stackViews()
+	v.Scoped, v.Saved = Scoped{}, nil
+	// a scoped change alone leaves the table's presets as they were
+	scoped, _ := stackViews().Toggle(LevelGlobal, "Mine")
+	all, got, err := KeepViews(path, "things", v, nil, scoped)
+	if err != nil || all != nil || !reflect.DeepEqual(got.Active, scoped.Active) {
+		t.Fatalf("scoped alone: %v, %v, %+v", err, all, got)
+	}
+	// both
+	v.Scoped = got
+	all, got, err = KeepViews(path, "things", v, []Preset{{Name: "Wide"}}, got)
+	if err != nil || len(all["things"]) != 1 {
+		t.Fatalf("saved: %v, %+v", err, all)
+	}
+	if read, err := ReadScoped(path); err != nil || !reflect.DeepEqual(read.Active, got.Active) {
+		t.Errorf("read back: %v, %+v", err, read)
+	}
+	// nothing changed writes nothing and gives what it was given
+	if all, got2, err := KeepViews(path, "things", v, v.Saved, v.Scoped); err != nil || all != nil || !reflect.DeepEqual(got2, v.Scoped) {
+		t.Errorf("nothing: %v, %v, %+v", err, all, got2)
+	}
+	// a file that does not read is the error, for either part
+	bad := filepath.Join(t.TempDir(), "bad.json")
+	if err := os.WriteFile(bad, []byte("{"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := KeepViews(bad, "things", v, nil, stackViews().Scoped); err == nil {
+		t.Error("a bad file kept a scoped change")
+	}
+	if _, _, err := KeepViews(bad, "things", v, []Preset{{Name: "x"}}, v.Scoped); err == nil {
+		t.Error("a bad file kept a preset")
 	}
 }

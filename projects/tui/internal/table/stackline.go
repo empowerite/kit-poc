@@ -12,6 +12,10 @@ import (
 	"slices"
 	"strings"
 
+	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
+
+	"github.com/empowerite/kit/projects/tui/internal/shell"
 	"github.com/empowerite/kit/projects/tui/internal/style"
 )
 
@@ -142,8 +146,8 @@ type StackChip struct {
 	Card *Constraint
 }
 
-// scopeWord gives the words that say a level, for a table of an app.
-func scopeWord(l Level, app string) string {
+// ScopeWord gives the words that say a level, for a table of an app.
+func ScopeWord(l Level, app string) string {
 	switch l {
 	case LevelGlobal:
 		return "everywhere"
@@ -166,7 +170,7 @@ func StackChips(h Host) []StackChip {
 	var out []StackChip
 	for k, l := range layers {
 		if k != baseAt {
-			out = append(out, StackChip{Text: style.Off(l.Name + " (" + scopeWord(l.Level, v.App) + ")")})
+			out = append(out, StackChip{Text: style.Off(l.Name + " (" + ScopeWord(l.Level, v.App) + ")")})
 		}
 	}
 	_, prov := v.Applied(base, nil)
@@ -201,10 +205,70 @@ func constraintText(h Host, layers []Layer, c Constraint) string {
 	return label + ": " + strings.Join(values, ", ")
 }
 
-// ConstraintCard is the card of a dim chip while it is open: the constraint.
+// ConstraintCard is the card of a dim chip while it is open: the constraint; its line under the keyboard, -1 for none;
+// and the screen column of the chip it hangs from, which its left edge keeps where the screen is wide enough.
 type ConstraintCard struct {
 	Open bool
 	C    Constraint
+	At   int
+	X    int
+}
+
+// OpenConstraint gives the card of the constraint a click on a dim chip reached, open, hanging from the chip, the first
+// choice under the keyboard.
+func OpenConstraint(h Host, spot ControlSpot) ConstraintCard {
+	cc := ConstraintCard{Open: true, C: *spot.Card, X: spot.From}
+	cc.At = slices.IndexFunc(cc.Lines(h), func(l CardLine) bool { return l.Acts })
+	return cc
+}
+
+// items gives the card's lines as a menu draws them.
+func (cc ConstraintCard) items(h Host) []shell.Item {
+	var out []shell.Item
+	for _, l := range cc.Lines(h) {
+		out = append(out, shell.Item{Name: l.Text})
+	}
+	return out
+}
+
+// acts says whether the line k of the card is a choice.
+func (cc ConstraintCard) acts(h Host) func(int) bool {
+	lines := cc.Lines(h)
+	return func(k int) bool { return k >= 0 && k < len(lines) && lines[k].Acts }
+}
+
+// Box gives the card's lines, in its tab's color, titled by the facet it is about, as a menu is, and the screen line
+// and column it is drawn from: under the control line's top, its left edge on its chip's first column, or as far left as
+// the screen needs to show it whole.
+func (cc ConstraintCard) Box(h Host) (lines []string, top, left int) {
+	width, _ := h.Size()
+	color := h.Color()
+	lines, _ = shell.BoxColored(cc.items(h), cc.acts(h), cc.At, "", -1, width, color)
+	wide := ansi.StringWidth(lines[0])
+	lines, left = shell.BoxColored(cc.items(h), cc.acts(h), cc.At, "", -1, max(wide, min(cc.X+wide, width)), color)
+	lines[0] = shell.TitledColored(string(cc.C.Facet), ansi.StringWidth(lines[0]), color)
+	top, _ = h.Pane()
+	return lines, top, left
+}
+
+// Keys gives the card's segment of the keys bar: a menu's.
+func (cc ConstraintCard) Keys() shell.Segment { return shell.MenuKeys() }
+
+// Key takes a key while the card is open, as a menu does, and gives the line chosen, -1 for none; esc closes it.
+func (cc *ConstraintCard) Key(h Host, k tea.KeyPressMsg) int {
+	d, chosen := shell.Dropdown{Open: cc.Open, At: cc.At}.Key(k, cc.items(h), cc.acts(h))
+	cc.Open, cc.At = d.Open, d.At
+	return chosen
+}
+
+// Click takes a click while the card is open, as a menu does, and gives the line chosen, -1 for none; a click off the
+// card closes it.
+func (cc *ConstraintCard) Click(h Host, x, y int) int {
+	box, top, left := cc.Box(h)
+	d, chosen := shell.Dropdown{Open: cc.Open, At: cc.At}.Click(x, y, top, left, ansi.StringWidth(box[0]), cc.items(h),
+		cc.acts(h))
+	cc.Open, cc.At = d.Open, d.At
+	return chosen
 }
 
 // CardLine is a line of a constraint card: what it draws, and whether a choice acts on it.
@@ -223,7 +287,7 @@ func (cc ConstraintCard) switched(h Host) (Constraint, bool) {
 // Lines gives the card's lines: whose constraint it is and its scope, why it is not in force, a gap, then a choice per
 // level, off here, off in this app, off everywhere; or, for one switched off, where, and a choice to switch it on again.
 func (cc ConstraintCard) Lines(h Host) []CardLine {
-	owner := style.Off(cc.C.Layer + " (" + scopeWord(cc.C.Level, h.Views().App) + ")")
+	owner := style.Off(cc.C.Layer + " (" + ScopeWord(cc.C.Level, h.Views().App) + ")")
 	if cc.C.Status == Off {
 		sw, _ := cc.switched(h)
 		return []CardLine{{Text: owner}, {Text: style.Off(switchLine(sw.Level))}, {}, {Text: OnAgain, Acts: true}}

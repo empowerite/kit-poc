@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -300,5 +301,55 @@ func TestTheControlLineDrawsTheStackAndItsDimChipsAreTargets(t *testing.T) {
 	if len(cards) != 1 || ansi.Strip(ansi.Cut(line, cards[0].From, cards[0].Until)) != "reviewer: @me" ||
 		cards[0].Card.Layer != "Reviewed" || spots[len(spots)-1].Field != "" || spots[len(spots)-1].Card != nil {
 		t.Errorf("the spots: %+v", spots)
+	}
+}
+
+// A click on a dim chip opens its card under it, with the keyboard on the first choice; a key or a click chooses, and
+// esc, or a click off the card, closes it.
+func TestTheCardOfADimChipTakesKeysAndClicks(t *testing.T) {
+	h := stacking()
+	h.w, h.h = 200, 40
+	h.views.Scoped.Global = append(h.views.Scoped.Global, Preset{Name: "Reviewed",
+		Fields: map[string]Setting{"reviewer": {Filter: inc("@me")}}})
+	h.views.Scoped.Active["global"] = append(h.views.Scoped.Active["global"], "Reviewed")
+	var spot ControlSpot
+	for _, s := range ControlSpots(h, "  left", SelectorPill("Underway", "4", false)) {
+		if s.Card != nil {
+			spot = s
+		}
+	}
+	cc := OpenConstraint(h, spot)
+	if !cc.Open || cc.At != 3 || cc.X != spot.From {
+		t.Fatalf("opened: %+v", cc)
+	}
+	box, top, left := cc.Box(h)
+	if top != 4 || left > spot.From || !strings.Contains(ansi.Strip(box[0]), "filter") || len(box) != 8 {
+		t.Errorf("the box at %d, %d: %q", top, left, ansi.Strip(strings.Join(box, "\n")))
+	}
+	if chosen := cc.Key(h, key("down")); chosen != -1 || cc.At != 4 {
+		t.Errorf("down: %d, at %d", chosen, cc.At)
+	}
+	if chosen := cc.Key(h, tea.KeyPressMsg{Code: tea.KeyEnter}); chosen != 4 || cc.Open {
+		t.Errorf("enter: %d, open %v", chosen, cc.Open)
+	}
+	cc = OpenConstraint(h, spot)
+	if chosen := cc.Click(h, left+3, top+1+5); chosen != 5 {
+		t.Errorf("a click on off everywhere: %d", chosen)
+	}
+	cc = OpenConstraint(h, spot)
+	if chosen := cc.Click(h, left+3, top+1+1); chosen != -1 || !cc.Open {
+		t.Errorf("a click on a line that is no choice: %d, open %v", chosen, cc.Open)
+	}
+	if chosen := cc.Click(h, 0, 0); chosen != -1 || cc.Open {
+		t.Errorf("a click off it: %d, open %v", chosen, cc.Open)
+	}
+	// near the right edge the card keeps on the screen
+	h.w = 40
+	cc = OpenConstraint(h, ControlSpot{Card: spot.Card, From: 38, Until: 40})
+	if box, _, left := cc.Box(h); left+ansi.StringWidth(box[0]) > 40 {
+		t.Errorf("the card leaves the screen: %d + %d", left, ansi.StringWidth(box[0]))
+	}
+	if cc.Keys().Bindings == nil {
+		t.Error("no keys")
 	}
 }

@@ -202,7 +202,7 @@ func (m Model) viewsOf(i int) table.Views { return m.viewsNamed(m.stages[i].name
 // viewsNamed gives a stage's views by its name, as viewsOf does.
 func (m Model) viewsNamed(name string) table.Views {
 	return table.Views{Fields: fieldsOf(name), Own: builtinsOf(name), Saved: m.saved[name], Starred: m.starred[name],
-		Team: m.team[name], Shares: m.teamDir != ""}
+		Team: m.team[name], Shares: m.teamDir != "", Scoped: m.scoped, App: string(m.app), Tab: name, Reserved: reserved()}
 }
 
 // views gives a stage's views, its own first, then the person's.
@@ -227,7 +227,7 @@ func (m Model) is(i int) string { return m.viewsOf(i).Is(m.stages[i].Table) }
 // names the view, which then groups the rows as it loads, as autoGroup says.
 func (m *Model) apply(v table.Preset) {
 	s := &m.stages[m.stage]
-	p := v.Panel(fieldsOf(s.name), s.View)
+	p := m.viewsOf(m.stage).Stacked(v).Panel(fieldsOf(s.name), s.View)
 	s.ViewName, s.SavingAs, s.Naming = v.Name, false, ""
 	s.Grouping, s.Grouped = true, nil
 	m.setPanel(p)
@@ -305,7 +305,7 @@ func (m *Model) favor(name string, starred []string) {
 // overwritten, a new one is added after theirs, and a stage's own name is refused, as those never change. What it
 // did, or why not, is in place of the keys.
 func (m *Model) savePreset() tea.Cmd {
-	m.saveAs(strings.TrimSpace(m.stages[m.stage].Naming))
+	m.saveNamed(strings.TrimSpace(m.stages[m.stage].Naming))
 	return nil
 }
 
@@ -394,7 +394,7 @@ func (m *Model) managedPreset(do table.ManageDo) {
 		m.favor(do.Name, do.Favorites)
 	case table.ManageRename:
 		s := &m.stages[m.stage]
-		s.SavingAs, s.Naming, s.Renaming = true, do.Name, do.Name
+		s.SavingAs, s.Naming, s.Renaming, s.Scoped = true, do.Name, do.Name, false
 		m.onPreset, m.inRows, m.inPanel, m.stop = true, false, false, -1
 	case table.ManageDelete:
 		if _, team := m.viewsOf(m.stage).Shared(do.Name); team {
@@ -419,6 +419,15 @@ func (m *Model) choosePreset(k int) {
 	}
 	s := &m.stages[m.stage]
 	v, _ := m.own()
+	if level, name, ok := table.PresetScoped(m, k); ok {
+		m.toggle(level, name)
+		return
+	}
+	if level, ok := table.PresetSaveAt(m, k); ok {
+		s.SavingAs, s.Naming, s.Renaming, s.Scoped, s.Scope = true, "", "", true, level
+		m.onPreset, m.inRows, m.inPanel, m.stop = true, false, false, -1
+		return
+	}
 	switch k {
 	case table.ItemSave:
 		if _, team := m.viewsOf(m.stage).Shared(s.ViewName); team {
@@ -427,7 +436,7 @@ func (m *Model) choosePreset(k int) {
 		}
 		m.saveAs(v.Name)
 	case table.ItemSaveAs:
-		s.SavingAs, s.Naming, s.Renaming = true, v.Name, ""
+		s.SavingAs, s.Naming, s.Renaming, s.Scoped = true, v.Name, "", false
 		m.onPreset, m.inRows, m.inPanel, m.stop = true, false, false, -1
 	case table.ItemManage:
 		m.manage = table.Manage{Open: true}

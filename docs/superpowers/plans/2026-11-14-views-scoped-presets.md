@@ -225,17 +225,27 @@ layer, and keep what `Choose` gives with `KeepScoped`. The presets' menu's secti
 
 ## Task 6: The selection follows
 
-**Files:** Modify `flow/views.go`, `table/sheet.go`, their tests.
+**Files:** Create `flow/scoped.go`, `table/sheet_scoped_test.go`, `flow/scoped_test.go`. Modify `table/stack.go`,
+`table/presets.go`, `table/layers.go`, `table/table.go`, `table/sheet.go`, `flow/flow.go`, `flow/views.go`,
+`flow/layers.go`.
 
-**Interfaces:** Consumes `ReadScoped`, `KeepScoped`, `Views.Scoped`. Produces the hosts' loading of the scopes and the
-keeping of active names when a person activates or deactivates a preset.
+**Interfaces:** Consumes `ReadScoped`, `KeepScoped`, `Views.Scoped`. Produces `Views.Stacked`, `Views.Rebased`,
+`Views.Restored`, `Views.Toggle`, `KeepViews`, the presets' menu's sections "everywhere" and "in `app`", whose lines a
+click makes active or no longer, its lines "Save everywhere…" and "Save in `app`…", `Table.Scoped` and `Table.Scope`
+for the name typed, the card as a layer of `Overlays`, and the two hosts' loading and keeping of the scopes.
 
-- [ ] **Step 1: Write the failing tests:** activating a global preset on one tab applies it on another tab of the same
-  file; deactivating on one removes it on the other; a second screen's save is kept.
-- [ ] **Step 2: Run them to see them fail.**
-- [ ] **Step 3: Implement** the hosts' calls.
-- [ ] **Step 4: Run all tests.**
-- [ ] **Step 5: Commit** the files.
+- [x] **Step 1: Write the failing tests:** activating a global preset applies it on every stage and in a sheet opened
+  after; deactivating removes it; saving everywhere is active at once and the line is not struck through; a stage opens
+  as the presets now say, however it was left; a file that does not read is not written over; the card's choice is kept.
+- [x] **Step 2: Run them to see them fail.**
+- [x] **Step 3: Implement** the hosts' calls. The applying of a view is its stack; a panel left is restored over the
+  stack of its view; making a preset active changes the stack beneath what the person changed, which stays.
+- [x] **Step 4: Run all tests.** The presets' menu gains two lines at its end, so the tests that named its lines or
+  moved by the letter s say so.
+- [x] **Step 5: Commit** the files.
+
+Open: a panel left by one kittui and restored by another whose active presets differ keeps what a preset gave that the
+other has since made inactive, as the person's own change, because only the panel is kept, never the stack it came of.
 
 ## Task 7: The page that says so
 

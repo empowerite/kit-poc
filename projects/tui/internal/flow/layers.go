@@ -27,6 +27,8 @@ func (m Model) layers() shell.Layers[Model] {
 	}
 	layers = append(layers, table.Overlays[Model]{
 		Host:    func(m *Model) table.Host { return m },
+		Card:    func(m *Model) *table.ConstraintCard { return &m.card },
+		Switch:  (*Model).switched,
 		Pop:     func(m *Model) *table.Popover { return &m.pop },
 		Cols:    func(m *Model) *table.Columns { return &m.cols },
 		Presets: func(m *Model) *table.PresetMenu { return &m.presetsMenu },

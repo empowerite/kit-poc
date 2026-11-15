@@ -213,6 +213,8 @@ type Model struct {
 	books         shell.BooksMenu           // the title's workspace menu, which has the keyboard while it is open
 	ws            kit.Workspace             // the workspace kit said last: a group's members, and their checkouts
 	pop           table.Popover             // a field's popover, which has the keyboard while it is open
+	scoped        table.Scoped              // the presets active everywhere and in the app, and which are active, as the file keeps them
+	card          table.ConstraintCard      // the card of a dim chip of the stack line, while it is open
 	width, height int
 	interrupted   bool
 	built         *built // each stage's rows as last built, shared by the model's copies until it is replaced
@@ -294,6 +296,7 @@ func New(r kit.Runner, o Options) Model {
 		m.note.Text = fmt.Sprintf("%s %v; the file is left as it is", Failed, err)
 	}
 	m.starred = table.ReadFavorites(o.Presets)
+	m.scoped, _ = table.ReadScoped(o.Presets)
 	m.note.Done = err == nil
 	m.teamDir = o.Team
 	m.readTeam(o.Stages)
@@ -307,17 +310,21 @@ func New(r kit.Runner, o Options) Model {
 			s.src.Loading, s.refusal = false, fmt.Sprintf("kittui does not draw the stage '%s'", label(name))
 		}
 		views := m.viewsNamed(name)
-		v, viewName := views.Opening(), ""
+		base, viewName := views.Opening(), ""
+		panel := views.Stacked(base)
 		switch last, ok := lasts[name]; {
 		case name == o.Focus && o.Preset != "":
-			v = views.Chosen(o.Preset)
+			base = views.Chosen(o.Preset)
+			panel = views.Stacked(base)
 		case ok:
-			// the panel as it was left, set as the view it was, or the one it opens on where that is gone
-			v, viewName = last, views.Chosen(last.Name).Name
+			// the panel as it was left, set as the view it was, or the one it opens on where that is gone, with what
+			// the presets active now give beneath what the person changed
+			base, viewName = last, views.Chosen(last.Name).Name
+			panel = views.Restored(last)
 		}
-		s.ViewName = cmp.Or(viewName, v.Name)
+		s.ViewName = cmp.Or(viewName, base.Name)
 		if catalog[name] != nil {
-			s.View = v.Panel(fieldsOf(name), s.View)
+			s.View = panel.Panel(fieldsOf(name), s.View)
 		}
 		m.stages = append(m.stages, s)
 	}
@@ -664,9 +671,12 @@ func (m *Model) setPanel(p grid.Panel) {
 // remember keeps the selected stage's panel in the presets file, as table.KeepLast does, named by the view the line was
 // set to, so the stage opens as it was left; a panel as it was last kept is not written again. Where the file cannot
 // be written, it is not kept, and nothing is said, as the person asked for nothing.
-func (m *Model) remember() {
-	s := m.stages[m.stage]
-	last := m.viewsOf(m.stage).Current(s.View)
+func (m *Model) remember() { m.rememberAt(m.stage) }
+
+// rememberAt keeps the panel of the stage at i, as remember keeps the selected stage's.
+func (m *Model) rememberAt(i int) {
+	s := m.stages[i]
+	last := m.viewsOf(i).Current(s.View)
 	last.Name = s.ViewName
 	if kept, ok := m.remembered[s.name]; ok && reflect.DeepEqual(kept, last) {
 		return
@@ -1477,6 +1487,10 @@ func (m *Model) controlClick(x int) tea.Cmd {
 		return m.openFieldMenu(name.Column)
 	}
 	if spot, ok := table.SpotAt(m.spots(), x); ok {
+		if spot.Card != nil {
+			m.card = table.OpenConstraint(m, spot)
+			return nil
+		}
 		if spot.Field == "" {
 			m.cols = table.Columns{Open: true}
 			return nil

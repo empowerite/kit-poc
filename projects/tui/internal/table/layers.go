@@ -15,10 +15,12 @@ import (
 // Overlays are the functions of a screen's model M that reach its table's layers: the host of the table selected;
 // the card, the fields dialog, and the presets' menu it keeps; what the screen does once a field's card shows, as asking
 // kit for the caller's login, which @me names; what it does with the line of the presets' menu chosen; what it does
-// with the line whose view the person stars, or no longer; the presets dialog it keeps; and what it does with what that
-// asks.
+// with the line whose view the person stars, or no longer; the presets dialog it keeps; what it does with what that
+// asks; and the card of a dim chip it keeps, with what it does with the line of it chosen.
 type Overlays[M any] struct {
 	Host    func(*M) Host
+	Card    func(*M) *ConstraintCard
+	Switch  func(*M, ConstraintCard, int)
 	Pop     func(*M) *Popover
 	Cols    func(*M) *Columns
 	Presets func(*M) *PresetMenu
@@ -32,6 +34,29 @@ type Overlays[M any] struct {
 // Layers gives the table's layers, the topmost first.
 func (o Overlays[M]) Layers() shell.Layers[M] {
 	return shell.Layers[M]{
+		{ // the card of a dim chip of the stack line, whose choice the screen keeps
+			Open: func(m M) bool { return o.Card(&m).Open },
+			Key: func(m M, k tea.KeyPressMsg) (M, tea.Cmd) {
+				card := *o.Card(&m)
+				if chosen := o.Card(&m).Key(o.Host(&m), k); chosen >= 0 {
+					o.Switch(&m, card, chosen)
+				}
+				return m, nil
+			},
+			Click: func(m M, c tea.MouseClickMsg) (M, tea.Cmd, bool) {
+				card := *o.Card(&m)
+				if chosen := o.Card(&m).Click(o.Host(&m), c.X, c.Y); chosen >= 0 {
+					o.Switch(&m, card, chosen)
+					o.Card(&m).Open = false
+				}
+				return m, nil, true
+			},
+			Keys: func(m M) shell.Segment { return o.Card(&m).Keys() },
+			Draw: func(m M, lines []string) []string {
+				box, top, left := o.Card(&m).Box(o.Host(&m))
+				return shell.Over(lines, box, top, left)
+			},
+		},
 		{ // a field's card
 			Open: func(m M) bool { return o.Pop(&m).Open },
 			Key: func(m M, k tea.KeyPressMsg) (M, tea.Cmd) {

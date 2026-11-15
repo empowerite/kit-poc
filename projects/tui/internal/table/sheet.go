@@ -46,6 +46,8 @@ type Sheet struct {
 	tbl           Table
 	saved         []Preset
 	starred       []string
+	scoped        Scoped // the presets active everywhere and in the app, and which are active, as the file keeps them
+	card          ConstraintCard
 	fold, hide    bool
 	glyphs        bool
 	top, height   int
@@ -84,8 +86,9 @@ func NewSheet(schema *Schema, name, color, path string) Sheet {
 		s.note.Text = fmt.Sprintf("%s %v; the file is left as it is", Failed, err)
 	}
 	s.saved, s.starred = all[s.store], ReadFavorites(path)[s.store]
+	s.scoped, _ = ReadScoped(path)
 	opening := s.Views().Opening()
-	s.tbl.ViewName, s.tbl.View = opening.Name, opening.Panel(schema.Of(), grid.Panel{})
+	s.tbl.ViewName, s.tbl.View = opening.Name, s.Views().Stacked(opening).Panel(schema.Of(), grid.Panel{})
 	return s
 }
 
@@ -314,7 +317,12 @@ func (s *Sheet) Views() Views {
 	if len(own) == 0 {
 		own = []Preset{{Name: Default}}
 	}
-	return Views{Fields: s.schema.Of(), Own: own, Saved: s.saved, Starred: s.starred}
+	names := make([]string, len(own))
+	for k, p := range own {
+		names[k] = p.Name
+	}
+	return Views{Fields: s.schema.Of(), Own: own, Saved: s.saved, Starred: s.starred, Scoped: s.scoped, App: s.name,
+		Tab: s.store, Reserved: names}
 }
 
 // Columnar says whether the table has fields the columns dialog lists.
@@ -521,6 +529,8 @@ func (s *Sheet) Blur() {
 func (s *Sheet) layers() shell.Layers[Sheet] {
 	return Overlays[Sheet]{
 		Host:    func(s *Sheet) Host { return s },
+		Card:    func(s *Sheet) *ConstraintCard { return &s.card },
+		Switch:  (*Sheet).switched,
 		Pop:     func(s *Sheet) *Popover { return &s.pop },
 		Cols:    func(s *Sheet) *Columns { return &s.cols },
 		Presets: func(s *Sheet) *PresetMenu { return &s.presets },
@@ -569,7 +579,7 @@ func (s *Sheet) key(k tea.KeyPressMsg) bool {
 		do, took := PresetKey(s, k)
 		switch do {
 		case DoSave:
-			s.saveAs(strings.TrimSpace(s.tbl.Naming))
+			s.saveNamed(strings.TrimSpace(s.tbl.Naming))
 		case DoRename:
 			s.rename()
 		case DoDrop:
@@ -755,7 +765,7 @@ func (s *Sheet) controlClick(x int) {
 	if spot, ok := SpotAt(ControlSpots(s, s.controlLeft(), s.presetLine()), x); ok {
 		switch {
 		case spot.Card != nil:
-			// the card of a dim chip opens where the screen keeps the scopes
+			s.card = OpenConstraint(s, spot)
 		case spot.Field == "":
 			s.cols = Columns{Open: true}
 		default:
@@ -822,11 +832,20 @@ func (s *Sheet) choose(k int) {
 		return
 	}
 	v, _ := s.Views().Mine(s.tbl.ViewName)
+	if level, name, ok := PresetScoped(s, k); ok {
+		s.toggle(level, name)
+		return
+	}
+	if level, ok := PresetSaveAt(s, k); ok {
+		s.tbl.SavingAs, s.tbl.Naming, s.tbl.Renaming, s.tbl.Scoped, s.tbl.Scope = true, "", "", true, level
+		s.onControls, s.inRows, s.stop = true, false, -1
+		return
+	}
 	switch k {
 	case ItemSave:
 		s.saveAs(v.Name)
 	case ItemSaveAs:
-		s.tbl.SavingAs, s.tbl.Naming, s.tbl.Renaming = true, v.Name, ""
+		s.tbl.SavingAs, s.tbl.Naming, s.tbl.Renaming, s.tbl.Scoped = true, v.Name, "", false
 		s.onControls, s.inRows, s.stop = true, false, -1
 	case ItemManage:
 		s.manage = Manage{Open: true}
@@ -844,7 +863,7 @@ func (s *Sheet) managed(do ManageDo) {
 	case ManageFavorites:
 		s.favor(do.Name, do.Favorites)
 	case ManageRename:
-		s.tbl.SavingAs, s.tbl.Naming, s.tbl.Renaming = true, do.Name, do.Name
+		s.tbl.SavingAs, s.tbl.Naming, s.tbl.Renaming, s.tbl.Scoped = true, do.Name, do.Name, false
 		s.onControls, s.inRows, s.stop = true, false, -1
 	case ManageDelete:
 		if _, ok := s.Views().Mine(do.Name); ok && s.keep(s.Views().Delete(do.Name), "deleted") {
@@ -859,7 +878,7 @@ func (s *Sheet) managed(do ManageDo) {
 // apply sets the panel as the preset keeps it, its search kept, and names the preset, which then groups the rows as
 // they load, as autoGroup says.
 func (s *Sheet) apply(v Preset) {
-	p := v.Panel(s.schema.Of(), s.tbl.View)
+	p := s.Views().Stacked(v).Panel(s.schema.Of(), s.tbl.View)
 	s.tbl.ViewName, s.tbl.SavingAs, s.tbl.Naming = v.Name, false, ""
 	s.tbl.Grouping, s.tbl.Grouped = true, nil
 	s.SetPanel(p)
@@ -975,4 +994,71 @@ func (s *Sheet) open(link string) {
 		return
 	}
 	s.note = s.note.Did("opened " + link)
+}
+
+// saveNamed keeps the panel under the name typed, in the table's own presets, or, where the name was typed for a preset
+// saved everywhere or in the app, there.
+func (s *Sheet) saveNamed(name string) {
+	if !s.tbl.Scoped {
+		s.saveAs(name)
+		return
+	}
+	scoped, saved, err := s.Views().SaveAt(name, s.tbl.Scope, s.tbl.ViewName, s.tbl.View)
+	if err != nil {
+		s.refused(name, err)
+		return
+	}
+	if !s.keepStack(saved, scoped, "saved") {
+		return
+	}
+	s.tbl.SavingAs, s.tbl.Naming, s.tbl.Renaming, s.tbl.Scoped = false, "", "", false
+	s.note = s.note.Did(Save + " saved the preset " + name + " " + ScopeWord(s.tbl.Scope, s.name))
+}
+
+// keepStack keeps the person's presets of the table and those of global and app scope with their active names, as
+// KeepViews does, and says whether it could; when it could not, the notice says why, and nothing changes.
+func (s *Sheet) keepStack(saved []Preset, scoped Scoped, what string) bool {
+	all, got, err := KeepViews(s.path, s.store, s.Views(), saved, scoped)
+	if err != nil {
+		s.note.Text, s.note.Done = fmt.Sprintf("%s the preset could not be %s: %v", Failed, what, err), false
+		return false
+	}
+	if all != nil {
+		s.saved = all[s.store]
+	}
+	s.scoped = got
+	return true
+}
+
+// restack sets the panel as the stack now says, with the edit the person made kept, once the views changed from before.
+func (s *Sheet) restack(before Views) {
+	s.SetPanel(before.Rebased(s.Views(), s.tbl.ViewName, s.tbl.View))
+	s.Settle()
+}
+
+// toggle makes the preset of a level active, or no longer, and the panel follows.
+func (s *Sheet) toggle(l Level, name string) {
+	before := s.Views()
+	scoped, err := before.Toggle(l, name)
+	if err != nil || !s.keepStack(before.Saved, scoped, "changed") {
+		return
+	}
+	s.restack(before)
+	did := "made " + name + " active " + ScopeWord(l, s.name)
+	if !slices.Contains(scoped.Active[ScopeKey(l, s.name)], name) {
+		did = "stopped " + name + " being active " + ScopeWord(l, s.name)
+	}
+	s.note = s.note.Did(Save + " " + did)
+}
+
+// switched does what the line chosen on the card of a dim chip says: the constraint is switched off at a level, or on
+// again, and the panel follows.
+func (s *Sheet) switched(card ConstraintCard, k int) {
+	before := s.Views()
+	scoped, saved, err := card.Choose(s, k)
+	if err != nil || !s.keepStack(saved, scoped, "changed") {
+		return
+	}
+	s.restack(before)
+	s.note = s.note.Did(Save + " changed " + card.C.Layer + "'s " + string(card.C.Facet) + " of " + card.C.Field)
 }
