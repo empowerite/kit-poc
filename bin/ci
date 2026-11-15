@@ -6,8 +6,8 @@
 #
 #   - kit lint over every tracked path
 #   - kit syntax --check: every verb's usage line parses, and every argument has its description
-#   - ajv: every package.yml, kit.yml, every kind, and the frontmatter of every rule and style against
-#     their schemas, and the examples in every schema of a tool's output under docs/integrations/ against it
+#   - ajv: every package.yml, kit.yml, every model file, every kind, and the frontmatter of every rule and style
+#     against their schemas, and the examples in every schema of a tool's output under docs/integrations/ against it
 #   - lychee: every link in the markdown, offline, including fragments
 #   - ajv: the front matter of every page of the tutorials site against its schema
 #   - npm run check over projects/tutorials/, the tutorials site: tsc, its tests, and a build for a base
@@ -30,6 +30,17 @@ kit/bin/kit syntax --check
 ajv validate --spec=draft2020 -s kit/packages/package.schema.json \
   -d 'kit/packages/*/package.yml' -d 'kit/packages/*/*/package.yml'
 ajv validate --spec=draft2020 -s .kit/kit.schema.json -d kit.yml
+# The model: each entity file against the entity schema, and each domain.yml, which is no entity, against its own.
+shopt -s nullglob
+entities=()
+for file in kit/modules/model/*/*.yml
+do
+  [[ "${file##*/}" == domain.yml ]] || entities+=(-d "${file}")
+done
+(( ${#entities[@]} == 0 )) || ajv validate --spec=draft2020 -s kit/modules/model/model.schema.json "${entities[@]}"
+domains=(kit/modules/model/*/domain.yml)
+shopt -u nullglob
+(( ${#domains[@]} == 0 )) || ajv validate --spec=draft2020 -s kit/modules/model/domain.schema.json -d "kit/modules/model/*/domain.yml"
 # A rule's frontmatter is YAML between the two --- lines; ajv reads it from a copy of just those lines.
 frontmatter=$(mktemp -d)
 trap 'rm -rf "${frontmatter}"' EXIT

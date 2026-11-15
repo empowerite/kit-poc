@@ -1,0 +1,4 @@
+# A file with an alias, which CUE does not read.
+entity: Commit
+tool: &tool git
+over: *tool

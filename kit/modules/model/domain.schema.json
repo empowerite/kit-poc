@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/empowerite/kit/modules/model/domain.schema.json",
+  "title": "a model domain's domain.yml",
+  "description": "A domain of the model: its name, what it holds, and where each of its entities sits in its diagram. docs/model.md describes each key.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "intro"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "intro": { "type": "string", "minLength": 1 },
+    "layout": {
+      "type": "object",
+      "propertyNames": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*$" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["row", "col"],
+        "properties": {
+          "row": { "type": "integer", "minimum": 0 },
+          "col": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

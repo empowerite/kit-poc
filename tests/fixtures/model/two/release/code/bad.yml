@@ -1,0 +1,4 @@
+# A file of two documents, where one is the rule.
+entity: Commit
+---
+entity: Branch

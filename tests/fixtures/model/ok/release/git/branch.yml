@@ -1,0 +1,4 @@
+# A release entity of another domain; it sorts after the code domain's files.
+entity: Branch
+layer: native
+tool: git
