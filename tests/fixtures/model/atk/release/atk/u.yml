@@ -1,0 +1,6 @@
+# The card under R.
+entity: U
+layer: logical
+means: under card
+relations:
+  backToRightCard: {to: R, inverse: R.u2}

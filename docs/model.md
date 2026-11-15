@@ -229,9 +229,11 @@ gutter carries. Tracks are 6 apart.
 The lines are drawn first, then the cards, then the labels. Each label has a white halo and sits within 40 units of its
 own end. It takes the nearest place there that covers no card and no other label, and stays at least 3 from every
 other line. The widest labels are placed first. A label set on its own line is tried last, and only 12 or more from its
-end, so it never covers its own arrowhead. When no place is clear, the search widens, in steps of 6 along the side, up
-to 36 on the right side of a card and 48 on its top or bottom. When even that finds none, the label takes the cheapest
-place, and `kit model svg` names its entity in a warning on stderr. The SVG is unchanged by it, and the exit status
+end, so it never covers its own arrowhead. When no place is clear, the search widens in steps of 6, and keeps only
+the places within 40 units of the end: along a top or bottom edge, to about 35 either way; on the right side of a card,
+up and down by up to 36, and outward by a step or a few, as far as the 40 units allow. When even that finds none, the
+label takes the cheapest place inside the diagram. It may cover a line there, but never leaves the canvas, and
+`kit model svg` names its entity in a warning on stderr. The SVG is unchanged by the warning, and the exit status
 stays 0.
 
 The overview draws a panel for each domain, five to a row, by name: the domain's name and intro, and its entities as

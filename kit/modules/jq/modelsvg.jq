@@ -533,7 +533,9 @@ def points($ports; $tracks):
 # $leg long, a row of text at a time, under a bottom end and over a top end: right of the leg, left of it, then 12 and
 # 24 further right and left; the rows past the leg come after. Last, on its own leg, in a row at least 12 from the end,
 # so the text never covers the line's own arrowhead. With $wide, the places are the wider search place takes when none
-# of those is clear: in 6 steps along the side, up to 36 on the right side and 48 elsewhere.
+# of those is clear, in steps of 6: up and down by up to 36 and outward by up to 36 on the right side, and up to 48
+# either way along a top or bottom edge. place keeps only those within label_reach of the end, which cuts them to about
+# 35 along an edge, and to a few steps outward.
 def candidates($x; $y; $side; $leg; $wide):
   if $side == "right" then
     if $wide then
@@ -576,12 +578,14 @@ def overlaps($a; $b): $a[0] < $b[2] and $b[0] < $a[2] and $a[1] < $b[3] and $b[1
 def label_reach: 40;
 
 # cost($walls; $placed; $segments; $key) is what a candidate place for a label of the line $key costs, given as input:
-# 1000 for each card, label placed before it, or segment of another line within 3 that it covers, and for reaching
-# left of the diagram; 3 for each segment of its own line it crosses.
+# 1000 for each card, label placed before it, or segment of another line within 3 that it covers; 3 for each segment
+# of its own line it crosses; and 1000000 for reaching within 4 of the left or top edge of the diagram, which does not
+# grow there, so a label that covers lines still lands where it can be read. The diagram grows right and down to hold
+# every label.
 def cost($walls; $placed; $segments; $key):
   .box as $b
   | 1000 * ([$walls[], ($placed[].box | [.[0] - 6, .[1], .[2] + 6, .[3]]) | select(overlaps(.; $b))] | length)
-    + (if $b[0] < 4 then 1000 else 0 end)
+    + (if $b[0] < 4 or $b[1] < 4 then 1000000 else 0 end)
     + 1000 * ([$segments[] | select(.key != $key) | .box | [.[0] - 3, .[1] - 3, .[2] + 3, .[3] + 3]
       | select(overlaps(.; $b))] | length)
     + 3 * ([$segments[] | select(.key == $key) | .box | [.[0] - 1, .[1] - 1, .[2] + 1, .[3] + 1]

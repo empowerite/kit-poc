@@ -376,3 +376,27 @@ setup() {
   yq -p=xml . < out.svg > /dev/null
   [ "$(grep -c '<path class="edge' out.svg)" -eq 30 ]
 }
+
+# The atk domain's labels have no clear place. tests/jq/modelsvg.test holds that every one of its label boxes still lies
+# inside the canvas; this test holds the verb's side: a warning on stderr, a well-formed SVG, and status 0.
+@test "kit model svg warns for the atk domain, whose labels no place keeps clear, and exits 0" {
+  fresh-repo
+  run --separate-stderr kit model "--release=${fixtures}/atk/release" svg --domain=atk
+  [ "$status" -eq 0 ]
+  [[ "${stderr}" == *"could not all be kept clear"* ]]
+  [[ "$output" != *"could not"* ]]
+  printf '%s\n' "$output" > atk.svg
+  yq -p=xml . < atk.svg > /dev/null
+}
+
+# Every fixture made only for the diagrams is a model that holds, so a diagram test never leans on a broken model. lab is
+# left out by name: it holds an inverse that names nothing back, Tag.commit, on purpose, to draw a one-sided arrow.
+@test "every model fixture of the diagrams but lab passes kit model check" {
+  fresh-repo
+  local fixture
+  for fixture in svg col st atk
+  do
+    run kit model "--release=${fixtures}/${fixture}/release" check
+    [ "$status" -eq 0 ] || { echo "${fixture}: ${output}"; return 1; }
+  done
+}

@@ -12,4 +12,4 @@ relations:
   far1: {to: Far, derived: x}
   far2: {to: Away, derived: x}
   far3: {to: Gone, derived: x}
-  far4: {to: Far, arity: many}
+  far4: {to: Far, arity: many, derived: x}
