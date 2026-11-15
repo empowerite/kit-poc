@@ -1,0 +1,39 @@
+{
+  "verb": "model",
+  "purpose": "checks the model of kit's entities",
+  "usage": [
+    "kit model [--release=<dir>] check"
+  ],
+  "syntax": [
+    [
+      {
+        "kind": "group",
+        "optional": true,
+        "alternatives": [
+          [
+            {
+              "kind": "option",
+              "name": "release",
+              "value": "dir",
+              "repeat": false
+            }
+          ]
+        ],
+        "repeat": false
+      },
+      {
+        "kind": "literal",
+        "name": "check",
+        "repeat": false
+      }
+    ]
+  ],
+  "arguments": {
+    "--release": {
+      "description": "a model directory, read in place of the release's modules/model"
+    },
+    "check": {
+      "description": "checks the model"
+    }
+  }
+}

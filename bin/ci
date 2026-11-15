@@ -6,6 +6,7 @@
 #
 #   - kit lint over every tracked path
 #   - kit syntax --check: every verb's usage line parses, and every argument has its description
+#   - kit model check: the model's entity files hold together: every relation has its other side, every type is known
 #   - ajv: every package.yml, kit.yml, every model file, every kind, and the frontmatter of every rule and style
 #     against their schemas, and the examples in every schema of a tool's output under docs/integrations/ against it
 #   - lychee: every link in the markdown, offline, including fragments
@@ -27,6 +28,7 @@ set -o errexit -o nounset -o pipefail
 cd "$(git rev-parse --show-toplevel)"
 kit/bin/kit lint --all-files
 kit/bin/kit syntax --check
+kit/bin/kit model check
 ajv validate --spec=draft2020 -s kit/packages/package.schema.json \
   -d 'kit/packages/*/package.yml' -d 'kit/packages/*/*/package.yml'
 ajv validate --spec=draft2020 -s .kit/kit.schema.json -d kit.yml

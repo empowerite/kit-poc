@@ -368,6 +368,13 @@ see: [install.md](install.md), [packages.md](packages.md),
 
 see: [generate.md](generate.md)
 
+## The model
+
+- `kit model check` checks the model of kit's entities, one YAML file each: the release's and the repository's
+  `.kit/model/`. It prints each finding, then how many entities and stubs there are, and fails the gate on a finding.
+
+see: [model.md](model.md)
+
 ## Extending
 
 - A package extends what kit delivers to a repository. A module extends how kit itself works.

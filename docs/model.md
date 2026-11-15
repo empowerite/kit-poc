@@ -127,3 +127,16 @@ Any pair of arities is a valid relationship, so the check does not rule on ariti
 - a relation into a sum, as `Worktree.head` to `Head`, whose variant holds an entity with no relation back to the
   source: `<A>.<r> reaches <E> through <S>, and <E> has no relation back to <A>`. The sum's own inverse is an ordinary
   pair, and a relation back from `<E>` may be derived.
+
+## The verb
+
+`kit model [--release=<dir>] check` reads the release's model and the repository's, builds the merged model, and checks
+it with the findings above. It prints each finding on a line of its own, then, last, `model: N entities, M stubs`.
+It exits 0 when there is no finding and 1 when there is one. A file `model:load` refuses ends it with status 1, and it
+prints what `model:load` printed.
+
+`--release=<dir>` names a model directory to read in place of the release's `modules/model`; every `kit model`
+subcommand takes it. The repository's `.kit/model` is read as before. `kit model` with no subcommand or an unknown one
+exits 2 and says to run `kit help model`.
+
+`bin/ci` runs `kit model check` after `kit syntax --check`, so a finding fails the gate.

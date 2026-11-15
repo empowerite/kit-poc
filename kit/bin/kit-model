@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# kit-model - checks the model of kit's entities (kit verb: files)
+# ----------------------------------------------------------------------------------------------------------------------
+# Usage:
+#   kit model [--release=<dir>] check
+#
+# The model is the entities kit works with, one YAML file each: the release's under modules/model/, and the
+# repository's under .kit/model/, as docs/model.md says. kit model check reads both and checks them: every relation has
+# its other side, every type is known, and an extension only narrows what it extends.
+#
+# It prints each finding on a line of its own, then, last, how many entities and how many stubs the model holds, as
+# model: 12 entities, 2 stubs. A file that cannot be read ends it with what the reader printed.
+#
+# Arguments:
+#   --release=<dir>    a model directory, read in place of the release's modules/model
+#   check              checks the model
+#
+# Exits 0 when the model holds, 1 when it has a finding or a file cannot be read, and 2 on a usage error.
+#
+# see: modules/bash/model.sh, modules/jq/model.jq, docs/model.md
+
+set -o errexit -o nounset -o pipefail
+# shellcheck source=modules/bash/1st.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
+kit:enter
+use model
+guard:arguments model "$@" || exit $?
+
+# shellcheck disable=SC2154  # syntax_options is set by guard:arguments
+release=${syntax_options[--release]:-}
+loaded=$(model:load ${release:+"${release}"}) || exit 1
+# The findings, one a line, then the count; the findings are every line but the last.
+jq -L "${kit_root}/modules/jq" --raw-output 'import "model" as model; model::build
+  | model::check[], "model: \(.entities | length) entities, \(model::stubs | length) stubs"' <<<"${loaded}" \
+  | awk '{ lines[NR] = $0 } END { for (i = 1; i <= NR; i++) print lines[i]; exit NR > 1 }'
+
+# ----------------------------------------------------------------------------------------------------------------------

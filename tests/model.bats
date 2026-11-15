@@ -85,3 +85,56 @@ setup() {
   [ "$status" -eq 0 ]
   [ "$(jq --raw-output '.files[0].doc["<<"]' <<<"$output")" = 2 ]
 }
+
+# kit model check: the verb over the same files. A test runs it in a repository of its own, whose .kit/model is the
+# repository's, and without --release the release's is the kit's own.
+
+@test "kit model check passes the release's model" {
+  fresh-repo
+  run kit model check
+  [ "$status" -eq 0 ]
+  [[ "${lines[-1]}" =~ ^model:\ [0-9]+\ entities,\ [0-9]+\ stubs$ ]]
+}
+
+@test "kit model check names a finding and exits 1" {
+  fresh-repo
+  mkdir -p .kit/model/code
+  printf 'entity: Bad\nlayer: logical\nmeans: an entity\nrelations:\n  other: {to: Bad, arity: many}\n' > .kit/model/code/bad.yml
+  run kit model check
+  [ "$status" -eq 1 ]
+  [[ "${lines[0]}" == *"Bad.other"* ]]
+  [ "${lines[-1]}" = 'model: 1 entities, 0 stubs' ]
+}
+
+@test "kit model check counts stubs" {
+  fresh-repo
+  mkdir -p .kit/model/code
+  printf 'entity: Ghost\nstub: true\nmeans: named so others can refer to it\n' > .kit/model/code/ghost.yml
+  run kit model check
+  [ "$status" -eq 0 ]
+  [ "$output" = 'model: 1 entities, 1 stubs' ]
+}
+
+@test "kit model --release= reads another directory in place of the release's" {
+  fresh-repo
+  run kit model "--release=${fixtures}/ok/release" check
+  [[ "${lines[-1]}" == 'model: '*' entities, '*' stubs' ]]
+  [[ "${lines[-1]}" != 'model: 0 entities'* ]]
+}
+
+@test "kit model check with a malformed file exits 1 and prints what model:load printed" {
+  fresh-repo
+  run kit model "--release=${fixtures}/anchor/release" check
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"modules/model/code/bad.yml"*"anchor"* ]]
+}
+
+@test "an unknown subcommand, or none, exits 2 and says to run kit help model" {
+  fresh-repo
+  run kit model nope
+  [ "$status" -eq 2 ]
+  [[ "$output" == *'kit help model'* ]]
+  run kit model
+  [ "$status" -eq 2 ]
+  [[ "$output" == *'kit help model'* ]]
+}

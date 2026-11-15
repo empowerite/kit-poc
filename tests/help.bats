@@ -68,7 +68,7 @@ group-has() {
       || { echo "no known group: ${verb##*/}"; return 1; }
   done
   run "${kit_root}/bin/kit" help kinds
-  [[ "$output" == *$'\nGroup\n  files: also kit context, kit generate, kit new'* ]]
+  [[ "$output" == *$'\nGroup\n  files: also kit context, kit generate, kit model, kit new'* ]]
   [[ "$output" != *"kit region"* ]]
 }
 
