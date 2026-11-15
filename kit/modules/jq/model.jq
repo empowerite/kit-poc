@@ -159,7 +159,7 @@ def entity_named($model): . as $name | type == "string" and ($model.entities | h
 # type_known($model) is true for a scalar, an {enum: [..]}, and the name of an entity.
 def type_known($model):
   if type == "string" then IN(scalar_types[]) or entity_named($model)
-  elif type == "object" then (.enum | type) == "array"
+  elif type == "object" then (.enum | type) == "array" and (.enum | length) > 0 and all(.enum[]; type == "string")
   else false end;
 
 # arity_findings($label) is a finding when a field or relation sets an arity that is not in the arity table.
@@ -238,10 +238,25 @@ def relation_findings($model; $entity; $name):
     else inverse_findings($model; $entity; $label) end),
   reach_findings($model; $entity; $label);
 
-# variant_findings($model; $name) are the findings of a sum's variants: a mapping of variants, each a mapping of field to
-# the entity it holds.
+# kind_findings($name) are the findings of the keys that say what an entity is: its layer and tool, and sum and stub,
+# which are true or false.
+def kind_findings($name):
+  (if has("layer") and (.layer | IN("native", "logical") | not)
+      then "\($name) has layer \(.layer | show), which is not native or logical" else empty end),
+  (if .layer == "native" and ((.tool | sentence) | not) then "\($name) is native and names no tool"
+    elif .layer == "logical" and .tool != null
+      then "\($name) is logical and names a tool, \(.tool | show); only a native entity has one" else empty end),
+  (("sum", "stub") as $k
+    | if has($k) and (.[$k] | type) != "boolean"
+      then "\($name) has \($k) \(.[$k] | show), which is not true or false" else empty end);
+
+# variant_findings($model; $name) are the findings of an entity's variants: a sum has a non-empty mapping of them, each a
+# mapping of field to the entity it holds, and an entity that is not a sum has none.
 def variant_findings($model; $name):
-  if .sum != true or (has("variants") | not) then empty
+  if .sum != true then
+    if has("variants") then "\($name) has variants and is not a sum" else empty end
+  elif (has("variants") | not) or .variants == {} or .variants == [] or .variants == null
+    then "\($name) is a sum and has no variants"
   elif (.variants | type) != "object" then "\($name) gives variants as something that is not a mapping"
   else
     .variants | to_entries | sort_by(.key)[]
@@ -253,12 +268,13 @@ def variant_findings($model; $name):
       end
   end;
 
-# entity_findings($model; $name) are the findings of one entity: a stub with fields, a sum's variants, then its fields and
-# its relations, each by name.
+# entity_findings($model; $name) are the findings of one entity: a stub with fields, its kind, its variants, then its
+# fields and its relations, each by name.
 def entity_findings($model; $name):
   $model.entities[$name] as $entity
   | (if $entity.stub == true and (($entity.fields // {}) | length) > 0
       then "\($name) is a stub and has fields: \($entity.fields | keys | join(", "))" else empty end),
+    ($entity | kind_findings($name)),
     ($entity | variant_findings($model; $name)),
     (($entity.fields // {}) | . as $fields | keys[] as $f | $fields[$f] | field_findings($model; "\($name).\($f)")),
     (($entity.relations // {}) | . as $relations | keys[] as $r | $relations[$r] | relation_findings($model; $name; $r));

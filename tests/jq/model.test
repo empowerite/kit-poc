@@ -250,3 +250,24 @@ import "model" as model; model::build | [model::check, model::stubs]
 import "model" as model; model::build | model::check
 {"files": [{"domain": "code", "origin": "release", "path": "b.yml", "doc": {"entity": "B", "fields": {"z": {"type": "Ghost"}, "a": {"type": "Ghost"}}, "relations": {"r": {"to": "B"}}}}, {"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "fields": {"a": {"type": "Ghost"}}}}, {"domain": "mine", "origin": "repository", "path": "r/x.yml", "doc": {"extends": "Ghost"}}]}
 ["r/x.yml extends Ghost, which no file defines", "A.a has type Ghost, which is not a scalar, an enum, or an entity", "B.a has type Ghost, which is not a scalar, an enum, or an entity", "B.z has type Ghost, which is not a scalar, an enum, or an entity", "B.r has neither an inverse nor a derived; it has one"]
+
+# a layer that is not native or logical is a finding; a native entity names its tool, and a logical one has none; an entity
+# with no layer is not one
+import "model" as model; model::build | model::check
+{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "physical"}}, {"domain": "code", "origin": "release", "path": "b.yml", "doc": {"entity": "B", "layer": "native"}}, {"domain": "code", "origin": "release", "path": "c.yml", "doc": {"entity": "C", "layer": "logical", "tool": "git"}}, {"domain": "code", "origin": "release", "path": "d.yml", "doc": {"entity": "D", "layer": "native", "tool": "git"}}, {"domain": "code", "origin": "release", "path": "e.yml", "doc": {"entity": "E", "layer": "logical", "over": ["git worktree"]}}, {"domain": "code", "origin": "release", "path": "f.yml", "doc": {"entity": "F", "layer": 3}}, {"domain": "code", "origin": "release", "path": "g.yml", "doc": {"entity": "G", "layer": "native", "tool": ""}}, {"domain": "code", "origin": "release", "path": "h.yml", "doc": {"entity": "H"}}]}
+["A has layer physical, which is not native or logical", "B is native and names no tool", "C is logical and names a tool, git; only a native entity has one", "F has layer 3, which is not native or logical", "G is native and names no tool"]
+
+# a sum or a stub that is not true or false is a finding, not ignored
+import "model" as model; model::build | model::check
+{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "sum": "yes", "variants": {"V": {"f": "A"}}}}, {"domain": "code", "origin": "release", "path": "b.yml", "doc": {"entity": "B", "stub": 1}}, {"domain": "code", "origin": "release", "path": "c.yml", "doc": {"entity": "C", "sum": false, "stub": false}}]}
+["A has sum yes, which is not true or false", "A has variants and is not a sum", "B has stub 1, which is not true or false"]
+
+# a sum has a non-empty mapping of variants, and an entity with variants is a sum
+import "model" as model; model::build | model::check
+{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "sum": true}}, {"domain": "code", "origin": "release", "path": "b.yml", "doc": {"entity": "B", "sum": true, "variants": {}}}, {"domain": "code", "origin": "release", "path": "c.yml", "doc": {"entity": "C", "variants": {"V": {"f": "A"}}}}, {"domain": "code", "origin": "release", "path": "d.yml", "doc": {"entity": "D", "sum": true, "variants": {"V": {"f": "A"}}}}]}
+["A is a sum and has no variants", "B is a sum and has no variants", "C has variants and is not a sum"]
+
+# an enum type is a non-empty list of strings
+import "model" as model; model::build | model::check
+{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "fields": {"a": {"type": {"enum": []}}, "b": {"type": {"enum": [1]}}, "c": {"type": {"enum": "x"}}, "d": {"type": {"enum": ["x", "y"]}}}}}]}
+["A.a has type {\"enum\":[]}, which is not a scalar, an enum, or an entity", "A.b has type {\"enum\":[1]}, which is not a scalar, an enum, or an entity", "A.c has type {\"enum\":\"x\"}, which is not a scalar, an enum, or an entity"]

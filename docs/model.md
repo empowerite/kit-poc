@@ -96,7 +96,8 @@ Any pair of arities is a valid relationship, so the check does not rule on ariti
 `<L>` standing for `Entity.member`:
 
 - a field `type` that is not a scalar (`Text`, `Int`, `Bool`, `Bytes`, `Path`, `Url`, `Time`, `Hash`), an
-  `{enum: [..]}`, or the name of an entity: `<L> has type <x>, which is not a scalar, an enum, or an entity`;
+  `{enum: [..]}` of a non-empty list of strings, or the name of an entity:
+  `<L> has type <x>, which is not a scalar, an enum, or an entity`;
 - an `arity`, on a field or a relation, that is not `one`, `option`, `many`, or `some`, `null` included: `<L> has arity
   <x>, which is not one, option, many, or some`;
 - a `source` that is not `stored` or `derived`, and a `status` that is not `held`, `planned`, or `unused`;
