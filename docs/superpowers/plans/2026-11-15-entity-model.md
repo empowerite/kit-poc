@@ -1,5 +1,8 @@
 # The entity model Implementation Plan
 
+**Status, 2026-11-15:** Tasks 1 to 6 are built and reviewed (commits ea5811df to f2b39ac6, issue #597); tasks 7 to 11
+are not started.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

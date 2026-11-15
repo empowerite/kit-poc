@@ -142,6 +142,8 @@ name, takes no word that acts, reads no path outside the repository, changes no 
   A call that names one of these is refused, as an argument or as a leading word's value, such as `add` for
   `packages`' `subcommand`, and the error says to run the verb in a terminal.
 - `context` does not offer `--claude`, the hook mode. It is the harness's own.
+- `model` is not a tool. A read-only tool may not read a path outside the repository, and its `--release=<dir>` names
+  any directory.
 - A path stays inside the repository. `context` and `kinds` refuse a path that leads outside it, as `lint` does,
   and every path when the server cannot read its own directory, as when that directory is gone. `flow` does not
   offer a workspace, which reads other clones: `--workspace=` is an option of `kit` itself, before the verb.
