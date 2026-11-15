@@ -42,6 +42,19 @@ shasum --algorithm 256 --check "kit-${version}.tar.gz.sha256" &&
 To move to a later release, run the lines again with its version. The earlier release stays in `~/.local/share/`
 until you remove it.
 
+### Homebrew
+
+On macOS or Linux, from the [empowerite tap](https://github.com/empowerite/homebrew-tap):
+
+```sh
+brew trust empowerite/tap
+brew install empowerite/tap/kit
+```
+
+Homebrew loads nothing from a tap you have not trusted, so `brew trust` comes first. The formula brings bash, jq,
+and yq, and keeps the one kittui for your machine; see [using-brew.md](toolchains/using-brew.md#installing-kit-with-brew).
+`brew upgrade kit` moves to a later release.
+
 ### mise
 
 Add kit as a tool in your own `~/.config/mise/config.toml`:

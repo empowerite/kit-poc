@@ -36,7 +36,8 @@ holds one, such as `node@22`.
 
 ## Installing kit with brew
 
-`brew install empowerite/tap/kit` installs kit, and brew installs the system role's tools it needs with it:
+`brew trust empowerite/tap`, then `brew install empowerite/tap/kit`, installs kit, and brew installs the system role's
+tools it needs with it:
 
 - **bash**, since macOS ships 3.2 and kit needs 4.4 or later.
 - **jq** and **yq**.
