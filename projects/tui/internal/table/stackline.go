@@ -9,6 +9,7 @@ package table
 import (
 	"cmp"
 	"errors"
+	"maps"
 	"slices"
 	"strings"
 
@@ -36,23 +37,55 @@ var ErrNoChoice = errors.New("that line is not a choice")
 
 // switchName gives the name of the preset that holds a level's switches.
 func switchName(l Level) string {
-	return map[Level]string{LevelTab: OffHere, LevelApp: OffInApp, LevelGlobal: OffEverywhere}[l]
+	switch l {
+	case LevelGlobal:
+		return OffEverywhere
+	case LevelApp:
+		return OffInApp
+	}
+	return OffHere
 }
 
 // switchLine gives the words that say a switch's level.
-func switchLine(l Level) string {
-	return map[Level]string{LevelTab: LineOffHere, LevelApp: LineOffInApp, LevelGlobal: LineOffEverywhere}[l]
+func switchLine(l Level) string { return strings.ToLower(switchName(l)) }
+
+// scopeName gives the name a level's active names are kept under.
+func (v Views) scopeName(l Level) string {
+	switch l {
+	case LevelApp:
+		return v.App
+	case LevelTab:
+		return v.Tab
+	}
+	return ""
+}
+
+// withSetting gives the preset with the setting of a field as f changes it, the field left out where nothing is left of
+// it; the preset it was given is as it was.
+func withSetting(p Preset, field string, f func(Setting) Setting) Preset {
+	fields := maps.Clone(p.Fields)
+	if fields == nil {
+		fields = map[string]Setting{}
+	}
+	if s := f(fields[field]); s == (Setting{}) {
+		delete(fields, field)
+	} else {
+		fields[field] = s
+	}
+	p.Fields = fields
+	return p
 }
 
 // at gives the presets of a level, and the names of those active there.
 func (v Views) at(l Level) ([]Preset, []string) {
+	active := v.Scoped.Active[ScopeKey(l, v.scopeName(l))]
 	switch l {
 	case LevelGlobal:
-		return v.Scoped.Global, v.Scoped.Active[ScopeKey(l, "")]
+		return v.Scoped.Global, active
 	case LevelApp:
-		return v.Scoped.Apps[v.App], v.Scoped.Active[ScopeKey(l, v.App)]
+		return v.Scoped.Apps[v.App], active
 	}
-	return v.Saved, v.Scoped.Active[ScopeKey(l, v.Tab)]
+	return v.Saved, active
 }
 
 // replace gives the person's presets with a level's presets and active names those given.
@@ -61,18 +94,14 @@ func (v Views) replace(l Level, presets []Preset, active []string) (Scoped, []Pr
 	if len(active) == 0 {
 		active = nil
 	}
+	scoped.Active[ScopeKey(l, v.scopeName(l))] = active
 	switch l {
 	case LevelGlobal:
 		scoped.Global = presets
 	case LevelApp:
 		scoped.Apps[v.App] = presets
 	default:
-		scoped.Active[ScopeKey(l, v.Tab)] = active
 		return scoped, presets
-	}
-	scoped.Active[ScopeKey(l, v.App)] = active
-	if l == LevelGlobal {
-		scoped.Active[ScopeKey(l, "")] = active
 	}
 	return scoped, v.Saved
 }
@@ -89,14 +118,10 @@ func (v Views) SwitchOff(c Constraint, l Level) (Scoped, []Preset, error) {
 	if k := slices.IndexFunc(presets, func(w Preset) bool { return w.Name == name }); k >= 0 {
 		p = presets[k]
 	}
-	fields := map[string]Setting{}
-	for id, s := range p.Fields {
-		fields[id] = s
-	}
-	s := fields[c.Field]
-	s.Off |= Facets(c.Facet)
-	fields[c.Field] = s
-	p.Fields = fields
+	p = withSetting(p, c.Field, func(s Setting) Setting {
+		s.Off |= Facets(c.Facet)
+		return s
+	})
 	if !slices.Contains(active, name) {
 		active = append(slices.Clone(active), name)
 	}
@@ -117,20 +142,11 @@ func (v Views) SwitchOn(c Constraint) (Scoped, []Preset, error) {
 		scoped, saved := v.replace(c.Level, presets, active)
 		return scoped, saved, nil
 	}
-	p := presets[k]
-	fields := map[string]Setting{}
-	for id, s := range p.Fields {
-		fields[id] = s
-	}
-	s := fields[c.Field]
-	s.Off = s.Off.Without(c.Facet)
-	if s == (Setting{}) {
-		delete(fields, c.Field)
-	} else {
-		fields[c.Field] = s
-	}
-	p.Fields = fields
-	if len(fields) > 0 || p.Name != switchName(c.Level) {
+	p := withSetting(presets[k], c.Field, func(s Setting) Setting {
+		s.Off = s.Off.Without(c.Facet)
+		return s
+	})
+	if len(p.Fields) > 0 || p.Name != switchName(c.Level) {
 		scoped, saved := v.replace(c.Level, upsert(presets, p), active)
 		return scoped, saved, nil
 	}
@@ -181,7 +197,6 @@ func StackChips(h Host) []StackChip {
 		if c.Off || c.Status != NotApplicable && c.Status != Off || silenced {
 			continue
 		}
-		c := c
 		out = append(out, StackChip{Text: style.Off(constraintText(h, layers, c)), Card: &c})
 	}
 	return out
@@ -273,8 +288,9 @@ func (cc *ConstraintCard) Click(h Host, x, y int) int {
 
 // CardLine is a line of a constraint card: what it draws, and whether a choice acts on it.
 type CardLine struct {
-	Text string
-	Acts bool
+	Text  string
+	Acts  bool
+	Level Level // for a choice that switches off, where
 }
 
 // switched gives the constraint that switched a card's constraint off, where one did.
@@ -293,7 +309,8 @@ func (cc ConstraintCard) Lines(h Host) []CardLine {
 		return []CardLine{{Text: owner}, {Text: style.Off(switchLine(sw.Level))}, {}, {Text: OnAgain, Acts: true}}
 	}
 	return []CardLine{{Text: owner}, {Text: style.Off(cc.C.Reason)}, {},
-		{Text: LineOffHere, Acts: true}, {Text: LineOffInApp, Acts: true}, {Text: LineOffEverywhere, Acts: true}}
+		{Text: LineOffHere, Acts: true, Level: LevelTab}, {Text: LineOffInApp, Acts: true, Level: LevelApp},
+		{Text: LineOffEverywhere, Acts: true, Level: LevelGlobal}}
 }
 
 // Choose gives the person's presets as the line k of the card changes them, or ErrNoChoice for a line that is none.
@@ -307,5 +324,5 @@ func (cc ConstraintCard) Choose(h Host, k int) (Scoped, []Preset, error) {
 		sw, _ := cc.switched(h)
 		return v.SwitchOn(sw)
 	}
-	return v.SwitchOff(cc.C, []Level{LevelTab, LevelApp, LevelGlobal}[k-3])
+	return v.SwitchOff(cc.C, lines[k].Level)
 }

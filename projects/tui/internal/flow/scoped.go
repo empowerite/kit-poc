@@ -6,7 +6,6 @@ package flow
 import (
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/empowerite/kit/projects/tui/internal/table"
 )
@@ -30,15 +29,13 @@ func (m *Model) keepStack(saved []table.Preset, scoped table.Scoped, what string
 // restack sets every stage's panel as its stack now says, once the scoped presets changed from before, what the person
 // changed in each kept, and each stage's panel as it was left is kept again, so a stage opens as the presets now say.
 func (m *Model) restack(before table.Scoped) {
-	now := m.scoped
 	for i := range m.stages {
 		s := &m.stages[i]
 		if catalog[s.name] == nil {
 			continue
 		}
-		m.scoped = before
 		was := m.viewsOf(i)
-		m.scoped = now
+		was.Scoped = before
 		s.SetView(was.Rebased(m.viewsOf(i), s.ViewName, s.View))
 	}
 	m.rebuild()
@@ -75,5 +72,5 @@ func (m *Model) switched(card table.ConstraintCard, k int) {
 		return
 	}
 	m.restack(before)
-	m.done(Save + " changed " + card.C.Layer + "'s " + string(card.C.Facet) + " of " + strings.TrimSpace(card.C.Field))
+	m.done(Save + " changed " + card.C.Layer + "'s " + string(card.C.Facet) + " of " + card.C.Field)
 }

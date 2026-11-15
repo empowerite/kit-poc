@@ -453,22 +453,30 @@ func control(h Host, left, tail string) (string, int, []ControlSpot) {
 	if n := len(SelectedRows(h)); n > 0 {
 		selected = style.Tint(strconv.Itoa(n)+" selected") + "  "
 	}
-	ids, texts := chipsOf(h)
-	cards := make([]*Constraint, len(texts))
 	// the stack line's chips stand before the filters', and are targets only where a constraint is not in force
+	type chip struct {
+		text, field string
+		card        *Constraint
+	}
+	var all []chip
 	stack := StackChips(h)
-	var named []string
 	for _, c := range stack {
 		if c.Card == nil {
-			named = append(named, c.Text)
+			all = append(all, chip{text: c.Text})
 		}
 	}
-	ids, texts, cards = append(make([]string, len(named)), ids...), append(named, texts...),
-		append(make([]*Constraint, len(named)), cards...)
+	ids, filters := chipsOf(h)
+	for k, text := range filters {
+		all = append(all, chip{text: text, field: ids[k]})
+	}
 	for _, c := range stack {
 		if c.Card != nil {
-			ids, texts, cards = append(ids, ""), append(texts, c.Text), append(cards, c.Card)
+			all = append(all, chip{text: c.Text, card: c.Card})
 		}
+	}
+	texts := make([]string, len(all))
+	for k, c := range all {
+		texts[k] = c.text
 	}
 	if tail != "" {
 		button = FieldsButton + "  "
@@ -492,8 +500,9 @@ func control(h Host, left, tail string) (string, int, []ControlSpot) {
 	end := start + max(0, ansi.StringWidth(chips)-2)
 	var spots []ControlSpot
 	for k, x := 0, start; k < len(texts) && x < end; k++ {
-		if ids[k] != "" || cards[k] != nil {
-			spots = append(spots, ControlSpot{Field: ids[k], Card: cards[k], From: x, Until: min(x+ansi.StringWidth(texts[k]), end)})
+		if all[k].field != "" || all[k].card != nil {
+			spots = append(spots, ControlSpot{Field: all[k].field, Card: all[k].card, From: x,
+				Until: min(x+ansi.StringWidth(texts[k]), end)})
 		}
 		x += ansi.StringWidth(texts[k]) + 2
 	}
