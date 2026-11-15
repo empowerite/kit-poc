@@ -1072,6 +1072,46 @@ Every app is the same screen over its own tabs. Each tab loads one stage with `-
 `projects/tui/internal/flow/fields.json`, names the command, the fields, and the presets of each tab. The tutorials
 teach the rows, the menus, and the keys: run `kit tutorials rows`.
 
+### Presets
+
+A preset is a named set of instructions for a table: which fields are columns, which are groups, how the rows sort,
+which rows are let through, and how each field is drawn. A tab has its own presets, which never change, and the person
+keeps others in `presets.json` under the kit's config directory, so they follow the person to every repository.
+
+A preset can also stand beyond one tab. It has one of three scopes.
+
+| Scope | It applies | The menu line that saves one |
+| --- | --- | --- |
+| everywhere | on every tab of every app | Save everywhere… |
+| the app | on every tab of one app | Save in the app… |
+| the tab | on that tab alone | Save As… |
+
+Presets stack. The stack of a tab is, from the broadest scope to the narrowest, the presets active everywhere, those
+active in the app, the preset the tab is set as, those active on the tab, and the changes not yet saved. The narrowest
+layer wins, field by field. A list, the groups, the order of the columns, or the sort keys, is replaced whole by a
+narrower layer that gives one.
+
+- A preset saved everywhere or in the app is active at once, so saving changes nothing the person sees. It keeps only
+  what the panel says beyond the rest of the stack, so a filter that the tab's own preset holds never reaches another
+  tab.
+- The presets menu lists them under "everywhere" and "in" the app's name, a ✅ on each that is active. A click makes
+  one active, or no longer, and every tab follows. What the person changed by hand stays.
+- A preset names fields by their meaning. A constraint that a tab cannot use, because it has no such field or cannot
+  sort, group, or filter by it, is never dropped in silence. The control line shows it dim.
+- A click on a dim chip opens its card, which says whose constraint it is and why it is not in force. The card offers
+  off here, off in this app, and off everywhere, each kept as a preset of its own, "Off here", "Off in this app", or
+  "Off everywhere". For a constraint already switched off, it offers on again.
+- A preset saved at a broader scope is beneath the tab's own preset. Where the tab's preset says the same of a field,
+  the tab's wins.
+- A name saved everywhere or in the app may not be the name of any tab's own preset, and a name is a person's preset of
+  one scope only.
+- A tab opens as it was left. What the presets active now give is laid beneath what the person changed, so a preset
+  made inactive no longer holds on a tab opened after.
+
+The file keeps version 2, which every kittui reads, until it holds a preset of the app or everywhere, or active names.
+It is then version 3, and an older kittui refuses it and names the version. Two kittuis saving to the file keep each
+other's presets, by name within a scope.
+
 ## Where the code is
 
 | What | Where |
