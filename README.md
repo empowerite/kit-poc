@@ -134,8 +134,9 @@ the file with a package of your own. `.kit/1st.md` explains how, under "Changing
 
 ## Install
 
-macOS and Linux, by download. Set `version` to the release you want; the
-[releases](https://github.com/empowerite/kit/releases) page lists them:
+macOS and Linux, by download. Set `version` to the release you want: a stable one, such as `0.1.0`, or a release
+candidate, such as `0.1.0-rc.7`. The [releases](https://github.com/empowerite/kit/releases) page lists both, and
+until the first stable release is out, only release candidates:
 
 ```sh
 version=0.1.0
@@ -157,7 +158,9 @@ inside WSL.
 
 Check it with `kit version` and `kit help`.
 
-Other ways to install, such as mise or a download with `gh`, are in [docs/install.md](docs/install.md). That page
+With Homebrew, `brew trust empowerite/tap`, then `brew install empowerite/tap/kit` for stable or
+`brew install empowerite/tap/kit-rc` for the newest release candidate. Other ways to install, such as mise or a
+download with `gh`, are in [docs/install.md](docs/install.md). That page
 also lists what kit needs on the machine, which the download does not bring (bash 4.4 or later, git, `jq`, `yq`,
 and the linters), how kit picks which release to run, and how `kit trust --clone` works.
 

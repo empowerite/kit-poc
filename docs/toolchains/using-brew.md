@@ -36,8 +36,9 @@ holds one, such as `node@22`.
 
 ## Installing kit with brew
 
-`brew trust empowerite/tap`, then `brew install empowerite/tap/kit`, installs kit, and brew installs the system role's
-tools it needs with it:
+`brew trust empowerite/tap`, then `brew install empowerite/tap/kit` for the stable release or
+`brew install empowerite/tap/kit-rc` for the newest release candidate, installs kit, and brew installs the system
+role's tools it needs with it:
 
 - **bash**, since macOS ships 3.2 and kit needs 4.4 or later.
 - **jq** and **yq**.
@@ -49,7 +50,9 @@ newer one, run `brew install git`; `kit welcome` says which.
 `brew trust` is Homebrew's: it lets brew load the tap's formula. It is not kit's trust, which a clone needs before kit
 runs anything in it and which installing kit gives none of; see [install.md](../install.md#trust).
 
-The tap's formula names one release, `0.1.0-rc.7`, and is updated by hand until a release of kit rewrites it.
+The two formulae install the same command, so only one is installed at a time. `kit` names the newest stable release
+and `kit-rc` the newest release candidate. Until the first stable release is out, there is only `kit-rc`, which names
+`0.1.0-rc.7`; the tap's formulae are updated by hand until a release of kit rewrites them.
 
 ## brew fills in
 

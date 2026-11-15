@@ -17,11 +17,21 @@ kit serves every repository, whatever release each one pins.
 
 ### By download
 
-On macOS, Linux, or Windows Subsystem for Linux (WSL). Set `version` to the release you want; the
-[releases](https://github.com/empowerite/kit/releases) page lists them:
+On macOS, Linux, or Windows Subsystem for Linux (WSL). A stable release is named by a version such as `0.1.0`, and a
+release candidate by one with a suffix, such as `0.1.0-rc.7`. The [releases](https://github.com/empowerite/kit/releases)
+page lists both. With `gh`, set `version` to the newest of either kind:
 
 ```sh
-version=0.1.0
+# stable
+version=$(gh release list --repo empowerite/kit --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName | ltrimstr("release/")')
+# or the newest release candidate
+version=$(gh release list --repo empowerite/kit --limit 20 --json tagName,isPrerelease --jq '[.[] | select(.isPrerelease)][0].tagName | ltrimstr("release/")')
+```
+
+Without `gh`, set it by hand, as `version=0.1.0`. Until the first stable release is out, the stable line finds nothing;
+use a release candidate. Then:
+
+```sh
 release="https://github.com/empowerite/kit/releases/download/release/${version}"
 curl --fail --location --output "kit-${version}.tar.gz" "${release}/kit-${version}.tar.gz"
 curl --fail --location --output "kit-${version}.tar.gz.sha256" "${release}/kit-${version}.tar.gz.sha256"
@@ -48,12 +58,15 @@ On macOS or Linux, from the [empowerite tap](https://github.com/empowerite/homeb
 
 ```sh
 brew trust empowerite/tap
-brew install empowerite/tap/kit
+brew install empowerite/tap/kit      # stable
+brew install empowerite/tap/kit-rc   # or the newest release candidate
 ```
 
-Until you trust the tap, Homebrew refuses to load any of its formulae, so `brew trust` comes first. The formula
-brings bash, jq, and yq, and keeps the one kittui for your machine; see
-[using-brew.md](toolchains/using-brew.md#installing-kit-with-brew). `brew upgrade kit` moves to a later release.
+Until you trust the tap, Homebrew refuses to load any of its formulae, so `brew trust` comes first. The two install
+the same command, so only one can be installed at a time; to change channels, `brew uninstall` one and install the
+other. `brew upgrade` stays on the channel you chose. Until the first stable release is out, there is only `kit-rc`.
+The formulae bring bash, jq, and yq, and keep the one kittui for your machine; see
+[using-brew.md](toolchains/using-brew.md#installing-kit-with-brew).
 
 ### mise
 
@@ -64,7 +77,8 @@ Add kit as a tool in your own `~/.config/mise/config.toml`:
 "github:empowerite/kit" = { version = "0.1.0", version_prefix = "release/" }
 ```
 
-mise downloads the release's tarball itself, and puts its `bin/` on `PATH`.
+mise downloads the release's tarball itself, and puts its `bin/` on `PATH`. Name a stable release as `0.1.0` or a
+release candidate as `0.1.0-rc.7`; mise's `latest` is the newest stable release, never a candidate.
 
 ### Windows
 
