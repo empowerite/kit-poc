@@ -1,0 +1,147 @@
+# An index file, as gitformat-index lays it out: a 12-byte header, the entries sorted by path and then by stage, the
+# extensions, each a 4-byte signature, a 32-bit size, and its data, then a checksum of everything before it. An
+# extension whose signature starts with a capital is optional, and git skips one it does not know. An index is the
+# main worktree's, which dir names, or a linked worktree's, which worktree names, or a shared index, which splits names.
+entity: GitIndex
+layer: native
+tool: git
+means: The staging area of one worktree, the paths of the next commit, each with its object and stat data.
+fields:
+  signature:
+    type: {enum: [DIRC]}
+    source: stored
+    status: unused
+    means: The four bytes that open the file, DIRC for dircache.
+  version:
+    type: {enum: ["2", "3", "4"]}
+    source: stored
+    status: unused
+    means: >-
+      The format of the entries: 2, 3 when an entry has extended flags, or 4, whose paths are prefix-compressed, as
+      index.version or git update-index --index-version sets.
+  count:
+    type: Int
+    source: stored
+    status: unused
+    means: The number of entries.
+  fsmonitor-version:
+    type: {enum: ["1", "2"]}
+    arity: option
+    source: stored
+    status: unused
+    means: The version of the FSMN extension, the file system monitor cache, when core.fsmonitor writes one.
+  fsmonitor-token:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      The point the FSMN extension reflects every change through: in version 1 a time in nanoseconds since the epoch,
+      in version 2 an opaque token of the monitor's.
+  fsmonitor-dirty:
+    type: Bytes
+    arity: option
+    source: stored
+    status: unused
+    means: The FSMN extension's EWAH bitmap, whose n-th bit is set when the n-th entry may have changed.
+  split-delete:
+    type: Bytes
+    arity: option
+    source: stored
+    status: unused
+    means: The link extension's EWAH bitmap of the shared index's entries this index removes.
+  split-replace:
+    type: Bytes
+    arity: option
+    source: stored
+    status: unused
+    means: The link extension's EWAH bitmap of the shared index's entries this index's own entries replace, in order.
+  sparse:
+    type: Bool
+    source: stored
+    status: unused
+    means: >-
+      Whether the index holds the sdir extension, which marks a sparse index whose entries include directories
+      outside a cone-mode sparse checkout.
+  entries-end:
+    type: Int
+    arity: option
+    source: stored
+    status: unused
+    means: The EOIE extension's offset of the end of the entries, which git writes last so a reader finds it first.
+  extensions-hash:
+    type: Hash
+    arity: option
+    source: stored
+    status: unused
+    means: The EOIE extension's hash over the signature and size of each extension before it.
+  entry-offsets-version:
+    type: {enum: ["1"]}
+    arity: option
+    source: stored
+    status: unused
+    means: The version of the IEOT extension, the index entry offset table, which index.threads writes.
+  entry-offsets:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: >-
+      The IEOT extension's blocks, in file order, each the offset of its first entry and its count of entries, which
+      let threads read the entries in parallel.
+  other-extensions:
+    type: Bytes
+    arity: many
+    source: stored
+    status: unused
+    means: Each optional extension git does not know, as its signature, its size, and its data, in file order.
+  checksum:
+    type: Hash
+    source: stored
+    status: unused
+    means: The hash of the file's content before it, all zeros when index.skipHash is true.
+relations:
+  entries:
+    to: GitIndexEntry
+    arity: many
+    ordered: true
+    inverse: GitIndexEntry.index
+    means: The entries, sorted bytewise by path, then by stage.
+  cache-tree:
+    to: GitCacheTree
+    arity: option
+    inverse: GitCacheTree.index
+    means: The root of the TREE extension, the cache tree.
+  resolve-undo:
+    to: GitResolveUndo
+    arity: many
+    ordered: true
+    inverse: GitResolveUndo.index
+    means: The REUC extension's records, each a resolved conflict git can recreate with git checkout -m.
+  untracked-cache:
+    to: GitUntrackedCache
+    arity: option
+    inverse: GitUntrackedCache.index
+    means: The UNTR extension, the untracked cache, which core.untrackedCache writes.
+  shared:
+    to: GitIndex
+    arity: option
+    inverse: GitIndex.splits
+    means: >-
+      The shared index, sharedindex.<id> in the same directory, that the link extension names in split index mode,
+      none when its id is all zeros.
+  splits:
+    to: GitIndex
+    arity: many
+    inverse: GitIndex.shared
+    means: The index files whose link extension names this file as their shared index.
+  dir:
+    to: GitDir
+    arity: option
+    inverse: GitDir.index
+    means: The git directory whose index file, the main worktree's, this is.
+  worktree:
+    to: GitWorktreeAdmin
+    arity: option
+    inverse: GitWorktreeAdmin.index
+    means: The linked worktree whose index file, worktrees/<id>/index, this is.

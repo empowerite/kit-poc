@@ -1,0 +1,130 @@
+# The identity and signing settings git reads to write and sign a commit or a tag: the user, author, committer, and
+# gpg keys, and the signing keys of the commit and tag sections, of every scope, read together. The variables
+# GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL, GIT_COMMITTER_NAME, GIT_COMMITTER_EMAIL, and EMAIL override the identity.
+entity: GitUserConfig
+layer: native
+tool: git
+means: Who git writes as the author and committer, and how it signs.
+fields:
+  name:
+    type: Text
+    arity: option
+    source: stored
+    status: planned
+    means: The value of user.name, the name of an author and a committer.
+  email:
+    type: Text
+    arity: option
+    source: stored
+    status: planned
+    means: The value of user.email, the email of an author and a committer.
+  signing-key:
+    type: Text
+    arity: option
+    source: stored
+    status: planned
+    means: >-
+      The value of user.signingKey, which kit reads only to say whether one is set: a key id for gpg, or for ssh a
+      key file's path or key:: and a public key.
+  use-config-only:
+    type: Bool
+    arity: option
+    source: stored
+    status: unused
+    means: Whether git refuses to guess a name or an email that the configuration does not set.
+  author-name:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The value of author.name, which an author takes in place of user.name.
+  author-email:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The value of author.email, which an author takes in place of user.email.
+  committer-name:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The value of committer.name, which a committer takes in place of user.name.
+  committer-email:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The value of committer.email, which a committer takes in place of user.email.
+  commit-gpg-sign:
+    type: Bool
+    arity: option
+    source: stored
+    status: unused
+    means: The value of commit.gpgSign, whether git signs every commit, which kit reads only to warn when it is not.
+  tag-gpg-sign:
+    type: Bool
+    arity: option
+    source: stored
+    status: unused
+    means: The value of tag.gpgSign, whether git signs every tag.
+  tag-force-sign-annotated:
+    type: Bool
+    arity: option
+    source: stored
+    status: unused
+    means: The value of tag.forceSignAnnotated, whether git signs every annotated tag.
+  gpg-format:
+    type: {enum: [openpgp, x509, ssh]}
+    arity: option
+    source: stored
+    status: unused
+    means: The value of gpg.format, the kind of signature git makes, openpgp when unset.
+  gpg-program:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The value of gpg.openpgp.program, or its older name gpg.program, the program that signs, gpg when unset.
+  x509-program:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The value of gpg.x509.program, the program that makes X.509 signatures, gpgsm when unset.
+  ssh-program:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The value of gpg.ssh.program, the program that makes SSH signatures, ssh-keygen when unset.
+  ssh-default-key-command:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The value of gpg.ssh.defaultKeyCommand, the command that prints a key when user.signingKey is unset.
+  ssh-allowed-signers-file:
+    type: Path
+    arity: option
+    source: stored
+    status: unused
+    means: The value of gpg.ssh.allowedSignersFile, the file of the principals and keys that git trusts.
+  ssh-revocation-file:
+    type: Path
+    arity: option
+    source: stored
+    status: unused
+    means: The value of gpg.ssh.revocationFile, the file of the keys git treats as revoked.
+  min-trust-level:
+    type: {enum: [undefined, never, marginal, fully, ultimate]}
+    arity: option
+    source: stored
+    status: unused
+    means: The value of gpg.minTrustLevel, the least trust a key needs for git to take its signature as good.
+relations:
+  entries:
+    to: GitConfigEntry
+    arity: many
+    inverse: GitConfigEntry.user
+    means: The entries of these keys, in every scope.

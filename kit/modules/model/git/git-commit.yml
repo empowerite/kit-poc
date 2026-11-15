@@ -90,3 +90,23 @@ relations:
     arity: many
     derived: the annotated tags whose target is Commit(this)
     means: The annotated tags whose object header names this commit.
+  referenced-by:
+    to: GitRef
+    arity: many
+    derived: the refs whose target is Commit(this)
+    means: The refs that name this commit, such as the branches whose tip it is.
+  staged-by:
+    to: GitIndexEntry
+    arity: many
+    derived: the index entries whose target is Gitlink(this), which a superproject's index holds
+    means: The gitlink entries that stage this commit as a submodule's.
+  detached-in:
+    to: GitDir
+    arity: option
+    derived: the git directory whose HEAD is Detached(this)
+    means: The git directory whose main worktree has this commit checked out on a detached HEAD.
+  detached-worktrees:
+    to: GitWorktreeAdmin
+    arity: many
+    derived: the linked worktrees whose HEAD is Detached(this)
+    means: The linked worktrees that have this commit checked out on a detached HEAD.

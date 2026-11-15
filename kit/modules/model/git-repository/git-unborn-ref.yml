@@ -1,0 +1,29 @@
+# The name a symbolic HEAD holds when no ref of that name exists: the branch the next commit creates.
+entity: GitUnbornRef
+layer: native
+tool: git
+means: A branch that HEAD names and that has no commit yet, which the next commit creates.
+fields:
+  name:
+    type: Text
+    source: stored
+    status: unused
+    means: The full name HEAD holds, as refs/heads/main.
+  short-name:
+    type: Text
+    source: derived
+    from: the name after refs/heads/, as git worktree list --porcelain gives it on its branch line
+    status: held
+    read-by: workspace worktrees branch
+    means: The branch's name.
+relations:
+  dir:
+    to: GitDir
+    arity: option
+    derived: the git directory whose HEAD is Unborn(this)
+    means: The git directory whose main worktree's HEAD names this branch.
+  worktree:
+    to: GitWorktreeAdmin
+    arity: option
+    derived: the linked worktree whose HEAD is Unborn(this)
+    means: The linked worktree whose HEAD names this branch.

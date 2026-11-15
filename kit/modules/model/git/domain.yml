@@ -1,7 +1,8 @@
-# The Git domain of the model: git's own objects and files, as git stores them, apart from kit's entities over them.
+# The Git domain of the model: git's own objects, as git stores them, apart from kit's entities over them. The
+# Git repository domain holds the refs, index, configuration, and directories around them.
 # The layout keeps a commit and a tag side by side, with what both hold above and below them.
 name: Git
-intro: The objects and files git itself stores. Kit reads them and defines none of them.
+intro: The objects git itself stores. Kit reads them and defines none of them.
 layout:
   GitTrailer: {row: 0, col: 3}
   GitObject: {row: 1, col: 0}

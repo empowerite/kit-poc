@@ -15,3 +15,8 @@ relations:
     arity: many
     inverse: GitTag.target
     means: The annotated tags whose object header names this object.
+  referenced-by:
+    to: GitRef
+    arity: many
+    inverse: GitRef.target
+    means: The refs whose target is this object.

@@ -28,3 +28,8 @@ relations:
     to: GitTreeTarget
     inverse: GitTreeTarget.named-by
     means: The object the entry names, a blob, a tree, a symlink, or a gitlink, as its mode says.
+  submodule:
+    to: GitSubmodule
+    arity: option
+    inverse: GitSubmodule.gitlinks
+    means: The submodule whose gitlink this entry is, for an entry of mode 160000 whose path .gitmodules names.

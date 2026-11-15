@@ -1,0 +1,25 @@
+# The Git repository domain of the model: the files of a git directory around the objects, which the Git domain holds.
+# The layout puts the index and its extensions on the left, the git directory beside its linked worktrees in the
+# middle with what both hold above and below them, and the configuration across the bottom.
+name: Git repository
+intro: The refs, index, configuration, and directories git keeps around its objects. Kit reads them and defines none.
+layout:
+  GitUntrackedDir: {row: 0, col: 0}
+  GitCacheTree: {row: 0, col: 1}
+  GitRootRef: {row: 0, col: 2}
+  GitHead: {row: 0, col: 3}
+  GitUnbornRef: {row: 0, col: 4}
+  GitUntrackedCache: {row: 1, col: 0}
+  GitIndex: {row: 1, col: 1}
+  GitDir: {row: 1, col: 2}
+  GitWorktreeAdmin: {row: 1, col: 3}
+  GitSubmodule: {row: 1, col: 4}
+  GitResolveUndo: {row: 2, col: 0}
+  GitIndexEntry: {row: 2, col: 1}
+  GitConfigEntry: {row: 2, col: 2}
+  GitRef: {row: 2, col: 3}
+  GitReflogEntry: {row: 2, col: 4}
+  GitRefspec: {row: 3, col: 1}
+  GitRemoteConfig: {row: 3, col: 2}
+  GitBranchConfig: {row: 3, col: 3}
+  GitUserConfig: {row: 3, col: 4}

@@ -1,0 +1,49 @@
+# A ref at the root of a worktree's git directory other than HEAD: a name of capitals and underscores that ends in
+# _HEAD, or one of the few git names otherwise. Each worktree has its own, beside its HEAD. Most hold one id;
+# MERGE_HEAD holds one a line, FETCH_HEAD one a fetched ref with where it came from, and NOTES_MERGE_REF a ref's name.
+entity: GitRootRef
+layer: native
+tool: git
+means: >-
+  A ref a command writes beside a worktree's HEAD to remember a state, such as ORIG_HEAD, MERGE_HEAD, or FETCH_HEAD.
+fields:
+  name:
+    type: Text
+    source: stored
+    status: unused
+    means: >-
+      The file's name: ORIG_HEAD, FETCH_HEAD, MERGE_HEAD, CHERRY_PICK_HEAD, REVERT_HEAD, REBASE_HEAD, BISECT_HEAD,
+      AUTO_MERGE, BISECT_EXPECTED_REV, MERGE_AUTOSTASH, NOTES_MERGE_PARTIAL, NOTES_MERGE_REF, or a tool's own.
+  ids:
+    type: Hash
+    arity: many
+    source: stored
+    status: unused
+    means: >-
+      The ids it holds, in the file's order: one for most, each commit being merged for MERGE_HEAD, and each fetched
+      ref's for FETCH_HEAD.
+  fetched:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: >-
+      For FETCH_HEAD, the rest of each line after its id, not-for-merge or empty, a tab, and the ref and the
+      repository it was fetched from.
+  symref:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The name of the ref it holds in place of an id, as NOTES_MERGE_REF holds the notes ref being merged into.
+relations:
+  dir:
+    to: GitDir
+    arity: option
+    inverse: GitDir.root-refs
+    means: The git directory this file is in, for the main worktree's.
+  worktree:
+    to: GitWorktreeAdmin
+    arity: option
+    inverse: GitWorktreeAdmin.root-refs
+    means: The linked worktree whose directory, worktrees/<id>/, this file is in.

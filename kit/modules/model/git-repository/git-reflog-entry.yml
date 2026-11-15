@@ -1,0 +1,62 @@
+# One line of a reflog under logs/: "<old> <new> <name> <<email>> <time> <offset>", then a tab and the message when
+# there is one. A reflog records ids, so the old and the new value are ids, not relations to objects, and an id may
+# name an object git has since pruned.
+entity: GitReflogEntry
+layer: native
+tool: git
+means: One change to a ref or to a HEAD, with the id before and after, who made it, when, and why.
+fields:
+  old:
+    type: Hash
+    source: stored
+    status: unused
+    means: The id the ref held before the change, all zeros when the change created the ref.
+  new:
+    type: Hash
+    source: stored
+    status: unused
+    means: The id the ref holds after the change, all zeros when the change deleted it.
+  name:
+    type: Text
+    source: stored
+    status: unused
+    means: The committer's name, as git commit would write it at the time of the change.
+  email:
+    type: Text
+    source: stored
+    status: unused
+    means: The committer's email, between the angle brackets.
+  time:
+    type: Time
+    source: stored
+    status: unused
+    means: The moment of the change, in seconds since the epoch.
+  offset:
+    type: Text
+    source: stored
+    status: unused
+    means: The time zone the moment was written in, as a sign and four digits, such as -0800.
+  message:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      What the command that moved the ref says of the change, such as "commit: <subject>", as git reflog %gs prints
+      it.
+relations:
+  ref:
+    to: GitRef
+    arity: option
+    inverse: GitRef.reflog
+    means: The ref whose log, logs/<name>, holds this entry, none for an entry of a HEAD's log.
+  dir:
+    to: GitDir
+    arity: option
+    inverse: GitDir.head-log
+    means: The git directory whose logs/HEAD, the main worktree's HEAD log, holds this entry.
+  worktree:
+    to: GitWorktreeAdmin
+    arity: option
+    inverse: GitWorktreeAdmin.head-log
+    means: The linked worktree whose logs/HEAD holds this entry.

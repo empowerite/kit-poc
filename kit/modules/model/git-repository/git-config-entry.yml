@@ -1,0 +1,98 @@
+# One setting, as git config --list --show-scope --show-origin prints it: its scope, where it came from, and
+# key=value. git reads the scopes in order, system, global, local, worktree, then command, and within a file from the
+# top, so for a key that takes one value the last entry wins. An entry of an included file has the scope of the file
+# that includes it.
+entity: GitConfigEntry
+layer: native
+tool: git
+means: One key and its value in a configuration file or on a command line, with its scope and where it came from.
+fields:
+  scope:
+    type: {enum: [system, global, local, worktree, command]}
+    source: stored
+    status: unused
+    means: >-
+      Which configuration it belongs to: the system's, the user's ~/.gitconfig or XDG file, the repository's config,
+      a worktree's config.worktree, or the command's own, which also holds a file that --file or --blob names.
+  origin:
+    type: {enum: [file, blob, standard input, command line]}
+    source: stored
+    status: unused
+    means: The kind of place git read it from, as --show-origin prints before the colon.
+  file:
+    type: Path
+    arity: option
+    source: stored
+    status: unused
+    means: The file that holds it, an included file for an entry under an include or includeIf section.
+  blob:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The blob that holds it, as --blob names it, such as HEAD:.gitmodules.
+  key:
+    type: Text
+    source: stored
+    status: unused
+    means: >-
+      The key, as section.subsection.name, which git prints with the section and the name in lower case and the
+      subsection as written.
+  section:
+    type: Text
+    source: derived
+    from: the key up to its first dot
+    status: unused
+    means: The section, as remote, which git matches without regard to case.
+  subsection:
+    type: Text
+    arity: option
+    source: derived
+    from: the key between its first and its last dot
+    status: unused
+    means: The subsection, as origin in remote.origin.url, which git matches by case.
+  name:
+    type: Text
+    source: derived
+    from: the key after its last dot
+    status: unused
+    means: The variable's name, as url, which git matches without regard to case.
+  value:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The value as written, none for a key written with no equals sign, which git reads as true.
+relations:
+  dir:
+    to: GitDir
+    arity: option
+    inverse: GitDir.config
+    means: >-
+      The git directory whose files hold this entry, none for an entry of the system, global, or command scope,
+      which no git directory holds.
+  worktree:
+    to: GitWorktreeAdmin
+    arity: option
+    inverse: GitWorktreeAdmin.config
+    means: The linked worktree whose config.worktree holds this entry.
+  remote:
+    to: GitRemoteConfig
+    arity: option
+    inverse: GitRemoteConfig.entries
+    means: The remote whose remote.<name> section holds this entry.
+  branch:
+    to: GitBranchConfig
+    arity: option
+    inverse: GitBranchConfig.entries
+    means: The branch whose branch.<name> section holds this entry.
+  user:
+    to: GitUserConfig
+    arity: option
+    inverse: GitUserConfig.entries
+    means: The identity and signing settings this entry is one of.
+  submodule:
+    to: GitSubmodule
+    arity: option
+    inverse: GitSubmodule.entries
+    means: The submodule whose submodule.<name> section, in .gitmodules or in the repository's config, holds this entry.

@@ -17,3 +17,8 @@ relations:
     arity: many
     inverse: GitTreeEntry.target
     means: The tree entries that name this object.
+  staged-by:
+    to: GitIndexEntry
+    arity: many
+    inverse: GitIndexEntry.target
+    means: The index entries that stage this object.

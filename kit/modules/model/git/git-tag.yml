@@ -69,3 +69,8 @@ relations:
     arity: many
     derived: the annotated tags whose target is Tag(this)
     means: The annotated tags whose object header names this tag.
+  referenced-by:
+    to: GitRef
+    arity: many
+    derived: the refs whose target is Tag(this)
+    means: The refs that name this tag object, usually the one under refs/tags/ that made it.

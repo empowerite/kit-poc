@@ -1,0 +1,123 @@
+# A ref: a name under refs/ and the object id it holds, as a loose file of that name, a line of packed-refs, or a
+# record of a reftable. git stores nothing else, so a ref's kind is only the part of its name after refs/: heads/ a
+# branch, remotes/ a remote-tracking branch, tags/ a tag, notes/ a notes ref, stash the stash, and anything else, such
+# as replace/, bisect/, or a forge's pull/, another kind. A symbolic ref holds "ref: <name>" in place of an id, and its
+# target is what that name resolves to. HEAD is not a ref of these.
+entity: GitRef
+layer: native
+tool: git
+means: A name under refs/ that points at one object, such as a branch, a remote-tracking branch, a tag, or the stash.
+fields:
+  name:
+    type: Text
+    source: stored
+    status: unused
+    means: The full name, as refs/heads/main or refs/remotes/origin/main.
+  kind:
+    type: {enum: [branch, remote-tracking, tag, notes, stash, other]}
+    source: derived
+    from: >-
+      the name's start: refs/heads/ for a branch, refs/remotes/ for a remote-tracking branch, refs/tags/ for a tag,
+      refs/notes/ for a notes ref, the name refs/stash for the stash, and any other for other
+    status: unused
+    means: Which kind of ref this is, which git reads only from where its name lies under refs/.
+  short-name:
+    type: Text
+    source: derived
+    from: >-
+      the name after refs/heads/, refs/tags/, or refs/remotes/, else after refs/, as git for-each-ref
+      %(refname:short) prints it, which keeps a part such as tags/ where a ref of another kind has the same short name
+    status: held
+    read-by: workspace tags tag
+    means: The name git shows the ref by, as main, origin/main, or v1.0.
+  remote:
+    type: Text
+    arity: option
+    source: derived
+    from: the longest configured remote name that starts the name after refs/remotes/, followed by a slash
+    status: held
+    read-by: workspace branches remote
+    means: For a remote-tracking branch, the name of the remote it tracks a branch of, which may hold a slash.
+  branch:
+    type: Text
+    arity: option
+    source: derived
+    from: the name after refs/heads/, or after refs/remotes/<remote>/
+    status: held
+    read-by: workspace branches branch
+    means: For a branch its name, and for a remote-tracking branch the name of the branch on the remote.
+  tag-kind:
+    type: {enum: [annotated, lightweight]}
+    arity: option
+    source: derived
+    from: the type of the target, annotated for a tag object and lightweight for any other
+    status: held
+    read-by: workspace tags kind
+    means: For a tag, whether it names a tag object or names an object directly.
+  per-worktree:
+    type: Bool
+    source: derived
+    from: whether the name starts refs/bisect/, refs/worktree/, or refs/rewritten/
+    status: unused
+    means: Whether each worktree has a ref of this name of its own.
+  symref:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      The name of the ref it holds in place of an id, as refs/remotes/origin/main for refs/remotes/origin/HEAD, which
+      names the remote's default branch, or for any ref git symbolic-ref made symbolic.
+  peeled:
+    type: Hash
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      The id of the object an annotated tag the ref names points at, from the ^ line under the ref in packed-refs,
+      which git writes when the file's header says peeled or fully-peeled.
+relations:
+  target:
+    to: GitObject
+    inverse: GitObject.referenced-by
+    means: The object whose id the ref holds, or the object a symbolic ref's name resolves to.
+  dir:
+    to: GitDir
+    inverse: GitDir.refs
+    means: The git directory whose refs hold this ref.
+  reflog:
+    to: GitReflogEntry
+    arity: many
+    ordered: true
+    inverse: GitReflogEntry.ref
+    means: >-
+      The lines of logs/<name>, oldest first, which git appends to for a branch, a remote-tracking branch, or a
+      notes ref while core.logAllRefUpdates is true, for the stash always, and for any ref whose log file exists.
+  worktree:
+    to: GitWorktreeAdmin
+    arity: option
+    inverse: GitWorktreeAdmin.refs
+    means: >-
+      The linked worktree whose own ref this is, under its worktrees/<id>/refs/, none for a shared ref or one of the
+      main worktree's.
+  checked-out-in:
+    to: GitWorktreeAdmin
+    arity: many
+    derived: the linked worktrees whose HEAD is Symbolic(this)
+    means: The linked worktrees whose HEAD names this ref.
+  config:
+    to: GitBranchConfig
+    arity: option
+    inverse: GitBranchConfig.ref
+    means: For a branch, its branch.<branch>.* settings, none when no setting names it.
+  remote-config:
+    to: GitRemoteConfig
+    arity: option
+    inverse: GitRemoteConfig.tracking-refs
+    means: >-
+      For a remote-tracking branch, the remote it tracks a branch of, none when no remote of that name is configured.
+  upstream-of:
+    to: GitBranchConfig
+    arity: many
+    inverse: GitBranchConfig.upstream-ref
+    means: The branches whose upstream this ref is.

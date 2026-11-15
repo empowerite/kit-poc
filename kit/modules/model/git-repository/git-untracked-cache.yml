@@ -1,0 +1,56 @@
+# An index's UNTR extension, the untracked cache: the environment it holds for, the stat data and id of the two
+# exclude files, git's directory flags, the name of the exclude file each directory may hold, and the directory
+# blocks, depth-first. A null id means the file does not exist.
+entity: GitUntrackedCache
+layer: native
+tool: git
+means: The untracked files git found, kept in the index so that git status rereads only the directories that differ.
+fields:
+  environment:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: The strings that say where the cache holds, such as the worktree's location and the system, in order.
+  info-exclude-stat:
+    type: Bytes
+    source: stored
+    status: unused
+    means: The stat data of the common git directory's info/exclude, as an index entry's, from ctime to size.
+  excludes-file-stat:
+    type: Bytes
+    source: stored
+    status: unused
+    means: The stat data of the file core.excludesFile names, as an index entry's, from ctime to size.
+  dir-flags:
+    type: Int
+    source: stored
+    status: unused
+    means: The flags of git's directory walk the cache was made with, as 32 bits.
+  info-exclude-id:
+    type: Hash
+    arity: option
+    source: stored
+    status: unused
+    means: The id of info/exclude's content, none when the file does not exist.
+  excludes-file-id:
+    type: Hash
+    arity: option
+    source: stored
+    status: unused
+    means: The id of core.excludesFile's content, none when the file does not exist.
+  exclude-per-dir:
+    type: Text
+    source: stored
+    status: unused
+    means: The name of the exclude file each directory may hold, usually .gitignore.
+relations:
+  index:
+    to: GitIndex
+    inverse: GitIndex.untracked-cache
+    means: The index whose UNTR extension this is.
+  root:
+    to: GitUntrackedDir
+    arity: option
+    inverse: GitUntrackedDir.cache
+    means: The block of the worktree's top directory, the first block, none when the cache holds no block.

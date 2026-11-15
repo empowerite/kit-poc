@@ -39,3 +39,13 @@ relations:
     arity: many
     derived: the annotated tags whose target is Blob(this)
     means: The annotated tags whose object header names this blob.
+  referenced-by:
+    to: GitRef
+    arity: many
+    derived: the refs whose target is Blob(this)
+    means: The refs that name this blob, such as a lightweight tag.
+  staged-by:
+    to: GitIndexEntry
+    arity: many
+    derived: the index entries whose target is Blob(this) or Symlink(this)
+    means: The index entries that stage this blob, as a file or as a symlink.

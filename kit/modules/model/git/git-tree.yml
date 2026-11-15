@@ -38,3 +38,13 @@ relations:
     arity: many
     derived: the annotated tags whose target is Tree(this)
     means: The annotated tags whose object header names this tree.
+  referenced-by:
+    to: GitRef
+    arity: many
+    derived: the refs whose target is Tree(this)
+    means: The refs that name this tree.
+  staged-by:
+    to: GitIndexEntry
+    arity: many
+    derived: the index entries whose target is Tree(this), the sparse directories of a sparse index
+    means: The sparse directory entries that stage this tree.

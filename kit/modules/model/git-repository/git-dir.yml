@@ -1,0 +1,182 @@
+# The common git directory, as gitrepository-layout lays it out: the .git directory of a checkout, the directory of a
+# bare repository, or a submodule's under its superproject's modules/<name>/. It holds what every worktree shares:
+# the objects, the refs, the configuration, and the hooks. It also holds the main worktree's own HEAD, index, logs,
+# and root refs, as worktrees/<id>/ holds a linked worktree's.
+entity: GitDir
+layer: native
+tool: git
+means: A repository's git directory, which holds its objects, refs, configuration, hooks, and worktrees.
+fields:
+  path:
+    type: Path
+    source: derived
+    from: git rev-parse --path-format=absolute --git-common-dir
+    status: unused
+    means: Where the directory is.
+  worktree-path:
+    type: Path
+    arity: option
+    source: derived
+    from: core.worktree, else the directory that holds the git directory, as git worktree list prints it first
+    status: held
+    read-by: workspace repos checkout
+    means: Where the main worktree is, none for a bare repository.
+  bare:
+    type: Bool
+    source: stored
+    status: unused
+    means: The value of core.bare, whether the repository has no main worktree.
+  format-version:
+    type: {enum: ["0", "1"]}
+    source: stored
+    status: unused
+    means: The value of core.repositoryformatversion, 1 when the config's extensions section is in force.
+  object-format:
+    type: {enum: [sha1, sha256]}
+    source: stored
+    status: unused
+    means: The value of extensions.objectFormat, the hash that names objects, sha1 when unset.
+  ref-format:
+    type: {enum: [files, reftable]}
+    source: stored
+    status: unused
+    means: >-
+      The value of extensions.refStorage, files for loose refs under refs/ and the packed-refs file, or reftable for
+      the tables under reftable/, files when unset.
+  packed-refs-traits:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: The traits the header of packed-refs names, as peeled, fully-peeled, and sorted.
+  shallow:
+    type: Hash
+    arity: many
+    source: stored
+    status: unused
+    means: The ids in the shallow file, the commits of a shallow clone whose parents are not here.
+  grafts:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: >-
+      The lines of info/grafts, each a commit's id and the ids git takes as its parents, which git replace supersedes.
+  alternates:
+    type: Path
+    arity: many
+    source: stored
+    status: unused
+    means: The lines of objects/info/alternates, the object stores this one borrows objects from.
+  http-alternates:
+    type: Url
+    arity: many
+    source: stored
+    status: unused
+    means: The lines of objects/info/http-alternates, the object stores a fetch over HTTP borrows from.
+  packs:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: The lines of objects/info/packs, which git update-server-info writes for dumb transports.
+  info-refs:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: The lines of info/refs, each a ref's id and name, which git update-server-info writes for dumb transports.
+  exclude:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: The lines of info/exclude, ignore patterns of this repository alone, as gitignore reads them.
+  attributes:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: The lines of info/attributes, attributes of this repository alone, as gitattributes reads them.
+  sparse-checkout:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: The lines of info/sparse-checkout, the patterns of the main worktree's sparse checkout.
+  hooks:
+    type: Path
+    arity: many
+    source: stored
+    status: unused
+    means: The hook programs under hooks/, or under the directory core.hooksPath names, a sample one ending in .sample.
+  description:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The description file, which gitweb shows and git init fills with a placeholder.
+  legacy-remotes:
+    type: Path
+    arity: many
+    source: stored
+    status: unused
+    means: The files under remotes/ and branches/, the older way to name a remote, which git still reads.
+relations:
+  refs:
+    to: GitRef
+    arity: many
+    inverse: GitRef.dir
+    means: Every ref under refs/, a linked worktree's own ones included, which live under worktrees/<id>/refs/.
+  head:
+    to: GitHead
+    inverse: GitHead.dir
+    means: The HEAD file, the main worktree's HEAD, which a bare repository also has.
+  head-log:
+    to: GitReflogEntry
+    arity: many
+    ordered: true
+    inverse: GitReflogEntry.dir
+    means: The lines of logs/HEAD, oldest first, each a change to the main worktree's HEAD.
+  root-refs:
+    to: GitRootRef
+    arity: many
+    inverse: GitRootRef.dir
+    means: The main worktree's refs beside HEAD, such as ORIG_HEAD and MERGE_HEAD.
+  index:
+    to: GitIndex
+    arity: option
+    inverse: GitIndex.dir
+    means: The index file, the main worktree's, none in a bare repository or while no index file exists.
+  config:
+    to: GitConfigEntry
+    arity: many
+    ordered: true
+    inverse: GitConfigEntry.dir
+    means: >-
+      The entries of the config file and of the main worktree's config.worktree, with the files they include, in
+      the order git reads them.
+  worktrees:
+    to: GitWorktreeAdmin
+    arity: many
+    inverse: GitWorktreeAdmin.dir
+    means: The linked worktrees, one directory under worktrees/ each.
+  remotes:
+    to: GitRemoteConfig
+    arity: many
+    derived: the remotes the configuration git reads here defines, of every scope
+    means: The remotes this repository fetches from and pushes to.
+  user:
+    to: GitUserConfig
+    derived: the identity and signing settings the configuration git reads here gives, of every scope
+    means: Who git writes as the author and committer here, and how it signs.
+  submodules:
+    to: GitSubmodule
+    arity: many
+    inverse: GitSubmodule.superproject
+    means: The submodules the repository's .gitmodules and config name.
+  module:
+    to: GitSubmodule
+    arity: option
+    inverse: GitSubmodule.git-dir
+    means: The submodule whose git directory this is, under its superproject's modules/<name>/.
