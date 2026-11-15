@@ -2,9 +2,9 @@
 # commit.sh - the commit and the push as kit commands: the checks their rules require, then git (sourced module)
 # ----------------------------------------------------------------------------------------------------------------------
 # kit commit and kit submit replace git commit and git push for an agent, as kit rebase replaces git rebase: the kit
-# command adds the check the rule requires, and a harness's deny list refuses the raw command. Both run in a worktree
-# only. The root checkout is the human's desk, and the default branch advances by a merged change, never by a commit
-# made on it.
+# command adds the check the rule requires, and a harness's deny list refuses the raw command. Both run on a branch that
+# is not the default one, in the root checkout or a worktree alike, for a person or an agent. The default branch
+# advances by a merged change, never by a commit made on it.
 #
 # Before a commit exists, kit commit:
 #
@@ -76,10 +76,10 @@ commit:parse() {
   done
 }
 
-# commit:branch <word> prints the branch checked out here, or refuses: no repository, no branch, the root checkout,
-# the default branch, or a default branch that cannot be read. <word> is what the verb does, commit or push, for the refusal.
+# commit:branch <word> prints the branch checked out here, or refuses: no repository, no branch, the default
+# branch, or a default branch that cannot be read. <word> is what the verb does, commit or push, for the refusal.
 commit:branch() {
-  local word=$1 branch default_branch root
+  local word=$1 branch default_branch
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1
   then
     error "$(pwd -P) is in no repository, so there is nothing to ${word}; run kit in one"
@@ -89,13 +89,6 @@ commit:branch() {
   if [[ -z "${branch}" ]]
   then
     error "no branch is checked out here, so there is nothing to ${word}; run: kit work <reference>"
-    return 1
-  fi
-  root=$(git:main-root) || return 1
-  if [[ "$(git rev-parse --show-toplevel)" == "${root}" ]]
-  then
-    error "refusing to ${word} ${branch}: this is the root checkout, the human's desk; work in a worktree:" \
-      "kit work <reference>"
     return 1
   fi
   default_branch=$(git:default-branch) || return 1

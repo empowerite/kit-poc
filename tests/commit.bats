@@ -35,12 +35,12 @@ setup() {
 
 kit() { "${kit_checkout}/bin/kit" "$@"; }
 
-@test "kit commit refuses the desk, and the default branch in a worktree, before it looks at anything else" {
+@test "kit commit refuses the default branch, at the desk and in a worktree, before it looks at anything else" {
   cd "${work}/desk"
   printf 'x\n' > x && git add x
   run kit commit --message='#1 x: a file'
   [ "$status" -eq 1 ]
-  [[ "$output" == *"refusing to commit main: this is the root checkout, the human's desk"* ]]
+  [[ "$output" == *"refusing to commit main: it is the default branch"* ]]
   git reset --quiet -- x
   git switch --quiet --create holding
   git worktree add --quiet worktrees/main-too main
@@ -50,6 +50,16 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
   [ "$status" -eq 1 ]
   [[ "$output" == *"it is the default branch"* ]]
   [ "$(git log --oneline | wc -l | tr -d ' ')" = 1 ]
+}
+
+@test "kit commit commits at the desk on a branch that is not the default one, as it does in a worktree" {
+  cd "${work}/desk"
+  git switch --quiet --create 8-fix-another-thing
+  printf 'x\n' > x && git add x
+  run kit commit --message='x: a file'
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"#8 supplied from the branch"* ]]
+  [ "$(git log --oneline | wc -l | tr -d ' ')" = 2 ]
 }
 
 @test "kit commit refuses when nothing is staged, and when the message is missing" {
@@ -114,22 +124,6 @@ kit() { "${kit_checkout}/bin/kit" "$@"; }
   [ "$status" -eq 1 ]
   [[ "$output" == *"bad.sh"* ]]
   [[ "$output" == *"linter"* ]]
-  [ "$(git log --oneline | wc -l | tr -d ' ')" = 1 ]
-}
-
-@test "kit commit and kit submit refuse on a git too old to print an absolute path, never taking the desk for a worktree" {
-  mkdir "${work}/shim"
-  printf '#!/bin/sh\ncase "$*" in *--path-format=absolute*) echo "--path-format=absolute"; exit 0 ;; esac\nexec "%s" "$@"\n' \
-    "$(command -v git)" > "${work}/shim/git"
-  chmod +x "${work}/shim/git"
-  cd "${work}/desk"
-  printf 'x\n' > x && git add x
-  run env PATH="${work}/shim:${PATH}" "${kit_checkout}/bin/kit" commit --message='#1 x: a file'
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"git is older than 2.31"* ]]
-  run env PATH="${work}/shim:${PATH}" "${kit_checkout}/bin/kit" submit
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"git is older than 2.31"* ]]
   [ "$(git log --oneline | wc -l | tr -d ' ')" = 1 ]
 }
 
@@ -278,12 +272,11 @@ conventional() {
   [[ "$output" == *"nothing to submit"* ]]
 }
 
-@test "kit submit refuses the desk; when origin has moved it names kit rebase, never forcing" {
+@test "kit submit refuses the default branch; when origin has moved it names kit rebase, never forcing" {
   cd "${work}/desk"
   run kit submit
   [ "$status" -eq 1 ]
-  [[ "$output" == *"refusing to push main: this is the root checkout, the human's desk"* ]]
-  [[ "$output" == *"kit work <reference>"* ]]
+  [[ "$output" == *"refusing to push main: it is the default branch"* ]]
   [[ "$output" != *"commit"* ]]
   git switch --quiet --detach
   run kit submit

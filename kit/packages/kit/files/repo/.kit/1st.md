@@ -46,7 +46,7 @@ Elsewhere, this rule is the only thing that stops it.
 - `kit rebase`, never `git rebase`. `kit rebase` refuses to run in the root checkout or on the default branch.
   Otherwise it rebases the worktree's branch onto the default branch at the primary remote, `origin` unless
   `primary` in `kit.yml` names another, and pushes it.
-- `kit commit`, never `git commit`. `kit commit` refuses the desk and the default branch, runs the linters over the
+- `kit commit`, never `git commit`. `kit commit` refuses the default branch, runs the linters over the
   staged paths, refuses a path the kit placed, and holds the subject to the policy before the commit exists. Its message
   is an option written in full, as the whole command shows: `git add <path>… && kit commit --message='<subject>'`.
 - `kit submit`, never `git push`. `kit submit` pushes the branch, and commits nothing: what is staged stays staged,

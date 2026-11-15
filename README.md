@@ -205,9 +205,9 @@ terminal, the font, and the colors. `kit tutorials` lists the tutorials and open
    can sit anywhere; the `AGENTS.md` and `.claude/CLAUDE.md` regions sit where their host template puts them.
    `kit generate` rewrites a region from its command, and `kit check` fails when one is out of date. Your own files
    can hold regions too; see [docs/generate.md](docs/generate.md).
-2. Commit what `kit install` wrote. A person makes this commit by hand: `kit commit` refuses to run at the desk, and
-   the Claude Code and Gemini CLI adapters deny an agent `git commit`. Or start an issue with `kit work`, which at
-   a terminal moves the uncommitted work into the new worktree, and run `kit commit` there.
+2. Commit what `kit install` wrote. Run `kit commit` on a branch that is not the default one; it refuses the
+   default branch, and the Claude Code and Gemini CLI adapters deny an agent `git commit`. Or start an issue with
+   `kit work`, which at a terminal moves the uncommitted work into the new worktree, and commit there.
 3. Give the repository a gate, the command CI runs. kit takes the first of these it finds:
    - a `gate` command in `kit.yml`
    - a `ci` recipe in the root justfile
