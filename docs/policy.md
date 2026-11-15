@@ -149,11 +149,11 @@ The base depends on where the verb runs:
   policy` then puts the chosen toolchain's directories first at a desk. So an `opa` or a `gh` the branch carries in
   its own files never answers for it.
 - On a runner, the opa engine is the one the base pins. `kit policy` puts no toolchain directory first there, since
-  those tools are the ones the branch's own files pin, and it installs the `opa` the base's `tools.lock` holds, with
+  those tools are the ones the branch's own files pin, and it installs the `opa` the base's `kit.lock` holds, with
   the kit toolchain, into a home and a download cache it makes new for the run. A copy an earlier run left, as the
   runner's cache of `~/.kit/tools` restores one, is never used; the download must have the hash the base's lock
-  records, and a branch that pins a different engine in its own `kit.yml` and `tools.lock` changes nothing.
-  `jq`, `yq`, `git`, and `gh` are the runner's own. A base whose `tools.lock` holds no `opa` row, as one whose tool
+  records, and a branch that pins a different engine in its own `kit.yml` and `kit.lock` changes nothing.
+  `jq`, `yq`, `git`, and `gh` are the runner's own. A base whose `kit.lock` holds no `opa` row, as one whose tool
   manager is mise or nix, or the first pull request of a repository, installs nothing: the `opa` on the runner's
   `PATH` judges, and `kit policy` fails, saying so, where there is none. It never takes the branch's.
   A runner image that carries `opa`, or a step of the repository's own before `kit ci` that installs it from the
@@ -207,7 +207,7 @@ The guarantee covers what a branch holds in its files, with the tools a runner s
   file that differs, but it runs inside that same job. Hold the workflow with a ruleset that requires a workflow from
   the base repository, or with a code owner's review of `.github/workflows/`. See
   [integrations/gh.md](integrations/gh.md#pull-requests-from-forks-and-the-event-that-runs-the-workflow).
-- A base that pins its `opa` outside `tools.lock`, in `mise.toml`, a flake, a Brewfile, or an image, and a runner with
+- A base that pins its `opa` outside `kit.lock`, in `mise.toml`, a flake, a Brewfile, or an image, and a runner with
   no `opa`: kit does not install it from there before the judgements, so the engine is the runner's own, or none and
   the judgement fails. Installing the base's `mise.toml` would need `mise trust` on a file kit has not read; that
   is left to the repository's own step.

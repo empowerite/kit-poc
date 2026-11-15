@@ -16,12 +16,12 @@
 
 set -o errexit -o nounset -o pipefail
 
-# pinned-tools-first puts the kit toolchain's directories first on PATH, as this checkout's tools.lock names them, so
+# pinned-tools-first puts the kit toolchain's directories first on PATH, as this checkout's kit.lock names them, so
 # kit update finds the pinned tools inside the export, which is no repository of its own, from a shell that has not
 # put them on PATH, as an agent's.
 pinned-tools-first() {
   local dirs
-  [[ -f tools.lock ]] || return 0
+  [[ -f kit.lock ]] || return 0
   dirs=$(kit/bin/kit tools path --toolchain=kit | paste -s -d ':' -)
   PATH=${dirs:+${dirs}:}${PATH}
 }

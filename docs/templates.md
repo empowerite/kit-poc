@@ -185,7 +185,7 @@ Three kinds of path are not checked against any template:
 - a path that `.gitattributes` marks `linguist-generated`, because a tool writes it
 
 ```text
-/tools.lock linguist-generated
+/kit.lock linguist-generated
 ```
 
 A seam's provider is checked against its seam's template too, which the bash rule lists for `**/<seam>/*.sh`. The

@@ -31,7 +31,7 @@ kit welcome
 `.envrc` calls kit, and kit refuses to run anything in a clone you have not trusted, so without the trust direnv puts
 no tool on `PATH`.
 
-`kit tools install` puts each tool that `tools.lock` pins for this platform under `~/.kit/tools/`, where every clone
+`kit tools install` puts each tool that `kit.lock` pins for this platform under `~/.kit/tools/`, where every clone
 and worktree shares it. On a desk, the main checkout on your machine, it also installs lefthook, which `kit.yml`
 limits to desks. A runner, where `CI` is set, skips lefthook. See
 [using kit as the toolchain](docs/toolchains/using-kit.md).

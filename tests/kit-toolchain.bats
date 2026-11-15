@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# kit-toolchain.bats - the kit toolchain: tools: in kit.yml pins each tool, and tools.lock its download for every platform
+# kit-toolchain.bats - the kit toolchain: tools: in kit.yml pins each tool, and kit.lock its download for every platform
 # ----------------------------------------------------------------------------------------------------------------------
 # tests/fakes/fake-curl stands in for curl, serving each URL's last part from ${FAKE_RELEASES}, and tests/fakes/fake-tool
 # stands in for gh. Each tool is a script, so what is proven is what kit downloads, checks, unpacks, and puts on PATH.
@@ -63,7 +63,7 @@ downloads() {
   fi
 }
 
-@test "the kit toolchain is usable where kit.yml has tools: or tools.lock is here, and nowhere else" {
+@test "the kit toolchain is usable where kit.yml has tools: or kit.lock is here, and nowhere else" {
   printf 'version: unreleased\n' > kit.yml
   run kit-bash 'use toolchain && toolchain:detect'
   grep --quiet --line-regexp $'kit\tproject\tno\tno' <<<"$output"
@@ -75,17 +75,17 @@ downloads() {
 @test "install locks every tool for every platform, installs this platform's, and kit tools path names them" {
   run "${kit_root}/bin/kit" tools install --toolchain=kit
   [ "$status" -eq 0 ]
-  [[ "$output" == *"tools.lock: locked alpha, beta"* ]]
+  [[ "$output" == *"kit.lock: locked alpha, beta"* ]]
   # a row per tool and platform, each with what the file is and its hash, and never where it came from
-  [ "$(grep -c -v '^#' tools.lock)" -eq 8 ]
+  [ "$(grep -c -v '^#' kit.lock)" -eq 8 ]
   while IFS=$'\t' read -r _ _ _ _ artifact hash _
   do
     [ "${hash}" = "sha256:$(shasum -a 256 "${FAKE_RELEASES}/${artifact#file:}" | cut -d ' ' -f 1)" ]
-  done < <(grep -v '^#' tools.lock)
+  done < <(grep -v '^#' kit.lock)
   t=$'\t'
   grep --quiet -E "^beta${t}2\.0\.0${t}linux-x64${t}desk${t}file:beta-2\.0\.0-linux-x64\.tar\.gz${t}sha256:[0-9a-f]{64}\
-${t}beta-2\.0\.0/bin$" tools.lock
-  run -1 grep --quiet 'https://' tools.lock
+${t}beta-2\.0\.0/bin$" kit.lock
+  run -1 grep --quiet 'https://' kit.lock
   run "${kit_root}/bin/kit" tools path --toolchain=kit
   [ "$status" -eq 0 ]
   [ "$(wc -l <<<"$output" | tr -d ' ')" -eq 2 ]
@@ -118,15 +118,15 @@ YAML
 
 @test "a pin that moves is locked again at a desk, and the tools of other pins are left as they were" {
   "${kit_root}/bin/kit" tools install --toolchain=kit >/dev/null 2>&1
-  beta_rows=$(grep '^beta' tools.lock)
+  beta_rows=$(grep '^beta' kit.lock)
   releases 1.1.0 2.0.0
   pins 1.1.0 2.0.0
   run "${kit_root}/bin/kit" tools install --toolchain=kit
   [ "$status" -eq 0 ]
-  [[ "$output" == *"tools.lock: locked alpha"* ]]
-  [ "$(grep '^beta' tools.lock)" = "${beta_rows}" ]
-  [ "$(grep -c $'^alpha\t1\.1\.0\t' tools.lock)" -eq 4 ]
-  [ "$(grep -c $'^alpha\t1\.0\.0\t' tools.lock)" -eq 0 ]
+  [[ "$output" == *"kit.lock: locked alpha"* ]]
+  [ "$(grep '^beta' kit.lock)" = "${beta_rows}" ]
+  [ "$(grep -c $'^alpha\t1\.1\.0\t' kit.lock)" -eq 4 ]
+  [ "$(grep -c $'^alpha\t1\.0\.0\t' kit.lock)" -eq 0 ]
 }
 
 @test "a runner refuses a lock behind kit.yml, naming the tool, and installs none of a desk's tools" {
@@ -135,7 +135,7 @@ YAML
   pins 1.1.0 2.0.0
   CI=true run "${kit_root}/bin/kit" tools install --toolchain=kit
   [ "$status" -eq 1 ]
-  [[ "$output" == *"tools.lock is behind tools: in kit.yml for alpha; run kit tools install at a desk"* ]]
+  [[ "$output" == *"kit.lock is behind tools: in kit.yml for alpha; run kit tools install at a desk"* ]]
   # with the lock up to date, a runner installs alpha alone: beta is a desk's
   pins 1.0.0 2.0.0
   rm -rf "${KIT_HOME}/.kit/tools"
@@ -222,7 +222,7 @@ YAML
   run "${kit_root}/bin/kit" tools update --toolchain=kit
   [ "$status" -eq 0 ]
   [ "$(yq '.tools.beta.version' kit.yml)" = 2.1.0 ]
-  [ "$(grep -c $'^beta\t2\.1\.0\t' tools.lock)" -eq 4 ]
+  [ "$(grep -c $'^beta\t2\.1\.0\t' kit.lock)" -eq 4 ]
   [ -d "${KIT_HOME}/.kit/tools/beta/2.1.0/${platform}" ]
 }
 
@@ -240,16 +240,16 @@ YAML
   grep --quiet -E '^🔺 beta +· 2\.1\.0-rc1 +· +· 2\.1\.0$' <<<"$output"
 }
 
-@test "update that fails to install leaves kit.yml and tools.lock as they were" {
+@test "update that fails to install leaves kit.yml and kit.lock as they were" {
   sed -i.bak '/^  alpha:/,/^  beta:/{/^  beta:/!d;}' kit.yml
   "${kit_root}/bin/kit" tools install --toolchain=kit >/dev/null 2>&1
-  cp kit.yml before.yml && cp tools.lock before.lock
+  cp kit.yml before.yml && cp kit.lock before.lock
   route gh 'api repos/acme/beta/releases/latest --jq .tag_name' 'beta-tag'
   printf '{"tag_name": "v2.1.0"}\n' | fixture beta-tag
   run "${kit_root}/bin/kit" tools update --toolchain=kit
   [ "$status" -ne 0 ]
   cmp --silent before.yml kit.yml
-  cmp --silent before.lock tools.lock
+  cmp --silent before.lock kit.lock
 }
 
 @test "update rewrites the one line that holds a tool's version, and every other line of kit.yml stays, the blank ones too" {
@@ -305,8 +305,8 @@ YAML
 YAML
   run "${kit_root}/bin/kit" tools install --toolchain=kit
   [ "$status" -eq 0 ]
-  grep --quiet $'^gamma\t3\.0\.0\tmacos-arm64\tboth\tfile:gamma-macos\.zip\t' tools.lock
-  grep --quiet $'^gamma\t3\.0\.0\tlinux-x64\tboth\tfile:gamma-linux\.tar\.gz\t' tools.lock
+  grep --quiet $'^gamma\t3\.0\.0\tmacos-arm64\tboth\tfile:gamma-macos\.zip\t' kit.lock
+  grep --quiet $'^gamma\t3\.0\.0\tlinux-x64\tboth\tfile:gamma-linux\.tar\.gz\t' kit.lock
   [ "$(PATH="$("${kit_root}/bin/kit" tools path --toolchain=kit | paste -s -d ':' -):${PATH}" gamma)" = gamma ]
 }
 
@@ -334,8 +334,8 @@ YAML
   "${kit_root}/bin/kit" tools install --toolchain=kit >/dev/null 2>&1
   awk -F '\t' -v OFS='\t' '/^#/ { print; next } $1 == "alpha" { $5 = "https://example.com/alpha/" substr($5, 6) }
     $1 == "beta" { $5 = "https://github.com/acme/beta/releases/download/v2.0.0/" substr($5, 6) }
-    { sub(/^sha256:/, "", $6); print }' tools.lock > old.lock && mv old.lock tools.lock
-  grep --quiet $'\thttps://example.com/alpha/alpha-1.0.0-' tools.lock
+    { sub(/^sha256:/, "", $6); print }' kit.lock > old.lock && mv old.lock kit.lock
+  grep --quiet $'\thttps://example.com/alpha/alpha-1.0.0-' kit.lock
   rm -rf "${KIT_HOME}/.kit/tools"
   CI=true run "${kit_root}/bin/kit" tools install --toolchain=kit
   [ "$status" -eq 0 ]
@@ -343,14 +343,14 @@ YAML
   [ "$(PATH="$(CI=true "${kit_root}/bin/kit" tools path --toolchain=kit):${PATH}" alpha)" = "alpha 1.0.0 ${platform}" ]
   run "${kit_root}/bin/kit" tools install --toolchain=kit
   [ "$status" -eq 0 ]
-  grep --quiet 'https://' tools.lock
+  grep --quiet 'https://' kit.lock
 }
 
 @test "a download is found on the pull path: a path that ends at off before direct installs no url, and says so" {
   KIT_SOURCES=off run "${kit_root}/bin/kit" tools install --toolchain=kit
   [ "$status" -eq 1 ]
   [[ "$output" == *"no source on the pull path served alpha-1.0.0-"*": the path ends at off; see: kit tools sources"* ]]
-  [ ! -e tools.lock ]
+  [ ! -e kit.lock ]
   [ "$(downloads)" -eq 0 ]
   KIT_SOURCES=direct,off run "${kit_root}/bin/kit" tools install --toolchain=kit
   [ "$status" -eq 0 ]
@@ -367,7 +367,7 @@ YAML
 
 @test "a download kept in the cache is hashed again, and other bytes there are removed and fetched again" {
   "${kit_root}/bin/kit" tools install --toolchain=kit >/dev/null 2>&1
-  hash=$(awk -F '\t' -v p="${platform}" '$1 == "alpha" && $3 == p { print $6 }' tools.lock)
+  hash=$(awk -F '\t' -v p="${platform}" '$1 == "alpha" && $3 == p { print $6 }' kit.lock)
   kept="${XDG_CACHE_HOME}/kit/downloads/${hash#sha256:}"
   [ -f "${kept}" ]
   printf '#!/bin/sh\necho TAMPERED\n' > "${kept}"

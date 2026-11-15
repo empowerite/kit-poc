@@ -1,7 +1,7 @@
 # Using kit as the toolchain
 
 The kit toolchain is kit itself: `tools:` in `kit.yml` pins each tool by version and the URL of its download, and
-`tools.lock` records what each download is, and its hash, for every platform, never where it came from. It needs only
+`kit.lock` records what each download is, and its hash, for every platform, never where it came from. It needs only
 curl and tar, and unzip for a zip. For how kit finds and chooses a manager, see [toolchains.md](../toolchains.md).
 
 ## Set up
@@ -23,9 +23,9 @@ curl and tar, and unzip for a zip. For how kit finds and chooses a manager, see 
        profile: desk
    ```
 
-2. Run `kit tools install --toolchain=kit`. It downloads each tool for every platform, writes `tools.lock`, and
+2. Run `kit tools install --toolchain=kit`. It downloads each tool for every platform, writes `kit.lock`, and
    installs this platform's.
-3. Commit `kit.yml` and `tools.lock`.
+3. Commit `kit.yml` and `kit.lock`.
 
 ## A tool's entry
 
@@ -76,22 +76,22 @@ with two, a `release` without its `asset`, or a `dist` without its `file`, is re
 
 ## What kit reads
 
-- **Usable**: curl and tar are on `PATH`, and `kit.yml` has `tools:` or `tools.lock` is here.
+- **Usable**: curl and tar are on `PATH`, and `kit.yml` has `tools:` or `kit.lock` is here.
 - **Active**: each directory `kit tools path` names is on `PATH`.
-- **Pins**: each tool's version in `kit.yml`. `tools.lock` holds one line per tool and platform: the name, version,
+- **Pins**: each tool's version in `kit.yml`. `kit.lock` holds one line per tool and platform: the name, version,
   platform, profile, artifact, hash, and bin, separated by tabs. The artifact is what the download is: its URL's last
   part, as `file:gh_2.103.2_macOS_arm64.zip`, or what the tool says it is, as
   `release:cli/cli@v2.103.2/gh_2.103.2_macOS_arm64.zip`. The hash is its ecosystem's own, with its prefix:
   `sha256:<hex>` for a file, Go's `h1:` for a module, as `go.sum` holds it, and npm's `sha512-` integrity. A lock
   written before artifacts, with each URL and a bare sha256, reads as the same lock, and the next lock rewrites it.
 
-`kit tools path` and the active check read `tools.lock` alone, so a shell hook that puts the tools on `PATH` stays
+`kit tools path` and the active check read `kit.lock` alone, so a shell hook that puts the tools on `PATH` stays
 fast.
 
 | `kit tools` | What kit does |
 | --- | --- |
 | `install` | Locks again each tool whose entry changed, downloading it for every platform, then installs each tool this platform and profile take that is not installed at its locked digest. |
-| `update` | Moves each tool behind to its latest version in `kit.yml`, then locks and installs it. It rewrites the tool's `version:` line and no other line of the file, so comments and blank lines stay; a tool written on one line, in braces, it names and leaves for a person to edit. A tool is behind only when the latest is newer than its pin, so a pin ahead of the latest stays; when the install fails, `kit.yml` and `tools.lock` are put back as they were. |
+| `update` | Moves each tool behind to its latest version in `kit.yml`, then locks and installs it. It rewrites the tool's `version:` line and no other line of the file, so comments and blank lines stay; a tool written on one line, in braces, it names and leaves for a person to edit. A tool is behind only when the latest is newer than its pin, so a pin ahead of the latest stays; when the install fails, `kit.yml` and `kit.lock` are put back as they were. |
 | `--outdated` | For a release, a module, or an npm package, asks the pull path: the newest version the first source that answers serves, a pre-release passed by, so `update` never moves to one the path does not serve yet. For a URL, asks the latest tag of each GitHub release or source archive, through gh where it is installed; Node.js's latest LTS; Go's latest release; and the newest file a GNU mirror's directory lists. It names each tool whose source it cannot ask. |
 
 ## Where things are kept
@@ -108,7 +108,7 @@ Each download is found on the pull path, the artifact sources kit searches in or
 `url:` names a place, so `direct`, the open internet, alone serves it: a path that ends at `off` before `direct`
 installs none, and kit says so, naming the download and what each source said.
 
-A source whose download has another hash than the one `tools.lock` pins is named and passed by, and the next one is
+A source whose download has another hash than the one `kit.lock` pins is named and passed by, and the next one is
 asked, as is one that cannot be reached; when none has the pinned bytes, nothing is installed. A download kept in the
 cache is hashed again before it is used, and removed and fetched again when its bytes are other. A source's credentials
 come from netrc, or from `KIT_SOURCE_TOKEN_<NAME>`, the source's name upper-cased with each dash as `_`, sent as a
@@ -123,7 +123,7 @@ path of `direct` alone, where no layer names a source, writes nothing, so each m
 ## A desk and a runner
 
 - A desk, a developer's machine as against a CI runner, locks: when an entry in `kit.yml` changes,
-  `kit tools install` downloads the tool for every platform and rewrites its lines in `tools.lock`.
-- A runner never locks. A `tools.lock` behind `kit.yml` fails the install, naming each tool, so a pin is never
+  `kit tools install` downloads the tool for every platform and rewrites its lines in `kit.lock`.
+- A runner never locks. A `kit.lock` behind `kit.yml` fails the install, naming each tool, so a pin is never
   resolved on a runner that a desk has not checked.
 - A tool with `profile: desk` is installed on a desk alone, and one with `profile: ci` on a runner alone.

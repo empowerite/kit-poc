@@ -19,7 +19,7 @@ default branch. The job:
 
 The job installs nothing and puts nothing on `PATH` before the two judgements, and it has no `kit tools` step. So
 when they judge, no install script of the branch, as npm's `postinstall`, has run, and no `node_modules/.bin` is on
-`PATH`. On a runner the opa engine is the one the target's `tools.lock` pins, installed new for the run.
+`PATH`. On a runner the opa engine is the one the target's `kit.lock` pins, installed new for the run.
 [policy.md](../../policy.md#what-judges-a-branch) says what that covers and what it leaves open.
 
 The pull request's own workflow file runs: on a `pull_request` event GitHub takes the workflow from the pull request's
@@ -35,7 +35,7 @@ toolchain named, and none for the others:
 
 | `ci_toolchain` | Step | What it does |
 | --- | --- | --- |
-| `kit` | `kit-tools-cache` | `actions/cache`, pinned by commit, keeps `~/.kit/tools` between runs while `tools.lock` is as it was |
+| `kit` | `kit-tools-cache` | `actions/cache`, pinned by commit, keeps `~/.kit/tools` between runs while `kit.lock` is as it was |
 | `mise` | `mise-on-path` | `jdx/mise-action`, pinned by commit, with its own install turned off |
 | `nix` | `nix-on-path` | `DeterminateSystems/nix-installer-action`, pinned by commit |
 | `devcontainer` | `devcontainer-on-path` | `npm install --global @devcontainers/cli`, exact version; needs npm |

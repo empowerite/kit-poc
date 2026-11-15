@@ -60,7 +60,7 @@ network, and never calls git.
 | Provider | Roles | Usable when | Active when | Pins |
 | --- | --- | --- | --- | --- |
 | [`mise`](toolchains/using-mise.md) | project | `mise` runs, and `mise.toml`, `.mise.toml`, or `mise.local.toml` is here | one of its files is here, and `MISE_SHELL` is set or every directory `mise bin-paths` prints is on `PATH` | each tool's version, resolved in `mise.lock` |
-| [`kit`](toolchains/using-kit.md) | project | curl and tar are on `PATH`, and `kit.yml` has `tools:` or `tools.lock` is here | every directory `kit tools path` prints is on `PATH` | each tool's download, by sha256 for every platform, in `tools.lock` |
+| [`kit`](toolchains/using-kit.md) | project | curl and tar are on `PATH`, and `kit.yml` has `tools:` or `kit.lock` is here | every directory `kit tools path` prints is on `PATH` | each tool's download, by sha256 for every platform, in `kit.lock` |
 | [`nix`](toolchains/using-nix.md) | project | `nix` is on `PATH` with flakes on, and `flake.nix` names `devShells` or `devShell` | `IN_NIX_SHELL` is set, and `flake.nix` is here | each flake input by its locked revision in `flake.lock` |
 | [`brew`](toolchains/using-brew.md) | system; project with a `Brewfile`, on macOS | `brew` is on `PATH` | never | a formula by name; a version only in a name such as `node@22` |
 | [`docker`](toolchains/using-docker.md) | project | `docker` runs, and `toolchain.Dockerfile` is here | never; it runs commands in its container | each base image by digest, `FROM name:tag@sha256:…` |
@@ -197,7 +197,7 @@ kit hydrate --quick
 
 - It does not put any tools on `PATH`. A tool manager that activates through direnv adds its own line, as nix does with
   `use flake`. This repository's `.envrc` adds the kit tool manager's directories, which `kit tools path
-  --toolchain=kit` reads from `tools.lock` alone; see [using kit as the tool manager](toolchains/using-kit.md).
+  --toolchain=kit` reads from `kit.lock` alone; see [using kit as the tool manager](toolchains/using-kit.md).
 - An agent's subprocess shell and a CI runner have neither. There the verbs' own call and `kit ci` do the work.
 
 ## On a runner

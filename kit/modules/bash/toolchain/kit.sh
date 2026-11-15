@@ -1,7 +1,7 @@
 # shellcheck shell=bash
-# kit.sh - the kit toolchain provider: tools: in kit.yml pins the tools, tools.lock each download (sourced module)
+# kit.sh - the kit toolchain provider: tools: in kit.yml pins the tools, kit.lock each download (sourced module)
 # ----------------------------------------------------------------------------------------------------------------------
-# kit fills the project role where kit.yml has tools:, or tools.lock is here. It needs curl and tar, and unzip for a
+# kit fills the project role where kit.yml has tools:, or kit.lock is here. It needs curl and tar, and unzip for a
 # download that is a zip. Each tool under tools: names its version, and the url of its download as a template:
 #
 #   tools:
@@ -34,7 +34,7 @@
 # commands of a module or an npm package are made executable, as go and npm make them.
 #
 # Each download is found on the pull path, sources:find's, the first source that has it winning; a url: names a place,
-# so direct alone serves it. tools.lock, beside kit.yml, holds one line per tool and platform, tab-separated: name,
+# so direct alone serves it. kit.lock, beside kit.yml, holds one line per tool and platform, tab-separated: name,
 # version, platform, profile, artifact, hash, and bin. The artifact is what the download is, never where it came
 # from: a url's last part, as file:gh_2.103.2_macOS_arm64.zip, or the coordinate, as
 # release:cli/cli@v2.103.2/gh_2.103.2_macOS_arm64.zip. The hash is its ecosystem's own, with its prefix: sha256:<hex>
@@ -69,7 +69,7 @@ toolchain/kit:active() {
 
 toolchain/kit:file() { printf 'kit.yml\n'; }
 
-toolchain/kit:inputs() { printf 'tool\tcurl\ntool\ttar\nfile\tkit.yml\nfile\ttools.lock\nenv\tCI\n'; }
+toolchain/kit:inputs() { printf 'tool\tcurl\ntool\ttar\nfile\tkit.yml\nfile\tkit.lock\nenv\tCI\n'; }
 
 # toolchain/kit:install locks again what moved, then installs each tool this platform and profile take that is not
 # installed at the lock's digest. One tool that fails stops none of the rest.
@@ -231,16 +231,16 @@ toolchain/kit:pin() {
 # toolchain/kit:update moves each tool behind to its latest version in kit.yml, then locks and installs it. It
 # rewrites the one line that holds each version, as toolchain/kit:pin does, and nothing else in the file. A tool
 # whose latest kit cannot read is left as it was, and the run fails once the others have moved. When the install
-# fails, kit.yml and tools.lock are put back as they were, so the one never moves without the other.
+# fails, kit.yml and kit.lock are put back as they were, so the one never moves without the other.
 toolchain/kit:update() {
   local behind name current latest status=0 kept_yml kept_lock=''
   toolchain/kit:require || return 1
   file:temp kept_yml kit.yml || return 1
   cp kit.yml "${kept_yml}" || return 1
-  if [[ -f tools.lock ]]
+  if [[ -f kit.lock ]]
   then
-    file:temp kept_lock tools.lock || return 1
-    cp tools.lock "${kept_lock}" || return 1
+    file:temp kept_lock kit.lock || return 1
+    cp kit.lock "${kept_lock}" || return 1
   fi
   behind=$(toolchain/kit:outdated) || status=1
   # A fourth field, the newest version tagged upstream, is not the one to move to.
@@ -253,11 +253,11 @@ toolchain/kit:update() {
   if ! toolchain/kit:install
   then
     [[ -z "${behind}" ]] && return 1
-    warn "kit.yml and tools.lock are put back as they were, since the install failed"
+    warn "kit.yml and kit.lock are put back as they were, since the install failed"
     cp "${kept_yml}" kit.yml || return 1
     if [[ -n "${kept_lock}" ]]
-    then cp "${kept_lock}" tools.lock
-    else rm -f tools.lock
+    then cp "${kept_lock}" kit.lock
+    else rm -f kit.lock
     fi
     return 1
   fi
@@ -271,9 +271,9 @@ toolchain/kit:usable() {
 
 # The seam's calls end here; what follows is this provider's own.
 
-# toolchain/kit:configured succeeds when tools.lock is here, or kit.yml has tools:.
+# toolchain/kit:configured succeeds when kit.lock is here, or kit.yml has tools:.
 toolchain/kit:configured() {
-  [[ -f tools.lock ]] && return 0
+  [[ -f kit.lock ]] && return 0
   [[ -f kit.yml ]] && grep --quiet '^tools:' kit.yml
 }
 
@@ -378,18 +378,18 @@ toolchain/kit:tools() {
     'import "toolchain" as toolchain; toolchain::kit_latest($platform)' <<<"${spec:-[]}"
 }
 
-# toolchain/kit:locked prints the lines of tools.lock, its comments and blank lines left out. A line written before
+# toolchain/kit:locked prints the lines of kit.lock, its comments and blank lines left out. A line written before
 # artifacts, its fifth field a url and its sixth a bare sha256, is printed with the url's last part as file:<part> and
 # the sha256 with its prefix, as the lock is written now.
 toolchain/kit:locked() {
-  [[ -f tools.lock ]] || return 0
+  [[ -f kit.lock ]] || return 0
   awk -F '\t' -v OFS='\t' '/^#/ || /^$/ { next }
     $6 ~ /^[0-9a-f]+$/ && length($6) == 64 { url = $5; sub(/[?#].*/, "", url); sub(/.*\//, "", url)
       $5 = "file:" url; $6 = "sha256:" $6 }
-    { print }' tools.lock
+    { print }' kit.lock
 }
 
-# toolchain/kit:here prints the lines of tools.lock that this platform and profile install.
+# toolchain/kit:here prints the lines of kit.lock that this platform and profile install.
 toolchain/kit:here() {
   local platform profile locked
   platform=$(toolchain/kit:platform) || return 1
@@ -400,7 +400,7 @@ toolchain/kit:here() {
     '$3 == platform && ($4 == "both" || $4 == profile)' <<<"${locked}"
 }
 
-# toolchain/kit:lock [<path>] rewrites tools.lock when kit.yml asks for other lines than it holds: each tool whose pin
+# toolchain/kit:lock [<path>] rewrites kit.lock when kit.yml asks for other lines than it holds: each tool whose pin
 # moved is found on the pull path for every platform, a coordinate they share once, and the lines of the rest are
 # kept. Only this platform's downloads stay in the cache; the others were fetched to be hashed. A runner refuses a lock
 # behind kit.yml. <path> is sources:path's, read here without it.
@@ -434,8 +434,8 @@ toolchain/kit:lock() {
   [[ -n "${names}" ]] || (( rows != 0 )) || return 0
   if [[ "$(toolchain/kit:profile)" == ci ]]
   then
-    error "tools.lock is behind tools: in kit.yml for ${names:-the tools it no longer pins}; run kit tools install" \
-      "at a desk, and commit tools.lock"
+    error "kit.lock is behind tools: in kit.yml for ${names:-the tools it no longer pins}; run kit tools install" \
+      "at a desk, and commit kit.lock"
     return 1
   fi
   [[ -n "${path}" ]] || path=$(sources:path) || return 1
@@ -461,12 +461,12 @@ toolchain/kit:lock() {
   do
     [[ -n "${kept[${hash}]:-}" ]] || rm -f "${cache}/$(toolchain/kit:kept-as "${hash}")"
   done
-  banner="# tools.lock - what each tool's download is, for every platform, written by kit tools install from tools:"
-  file:replace tools.lock printf '%s\n' "${banner} in kit.yml" \
+  banner="# kit.lock - what each tool's download is, for every platform, written by kit tools install from tools:"
+  file:replace kit.lock printf '%s\n' "${banner} in kit.yml" \
     $'# name\tversion\tplatform\tprofile\tartifact\thash\tbin' "${lines[@]}" || return 1
   if [[ -n "${names}" ]]
-  then ok "tools.lock: locked ${names}; commit it with kit.yml"
-  else ok "tools.lock: left out the tools kit.yml no longer pins; commit it with kit.yml"
+  then ok "kit.lock: locked ${names}; commit it with kit.yml"
+  else ok "kit.lock: left out the tools kit.yml no longer pins; commit it with kit.yml"
   fi
 }
 
@@ -532,7 +532,7 @@ toolchain/kit:fetch() {
   printf '%s\n' "${have}"
 }
 
-# toolchain/kit:place <line> <coordinate> [<path>] installs the tool a line of tools.lock names, from the coordinate
+# toolchain/kit:place <line> <coordinate> [<path>] installs the tool a line of kit.lock names, from the coordinate
 # kit.yml gives it, unless it is installed at its hash: the download is unpacked apart, its bin: checked to hold a
 # command named as the tool, and only then moved into place.
 toolchain/kit:place() {

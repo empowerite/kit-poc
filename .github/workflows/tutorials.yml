@@ -61,12 +61,12 @@ jobs:
       - name: trust
         run: kit/bin/kit trust --clone --yes "${GITHUB_WORKSPACE}"
 
-      # The kit toolchain installs under ~/.kit/tools/, kept between runs while tools.lock is as it was.
+      # The kit toolchain installs under ~/.kit/tools/, kept between runs while kit.lock is as it was.
       - name: kit-tools-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: ~/.kit/tools
-          key: kit-tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('tools.lock') }}
+          key: kit-tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('kit.lock') }}
 
       # The pinned tools, through the kit toolchain, for node.
       - name: tools

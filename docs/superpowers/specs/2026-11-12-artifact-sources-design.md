@@ -212,7 +212,7 @@ each source by name, kind, and url, before kit reads anything there.
 
 ## The lock
 
-`tools.lock` loses its URL. A line is, apart by tabs (shown here as spaces): name, version, platform, profile,
+`kit.lock` loses its URL. A line is, apart by tabs (shown here as spaces): name, version, platform, profile,
 artifact, hash, and bin.
 
 - The artifact is what the download is, apart from where it is: the coordinate itself for every form but `url:`,
@@ -224,7 +224,7 @@ artifact, hash, and bin.
   `integrity`.
 
 ```text
-# tools.lock - what each tool's download is, for every platform, written by kit tools install from tools: in kit.yml
+# kit.lock - what each tool's download is, for every platform, written by kit tools install from tools: in kit.yml
 # name  version  platform  profile  artifact  hash  bin
 gh  2.103.2  macos-arm64  both  release:cli/cli@v2.103.2/gh_2.103.2_macOS_arm64.zip  sha256:5416000f…  gh_2.103.2_macOS_arm64/bin
 go  1.27.3  macos-arm64  both  module:golang.org/toolchain@v0.0.1-go1.27.3.darwin-arm64  h1:Jq3w…  golang.org/toolchain@v0.0.1-go1.27.3.darwin-arm64/bin
@@ -320,7 +320,7 @@ Each slice is its own #182 commit, with bats tests against fakes in `tests/fakes
    package sources move onto, their behaviour unchanged; `kind:`, `direct`, and `off` in `sources:`, validated, and
    in the schema; the layers, `KIT_SOURCES` over the workspace over `kit.yml`; `kit tools sources`; `kit trust`
    naming each source's kind and url.
-2. **Tool pins through the path, a hash-only lock.** `tools.lock` with the artifact in place of its URL, the hash with
+2. **Tool pins through the path, a hash-only lock.** `kit.lock` with the artifact in place of its URL, the hash with
    its prefix; a lock of URLs and bare sha256s read as the new form; each download found through `sources:find`, a
    `url:` pin served by `direct` alone, a source with other bytes passed by; the cache keyed by hash.
 3. **github-releases, goproxy, and npm.** The three providers, with the `release:`, `module:`, and `npm:` pins, the

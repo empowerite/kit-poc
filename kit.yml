@@ -36,7 +36,7 @@ answers:
   ci_timeout_minutes: "35"
   ci_toolchain: kit
 
-# The tools the gate runs, pinned for the kit toolchain: tools.lock records what each download is, and its hash, for
+# The tools the gate runs, pinned for the kit toolchain: kit.lock records what each download is, and its hash, for
 # every platform, and kit tools install puts them under ~/.kit/tools/, from the first source on the pull path that has
 # them: each tool is named by what it is, a GitHub release's file or tag, or a file of its project's own download
 # directory, so a mirror serves it as well as its home. A runner installs them all but lefthook, a desk's alone. git,

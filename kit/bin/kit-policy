@@ -37,7 +37,7 @@
 # The engine and the tools beside it, opa, jq, yq, and git, are run from no directory of the checkout, which the
 # branch fills: kit policy takes each off PATH, node_modules/.bin and .venv/bin among them. At a desk it then puts the
 # chosen toolchain's directories first. On a CI runner it puts none of them first, since the toolchain's tools are the
-# ones the branch's own files pin; with the opa engine, it installs the opa the base's tools.lock pins, fresh, into a
+# ones the branch's own files pin; with the opa engine, it installs the opa the base's kit.lock pins, fresh, into a
 # directory of its own, checking the download against the lock's hash, and runs that. A base that pins no opa there,
 # as one whose tool manager is mise or whose repository has no kit.yml yet, leaves the opa on the runner's PATH to judge,
 # and kit policy fails where there is none. kit ci runs it before it installs anything of the change's, and the

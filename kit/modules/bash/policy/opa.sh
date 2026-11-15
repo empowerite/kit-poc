@@ -13,7 +13,7 @@
 #
 # The repository's toolchain must pin opa, like any tool its gate runs. At a desk kit policy runs it from the
 # toolchain's directories, and never from a directory of the checkout, as node_modules/.bin (policy:judging-path). On a
-# runner it runs the opa the base's tools.lock pins, or else the runner's own (policy:base-tools). The policy/opa
+# runner it runs the opa the base's kit.lock pins, or else the runner's own (policy:base-tools). The policy/opa
 # package delivers .kit/policy/kit.rego, the patterns provider's rules written in Rego, to build on.
 
 policy/opa:deny() {

@@ -58,7 +58,7 @@ tool() {
   run "${kit_root}/bin/kit" tools install --toolchain=kit
   [ "$status" -eq 0 ]
   grep --quiet --line-regexp "https://github.com/cli/cli/releases/download/v2.1.0/${file}" "${FAKE_RELEASES}/curl.calls"
-  grep --quiet --line-regexp $'gh\t2.1.0\t'"${platform}"$'\tboth\trelease:cli/cli@v2.1.0/'"${file}"$'\tsha256:'"$(shasum -a 256 "${FAKE_RELEASES}/${file}" | cut -d ' ' -f 1)"$'\tgh_2.1.0/bin' tools.lock
+  grep --quiet --line-regexp $'gh\t2.1.0\t'"${platform}"$'\tboth\trelease:cli/cli@v2.1.0/'"${file}"$'\tsha256:'"$(shasum -a 256 "${FAKE_RELEASES}/${file}" | cut -d ' ' -f 1)"$'\tgh_2.1.0/bin' kit.lock
   [ "$(tool gh)" = "gh 2.1.0 any" ]
 }
 
@@ -168,9 +168,9 @@ YAML
   [ "$status" -eq 0 ]
   grep --quiet --line-regexp "https://proxy.example/go/golang.org/toolchain/@v/${version}.zip" "${FAKE_RELEASES}/curl.calls"
   grep --quiet --line-regexp 'https://proxy.example/go/example.com/!acme/!widget/@v/v1.0.0.zip' "${FAKE_RELEASES}/curl.calls"
-  hash=$(awk -F '\t' '$1 == "go" { print $6 }' tools.lock)
+  hash=$(awk -F '\t' '$1 == "go" { print $6 }' kit.lock)
   [[ "${hash}" =~ ^h1:[A-Za-z0-9+/]{43}=$ ]]
-  [ "$(awk -F '\t' '$1 == "go" { print $5 }' tools.lock)" = "module:golang.org/toolchain@${version}" ]
+  [ "$(awk -F '\t' '$1 == "go" { print $5 }' kit.lock)" = "module:golang.org/toolchain@${version}" ]
   [ "$(tool go)" = "go 1.27.3" ]
   [ -x "${KIT_HOME}/.kit/tools/go/1.27.3/${platform}/golang.org/toolchain@${version}/pkg/tool/x/compile" ]
   [ "$(tool widget)" = widget ]
@@ -218,7 +218,7 @@ YAML
   run "${kit_root}/bin/kit" tools install --toolchain=kit
   [ "$status" -eq 0 ]
   run -1 grep --quiet 'other.example' "${FAKE_RELEASES}/curl.calls"
-  [ "$(awk -F '\t' '$1 == "lint" { print $5 "\t" $6 }' tools.lock)" = "npm:@acme/lint@1.0.0"$'\t'"${integrity}" ]
+  [ "$(awk -F '\t' '$1 == "lint" { print $5 "\t" $6 }' kit.lock)" = "npm:@acme/lint@1.0.0"$'\t'"${integrity}" ]
   [ "$(tool lint)" = "lint 1.0.0" ]
   run "${kit_root}/bin/kit" tools --outdated --toolchain=kit
   grep --quiet -E '^🔺 lint +· 1\.0\.0 +· 1\.0\.0 +· 1\.1\.0$' <<<"$output"
@@ -323,7 +323,7 @@ YAML
   [ "$status" -eq 0 ]
   grep --quiet --line-regexp 'https://github.com/bats-core/bats-core/archive/refs/tags/v1.14.0.tar.gz' \
     "${FAKE_RELEASES}/curl.calls"
-  [ "$(awk -F '\t' '{ print $5 }' tools.lock | grep -v '^artifact$' | tail -n 1)" = 'archive:bats-core/bats-core@v1.14.0' ]
+  [ "$(awk -F '\t' '{ print $5 }' kit.lock | grep -v '^artifact$' | tail -n 1)" = 'archive:bats-core/bats-core@v1.14.0' ]
   [ "$(tool bats)" = bats ]
 }
 
@@ -399,7 +399,7 @@ YAML
   grep --quiet --line-regexp 'https://auth.example/token?service=ghcr.io&scope=repository:acme/tool:pull' \
     "${FAKE_RELEASES}/curl.calls"
   grep --quiet --line-regexp "https://ghcr.io/v2/acme/tool/blobs/${digest}" "${FAKE_RELEASES}/curl.calls"
-  grep --quiet "oci:ghcr.io/acme/tool:1.0.0"$'\t'"${digest}" tools.lock
+  grep --quiet "oci:ghcr.io/acme/tool:1.0.0"$'\t'"${digest}" kit.lock
   [ "$(tool widget)" = "tool 1.0.0" ]
   # a pull-through cache serves it under its prefix, and lists the tags
   mkdir -p "${FAKE_RELEASES}/cache.example"

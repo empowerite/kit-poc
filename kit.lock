@@ -1,4 +1,4 @@
-# tools.lock - what each tool's download is, for every platform, written by kit tools install from tools: in kit.yml
+# kit.lock - what each tool's download is, for every platform, written by kit tools install from tools: in kit.yml
 # name	version	platform	profile	artifact	hash	bin
 actionlint	1.7.12	linux-x64	both	release:rhysd/actionlint@v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz	sha256:8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8	.
 actionlint	1.7.12	linux-arm64	both	release:rhysd/actionlint@v1.7.12/actionlint_1.7.12_linux_arm64.tar.gz	sha256:325e971b6ba9bfa504672e29be93c24981eeb1c07576d730e9f7c8805afff0c6	.

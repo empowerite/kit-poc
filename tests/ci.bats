@@ -254,7 +254,7 @@ run-job() {
   grep --quiet "^    timeout-minutes: \${{ fromJSON('12') }}$" "${workflow}"
 }
 
-@test "the CI workflow installs nothing before kit ci, and caches the kit toolchain's tools by tools.lock" {
+@test "the CI workflow installs nothing before kit ci, and caches the kit toolchain's tools by kit.lock" {
   fresh-repo other >/dev/null
   "${kit_checkout}/bin/kit" install github/ci >/dev/null
   workflow=.github/workflows/kit-ci.yml
@@ -267,6 +267,6 @@ run-job() {
   # a step runs by the toolchain the answer names, never by which files are here
   run -1 grep --quiet 'if: .*hashFiles' "${workflow}"
   grep --quiet "^        if: \${{ env.KIT_TOOLCHAIN == 'kit' }}$" "${workflow}"
-  grep --quiet "^          key: kit-tools-\${{ runner.os }}-\${{ runner.arch }}-\${{ hashFiles('tools.lock') }}$" "${workflow}"
+  grep --quiet "^          key: kit-tools-\${{ runner.os }}-\${{ runner.arch }}-\${{ hashFiles('kit.lock') }}$" "${workflow}"
 }
 

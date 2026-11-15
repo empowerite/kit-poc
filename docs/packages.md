@@ -307,7 +307,7 @@ answers:
 | `sources` | The artifact sources: the releases a repository takes packages from, each with a `name`, a `url`, and a `digest`, and the pull path's default; see below. |
 | `trackers` | Trackers other than the code forge's own whose issues the workflow accepts, each with a prefix and a provider; see [trackers.md](trackers.md). |
 | `bash_path` | The bash module path: the directories `use` sources a bash module from, in order, starting with `kit:modules/bash/`. A directory that does not exist is skipped; see [modules.md](modules.md#the-module-path). |
-| `tools` | The tools kit pins as the tool manager, by name: each a version and the url of its download, which `tools.lock` records for every platform; see [using-kit.md](toolchains/using-kit.md). |
+| `tools` | The tools kit pins as the tool manager, by name: each a version and the url of its download, which `kit.lock` records for every platform; see [using-kit.md](toolchains/using-kit.md). |
 | `flow` | The stages `kit flow` draws, in order: `issues`, `changes`, `builds`, `incoming`, `releases`. A stage left out is not drawn; `kit flow <stage>` still shows it. `issues` lists every open issue, in the backlog or underway, so `backlog` and `underway` are no stages. Default: all five, in that order. |
 
 A provider setting, `forge`, a value of `forges`, `policy_engine`, or the `provider` of a tracker, takes one of the

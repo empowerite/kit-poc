@@ -1001,7 +1001,7 @@ SH
     "'{\"result\": [{\"expressions\": [{\"value\": []}]}]}'" > "${FAKE_RELEASES}/opa-2.0.0"
   engine-pin 1.0.0
   "${kit_root}/bin/kit" tools install --toolchain=kit >/dev/null 2>&1
-  git add kit.yml tools.lock
+  git add kit.yml kit.lock
   git commit --quiet --message "#2 kit: the engine, pinned" && git push --quiet origin main
 }
 
@@ -1024,7 +1024,7 @@ as-runner() {
   export CI=true GITHUB_HEAD_REF=7-fix-the-thing GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json"
 }
 
-@test "on a runner, a branch that pins an engine of its own in tools.lock is judged by the engine its base pins" {
+@test "on a runner, a branch that pins an engine of its own in kit.lock is judged by the engine its base pins" {
   pinned-engines
   branch 7-fix-the-thing "#7 cli: fix the thing"
   change "Fix the thing"
@@ -1035,8 +1035,8 @@ as-runner() {
   # the attack: the branch pins an engine that allows everything, locks it, installs it, and commits both files
   engine-pin 2.0.0
   env -u CI "${kit_root}/bin/kit" tools install --toolchain=kit >/dev/null 2>&1
-  grep --quiet $'^opa\t2\\.0\\.0\t' tools.lock
-  git add kit.yml tools.lock
+  grep --quiet $'^opa\t2\\.0\\.0\t' kit.lock
+  git add kit.yml kit.lock
   git commit --quiet --message "#7 cli: an engine of our own, pinned"
   run "${kit_root}/bin/kit" policy
   [ "$status" -eq 1 ]
@@ -1087,7 +1087,7 @@ as-runner() {
   branch 7-fix-the-thing "#7 cli: fix the thing"
   engine-pin 2.0.0
   "${kit_root}/bin/kit" tools install --toolchain=kit >/dev/null 2>&1
-  git add kit.yml tools.lock
+  git add kit.yml kit.lock
   git commit --quiet --message "#7 cli: an engine of our own, pinned"
   change "Fix the thing"
   git switch --quiet --detach

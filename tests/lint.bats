@@ -250,7 +250,7 @@ YAML
 
 @test "a linter the chosen toolchain installed is run from its directory, though PATH lacks it" {
   platform=$(kit-bash 'use toolchain/kit && toolchain/kit:platform')
-  printf 'shellcheck\t1\t%s\tboth\thttps://example.com/shellcheck\t%064d\t.\n' "${platform}" 0 > tools.lock
+  printf 'shellcheck\t1\t%s\tboth\thttps://example.com/shellcheck\t%064d\t.\n' "${platform}" 0 > kit.lock
   dir="${KIT_HOME}/.kit/tools/shellcheck/1/${platform}"
   mkdir -p "${dir}"
   printf '#!/usr/bin/env bash\necho "the toolchain'"'"'s shellcheck over $#"\n' > "${dir}/shellcheck"
