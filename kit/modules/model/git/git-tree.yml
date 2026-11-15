@@ -1,0 +1,40 @@
+# A tree object: one directory's listing. git sorts its entries by name, a subtree's name as if it ended in a slash.
+entity: GitTree
+layer: native
+tool: git
+means: One directory of a snapshot, as a sorted list of entries.
+fields:
+  id:
+    type: Hash
+    source: derived
+    from: the hash of the header "tree <size>" and the entries, in the repository's object format, SHA-1 or SHA-256
+    status: unused
+    means: The object's name.
+  size:
+    type: Int
+    source: derived
+    from: the length of the stored entries in bytes, as git cat-file -s prints it
+    status: unused
+    means: The length of the tree object's content in bytes.
+relations:
+  entries:
+    to: GitTreeEntry
+    arity: many
+    ordered: true
+    inverse: GitTreeEntry.tree
+    means: The entries of this directory, in the order git sorts them, which is the order the tree stores them in.
+  commits:
+    to: GitCommit
+    arity: many
+    inverse: GitCommit.tree
+    means: The commits whose snapshot is this tree.
+  named-by:
+    to: GitTreeEntry
+    arity: many
+    derived: the tree entries whose target is Tree(this)
+    means: The entries of other trees that name this tree as a subdirectory.
+  tagged-by:
+    to: GitTag
+    arity: many
+    derived: the annotated tags whose target is Tree(this)
+    means: The annotated tags whose object header names this tree.

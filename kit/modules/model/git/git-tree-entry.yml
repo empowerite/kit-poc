@@ -1,0 +1,28 @@
+# One entry of a tree object: a mode, a name, and the raw id of what it names. The tree stores a subtree's mode as
+# 40000, which git cat-file -p prints as 040000.
+entity: GitTreeEntry
+layer: native
+tool: git
+means: One name in a directory, with its mode and the object it names.
+fields:
+  mode:
+    type: {enum: ["100644", "100755", "100664", "120000", "040000", "160000"]}
+    source: stored
+    status: planned
+    means: >-
+      The entry's kind: 100644 a file, 100755 an executable, 120000 a symlink, 040000 a subtree, 160000 a gitlink, and
+      100664 a file in an old repository, which git reads as 100644.
+  name:
+    type: Bytes
+    source: stored
+    status: planned
+    means: The entry's name within its directory, in bytes that need not be UTF-8 and never hold a slash or a NUL.
+relations:
+  tree:
+    to: GitTree
+    inverse: GitTree.entries
+    means: The tree that holds this entry.
+  target:
+    to: GitTreeTarget
+    inverse: GitTreeTarget.named-by
+    means: The object the entry names, a blob, a tree, a symlink, or a gitlink, as its mode says.

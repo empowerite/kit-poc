@@ -32,8 +32,9 @@ An entity file has these keys:
 An `arity` is `one`, `option`, `many`, or `some`, and is `one` where it is not written. A scalar `type` is `Text`,
 `Int`, `Bool`, `Bytes`, `Path`, `Url`, `Time`, or `Hash`, or `{enum: [..]}`, or the name of an entity. A field's `source`
 is `stored` or `derived`, and a derived field says where it comes from in `from`. Its `status` is `held`, `planned`, or
-`unused`, and a held field says which verb reads it in `read-by`, written `"<verb> <jsonkey>"`. A relation's `inverse`
-is `Entity.relation`; `derived`, a sentence, replaces it for a relation with no inverse to name.
+`unused`, and a held field says which verb prints it in `read-by`, written `"<verb> <jsonkey>"`. The verb is every word
+but the last, as `workspace commits`, and the key is the last word, dotted where it is nested, as `links.commit`. A
+relation's `inverse` is `Entity.relation`; `derived`, a sentence, replaces it for a relation with no inverse to name.
 
 A `domain.yml` has `name`, `intro`, and `layout: {Entity: {row, col}}`, where each entity sits in its domain's diagram.
 

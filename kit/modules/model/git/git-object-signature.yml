@@ -1,0 +1,89 @@
+# A signature a commit or a tag carries: the armored text git stores, and what checking it says. git stores only the
+# text; each result is what gpg.program, gpg.ssh.program, or gpg.x509.program says of it, as git log %G? and the
+# placeholders after it print.
+entity: GitObjectSignature
+layer: native
+tool: git
+means: A detached signature over a commit's or a tag's content, with what checking it finds.
+fields:
+  header:
+    type: {enum: [gpgsig, gpgsig-sha256]}
+    arity: option
+    source: stored
+    status: unused
+    means: The header that holds the signature, which is none for the signature at the end of a tag's body.
+  armor:
+    type: Text
+    source: stored
+    status: unused
+    means: The signature as stored, from its BEGIN line to its END line.
+  format:
+    type: {enum: [openpgp, x509, ssh]}
+    source: derived
+    from: the armor's BEGIN line, PGP SIGNATURE or PGP MESSAGE, SIGNED MESSAGE, or SSH SIGNATURE
+    status: unused
+    means: The kind of signature, as gpg.format names it.
+  status:
+    type: {enum: [G, B, U, X, Y, R, E]}
+    source: derived
+    from: checking the armor against the signed content, as git log %G? prints it
+    status: planned
+    means: >-
+      Good, bad, good of unknown validity, good but expired, good by an expired key, good by a revoked key, or not
+      checkable, such as for a missing key.
+  signer:
+    type: Text
+    arity: option
+    source: derived
+    from: checking the armor, as git log %GS prints it
+    status: planned
+    means: The name of the signer, as the key or the allowed-signers file gives it.
+  key:
+    type: Text
+    arity: option
+    source: derived
+    from: checking the armor, as git log %GK prints it
+    status: planned
+    means: The id of the key that made the signature.
+  fingerprint:
+    type: Text
+    arity: option
+    source: derived
+    from: checking the armor, as git log %GF prints it
+    status: unused
+    means: The fingerprint of the key that made the signature.
+  primary-fingerprint:
+    type: Text
+    arity: option
+    source: derived
+    from: checking the armor, as git log %GP prints it
+    status: unused
+    means: The fingerprint of the primary key whose subkey made the signature.
+  trust:
+    type: {enum: [undefined, never, marginal, fully, ultimate]}
+    arity: option
+    source: derived
+    from: checking the armor, as git log %GT prints it
+    status: unused
+    means: How far the checker trusts the key.
+relations:
+  commit:
+    to: GitCommit
+    arity: option
+    inverse: GitCommit.signature
+    means: The commit this signature signs in the repository's object format.
+  compat-commit:
+    to: GitCommit
+    arity: option
+    inverse: GitCommit.compat-signature
+    means: The commit this signature signs in the other object format.
+  tag:
+    to: GitTag
+    arity: option
+    inverse: GitTag.signature
+    means: The tag whose body ends with this signature.
+  compat-tag:
+    to: GitTag
+    arity: option
+    inverse: GitTag.compat-signature
+    means: The tag this signature signs in the other object format.

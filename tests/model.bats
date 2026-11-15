@@ -13,6 +13,15 @@ setup() {
   fixtures=${BATS_TEST_DIRNAME}/fixtures/model
 }
 
+# release-counts sets release_entities and release_stubs: the entities the release's model files define, and the stubs
+# among them, counted from the files, so a test that adds a repository's entity knows the total kit model check gives.
+release-counts() {
+  local -a files
+  files=("${kit_root}"/modules/model/*/*.yml)
+  release_entities=$(grep --files-with-matches --no-messages '^entity: ' "${files[@]}" | wc -l | tr -d ' ')
+  release_stubs=$(grep --files-with-matches --no-messages '^stub: true$' "${files[@]}" | wc -l | tr -d ' ')
+}
+
 @test "model:load reads the release's files in path order" {
   run --separate-stderr kit-bash "model:load '${fixtures}/ok/release' '${fixtures}/none'"
   [ "$status" -eq 0 ]
@@ -103,7 +112,8 @@ setup() {
   run kit model check
   [ "$status" -eq 1 ]
   [ "${lines[0]}" = "Bad.other has neither an inverse nor a derived; it has one" ]
-  [ "${lines[-1]}" = 'model: 1 entities, 0 stubs' ]
+  release-counts
+  [ "${lines[-1]}" = "model: $((release_entities + 1)) entities, ${release_stubs} stubs" ]
 }
 
 @test "kit model check counts stubs" {
@@ -112,7 +122,8 @@ setup() {
   printf 'entity: Ghost\nstub: true\nmeans: named so others can refer to it\n' > .kit/model/code/ghost.yml
   run kit model check
   [ "$status" -eq 0 ]
-  [ "$output" = 'model: 1 entities, 1 stubs' ]
+  release-counts
+  [ "$output" = "model: $((release_entities + 1)) entities, $((release_stubs + 1)) stubs" ]
 }
 
 @test "kit model --release= reads another directory in place of the release's" {
