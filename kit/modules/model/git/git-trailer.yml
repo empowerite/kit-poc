@@ -10,20 +10,20 @@ fields:
     source: derived
     from: the trailer line up to its separator, of ASCII letters, digits, and hyphens
     status: held
-    read-by: facts commits.trailers.key
+    read-by: facts commits.*.trailers.*.key
     means: The trailer's name.
   separator:
     type: Text
     source: derived
-    from: the character after the token, a colon or one of the characters trailer.separators names
+    from: the first character after the token and any spaces or tabs, a colon or a character trailer.separators names
     status: unused
-    means: The character that ends the token.
+    means: The character that ends the token, which spaces or tabs may precede.
   value:
     type: Text
     source: derived
     from: the trailer line after its separator, with any continuation lines that start with a space or a tab
     status: held
-    read-by: facts commits.trailers.value
+    read-by: facts commits.*.trailers.*.value
     means: What the trailer says, its continuation lines unfolded into one.
 relations:
   message:

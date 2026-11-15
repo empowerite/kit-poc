@@ -34,6 +34,8 @@ An `arity` is `one`, `option`, `many`, or `some`, and is `one` where it is not w
 is `stored` or `derived`, and a derived field says where it comes from in `from`. Its `status` is `held`, `planned`, or
 `unused`, and a held field says which verb prints it in `read-by`, written `"<verb> <jsonkey>"`. The verb is every word
 but the last, as `workspace commits`, and the key is the last word, dotted where it is nested, as `links.commit`. A
+segment `*` stands for any key of a mapping or any element of an array, as in `facts tree.*.blob`, so a check of the
+verb's output walks every key or element there. A
 relation's `inverse` is `Entity.relation`; `derived`, a sentence, replaces it for a relation with no inverse to name.
 
 A `domain.yml` has `name`, `intro`, and `layout: {Entity: {row, col}}`, where each entity sits in its domain's diagram.

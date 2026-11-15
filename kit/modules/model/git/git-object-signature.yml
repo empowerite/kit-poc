@@ -11,7 +11,10 @@ fields:
     arity: option
     source: stored
     status: unused
-    means: The header that holds the signature, which is none for the signature at the end of a tag's body.
+    means: >-
+      The header that holds the signature, which agrees with the object format and the relation that holds it: gpgsig
+      for a commit's signature in a SHA-1 repository, gpgsig-sha256 in a SHA-256 one, the other header for a
+      compat-signature, and none for the signature at the end of a tag's body.
   armor:
     type: Text
     source: stored

@@ -8,7 +8,7 @@ fields:
   id:
     type: Hash
     source: derived
-    from: the hash of the header "commit <size>" and the content, in the repository's object format, SHA-1 or SHA-256
+    from: the hash of "commit <size>", a NUL byte, and the content, in the repository's object format, SHA-1 or SHA-256
     status: held
     read-by: workspace commits key
     means: The object's name.

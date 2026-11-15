@@ -7,7 +7,7 @@ fields:
   id:
     type: Hash
     source: derived
-    from: the hash of the header "tree <size>" and the entries, in the repository's object format, SHA-1 or SHA-256
+    from: the hash of "tree <size>", a NUL byte, and the entries, in the repository's object format, SHA-1 or SHA-256
     status: unused
     means: The object's name.
   size:
@@ -22,7 +22,7 @@ relations:
     arity: many
     ordered: true
     inverse: GitTreeEntry.tree
-    means: The entries of this directory, in the order git sorts them, which is the order the tree stores them in.
+    means: The entries of this directory, sorted bytewise by name, a subtree's name sorting as if followed by a slash.
   commits:
     to: GitCommit
     arity: many

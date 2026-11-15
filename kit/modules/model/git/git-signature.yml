@@ -18,8 +18,8 @@ fields:
   time:
     type: Time
     source: stored
-    status: planned
-    means: The moment, in seconds since the epoch, from which kit prints the age of a commit, a branch, or a tag.
+    status: unused
+    means: The moment, in seconds since the epoch, which kit reads only to compute an age.
   offset:
     type: Text
     source: stored

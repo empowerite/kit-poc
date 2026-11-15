@@ -8,8 +8,10 @@ fields:
   text:
     type: Bytes
     source: stored
-    status: planned
-    means: The message as stored, UTF-8 unless a commit's encoding header names another, which kit reads for trailers.
+    status: unused
+    means: >-
+      The message as stored, UTF-8 unless a commit's encoding header names another, which kit reads only to parse
+      trailers.
   subject:
     type: Text
     source: derived
@@ -39,4 +41,6 @@ relations:
     arity: many
     ordered: true
     inverse: GitTrailer.message
-    means: The trailers of the message's last paragraph, in the order they appear.
+    means: >-
+      The trailers of the message's last paragraph, in the order they appear, when that paragraph is all trailers, or
+      holds at least one trailer git adds or a trailer.<key> setting names and is at least 25% trailers.
