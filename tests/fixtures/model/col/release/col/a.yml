@@ -1,0 +1,11 @@
+# Entity A of the column.
+entity: A
+layer: logical
+means: entity A
+relations:
+  h: {to: H, arity: many, inverse: H.a}
+  g: {to: G, derived: far}
+  f: {to: F, derived: far}
+  e: {to: E, derived: far}
+  d: {to: D, derived: far}
+  b: {to: B, derived: near}

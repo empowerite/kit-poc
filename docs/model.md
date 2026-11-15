@@ -192,8 +192,9 @@ A card goes in the row and column its domain's `layout` gives it. An entity with
 deepest entity that needs it, where an entity needs what a relation of arity `one` or `some` goes to; one that nothing
 needs is in the first column. A cycle of needs is broken at the relation back into an entity already on the path, with
 the entities taken in name order. In a column, the entities with no hint go below the hinted ones, in name order. A row
-or column that holds no card closes up. A card is 236 wide, columns are 64 apart, rows 56 apart, and a row is as tall as
-its tallest card.
+or column that holds no card closes up. A card is 236 wide, and a row is as tall as its tallest card. Columns are at least
+64 apart and rows at least 56 apart: a gap or a gutter widens to hold the lines, loops, and stubs it carries, and the
+rows and columns after it move along.
 
 Each relation of the domain is a line:
 
@@ -202,21 +203,26 @@ Each relation of the domain is a line:
   `1`, `0..1`, `0..*`, or `1..*`, and an ordered relation adds `{ordered}`.
 - A derived relation is a dashed arrow to where it goes, with its name, its arity, and `derived` at that end. A relation
   whose inverse does not name it back is a solid arrow, labelled the same way, without `derived`.
-- A relation to its own entity, or a pair on one entity, is a loop on the right side of the card when the cell to its
-  right is free, or else on the left side when the cell to its left is free. When both cells hold cards, the loop is
-  drawn under the card, in the gap below its row. A relation that is its own inverse has one label.
-- A relation to an entity of another domain is a short arrow down from the card, with that entity's name in grey. That
-  entity has no card, so a diagram holds only its own domain.
+- A relation to its own entity, or a pair on one entity, is a loop on the right side of the card, with its labels past
+  it. A relation that is its own inverse has one label.
+- A relation to an entity of another domain is a short arrow out of the right side of the card, with its name and
+  arity past it, then that entity's name in grey. That entity has no card, so a diagram holds only its own domain.
 
-A line leaves and reaches the bottom or top of a card, and runs only in the gaps between rows and the gutters between
-columns, so it never passes through a card. A line between a card and the row under it, or two cards of one row, runs
-along one track in the gap between them. Any other line runs along a track in the gap by its first card, along a track
-in a gutter between the two cards' columns, and along a track in the gap by its other card. Each line has a track of
-its own in each gap and gutter, and each end has a point of its own on its card's edge, so no two lines share a track
-or an end.
+A line between two cards leaves and reaches the bottom or top of each, and runs only in the gaps between rows and
+the gutters between columns, so it never passes through a card. A line between a card and the row under it, or two
+cards of one row, runs along one track in the gap between them. Any other line runs along a track in the gap by its
+first card, along a track in a gutter between the two cards' columns, and along a track in the gap by its other card.
+Each line has a track of its own in each gap and gutter, and each end has a point of its own on its card's edge, so no
+two lines share a track or an end.
+
+The lines are planned on the grid of cards before anything has a size, so the plan says how many tracks each gap and
+gutter carries. Tracks are 6 apart. A gap is 56 high, or higher when its tracks need it, with 22 above and under them
+for the labels. A gutter is 64 wide, or wider: the loops and stubs of the column left of it, with their labels, come
+first, then 8 of clear room, then its tracks, then 18 before the next column.
 
 The lines are drawn first, then the cards, then the labels. Each label has a white halo and sits within 40 units of its
-own end, at the nearest place there that covers no card and no other label, when there is one.
+own end. It takes the nearest place there that covers no card and no other label, and stays at least 3 from every
+other line, when there is one. The widest labels are placed first.
 
 The overview draws a panel for each domain, five to a row, by name: the domain's name and intro, and its entities as
 pills, a stub's dashed. A domain of the release has a fixed color, and `config` and `configuration` share one. Any
@@ -228,8 +234,10 @@ every coordinate is rounded to one decimal, and the text of a name, a sentence, 
 
 `tests/fixtures/model/lab/lab.svg` is the diagram of an eleven-entity domain with no layout hints, and
 `tests/model.bats` compares the output with it byte for byte, so a change to the layout or the router shows as a diff.
-After a change you mean, write it afresh from the repository root:
+After a change you mean, write it afresh from the repository root. The command writes to a scratch file first, so a
+failed run leaves the golden as it was:
 
 ```bash
-kit/bin/kit model --release=tests/fixtures/model/lab/release svg --domain=lab > tests/fixtures/model/lab/lab.svg
+kit/bin/kit model --release=tests/fixtures/model/lab/release svg --domain=lab > "${TMPDIR:-/tmp}/lab.svg" \
+  && mv "${TMPDIR:-/tmp}/lab.svg" tests/fixtures/model/lab/lab.svg
 ```

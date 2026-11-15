@@ -335,8 +335,10 @@ setup() {
 }
 
 # The golden diagram of the lab domain: eleven entities with no hints, so the layout and the router place everything. A
-# change to either shows as a diff of tests/fixtures/model/lab/lab.svg. To write it afresh, from the repository root:
-#   kit/bin/kit model --release=tests/fixtures/model/lab/release svg --domain=lab > tests/fixtures/model/lab/lab.svg
+# change to either shows as a diff of tests/fixtures/model/lab/lab.svg. To write it afresh, from the repository root, through
+# a scratch file so a failed run leaves the golden as it was:
+#   kit/bin/kit model --release=tests/fixtures/model/lab/release svg --domain=lab > "${TMPDIR:-/tmp}/lab.svg" \
+#     && mv "${TMPDIR:-/tmp}/lab.svg" tests/fixtures/model/lab/lab.svg
 @test "kit model svg --domain=lab prints the golden diagram, byte for byte" {
   fresh-repo
   kit model "--release=${fixtures}/lab/release" svg --domain=lab > lab.svg
