@@ -93,10 +93,14 @@ def extend($f):
 # any that extends one, so an extension may extend an entity a file of the repository defines.
 def build:
   [.files[] | select(.path | split("/") | last == "domain.yml")] as $domain_files
-  | [.files[] | select((.path | split("/") | last) != "domain.yml" and (.doc | type) == "object")] as $files
-  | define([$files[] | select(.doc.entity != null)]) as $defined
-  | reduce [$files[] | select(.doc.extends != null)][] as $f ({entities: $defined.entities, findings: $defined.findings};
-      extend($f))
+  | [.files[] | select((.path | split("/") | last) != "domain.yml")] as $files
+  | [$files[] | select((.doc | type) == "object" and .doc.entity != null)] as $entity_files
+  | [$files[] | select((.doc | type) == "object" and .doc.entity == null and .doc.extends != null)] as $extend_files
+  | [$files[] | select(((.doc | type) == "object" and (.doc.entity != null or .doc.extends != null)) | not)
+      | "\(.path) names neither an entity nor an extension"] as $unnamed
+  | define($entity_files) as $defined
+  | reduce $extend_files[] as $f ({entities: $defined.entities, findings: $defined.findings}; extend($f))
+  | .findings += $unnamed
   | {domains: ([$domain_files[] | {key: .domain, value: (.doc | with_entries(select(.key | IN("name", "intro", "layout"))))}]
         | from_entries),
       entities, findings};

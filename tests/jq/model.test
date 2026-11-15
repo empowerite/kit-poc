@@ -60,3 +60,9 @@ import "model" as model; model::build | [.findings, .entities]
 import "model" as model; model::build | [.findings, .entities.Commit]
 {"files": [{"domain": "code", "origin": "release", "path": "m/commit.yml", "doc": {"entity": "Commit", "layer": "native", "tool": "git"}}, {"domain": "mine", "origin": "repository", "path": "r/commit.yml", "doc": {"extends": "Commit", "layer": "logical", "tool": "hg", "over": ["Commit"], "stub": true, "sum": true, "means": "x", "variants": {"A": {"f": "Commit"}}}}]}
 [["r/commit.yml sets layer on Commit, which it extends and does not define; layer is the defining file's to set", "r/commit.yml sets tool on Commit, which it extends and does not define; tool is the defining file's to set", "r/commit.yml sets over on Commit, which it extends and does not define; over is the defining file's to set", "r/commit.yml sets stub on Commit, which it extends and does not define; stub is the defining file's to set", "r/commit.yml sets sum on Commit, which it extends and does not define; sum is the defining file's to set", "r/commit.yml sets means on Commit, which it extends and does not define; means is the defining file's to set", "r/commit.yml sets variants on Commit, which it extends and does not define; variants is the defining file's to set"], {"domain": "code", "origin": "release", "layer": "native", "tool": "git"}]
+
+# a file that names neither an entity nor an extension, such as one with a mistyped key, is a finding that names the
+# path; domain.yml is not one
+import "model" as model; model::build | [.findings, (.entities | keys)]
+{"files": [{"domain": "code", "origin": "release", "path": "m/code/domain.yml", "doc": {"name": "Code"}}, {"domain": "mine", "origin": "repository", "path": "r/typo.yml", "doc": {"entiy": "Foo"}}, {"domain": "mine", "origin": "repository", "path": "r/ok.yml", "doc": {"entity": "Bar"}}]}
+[["r/typo.yml names neither an entity nor an extension"], ["Bar"]]

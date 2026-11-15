@@ -78,5 +78,7 @@ relation, and the file. These are findings:
 - an arity that widens, a type that changes, or a `to` that changes;
 - any other key set on a field or relation the entity has;
 - a key an extension may not set on the entity.
+- a file other than `domain.yml` that names neither an entity nor an extension, as `<path> names neither an entity nor an
+  extension`.
 
 A finding leaves the entity as it was before the file's change that caused it; the rest of the file still applies.
