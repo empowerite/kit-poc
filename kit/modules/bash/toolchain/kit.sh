@@ -62,6 +62,9 @@ use file yaml sources
 # toolchain_kit_platforms are the platforms a tool is locked for, unless its platforms: names others.
 declare -gr toolchain_kit_platforms='linux-x64 linux-arm64 macos-x64 macos-arm64'
 
+# toolchain_kit_lock is the file beside kit.yml that holds each tool's download for every platform.
+declare -gr toolchain_kit_lock=kit.lock
+
 toolchain/kit:active() {
   toolchain/kit:configured || return 1
   toolchain/kit:on-path
@@ -69,7 +72,7 @@ toolchain/kit:active() {
 
 toolchain/kit:file() { printf 'kit.yml\n'; }
 
-toolchain/kit:inputs() { printf 'tool\tcurl\ntool\ttar\nfile\tkit.yml\nfile\tkit.lock\nenv\tCI\n'; }
+toolchain/kit:inputs() { printf 'tool\tcurl\ntool\ttar\nfile\tkit.yml\nfile\t%s\nenv\tCI\n' "${toolchain_kit_lock}"; }
 
 # toolchain/kit:install locks again what moved, then installs each tool this platform and profile take that is not
 # installed at the lock's digest. One tool that fails stops none of the rest.
@@ -237,10 +240,10 @@ toolchain/kit:update() {
   toolchain/kit:require || return 1
   file:temp kept_yml kit.yml || return 1
   cp kit.yml "${kept_yml}" || return 1
-  if [[ -f kit.lock ]]
+  if [[ -f "${toolchain_kit_lock}" ]]
   then
-    file:temp kept_lock kit.lock || return 1
-    cp kit.lock "${kept_lock}" || return 1
+    file:temp kept_lock "${toolchain_kit_lock}" || return 1
+    cp "${toolchain_kit_lock}" "${kept_lock}" || return 1
   fi
   behind=$(toolchain/kit:outdated) || status=1
   # A fourth field, the newest version tagged upstream, is not the one to move to.
@@ -253,11 +256,11 @@ toolchain/kit:update() {
   if ! toolchain/kit:install
   then
     [[ -z "${behind}" ]] && return 1
-    warn "kit.yml and kit.lock are put back as they were, since the install failed"
+    warn "kit.yml and ${toolchain_kit_lock} are put back as they were, since the install failed"
     cp "${kept_yml}" kit.yml || return 1
     if [[ -n "${kept_lock}" ]]
-    then cp "${kept_lock}" kit.lock
-    else rm -f kit.lock
+    then cp "${kept_lock}" "${toolchain_kit_lock}"
+    else rm -f "${toolchain_kit_lock}"
     fi
     return 1
   fi
@@ -273,7 +276,7 @@ toolchain/kit:usable() {
 
 # toolchain/kit:configured succeeds when kit.lock is here, or kit.yml has tools:.
 toolchain/kit:configured() {
-  [[ -f kit.lock ]] && return 0
+  [[ -f "${toolchain_kit_lock}" ]] && return 0
   [[ -f kit.yml ]] && grep --quiet '^tools:' kit.yml
 }
 
@@ -382,11 +385,11 @@ toolchain/kit:tools() {
 # artifacts, its fifth field a url and its sixth a bare sha256, is printed with the url's last part as file:<part> and
 # the sha256 with its prefix, as the lock is written now.
 toolchain/kit:locked() {
-  [[ -f kit.lock ]] || return 0
+  [[ -f "${toolchain_kit_lock}" ]] || return 0
   awk -F '\t' -v OFS='\t' '/^#/ || /^$/ { next }
     $6 ~ /^[0-9a-f]+$/ && length($6) == 64 { url = $5; sub(/[?#].*/, "", url); sub(/.*\//, "", url)
       $5 = "file:" url; $6 = "sha256:" $6 }
-    { print }' kit.lock
+    { print }' "${toolchain_kit_lock}"
 }
 
 # toolchain/kit:here prints the lines of kit.lock that this platform and profile install.
@@ -434,8 +437,8 @@ toolchain/kit:lock() {
   [[ -n "${names}" ]] || (( rows != 0 )) || return 0
   if [[ "$(toolchain/kit:profile)" == ci ]]
   then
-    error "kit.lock is behind tools: in kit.yml for ${names:-the tools it no longer pins}; run kit tools install" \
-      "at a desk, and commit kit.lock"
+    error "${toolchain_kit_lock} is behind tools: in kit.yml for ${names:-the tools it no longer pins}; run kit tools install" \
+      "at a desk, and commit ${toolchain_kit_lock}"
     return 1
   fi
   [[ -n "${path}" ]] || path=$(sources:path) || return 1
@@ -461,12 +464,12 @@ toolchain/kit:lock() {
   do
     [[ -n "${kept[${hash}]:-}" ]] || rm -f "${cache}/$(toolchain/kit:kept-as "${hash}")"
   done
-  banner="# kit.lock - what each tool's download is, for every platform, written by kit tools install from tools:"
-  file:replace kit.lock printf '%s\n' "${banner} in kit.yml" \
+  banner="# ${toolchain_kit_lock} - what each tool's download is, for every platform, written by kit tools install from tools:"
+  file:replace "${toolchain_kit_lock}" printf '%s\n' "${banner} in kit.yml" \
     $'# name\tversion\tplatform\tprofile\tartifact\thash\tbin' "${lines[@]}" || return 1
   if [[ -n "${names}" ]]
-  then ok "kit.lock: locked ${names}; commit it with kit.yml"
-  else ok "kit.lock: left out the tools kit.yml no longer pins; commit it with kit.yml"
+  then ok "${toolchain_kit_lock}: locked ${names}; commit it with kit.yml"
+  else ok "${toolchain_kit_lock}: left out the tools kit.yml no longer pins; commit it with kit.yml"
   fi
 }
 

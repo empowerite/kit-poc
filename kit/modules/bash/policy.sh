@@ -1,6 +1,8 @@
 # shellcheck shell=bash
 # policy.sh - the seam over the engine that judges the branch, the commits, the change, and the tree (sourced module)
 # ----------------------------------------------------------------------------------------------------------------------
+# shellcheck disable=SC2154  # toolchain_kit_lock is declared by modules/bash/toolchain/kit.sh
+#
 # A seam is a contract plus the point that picks who answers it; docs/architecture.md says why not "interface".
 #
 # A policy sets what a branch name, a commit subject, a change title, or the tree of files may be. kit policy enforces
@@ -382,20 +384,20 @@ policy:base-tools() {
   [[ -f "${dir}/base.yml" ]] || return 0
   engine=$(policy:engine) || return 1
   [[ "${engine}" == opa ]] || return 0
+  use toolchain toolchain/kit
   # a head that is no commit of the base's cannot be asked for its lock, and policy:base has said so already
-  object=$(policy:object "$(policy:base)" kit.lock) || return 1
+  object=$(policy:object "$(policy:base)" "${toolchain_kit_lock}") || return 1
   [[ -n "${object}" ]] || return 0
   tools=${dir}/tools
   rm -rf "${tools:?}" && mkdir -p "${tools}" || return 1
-  policy:blob "${object}" "${tools}/kit.lock.all" "kit.lock in the base" || return 1
-  awk -F '\t' '$1 == "opa"' "${tools}/kit.lock.all" > "${tools}/kit.lock"
-  [[ -s "${tools}/kit.lock" ]] || return 0
+  policy:blob "${object}" "${tools}/${toolchain_kit_lock}.all" "${toolchain_kit_lock} in the base" || return 1
+  awk -F '\t' '$1 == "opa"' "${tools}/${toolchain_kit_lock}.all" > "${tools}/${toolchain_kit_lock}"
+  [[ -s "${tools}/${toolchain_kit_lock}" ]] || return 0
   yq '{"tools": {"opa": .tools.opa}, "sources": .sources}' "${dir}/base.yml" > "${tools}/kit.yml" || return 1
-  use toolchain
   if ! (cd "${tools}" && export KIT_HOME=${tools}/home XDG_CACHE_HOME=${tools}/cache \
     && toolchain:call kit install && toolchain:call kit path > dirs)
   then
-    error "opa, as the base pins it in kit.lock, could not be installed, so the policy cannot be judged"
+    error "opa, as the base pins it in ${toolchain_kit_lock}, could not be installed, so the policy cannot be judged"
     return 1
   fi
   [[ -s "${tools}/dirs" ]] || return 0
