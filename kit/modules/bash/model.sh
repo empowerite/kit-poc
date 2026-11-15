@@ -28,18 +28,19 @@ model:refusal() {
   if (( count > 1 ))
   then
     printf '%s\n' 'holds two documents; a model file holds one'
-  elif [[ -n "$(yaml:yq "${file}" model-merge '.. | select(kind == "map") | keys | .[] | select(. == "<<")')" ]]
+  elif [[ -n "$(yaml:yq "${file}" model-merge '.. | key | select(tag == "!!merge")')" ]]
   then
     printf '%s\n' 'has a merge key; write the keys out'
   elif [[ -n "$(yaml:yq "${file}" model-alias '.. | select(kind == "alias")')" ]]
   then
     printf '%s\n' 'has an alias; write the value out'
-  elif [[ -n "$(yaml:yq "${file}" model-anchor '.. | select(anchor != "")')" ]]
+  elif [[ -n "$(yaml:yq "${file}" model-anchor '(.. | select(anchor != "")), (.. | key | select(anchor != ""))')" ]]
   then
     printf '%s\n' 'has an anchor; write the value out'
   fi
 }
 
+# yq reads a quoted "<<" key as a merge key, and drops it, unless it is told to follow the YAML spec.
 # model:read <origin> <dir> <prefix> prints, one JSON object a line, each <dir>/<domain>/*.yml, in path order, as
 # {"domain", "origin", "path", "doc"} with the path written from <prefix>. It returns 1 for a file it refuses.
 model:read() {
@@ -50,7 +51,7 @@ model:read() {
   do
     domain=$(basename "$(dirname "${file}")")
     path=${prefix}/${domain}/$(basename "${file}")
-    doc=$(yaml:json "${file}") || return 1
+    doc=$(yaml:eval "${file}" model-json '.' --output-format=json --indent=0 --yaml-fix-merge-anchor-to-spec=true) || return 1
     why=$(model:refusal "${file}") || return 1
     if [[ -n "${why}" ]]
     then

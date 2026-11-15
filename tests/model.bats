@@ -73,3 +73,15 @@ setup() {
   [ "$status" -eq 1 ]
   [[ "$output" == *"broken.yml"* ]]
 }
+
+@test "a file with an anchor on a key is refused with its path" {
+  run kit-bash "model:load '${fixtures}/keyanchor/release' '${fixtures}/none'"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"modules/model/code/bad.yml"*"anchor"* ]]
+}
+
+@test "a quoted \"<<\" key is an ordinary key and loads" {
+  run --separate-stderr kit-bash "model:load '${fixtures}/quoted/release' '${fixtures}/none'"
+  [ "$status" -eq 0 ]
+  [ "$(jq --raw-output '.files[0].doc["<<"]' <<<"$output")" = 2 ]
+}
