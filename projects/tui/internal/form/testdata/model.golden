@@ -3,5 +3,9 @@
    --release  a model directory that exists, read in place of the release's modules/model; given
               once
 
+   one of required
+   check      checks the model
+   table      prints a table of one entity or one domain
 
- kit model check
+
+ kit model

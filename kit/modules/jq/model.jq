@@ -288,3 +288,57 @@ def check:
 
 # stubs gives the names of the stub entities of a built model, sorted.
 def stubs: [.entities | to_entries[] | select(.value.stub == true) | .key] | sort;
+
+# ----------------------------------------------------------------------------------------------------------------------
+# tables
+# ----------------------------------------------------------------------------------------------------------------------
+
+# arity_text is the arity of a field or a relation as a range: 1, 0..1, 0..*, or 1..*. An arity not given is one.
+def arity_text: ({one: "1", option: "0..1", many: "0..*", some: "1..*"})[. // "one"];
+
+# cell is a value as the text of a table cell: nothing is empty, a newline is a space, and a | is written \|.
+def cell:
+  (. // "") | (if type == "string" then . else tojson end) | sub("\n+$"; "") | gsub("\n"; " ") | gsub("\\|"; "\\|");
+
+# row is the cells of an array as one line of a table.
+def row: "| " + (map(cell) | join(" | ")) + " |";
+
+# table is a header and its rows, as the lines of a table.
+def table($header; $rows): [($header | row), ($header | map("---") | row)] + $rows;
+
+# type_text is a type as it is written in a table: a name as it is, an enum as enum(a, b, c).
+def type_text:
+  if type == "object" and (.enum | type) == "array" then "enum(\(.enum | map(show) | join(", ")))" else show end;
+
+# field_row is the row of a field: its type, arity, source, status, what reads it, and what it means.
+def field_row($name):
+  [$name, (.type | type_text), (.arity | arity_text), (.source // "stored"), .status, .["read-by"],
+    (if .source == "derived" then "derived from \(.from // ""). \(.means // "")" | sub(" $"; "") else .means end)];
+
+# fields gives the table of an entity of a built model, given its name: its fields by name; for a sum, its variants and
+# their fields; for a stub, the one line that says it is one. A table is lines joined with newlines.
+def fields($name):
+  .entities[$name] as $entity
+  | if $entity.stub == true then "_\($name) is a stub: named, not yet unpacked._"
+    elif $entity.sum == true then
+      table(["Variant", "Field", "Type"];
+        [($entity.variants // {}) | to_entries | sort_by(.key)[] | .key as $v
+          | .value | to_entries | sort_by(.key)[] | [$v, .key, (.value | type_text)] | row]) | join("\n")
+    else
+      table(["Field", "Type", "Arity", "Source", "Status", "Read by", "Means"];
+        [($entity.fields // {}) | to_entries | sort_by(.key)[] | .key as $f | .value | field_row($f) | row]) | join("\n")
+    end;
+
+# relation_row is the row of a relation: where it goes, its arity, whether it is ordered, its inverse, and what it means.
+def relation_row($name):
+  [$name, .to, (.arity | arity_text), (if .ordered == true then "ordered" else "" end),
+    (if .derived != null then "derived" else .inverse end),
+    (if .derived != null then "derived: \(.derived)" + (if (.means // "") == "" then "" else ". \(.means)" end) else .means end)];
+
+# relations gives the table of the relations of a built model's domain, given its name: those of every entity in it, by
+# entity then relation. A table is lines joined with newlines.
+def relations($domain):
+  table(["Relation", "To", "Arity", "Ordered", "Inverse", "Means"];
+    [.entities | to_entries | sort_by(.key)[] | select(.value.domain == $domain) | .key as $e
+      | (.value.relations // {}) | to_entries | sort_by(.key)[] | .key as $r | .value | relation_row("\($e).\($r)") | row])
+  | join("\n");

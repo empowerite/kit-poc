@@ -271,3 +271,34 @@ import "model" as model; model::build | model::check
 import "model" as model; model::build | model::check
 {"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": {"enum": []}}, "b": {"type": {"enum": [1]}}, "c": {"type": {"enum": "x"}}, "d": {"type": {"enum": ["x", "y"]}}}}}]}
 ["A.a has type {\"enum\":[]}, which is not a scalar, an enum, or an entity", "A.b has type {\"enum\":[1]}, which is not a scalar, an enum, or an entity", "A.c has type {\"enum\":\"x\"}, which is not a scalar, an enum, or an entity"]
+
+# ----------------------------------------------------------------------------------------------------------------------
+# tables
+# ----------------------------------------------------------------------------------------------------------------------
+
+# an entity's fields are a table, one row to a field by name, with the arity as 1, 0..1, 0..*, or 1..*, an enum written out,
+# a derived field's from before its means, a | escaped, and a newline made a space
+import "model" as model; model::build | model::fields("Worktree")
+{"files": [{"domain": "code", "origin": "release", "path": "w.yml", "doc": {"entity": "Worktree", "layer": "logical", "fields": {"tags": {"type": "Text", "arity": "many", "status": "unused", "means": "a | b\nc"}, "path": {"type": "Path", "source": "derived", "from": "the git dir", "status": "held", "read-by": "work path"}, "owner": {"type": "Person", "arity": "option", "status": "planned"}, "kind": {"type": {"enum": ["main", "linked"]}, "arity": "some", "status": "planned", "means": "which"}, "branch": {"type": "Text", "status": "held", "read-by": "worktree branch", "means": "the branch checked out"}}}}]}
+"| Field | Type | Arity | Source | Status | Read by | Means |\n| --- | --- | --- | --- | --- | --- | --- |\n| branch | Text | 1 | stored | held | worktree branch | the branch checked out |\n| kind | enum(main, linked) | 1..* | stored | planned |  | which |\n| owner | Person | 0..1 | stored | planned |  |  |\n| path | Path | 1 | derived | held | work path | derived from the git dir. |\n| tags | Text | 0..* | stored | unused |  | a \\| b c |"
+
+# a derived field with a means has both, and an entity with no fields has the header and the separator only
+import "model" as model; model::build | [model::fields("A"), model::fields("B")]
+{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"x": {"type": "Int", "source": "derived", "from": "y", "means": "the count"}}}}, {"domain": "code", "origin": "release", "path": "b.yml", "doc": {"entity": "B", "layer": "logical"}}]}
+["| Field | Type | Arity | Source | Status | Read by | Means |\n| --- | --- | --- | --- | --- | --- | --- |\n| x | Int | 1 | derived |  |  | derived from y. the count |", "| Field | Type | Arity | Source | Status | Read by | Means |\n| --- | --- | --- | --- | --- | --- | --- |"]
+
+# a sum prints its variants, by variant then field, and a stub prints one line
+import "model" as model; model::build | [model::fields("Head"), model::fields("Service")]
+{"files": [{"domain": "git", "origin": "release", "path": "h.yml", "doc": {"entity": "Head", "layer": "logical", "sum": true, "variants": {"OnBranch": {"branch": "Branch", "since": "Commit"}, "Detached": {"commit": "Commit"}}}}, {"domain": "platform", "origin": "release", "path": "s.yml", "doc": {"entity": "Service", "stub": true}}]}
+["| Variant | Field | Type |\n| --- | --- | --- |\n| Detached | commit | Commit |\n| OnBranch | branch | Branch |\n| OnBranch | since | Commit |", "_Service is a stub: named, not yet unpacked._"]
+
+# a domain's relations are a table, by entity then relation: a one-to-one, a self-relation with an ordered many, a derived
+# relation, and a stub's relation; another domain's entity is left out
+import "model" as model; model::build | model::relations("code")
+{"files": [{"domain": "code", "origin": "release", "path": "c.yml", "doc": {"entity": "Commit", "layer": "logical", "relations": {"parents": {"to": "Commit", "arity": "many", "ordered": true, "inverse": "Commit.children"}, "children": {"to": "Commit", "arity": "many", "inverse": "Commit.parents"}}}}, {"domain": "code", "origin": "release", "path": "h.yml", "doc": {"entity": "Head", "layer": "logical", "relations": {"worktree": {"to": "Worktree", "inverse": "Worktree.head", "means": "whose head"}}}}, {"domain": "code", "origin": "release", "path": "w.yml", "doc": {"entity": "Worktree", "layer": "logical", "relations": {"head": {"to": "Head", "inverse": "Head.worktree"}, "commits": {"to": "Commit", "arity": "some", "derived": "the commits reachable from head"}}}}, {"domain": "code", "origin": "release", "path": "s.yml", "doc": {"entity": "Service", "stub": true, "relations": {"commit": {"to": "Commit", "arity": "option", "inverse": "Commit.service"}}}}, {"domain": "git", "origin": "release", "path": "g.yml", "doc": {"entity": "Branch", "layer": "logical", "relations": {"tip": {"to": "Commit", "inverse": "Commit.branch"}}}}]}
+"| Relation | To | Arity | Ordered | Inverse | Means |\n| --- | --- | --- | --- | --- | --- |\n| Commit.children | Commit | 0..* |  | Commit.parents |  |\n| Commit.parents | Commit | 0..* | ordered | Commit.children |  |\n| Head.worktree | Worktree | 1 |  | Worktree.head | whose head |\n| Service.commit | Commit | 0..1 |  | Commit.service |  |\n| Worktree.commits | Commit | 1..* |  | derived | derived: the commits reachable from head |\n| Worktree.head | Head | 1 |  | Head.worktree |  |"
+
+# a domain with no relations, or none at all, has the header and the separator only; a | in a relation's text is escaped
+import "model" as model; model::build | [model::relations("empty"), model::relations("code")]
+{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "relations": {"r": {"to": "A", "derived": "a | b", "means": "x\ny"}}}}, {"domain": "empty", "origin": "release", "path": "e.yml", "doc": {"entity": "E", "layer": "logical"}}]}
+["| Relation | To | Arity | Ordered | Inverse | Means |\n| --- | --- | --- | --- | --- | --- |", "| Relation | To | Arity | Ordered | Inverse | Means |\n| --- | --- | --- | --- | --- | --- |\n| A.r | A | 1 |  | derived | derived: a \\| b. x y |"]

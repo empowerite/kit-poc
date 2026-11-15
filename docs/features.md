@@ -372,6 +372,8 @@ see: [generate.md](generate.md)
 
 - `kit model check` checks the model of kit's entities, one YAML file each: the release's and the repository's
   `.kit/model/`. It prints each finding, then how many entities and stubs there are, and fails the gate on a finding.
+- `kit model table --entity=<name>` and `--domain=<name>` print an entity's fields and a domain's relations as markdown
+  tables, for a page that holds them in a `kit:generate` region.
 
 see: [model.md](model.md)
 

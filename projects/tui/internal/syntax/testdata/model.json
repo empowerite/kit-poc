@@ -2,7 +2,7 @@
   "verb": "model",
   "purpose": "checks the model of kit's entities",
   "usage": [
-    "kit model [--release=<dir>] check"
+    "kit model [--release=<dir>] (check | table (--entity=<name> | --domain=<name>))"
   ],
   "syntax": [
     [
@@ -22,8 +22,47 @@
         "repeat": false
       },
       {
-        "kind": "literal",
-        "name": "check",
+        "kind": "group",
+        "optional": false,
+        "alternatives": [
+          [
+            {
+              "kind": "literal",
+              "name": "check",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "literal",
+              "name": "table",
+              "repeat": false
+            },
+            {
+              "kind": "group",
+              "optional": false,
+              "alternatives": [
+                [
+                  {
+                    "kind": "option",
+                    "name": "entity",
+                    "value": "name",
+                    "repeat": false
+                  }
+                ],
+                [
+                  {
+                    "kind": "option",
+                    "name": "domain",
+                    "value": "name",
+                    "repeat": false
+                  }
+                ]
+              ],
+              "repeat": false
+            }
+          ]
+        ],
         "repeat": false
       }
     ]
@@ -34,6 +73,15 @@
     },
     "check": {
       "description": "checks the model"
+    },
+    "table": {
+      "description": "prints a table of one entity or one domain"
+    },
+    "--entity": {
+      "description": "the entity whose fields the table lists"
+    },
+    "--domain": {
+      "description": "the domain whose relations the table lists"
     }
   }
 }

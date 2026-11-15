@@ -144,3 +144,28 @@ exits 2 and says to run `kit help model`.
 The last line is `model: N entities, M stubs` whatever N and M are, zero included. `--release=` takes a directory that
 exists, and once: an empty value, a second one, or a directory that is not there exits 2. A failure of `jq` itself
 ends it with 1 and jq's message, so no status outside 0, 1, and 2 comes out.
+
+## The tables
+
+`model::fields($name)` and `model::relations($domain)`, in the same module, take what `model::build` gives and return
+markdown text: the lines of one table joined with newlines, with no newline at the end.
+
+`kit model [--release=<dir>] table --entity=<name>` prints the fields of an entity, one row each, by name, with the
+columns `Field | Type | Arity | Source | Status | Read by | Means`:
+
+- `Arity` is `1`, `0..1`, `0..*`, or `1..*` for `one`, `option`, `many`, and `some`; a field with no arity is `1`;
+- `Type` is a scalar's name, an entity's name, or `enum(a, b, c)`;
+- `Source` is `stored` unless the field is `derived`; the `Means` of a derived field is `derived from <from>. <means>`;
+- an entity with no fields has the header and the separator only. A sum has the table `Variant | Field | Type`, one row
+  for each field of each variant, in place of fields. A stub has the one line `_<Name> is a stub: named, not yet
+  unpacked._`.
+
+`kit model [--release=<dir>] table --domain=<name>` prints the relations of every entity of the domain, stubs included,
+by entity then relation, with the columns `Relation | To | Arity | Ordered | Inverse | Means`. `Relation` is
+`Entity.relation`; `Ordered` is `ordered` or empty; `Inverse` is `Entity.relation`, or `derived` for a derived relation,
+whose sentence is in `Means` as `derived: <sentence>`. A domain with no relations has the header and the separator only.
+
+In a cell, a `|` is written `\|` and a newline is a space. Exactly one of `--entity=` and `--domain=` is given; none, or
+both, exits 2. A name the model does not hold exits 2 and names the entities, or domains, it does. A page holds a table
+in a `kit:generate` region whose command is `kit model table --entity=<name>`, so `kit generate --check` names the page
+when the model has changed.

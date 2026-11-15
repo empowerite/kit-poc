@@ -174,3 +174,76 @@ setup() {
   [ "${lines[0]}" = 'jq: error: boom' ]
   [[ "$output" != *'model: 0 entities'* ]]
 }
+
+# kit model table: a fields table of an entity and a relations table of a domain.
+
+@test "kit model table --entity= prints the entity's fields as a table" {
+  fresh-repo
+  run kit model "--release=${fixtures}/tables/release" table --entity=Worktree
+  [ "$status" -eq 0 ]
+  [ "$output" = '| Field | Type | Arity | Source | Status | Read by | Means |
+| --- | --- | --- | --- | --- | --- | --- |
+| branch | Text | 0..1 | stored | planned |  | the branch \| or none |
+| name | Text | 1 | derived | unused |  | derived from the path. |
+| path | Path | 1 | stored | held | work path | where it is checked out |' ]
+}
+
+@test "kit model table --domain= prints the domain's relations as a table" {
+  fresh-repo
+  run kit model "--release=${fixtures}/tables/release" table --domain=git
+  [ "$status" -eq 0 ]
+  [ "$output" = '| Relation | To | Arity | Ordered | Inverse | Means |
+| --- | --- | --- | --- | --- | --- |
+| Branch.worktree | Worktree | 1 |  | Worktree.head |  |
+| Worktree.head | Branch | 1 |  | Branch.worktree |  |' ]
+}
+
+@test "kit model table with neither --entity= nor --domain=, or both, exits 2 and says so" {
+  fresh-repo
+  run kit model "--release=${fixtures}/tables/release" table
+  [ "$status" -eq 2 ]
+  [[ "${lines[0]}" == "❌ kit model table needs --entity or --domain; run: "* ]]
+  run kit model "--release=${fixtures}/tables/release" table --entity=Worktree --domain=git
+  [ "$status" -eq 2 ]
+  [[ "${lines[0]}" == "❌ --entity cannot be combined with --domain; run: "* ]]
+}
+
+@test "kit model table names the known entities, or domains, for one it does not know" {
+  fresh-repo
+  run kit model "--release=${fixtures}/tables/release" table --entity=Nope
+  [ "$status" -eq 2 ]
+  [[ "${lines[0]}" == "❌ no entity named Nope; the entities are: Branch, Worktree; run: "* ]]
+  run kit model "--release=${fixtures}/tables/release" table --domain=nope
+  [ "$status" -eq 2 ]
+  [[ "${lines[0]}" == "❌ no domain named nope; the domains are: git; run: "* ]]
+}
+
+@test "a kit:generate region of kit model table is current after kit generate, and stale after the model changes" {
+  fresh-repo
+  cp -R "${fixtures}/tables/release" model
+  printf '<!-- kit:generate fields `kit model --release=model table --entity=Worktree` -->\nold\n<!-- kit:end fields -->\n' > page.md
+  run "${kit_checkout}/bin/kit" generate page.md
+  [ "$status" -eq 0 ]
+  grep --quiet '^| path | Path | 1 | stored | held | work path |' page.md
+  run "${kit_checkout}/bin/kit" generate --check page.md
+  [ "$status" -eq 0 ]
+  sed -i.bak 's/where it is checked out/where it lives/' model/git/worktree.yml
+  run "${kit_checkout}/bin/kit" generate --check page.md
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"page.md: stale"* ]]
+  run "${kit_checkout}/bin/kit" generate page.md
+  [ "$status" -eq 0 ]
+  grep --quiet 'where it lives' page.md
+}
+
+@test "a jq that fails ends kit model table with 1 and jq's message" {
+  fresh-repo
+  real=$(command -v jq)
+  mkdir "${BATS_TEST_TMPDIR}/fake"
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do [[ "$a" != *model::fields* ]] || { echo "jq: error: boom" >&2; exit 5; }; done\nexec %q "$@"\n' \
+    "${real}" > "${BATS_TEST_TMPDIR}/fake/jq"
+  chmod +x "${BATS_TEST_TMPDIR}/fake/jq"
+  PATH="${BATS_TEST_TMPDIR}/fake:${PATH}" run kit model "--release=${fixtures}/tables/release" table --entity=Worktree
+  [ "$status" -eq 1 ]
+  [ "$output" = 'jq: error: boom' ]
+}

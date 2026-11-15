@@ -2,7 +2,7 @@
 # kit-model - checks the model of kit's entities (kit verb: files)
 # ----------------------------------------------------------------------------------------------------------------------
 # Usage:
-#   kit model [--release=<dir>] check
+#   kit model [--release=<dir>] (check | table (--entity=<name> | --domain=<name>))
 #
 # The model is the entities kit works with, one YAML file each: the release's under modules/model/, and the
 # repository's under .kit/model/, as docs/model.md says. kit model check reads both and checks them: every relation has
@@ -11,12 +11,22 @@
 # It prints each finding on a line of its own, then, last, how many entities and how many stubs the model holds, as
 # model: 12 entities, 2 stubs. A file that cannot be read ends it with what the reader printed.
 #
+# table prints a markdown table of the model, for a page that holds it in a kit:generate region. --entity= gives the
+# entity's fields, Field | Type | Arity | Source | Status | Read by | Means, one row each; a sum gives its variants and
+# their fields, and a stub one line that says it is one. --domain= gives the relations of every entity of the domain,
+# Relation | To | Arity | Ordered | Inverse | Means. Arity is 1, 0..1, 0..*, or 1..*. A name the model does not hold
+# exits 2 and names the ones it does.
+#
 # Arguments:
 #   --release=<dir>    a model directory that exists, read in place of the release's modules/model; given once
 #   check              checks the model
+#   table              prints a table of one entity or one domain
+#   --entity=<name>    the entity whose fields the table lists
+#   --domain=<name>    the domain whose relations the table lists
 #
 # Exits 0 when the model holds, 1 when it has a finding, a file cannot be read, or jq fails, and 2 on a usage error: an
-# empty --release=, one given twice, or one that is not a directory.
+# empty --release=, one given twice, or one that is not a directory; table with neither --entity= nor --domain=, or both;
+# and a name of an entity or a domain the model does not hold.
 #
 # see: modules/bash/model.sh, modules/jq/model.jq, docs/model.md
 
@@ -35,8 +45,38 @@ then
   exit 2
 fi
 loaded=$(model:load ${release:+"${release}"}) || exit 1
-# The findings, one a line, then the count. jq's own status (3, 5) is not one of the verb's, so a failure of jq is
-# caught here, printed, and ends it with 1.
+# jq's own status (3, 5) is not one of the verb's, so a failure of jq is caught here, printed, and ends it with 1.
+if [[ "${syntax_literals[0]}" == table ]]
+then
+  # shellcheck disable=SC2154  # syntax_options is set by guard:arguments
+  if [[ -n "${syntax_options[--entity]+x}" ]]
+  then
+    kind=entity plural=entities name=${syntax_options[--entity]} table=fields known='[.entities | keys[]]'
+  else
+    kind=domain plural=domains name=${syntax_options[--domain]} table=relations
+    known='([.domains | keys[]] + [.entities[].domain] | unique)'
+  fi
+  if ! names=$(jq -L "${kit_root}/modules/jq" --raw-output 'import "model" as model; model::build | '"${known}"'[]' \
+    <<<"${loaded}" 2>&1)
+  then
+    printf '%s\n' "${names}"
+    exit 1
+  fi
+  if ! grep --quiet --line-regexp --fixed-strings -- "${name}" <<<"${names}"
+  then
+    error "no ${kind} named ${name}; the ${plural} are: $(paste -s -d, - <<<"${names}" | sed 's/,/, /g'); run: kit help model"
+    exit 2
+  fi
+  if ! report=$(jq -L "${kit_root}/modules/jq" --raw-output --arg name "${name}" \
+    'import "model" as model; model::build | model::'"${table}"'($name)' <<<"${loaded}" 2>&1)
+  then
+    printf '%s\n' "${report}"
+    exit 1
+  fi
+  printf '%s\n' "${report}"
+  exit 0
+fi
+# The findings, one a line, then the count.
 if ! report=$(jq -L "${kit_root}/modules/jq" --raw-output 'import "model" as model; model::build
   | model::check[], "model: \(.entities | length) entities, \(model::stubs | length) stubs"' <<<"${loaded}" 2>&1)
 then
