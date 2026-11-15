@@ -89,12 +89,24 @@ A finding leaves the entity as it was before the file's change that caused it; t
 ## What the check holds
 
 `model::check`, in the same module, takes what `model::build` gives and returns the findings as an array of sentences:
-the merge's first, then the structural ones, by entity name, and in each entity its fields and then its relations, each
-by name. An empty array means the model holds. `model::stubs` gives the names of the stub entities, sorted.
+the merge's first, then the structural ones, by entity name. In each entity come what it is (stub, layer, sum), then its
+fields, then its relations, each by name. An empty array means the model holds. `model::stubs` gives the names of the
+stub entities, sorted.
 
 Any pair of arities is a valid relationship, so the check does not rule on arities. These are its findings, with
 `<L>` standing for `Entity.member`:
 
+- a stub with fields: `<Entity> is a stub and has fields: <names>`. A stub may hold relations, the inverse sides of
+  relations into it;
+- an entity with no `layer`: `<Entity> has no layer`. A stub, `stub: true`, needs none;
+- a `layer` that is not `native` or `logical`: `<Entity> has layer <x>, which is not native or logical`;
+- a `native` entity that names no `tool`: `<Entity> is native and names no tool`; a `logical` entity that names one.
+  `over` is not checked;
+- a `sum` or a `stub` that is not `true` or `false`: `<Entity> has sum <x>, which is not true or false`;
+- a sum with no `variants`: `<Entity> is a sum and has no variants`; an entity with `variants` that is not a sum:
+  `<Entity> has variants and is not a sum`;
+- a sum whose `variants` are not a mapping, whose variant is not a mapping of field to entity, or whose variant field
+  names no entity;
 - a field `type` that is not a scalar (`Text`, `Int`, `Bool`, `Bytes`, `Path`, `Url`, `Time`, `Hash`), an
   `{enum: [..]}` of a non-empty list of strings, or the name of an entity:
   `<L> has type <x>, which is not a scalar, an enum, or an entity`;
@@ -102,10 +114,6 @@ Any pair of arities is a valid relationship, so the check does not rule on ariti
   <x>, which is not one, option, many, or some`;
 - a `source` that is not `stored` or `derived`, and a `status` that is not `held`, `planned`, or `unused`;
 - a `held` field with no `read-by`: `<L> is held and has no read-by`; a `derived` field with no `from`;
-- a stub with fields: `<Entity> is a stub and has fields: <names>`. A stub may hold relations, the inverse sides of
-  relations into it;
-- a sum whose `variants` are not a mapping, whose variant is not a mapping of field to entity, or whose variant field
-  names no entity;
 - a relation whose `to` names no entity;
 - a relation with both an `inverse` and `derived`, or with neither, and a `derived` that is not a sentence;
 - an `inverse` that is not written `Entity.relation`, that does not exist, or that does not name this relation back:

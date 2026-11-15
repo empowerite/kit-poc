@@ -238,9 +238,10 @@ def relation_findings($model; $entity; $name):
     else inverse_findings($model; $entity; $label) end),
   reach_findings($model; $entity; $label);
 
-# kind_findings($name) are the findings of the keys that say what an entity is: its layer and tool, and sum and stub,
-# which are true or false.
+# kind_findings($name) are the findings of the keys that say what an entity is: its layer, which only a stub may leave
+# out, and tool, and sum and stub, which are true or false.
 def kind_findings($name):
+  (if has("layer") | not then (if .stub == true then empty else "\($name) has no layer" end) else empty end),
   (if has("layer") and (.layer | IN("native", "logical") | not)
       then "\($name) has layer \(.layer | show), which is not native or logical" else empty end),
   (if .layer == "native" and ((.tool | sentence) | not) then "\($name) is native and names no tool"
