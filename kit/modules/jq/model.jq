@@ -41,7 +41,10 @@ def refine($group; $label; $path; $new):
   . as $old
   | reduce ($new | keys_unsorted[]) as $k ({value: $old, findings: []};
       if $k == "arity" then
-        if narrows($old.arity; $new.arity) then .value.arity = $new.arity
+        if ($new.arity | type) != "string" then
+          .findings += ["\($path) sets the arity of \($label) to something that is not a string, and an extension may"
+            + " only narrow it"]
+        elif narrows($old.arity; $new.arity) then .value.arity = $new.arity
         else .findings += ["\($path) changes the arity of \($label) from \($old.arity // "one") to \($new.arity), which"
           + " does not narrow it"] end
       elif $k == "type" and $group == "fields" then
@@ -79,14 +82,20 @@ def extend($f):
         .findings += ["\($f.path) sets \($k) on \($name), which it extends and does not define; \($k) is the defining"
           + " file\u0027s to set"])
       | reduce ("fields", "relations") as $group (.;
-          reduce (($f.doc[$group] // {}) | keys_unsorted[]) as $m (.;
-            "\($name).\($m)" as $label
-            | if .entities[$name][$group][$m] == null then .entities[$name][$group][$m] = $f.doc[$group][$m]
-              else
-                (.entities[$name][$group][$m] | refine($group; $label; $f.path; $f.doc[$group][$m])) as $r
-                | .entities[$name][$group][$m] = $r.value
-                | .findings += $r.findings
-              end))
+          if ($f.doc | has($group)) and ($f.doc[$group] | type) != "object" then
+            .findings += ["\($f.path) gives \($group) on \($name) as something that is not a mapping"]
+          else
+            reduce (($f.doc[$group] // {}) | keys_unsorted[]) as $m (.;
+              "\($name).\($m)" as $label
+              | if ($f.doc[$group][$m] | type) != "object" then
+                  .findings += ["\($f.path) gives \($label) as something that is not a mapping of keys"]
+                elif .entities[$name][$group][$m] == null then .entities[$name][$group][$m] = $f.doc[$group][$m]
+                else
+                  (.entities[$name][$group][$m] | refine($group; $label; $f.path; $f.doc[$group][$m])) as $r
+                  | .entities[$name][$group][$m] = $r.value
+                  | .findings += $r.findings
+                end)
+          end)
     end;
 
 # build gives the model of a document: {domains, entities, findings}. Every file that defines an entity is applied before

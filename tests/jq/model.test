@@ -71,3 +71,24 @@ import "model" as model; model::build | [.findings, (.entities | keys)]
 import "model" as model; model::build | [.findings, (.entities | keys), .entities.Bar.fields]
 {"files": [{"domain": "code", "origin": "release", "path": "m/bar.yml", "doc": {"entity": "Bar"}}, {"domain": "mine", "origin": "repository", "path": "r/both.yml", "doc": {"entity": "Foo", "extends": "Bar", "fields": {"a": {"type": "Text"}}}}]}
 [["r/both.yml names both an entity and an extension"], ["Bar"], null]
+
+# an extends with a null member, or a member that is not a mapping, is a finding that names the entity, the member, and the
+# file, whether the entity has the member or not; the rest of the file still applies
+import "model" as model; model::build | [.findings, .entities.Commit]
+{"files": [{"domain": "code", "origin": "release", "path": "m/commit.yml", "doc": {"entity": "Commit", "fields": {"a": {"type": "Text"}}, "relations": {"r": {"to": "Commit"}}}}, {"domain": "mine", "origin": "repository", "path": "r/commit.yml", "doc": {"extends": "Commit", "fields": {"a": null, "b": null, "c": {"type": "Int"}}, "relations": {"r": "many"}}}]}
+[["r/commit.yml gives Commit.a as something that is not a mapping of keys", "r/commit.yml gives Commit.b as something that is not a mapping of keys", "r/commit.yml gives Commit.r as something that is not a mapping of keys"], {"domain": "code", "origin": "release", "fields": {"a": {"type": "Text"}, "c": {"type": "Int"}}, "relations": {"r": {"to": "Commit"}}}]
+
+# an extends with fields that is not a mapping is a finding, and its relations still apply
+import "model" as model; model::build | [.findings, .entities.Commit.fields, .entities.Commit.relations]
+{"files": [{"domain": "code", "origin": "release", "path": "m/commit.yml", "doc": {"entity": "Commit", "fields": {"a": {"type": "Text"}}}}, {"domain": "mine", "origin": "repository", "path": "r/commit.yml", "doc": {"extends": "Commit", "fields": ["x"], "relations": {"r": {"to": "Commit"}}}}]}
+[["r/commit.yml gives fields on Commit as something that is not a mapping"], {"a": {"type": "Text"}}, {"r": {"to": "Commit"}}]
+
+# an extends with relations that is not a mapping is a finding, and null is one too
+import "model" as model; model::build | [.findings, .entities.Commit.fields, .entities.Commit.relations]
+{"files": [{"domain": "code", "origin": "release", "path": "m/commit.yml", "doc": {"entity": "Commit"}}, {"domain": "mine", "origin": "repository", "path": "r/commit.yml", "doc": {"extends": "Commit", "fields": {"a": {"type": "Text"}}, "relations": null}}]}
+[["r/commit.yml gives relations on Commit as something that is not a mapping"], {"a": {"type": "Text"}}, null]
+
+# an extends with arity null, or one that is not a string, is a finding and writes nothing
+import "model" as model; model::build | [.findings, .entities.Commit.fields]
+{"files": [{"domain": "code", "origin": "release", "path": "m/commit.yml", "doc": {"entity": "Commit", "fields": {"a": {"type": "Text", "arity": "many"}, "b": {"type": "Text"}}}}, {"domain": "mine", "origin": "repository", "path": "r/commit.yml", "doc": {"extends": "Commit", "fields": {"a": {"arity": null}, "b": {"arity": 1}}}}]}
+[["r/commit.yml sets the arity of Commit.a to something that is not a string, and an extension may only narrow it", "r/commit.yml sets the arity of Commit.b to something that is not a string, and an extension may only narrow it"], {"a": {"type": "Text", "arity": "many"}, "b": {"type": "Text"}}]
