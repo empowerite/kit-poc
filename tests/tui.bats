@@ -103,7 +103,7 @@ terminal() {
   run pty "'${kit_root}/bin/kit' commit .gitignore"
   [[ "$output" == *"kittui native-native -- commit .gitignore"* ]]
   # the hand-off only asks whether a kittui can be had; kit tui builds it, where its line shows
-  [[ "$output" == *"building kittui from projects/tui/"* ]]
+  [[ "$output" == *"kit: building kittui"* ]]
   run "${kit_root}/bin/kit" commit .gitignore </dev/null
   [ "$status" -eq 2 ]
   [[ "$output" == *"kit commit needs --message or --file; run: cd "*" && kit help commit"* ]]

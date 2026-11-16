@@ -67,7 +67,7 @@ tui:binary() {
     out=$(tui:cached "${tui}") || { error "the sources of kittui under ${tui} could not be read"; return 1; }
     if [[ ! -x "${out}" ]]
     then
-      step "building kittui from projects/tui/, once for these sources and this go"
+      step "kit: building kittui"
       tmp="${out}.tmp.$$"
       mkdir -p "$(dirname "${out}")"
       if ! (cd "${tui}" && CGO_ENABLED=0 go build -o "${tmp}" ./cmd/kittui)

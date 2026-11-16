@@ -566,7 +566,7 @@ the desk its first row; run: cd "*" && kit workspace worktrees" ]]
   fake-tui
   stages 'incoming'
   run pty "'${kit_root}/bin/kit' flow --no-fetch --mine"
-  [[ "$output" == *"building kittui from projects/tui/"* ]]
+  [[ "$output" == *"kit: building kittui"* ]]
   [[ "$output" == *"kittui native-native flow --no-fetch --mine"* ]]
   [[ "$output" != *"INCOMING"* ]]
   run pty "'${kit_root}/bin/kit' flow --text --no-fetch"
