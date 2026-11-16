@@ -19,12 +19,16 @@ fields:
     type: Path
     arity: option
     source: derived
-    from: the directory that holds the .git directory, which is the main worktree's top
+    from: >-
+      the directory that holds this directory as its .git directory, as git:desks in modules/bash/git.sh finds a
+      desk; none where no directory does
     status: held
     read-by: workspace repos checkout
     means: >-
-      Where the main worktree is, none for a bare repository and for a repository whose .git is a file, as with
-      --separate-git-dir.
+      Where the main worktree is, the desk kit names. It is none for a bare repository, for a repository whose .git
+      is a file, as with --separate-git-dir, and for a submodule's git directory under its superproject's
+      modules/<name>/. That submodule's checkout holds a .git file, which core.worktree names back, and git:desks
+      never reaches it, because its walk stops at the superproject's desk.
   bare:
     type: Bool
     source: stored
@@ -90,6 +94,13 @@ fields:
     means: >-
       The value of core.logAllRefUpdates, which refs keep a reflog: true for branches, remote-tracking branches,
       notes, and HEAD, always for every ref, false for none; git init writes true in a repository with a worktree.
+  objects:
+    type: Path
+    source: stored
+    status: unused
+    means: >-
+      The object database, objects/ under this directory: the loose objects in a directory per first two digits of
+      their ids, the packs under pack/, and info/.
   packed-refs-traits:
     type: Text
     arity: many

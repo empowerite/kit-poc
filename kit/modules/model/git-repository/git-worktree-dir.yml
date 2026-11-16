@@ -51,6 +51,28 @@ fields:
     source: stored
     status: unused
     means: The lines of info/sparse-checkout, the patterns of this worktree's sparse checkout, in order.
+  commit-message-draft:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      The content of COMMIT_EDITMSG, the message git commit gives the editor, which stays after the commit, none
+      before the worktree's first commit.
+  merge-message:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The content of MERGE_MSG, the message git merge proposes while a merge is under way, none otherwise.
+  merge-mode:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      The content of MERGE_MODE, the options git merge records for the commit that ends a merge, such as no-ff,
+      none while no merge is under way.
 relations:
   common:
     to: GitDir

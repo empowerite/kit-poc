@@ -27,13 +27,13 @@ fields:
     status: unused
     means: The inode of the file, from stat(2), as 32 bits.
   mode:
-    type: {enum: ["100644", "100755", "120000", "160000", "040000"]}
+    type: {enum: ["100644", "100755", "120000", "160000", "40000"]}
     source: stored
     status: unused
     means: >-
       The entry's kind, which kit reads only to give a path's type and whether it is executable: 100644 a file,
-      100755 an executable, 120000 a symlink, 160000 a gitlink, and 040000 a sparse directory, as git ls-files
-      --stage prints it.
+      100755 an executable, 120000 a symlink, 160000 a gitlink, and 40000 a sparse directory, which git ls-files
+      --stage prints padded as 040000.
   uid:
     type: Int
     source: stored
