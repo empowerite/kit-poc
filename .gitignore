@@ -11,6 +11,9 @@
 /projects/tutorials/node_modules/
 /projects/tutorials/dist/
 
+# the CodeGraph index of the code, local to each machine; see: .claude/CLAUDE.md
+/.codegraph/
+
 # the superpowers brainstorming companion's mockups and session state
 /.superpowers/
 

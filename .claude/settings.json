@@ -10,9 +10,22 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "codegraph prompt-hook"
+          }
+        ]
+      }
     ]
   },
   "permissions": {
+    "allow": [
+      "mcp__codegraph__*"
+    ],
     "deny": [
       "Bash(git commit *)",
       "Bash(git push *)",
