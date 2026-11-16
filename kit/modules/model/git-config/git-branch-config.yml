@@ -78,10 +78,12 @@ fields:
       Each key of the section git does not document, as name=value in order, such as the merge base an editor or a
       forge's command line records.
 relations:
-  dir:
-    to: GitDir
-    inverse: GitDir.branch-configs
-    means: The repository whose configuration these settings are read from.
+  worktree-dir:
+    to: GitWorktreeDir
+    inverse: GitWorktreeDir.branch-configs
+    means: >-
+      The worktree these settings are git config's answer in, from the entries of every scope that apply there:
+      system, global, local, worktree, command, and what their includes bring.
   entries:
     to: GitConfigEntry
     arity: some

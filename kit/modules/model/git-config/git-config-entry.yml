@@ -64,13 +64,13 @@ fields:
     status: unused
     means: The value as written, none for a key written with no equals sign, which git reads as true.
 relations:
-  dirs:
+  dir:
     to: GitDir
-    arity: many
+    arity: option
     inverse: GitDir.config
     means: >-
-      The repositories whose configuration this entry is part of: one for an entry of a repository's own config, and
-      every repository of the machine or the user for a system or a global entry.
+      The repository whose own config file, or a file it includes, holds this entry, none for an entry of the
+      system, global, worktree, or command scope.
   worktree-dir:
     to: GitWorktreeDir
     arity: option

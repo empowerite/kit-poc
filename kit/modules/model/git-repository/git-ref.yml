@@ -84,7 +84,8 @@ relations:
     inverse: GitRef.symref-of
     means: >-
       The ref whose name this one holds in place of an id, as refs/remotes/origin/main for refs/remotes/origin/HEAD,
-      which names the remote's default branch, none for a ref that holds an id.
+      which names the remote's default branch, none for a ref that holds an id and for a dangling one, whose name
+      dangling-symref holds in its place, so a symbolic ref has exactly one of the two.
   symref-of:
     to: GitRef
     arity: many

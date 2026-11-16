@@ -123,10 +123,12 @@ fields:
     status: unused
     means: The value of gpg.minTrustLevel, the least trust a key needs for git to take its signature as good.
 relations:
-  dir:
-    to: GitDir
-    inverse: GitDir.user
-    means: The repository whose configuration these settings are read from.
+  worktree-dir:
+    to: GitWorktreeDir
+    inverse: GitWorktreeDir.user-config
+    means: >-
+      The worktree these settings are git config's answer in, from the entries of every scope that apply there:
+      system, global, local, worktree, command, and what their includes bring.
   entries:
     to: GitConfigEntry
     arity: many

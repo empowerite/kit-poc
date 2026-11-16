@@ -29,13 +29,13 @@ fields:
     source: derived
     from: >-
       the worktree line of git worktree list --porcelain: the directory that holds the .git file gitdir names for a
-      linked worktree, core.worktree or the directory that holds the .git directory for the main worktree, and the
-      git directory itself for a bare repository or a main worktree whose .git is a file, as --separate-git-dir makes
+      linked worktree, the directory that holds the .git directory for the main worktree, and the git directory
+      itself for a bare repository or a main worktree whose .git is a file, as --separate-git-dir makes
     status: held
     read-by: workspace worktrees path
     means: >-
-      Where git says the worktree is, which is the top of its working tree except in the two cases git names it by its
-      git directory.
+      Where git says the worktree is, the top of its working tree except where git names it by its git directory,
+      none for a worktrees/<id>/ that git worktree list does not list, as when its gitdir file does not exist.
   dotgit:
     type: Text
     arity: option
@@ -96,3 +96,17 @@ relations:
     means: >-
       The entries of config.worktree, the worktree scope, which git reads after the local config while
       extensions.worktreeConfig is true.
+  remote-configs:
+    to: GitRemoteConfig
+    arity: many
+    inverse: GitRemoteConfig.worktree-dir
+    means: The remotes git config defines when run in this worktree.
+  branch-configs:
+    to: GitBranchConfig
+    arity: many
+    inverse: GitBranchConfig.worktree-dir
+    means: The branch.<name> settings git config gives when run in this worktree, one a branch.
+  user-config:
+    to: GitUserConfig
+    inverse: GitUserConfig.worktree-dir
+    means: Who git writes as the author and committer when run in this worktree, and how it signs.

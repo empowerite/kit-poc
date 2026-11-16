@@ -13,11 +13,13 @@ fields:
     means: The directory's name under worktrees/, the worktree's folder name with a number added where it is taken.
   gitdir:
     type: Path
+    arity: option
     source: stored
     status: unused
     means: >-
       The content of gitdir, the path of the worktree's .git file, absolute or, with worktree.useRelativePaths,
-      relative, which kit reads only to confirm a worktree's trust name.
+      relative, which kit reads only to confirm a worktree's trust name, none when the file does not exist, which
+      git worktree prune gives as its reason.
   commondir:
     type: Path
     source: stored

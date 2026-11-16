@@ -1,9 +1,10 @@
 # A ref name that a symbolic ref holds and no ref has: HEAD's unborn branch, which the next commit creates, or the
-# name a dangling symbolic ref under refs/ holds, as refs/remotes/origin/HEAD does once its branch is pruned.
+# name a dangling symbolic ref holds, as refs/remotes/origin/HEAD does when its branch is pruned. git keeps HEAD's
+# name under refs/, and writes any name a symbolic ref under refs/ is given.
 entity: GitUnbornRef
 layer: native
 tool: git
-means: A ref name under refs/ that a HEAD or a symbolic ref names and that no ref has.
+means: A ref name, as a rule under refs/, that a HEAD or a symbolic ref names and that no ref has.
 fields:
   name:
     type: Text

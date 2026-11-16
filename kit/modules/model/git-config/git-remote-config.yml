@@ -172,10 +172,12 @@ fields:
     status: unused
     means: Each key of the section git does not document, as name=value in order, such as one a tool records.
 relations:
-  dir:
-    to: GitDir
-    inverse: GitDir.remotes
-    means: The repository whose configuration defines this remote.
+  worktree-dir:
+    to: GitWorktreeDir
+    inverse: GitWorktreeDir.remote-configs
+    means: >-
+      The worktree this remote is git config's answer in, from the entries of every scope that apply there: system,
+      global, local, worktree, command, and what their includes bring.
   entries:
     to: GitConfigEntry
     arity: many
