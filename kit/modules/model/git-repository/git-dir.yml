@@ -47,6 +47,49 @@ fields:
     means: >-
       The value of extensions.refStorage, files for loose refs under refs/ and the packed-refs file, or reftable for
       the tables under reftable/, files when unset.
+  worktree-config:
+    type: Bool
+    source: stored
+    status: unused
+    means: >-
+      The value of extensions.worktreeConfig, whether git reads each worktree's config.worktree after the local
+      config, false when unset.
+  worktree:
+    type: Path
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      The value of core.worktree, the top of the main worktree where it is not the directory that holds this one, as
+      git submodule writes it in modules/<name>/config, none when unset.
+  file-mode:
+    type: Bool
+    source: stored
+    status: unused
+    means: >-
+      The value of core.fileMode, whether git trusts the executable bit of the files in the worktree, which git init
+      writes after it tests the file system.
+  ignore-case:
+    type: Bool
+    source: stored
+    status: unused
+    means: >-
+      The value of core.ignoreCase, whether git takes two paths that differ only in case as one, which git init
+      writes true on a file system that ignores case.
+  precompose-unicode:
+    type: Bool
+    source: stored
+    status: unused
+    means: >-
+      The value of core.precomposeUnicode, whether git on macOS turns the decomposed Unicode of a file name into the
+      precomposed form, which git init writes on macOS.
+  log-all-ref-updates:
+    type: {enum: ["true", "false", always]}
+    source: stored
+    status: unused
+    means: >-
+      The value of core.logAllRefUpdates, which refs keep a reflog: true for branches, remote-tracking branches,
+      notes, and HEAD, always for every ref, false for none; git init writes true in a repository with a worktree.
   packed-refs-traits:
     type: Text
     arity: many
