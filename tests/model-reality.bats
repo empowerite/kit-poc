@@ -519,19 +519,21 @@ reaches() {
 }
 
 # fixture-git <dir> <git argument>… runs git in <dir> of the world, with no configuration but the repository's, and
-# prints what it prints. When git writes to stderr, it prints the command and what git wrote there on stderr, and
-# returns 1, so an error git reports with status 0, as %G? does, is never passed over. Otherwise it returns git's
-# status. Every caller reads git's output from a variable it set with || return, never from a pipe or a process
-# substitution, whose status bats would lose.
+# prints what it prints. It returns 0 or 1 as git does, and 2, after it prints the command and what git wrote on
+# stderr, when git wrote anything there or exited above 1. Every call is a read-only plumbing read of a fixed fixture,
+# so any stderr is a failure: an error git reports with status 0, as %G? does, or a warning a later git adds, ends the
+# walk, naming the call. A caller that reads git's output takes it from a variable or a file it set with || return,
+# never from a pipe or a process substitution, whose status bats would lose. A caller that reads git's answer from
+# its status, as symbolic-ref --quiet gives 1 for a HEAD that is not symbolic, tells 1 from 2 and returns on 2.
 fixture-git() {
   local err=${BATS_TEST_TMPDIR}/fixture-git.err status=0
   GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 git -C "${world}/$1" "${@:2}" \
     2> "${err}" || status=$?
-  if [[ -s "${err}" ]]
+  if [[ -s "${err}" ]] || (( status > 1 ))
   then
-    printf 'git -C %s %s wrote on stderr:\n' "$1" "${*:2}" >&2
+    printf 'git -C %s %s wrote on stderr, or exited %s:\n' "$1" "${*:2}" "${status}" >&2
     cat "${err}" >&2
-    return 1
+    return 2
   fi
   return "${status}"
 }
@@ -580,7 +582,7 @@ headers-seen() {
     seen "${part}" signature "${at}"
     armor-seen "${message}" "${at}"
   fi
-  trailers=$(git interpret-trailers --parse <<<"${message}") || return 1
+  trailers=$(fixture-git repo interpret-trailers --parse <<<"${message}") || return 1
   [[ -z "${trailers}" ]] || seen "${part}" trailers "${at}"
 }
 
@@ -700,10 +702,38 @@ dir-files-seen() {
   done
 }
 
+# heads-seen <worktree>… prints how the HEAD of each worktree of the world stands: symbolic, detached, or unborn.
+# Each worktree first proves it is one, with rev-parse --git-dir. Then symbolic-ref --quiet HEAD answers 0 for a
+# symbolic HEAD and 1, with nothing on stderr, for a detached one, and rev-parse --verify --quiet HEAD answers 0 for a
+# HEAD with a commit and 1 for an unborn one. fixture-git's 2, git's failure, ends it, never an observation.
+heads-seen() {
+  local wt symbolic verified
+  for wt in "$@"
+  do
+    fixture-git "${wt}" rev-parse --git-dir >/dev/null || return 1
+    symbolic=0
+    fixture-git "${wt}" symbolic-ref --quiet HEAD >/dev/null || symbolic=$?
+    (( symbolic < 2 )) || return 1
+    if (( symbolic == 1 ))
+    then
+      seen "worktree HEAD" detached "${wt}"
+      continue
+    fi
+    verified=0
+    fixture-git "${wt}" rev-parse --verify --quiet HEAD >/dev/null || verified=$?
+    (( verified < 2 )) || return 1
+    if (( verified == 0 ))
+    then
+      seen "worktree HEAD" symbolic "${wt}"
+    else
+      seen "worktree HEAD" unborn "${wt}"
+    fi
+  done
+}
+
 # git-dirs-seen prints an observation for each file of the fixture's git directories, the common ones and each linked
 # worktree's; for each ref, its namespace and kind; for each worktree, how its HEAD stands; and each key of git
-# worktree list --porcelain. symbolic-ref and rev-parse --verify answer by their status alone, so a HEAD is read from
-# them; any other git call that fails ends it.
+# worktree list --porcelain. Any git call that fails ends it, as heads-seen says for the HEADs.
 git-dirs-seen() {
   local dir ref type symref wt line refs list
   for dir in repo/.git conflict/.git repo/.git/modules/sub
@@ -737,19 +767,7 @@ git-dirs-seen() {
       fi
     done <<<"${refs}"
   done
-  for wt in repo worktrees/feature worktrees/detached worktrees/locked worktrees/unborn conflict
-  do
-    [[ -d "${world}/${wt}" ]] || { echo "git-dirs-seen: ${wt} is not a worktree of the fixture" >&2; return 1; }
-    if ! fixture-git "${wt}" symbolic-ref --quiet HEAD >/dev/null
-    then
-      seen "worktree HEAD" detached "${wt}"
-    elif fixture-git "${wt}" rev-parse --verify --quiet HEAD >/dev/null
-    then
-      seen "worktree HEAD" symbolic "${wt}"
-    else
-      seen "worktree HEAD" unborn "${wt}"
-    fi
-  done
+  heads-seen repo worktrees/feature worktrees/detached worktrees/locked worktrees/unborn conflict || return 1
   list=$(fixture-git repo worktree list --porcelain) || return 1
   while IFS= read -r line
   do
@@ -1005,23 +1023,39 @@ keys-unclaimed() {
 
 @test "a git call that fails, or writes an error, ends the walk that made it, naming the call" {
   run fixture-git repo cat-file commit 0000000000000000000000000000000000000000
-  [ "$status" -eq 1 ]
-  [[ "$output" == "git -C repo cat-file commit 0000000000000000000000000000000000000000 wrote on stderr:"* ]]
+  [ "$status" -eq 2 ]
+  [[ "$output" == "git -C repo cat-file commit 0000000000000000000000000000000000000000 wrote on stderr, or exited 128:"* ]]
   # %G? in a clone that names no allowed signers file says so on stderr, and exits 0
   git clone --quiet "${world}/conflict" "${BATS_TEST_TMPDIR}/w/signed"
   world=${BATS_TEST_TMPDIR}/w run fixture-git signed log --format='%G?'
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"wrote on stderr:"*"allowedSignersFile"* ]]
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"wrote on stderr, or exited 0:"*"allowedSignersFile"* ]]
   world=${BATS_TEST_TMPDIR}/no-world
   run objects-seen
   [ "$status" -eq 1 ]
-  [[ "$output" == *"git -C repo cat-file --batch-all-objects"*"wrote on stderr:"* ]]
+  [[ "$output" == *"git -C repo cat-file --batch-all-objects"*"wrote on stderr, or exited 128:"* ]]
   run config-seen
   [ "$status" -eq 1 ]
-  [[ "$output" == *"git -C repo config --list"*"wrote on stderr:"* ]]
+  [[ "$output" == *"git -C repo config --list"*"wrote on stderr, or exited 128:"* ]]
   run git-dirs-seen
   [ "$status" -eq 1 ]
   [[ "$output" == *"dir-files-seen: repo/.git is not a directory of the fixture"* ]]
+}
+
+@test "a worktree whose .git names a missing directory ends the HEAD walk, naming the worktree, never an observation" {
+  mkdir -p "${BATS_TEST_TMPDIR}/w"
+  cp -R "${world}/repo" "${world}/conflict" "${world}/worktrees" "${BATS_TEST_TMPDIR}/w/"
+  printf 'gitdir: %s\n' "${BATS_TEST_TMPDIR}/missing" > "${BATS_TEST_TMPDIR}/w/worktrees/detached/.git"
+  world=${BATS_TEST_TMPDIR}/w run git-dirs-seen
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"git -C worktrees/detached rev-parse --git-dir wrote on stderr, or exited 128:"* ]]
+  [[ "$output" != *$'worktree HEAD\tdetached\tworktrees/detached'* ]]
+  world=${BATS_TEST_TMPDIR}/w run heads-seen repo worktrees/detached
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = $'worktree HEAD\tsymbolic\trepo' ]
+  [ "${lines[1]}" = "git -C worktrees/detached rev-parse --git-dir wrote on stderr, or exited 128:" ]
+  [[ "${lines[2]}" == "fatal: "* ]]
+  [ "${#lines[@]}" -eq 3 ]
 }
 
 @test "the fixture builder refuses a git older than 2.42, and a machine without ssh-keygen, saying what it needs" {
