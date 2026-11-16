@@ -26,13 +26,28 @@
 #   - worktrees/unborn: a linked worktree on unborn, a branch with no commit yet
 #   - worktrees/gone: a linked worktree whose directory is removed, so git worktree prune would remove it too
 #   - conflict: a clone of origin.git stopped in a merge, c1.txt in conflict, stages 1 to 3, and c2.txt resolved, so
-#     its index holds resolve-undo
+#     its index holds resolve-undo; it names the allowed signers file, so git log %G? checks its signed commit
 #   - ssh: the key that signs, and the allowed signers file
 #
 # git reads no configuration but the repositories' own, and HOME is <dir>/home, so the desk's files never reach it.
 # Every commit has one fixed author and committer. Nothing reaches the network.
 
 set -o errexit -o nounset -o pipefail
+
+# The fixture needs git worktree add --orphan, from git 2.42, and ssh-keygen, which signs its commits and tags.
+version=$(git version)
+version=${version#git version }
+IFS=. read -r major minor _ <<<"${version}"
+if (( major < 2 || ( major == 2 && minor < 42 ) ))
+then
+  echo "build: needs git 2.42 or later (worktree add --orphan); this is git ${version}" >&2
+  exit 1
+fi
+if ! command -v ssh-keygen >/dev/null
+then
+  echo "build: needs ssh-keygen, which signs the fixture's commits and tags, and it is not on PATH" >&2
+  exit 1
+fi
 
 dir=$1
 mkdir -p "${dir}"
@@ -165,6 +180,7 @@ git add --intent-to-add planned.md
 # A clone stopped in a merge: c1.txt in conflict, and c2.txt resolved, which records resolve-undo.
 git clone --quiet "${dir}/origin.git" "${dir}/conflict" 2>/dev/null
 cd "${dir}/conflict"
+git config gpg.ssh.allowedSignersFile "${dir}/ssh/allowed-signers"
 printf 'base\n' > c1.txt
 printf 'base\n' > c2.txt
 git add c1.txt c2.txt
