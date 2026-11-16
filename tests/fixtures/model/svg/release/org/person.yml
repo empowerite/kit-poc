@@ -1,7 +1,6 @@
 # A relation that is its own inverse, and two derived relations, one to itself and one into a sum.
 entity: Person
-layer: native
-tool: git
+layer: logical
 means: a person
 fields:
   email: {type: Text, status: planned}

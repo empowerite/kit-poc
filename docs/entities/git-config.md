@@ -48,7 +48,7 @@ Layer: native (git)
 | merge | Text | 0..* | stored | unused |  | The values of branch.\<name>.merge, each a ref on the remote, as refs/heads/main, more than one for an octopus merge. |
 | merge-options | Text | 0..1 | stored | unused |  | The options of a merge into the branch, as git merge takes them. |
 | name | Text | 1 | stored | unused |  | The subsection of branch.\<name>, the branch's name without refs/heads/. |
-| other-keys | Text | 0..* | stored | unused |  | Each key of the section git does not document, as name=value in order, such as the merge base an editor or a forge's command line records. |
+| other-keys | Text | 0..* ordered | stored | unused |  | Each key of the section git does not document, as name=value in order, such as the merge base an editor or a forge's command line records. |
 | push-remote | Text | 0..1 | stored | unused |  | The value of branch.\<name>.pushRemote, a remote's name or a URL, which a push uses in place of remote. |
 | rebase | enum(true, false, yes, no, on, off, 1, 0, merges, m, interactive, i) | 0..1 | stored | unused |  | The value as written: a boolean spelling for whether git pull rebases the branch in place of merging, merges or m to rebase keeping merge commits, and interactive or i to rebase interactively. |
 | remote | Text | 0..1 | stored | held | `workspace branches remote` | The value of branch.\<name>.remote, the remote's name, or . for this repository, which kit prints for a branch whose upstream is gone. |
@@ -103,7 +103,7 @@ Layer: native (git)
 | name | Text | 1 | stored | held | `workspace remotes remote` | The subsection of remote.\<name>, as origin. |
 | negotiation-include | Text | 0..* | stored | unused |  | The refs, ids, or patterns whose commits a fetch always advertises as haves. |
 | negotiation-restrict | Text | 0..* | stored | unused |  | The refs or patterns whose commits alone a fetch advertises as haves, as --negotiation-restrict takes them. |
-| other-keys | Text | 0..* | stored | unused |  | Each key of the section git does not document, as name=value in order, such as one a tool records. |
+| other-keys | Text | 0..* ordered | stored | unused |  | Each key of the section git does not document, as name=value in order, such as one a tool records. |
 | partial-clone-filter | Text | 0..1 | stored | unused |  | The object filter a fetch from this promisor remote applies, as --filter takes it. |
 | promisor | Bool | 0..1 | stored | unused |  | Whether git fetches the objects a partial clone left out from this remote. |
 | proxy | Text | 0..1 | stored | unused |  | The proxy for an HTTP, HTTPS, or FTP URL, an empty value turning proxying off. |
@@ -118,7 +118,7 @@ Layer: native (git)
 | skip-fetch-all | Bool | 0..1 | stored | unused |  | Whether git fetch --all, git remote update, and the prefetch of git maintenance leave the remote out. |
 | tag-opt | enum(--no-tags, --tags) | 0..1 | stored | unused |  | Whether a fetch follows no tags, or fetches every tag, in place of the tags that point into what it fetches. |
 | upload-pack | Text | 0..1 | stored | unused |  | The program a fetch runs on the remote's side, as git fetch-pack --upload-pack names it. |
-| urls | Text | 0..* | stored | unused |  | The values of remote.\<name>.url, as written, the first fetched from and all pushed to when no pushurl is set. |
+| urls | Text | 0..* ordered | stored | unused |  | The values of remote.\<name>.url, as written, the first fetched from and all pushed to when no pushurl is set. |
 | vcs | Text | 0..1 | stored | unused |  | The version control system the remote is, which git reaches through the git-remote-\<vcs> helper. |
 
 ### GitUserConfig

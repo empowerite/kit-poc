@@ -51,7 +51,6 @@ The refs, index, and directories git keeps around its objects. Kit reads them an
 | GitSubmodule.superproject | GitDir | 1 |  | GitDir.submodules | The git directory of the repository that holds the submodule. |
 | GitUnbornRef.checked-out-in | GitWorktreeDir | 0..* |  | derived | derived: the worktrees' git directories whose HEAD is Unborn(this). The worktrees whose HEAD names this ref name. |
 | GitUnbornRef.symref-of | GitRef | 0..* |  | GitRef.dangling-symref | The dangling symbolic refs that hold this name. |
-| GitUnbornRef.worktrees | Worktree | 0..* |  | derived | derived: the worktrees whose head is Unborn with this ref name. The worktrees of kit's Code domain that are on this unborn branch, the same worktrees as checked-out-in, seen from kit's side. |
 | GitUntrackedCache.index | GitIndex | 1 |  | GitIndex.untracked-cache | The index whose UNTR extension this is. |
 | GitUntrackedCache.root | GitUntrackedDir | 0..1 |  | GitUntrackedDir.cache | The block of the worktree's top directory, the first block, none when the cache holds no block. |
 | GitUntrackedDir.cache | GitUntrackedCache | 0..1 |  | GitUntrackedCache.root | The untracked cache whose first block this is, none for a subdirectory's block. |
@@ -72,6 +71,20 @@ The refs, index, and directories git keeps around its objects. Kit reads them an
 
 ## Entities
 
+### GitBisectState
+
+A git bisect under way in a worktree: the BISECT\_ files of its git directory, as BISECT\_LOG and BISECT\_TERMS, and
+the good and bad commits under refs/bisect/.
+
+Stub: named so other entities can refer to it; its fields are not modelled.
+
+### GitBundle
+
+A file git bundle create writes: the refs it carries and a pack of the objects they need, which git clone and git
+fetch read in place of a remote.
+
+Stub: named so other entities can refer to it; its fields are not modelled.
+
 ### GitCacheTree
 
 A directory of the index whose tree git already knows, so that writing a commit's tree skips it.
@@ -85,6 +98,13 @@ Layer: native (git)
 | path | Bytes | 1 | stored | unused |  | The directory's name within its parent's, empty for the root. |
 | subtree-count | Int | 1 | stored | unused |  | The number of direct subtrees, the nodes of the directory's own subdirectories, which follow this node. |
 
+### GitCommitGraph
+
+The commit graph, objects/info/commit-graph or the chain under objects/info/commit-graphs/, which holds each commit's
+parents, tree, and generation, so git walks history without reading the commits.
+
+Stub: named so other entities can refer to it; its fields are not modelled.
+
 ### GitDir
 
 A repository's git directory, which holds its objects, refs, configuration, hooks, and worktrees.
@@ -94,11 +114,11 @@ Layer: native (git)
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
 | alternates | Path | 0..* | stored | unused |  | The lines of objects/info/alternates, the object stores this one borrows objects from. |
-| attributes | Text | 0..* | stored | unused |  | The lines of info/attributes, attributes of this repository alone, as gitattributes reads them. |
-| bare | Bool | 1 | stored | unused |  | The value of core.bare, whether the repository has no main worktree. |
+| attributes | Text | 0..* ordered | stored | unused |  | The lines of info/attributes, attributes of this repository alone, as gitattributes reads them, in order, a later line overriding an earlier one. |
+| bare | Bool | 1 | stored | unused |  | The value of core.bare, whether the repository has no working tree of its own, so its main worktree is this directory, with a HEAD and no files. |
 | checkout | Path | 0..1 | derived | held | `workspace repos checkout` | derived from the directory that holds this directory as its .git directory, as git:desks in modules/bash/git.sh finds a desk; none where no directory does. Where the main worktree is, the desk kit names. It is none for a bare repository, for a repository whose .git is a file, as with --separate-git-dir, and for a submodule's git directory under its superproject's modules/\<name>/. That submodule's checkout holds a .git file, which core.worktree names back, and git:desks never reaches it, because its walk stops at the superproject's desk. |
 | description | Text | 0..1 | stored | unused |  | The description file, which gitweb shows and git init fills with a placeholder. |
-| exclude | Text | 0..* | stored | unused |  | The lines of info/exclude, ignore patterns of this repository alone, as gitignore reads them. |
+| exclude | Text | 0..* ordered | stored | unused |  | The lines of info/exclude, ignore patterns of this repository alone, as gitignore reads them, in order, the last that matches a path deciding. |
 | file-mode | Bool | 1 | stored | unused |  | The value of core.fileMode, whether git trusts the executable bit of the files in the worktree, which git init writes after it tests the file system. |
 | format-version | enum(0, 1) | 1 | stored | unused |  | The value of core.repositoryformatversion, 1 when the config's extensions section is in force. |
 | grafts | Text | 0..* | stored | unused |  | The lines of info/grafts, each a commit's id and the ids git takes as its parents, which git replace supersedes. |
@@ -147,7 +167,7 @@ Layer: native (git)
 | fsmonitor-dirty | Bytes | 0..1 | stored | unused |  | The FSMN extension's EWAH bitmap, whose n-th bit is set when the n-th entry may have changed. |
 | fsmonitor-token | Text | 0..1 | stored | unused |  | The point the FSMN extension reflects every change through: in version 1 a time in nanoseconds since the epoch, in version 2 an opaque token of the monitor's. |
 | fsmonitor-version | enum(1, 2) | 0..1 | stored | unused |  | The version of the FSMN extension, the file system monitor cache, when core.fsmonitor writes one. |
-| other-extensions | Bytes | 0..* | stored | unused |  | Each optional extension git does not know, as its signature, its size, and its data, in file order. |
+| other-extensions | Bytes | 0..* ordered | stored | unused |  | Each optional extension git does not know, as its signature, its size, and its data, in file order. |
 | signature | enum(DIRC) | 1 | stored | unused |  | The four bytes that open the file, DIRC for dircache. |
 | sparse | Bool | 1 | stored | unused |  | Whether the index holds the sdir extension, which marks a sparse index whose entries include directories outside a cone-mode sparse checkout. |
 | split-delete | Bytes | 0..1 | stored | unused |  | The link extension's EWAH bitmap of the shared index's entries this index removes. |
@@ -189,6 +209,34 @@ Layer: native (git)
 | count | Int | 1 | stored | unused |  | The number of entries in the block. |
 | offset | Int | 1 | stored | unused |  | The offset from the start of the index file to the block's first entry, in bytes. |
 
+### GitMultiPackIndex
+
+The multi-pack index, objects/pack/multi-pack-index, one index over many packs, which git multi-pack-index write and
+git repack --write-midx make.
+
+Stub: named so other entities can refer to it; its fields are not modelled.
+
+### GitPack
+
+A pack, objects/pack/pack-\<id>.pack: many objects in one file, each whole or as a delta against another, which git
+fetch, git gc, and git repack write.
+
+Stub: named so other entities can refer to it; its fields are not modelled.
+
+### GitPackIndex
+
+The index of a pack, objects/pack/pack-\<id>.idx beside it, which finds an object's offset in the pack by the object
+id.
+
+Stub: named so other entities can refer to it; its fields are not modelled.
+
+### GitRebaseState
+
+A rebase under way in a worktree: rebase-merge/ of its git directory, or rebase-apply/ for git am and the apply
+backend, which git rebase --continue, --skip, and --abort read.
+
+Stub: named so other entities can refer to it; its fields are not modelled.
+
 ### GitRef
 
 A name under refs/ that points at an object, such as a branch, a remote-tracking branch, a tag, or the stash.
@@ -222,6 +270,13 @@ Layer: native (git)
 | old | Hash | 1 | stored | unused |  | The id the ref held before the change, all zeros when the change created the ref. |
 | time | Time | 1 | stored | unused |  | The moment of the change, in seconds since the epoch. |
 
+### GitRerereCache
+
+rr-cache/ of the common directory, each conflict git rerere recorded and how it was resolved, and MERGE\_RR of a
+worktree's git directory, the conflicts of the merge under way.
+
+Stub: named so other entities can refer to it; its fields are not modelled.
+
 ### GitResolveUndo
 
 The stages of a resolved conflict, which git checkout -m or git restore -m brings back.
@@ -247,8 +302,15 @@ Layer: native (git)
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
 | fetched | Text | 0..* | stored | unused |  | For FETCH\_HEAD, the rest of each line after its id, not-for-merge or empty, a tab, and the ref and the repository it was fetched from. |
-| ids | Hash | 0..* | stored | unused |  | The ids it holds, in the file's order: one for most, each commit being merged for MERGE\_HEAD, and each fetched ref's for FETCH\_HEAD. |
+| ids | Hash | 0..* ordered | stored | unused |  | The ids it holds, in the file's order: one for most, each commit being merged for MERGE\_HEAD, and each fetched ref's for FETCH\_HEAD. |
 | name | Text | 1 | stored | unused |  | The file's name: ORIG\_HEAD, FETCH\_HEAD, MERGE\_HEAD, CHERRY\_PICK\_HEAD, REVERT\_HEAD, REBASE\_HEAD, BISECT\_HEAD, AUTO\_MERGE, BISECT\_EXPECTED\_REV, MERGE\_AUTOSTASH, NOTES\_MERGE\_PARTIAL, NOTES\_MERGE\_REF, or a tool's own. |
+
+### GitSequencerState
+
+sequencer/ of a worktree's git directory: the commits a git cherry-pick or git revert of several commits has left to
+apply, which --continue reads.
+
+Stub: named so other entities can refer to it; its fields are not modelled.
 
 ### GitSubmodule
 
@@ -290,7 +352,7 @@ Layer: native (git)
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
 | dir-flags | Int | 1 | stored | unused |  | The flags of git's directory walk the cache was made with, as 32 bits. |
-| environment | Text | 0..* | stored | unused |  | The strings that say where the cache holds, such as the worktree's location and the system, in order. |
+| environment | Text | 0..* ordered | stored | unused |  | The strings that say where the cache holds, such as the worktree's location and the system, in order. |
 | exclude-per-dir | Text | 1 | stored | unused |  | The name of the exclude file each directory may hold, usually .gitignore. |
 | excludes-file-id | Hash | 0..1 | stored | unused |  | The id of core.excludesFile's content, none when the file does not exist. |
 | excludes-file-stat | Bytes | 1 | stored | unused |  | The stat data of the file core.excludesFile names, as an index entry's, from ctime to size. |
@@ -309,7 +371,7 @@ Layer: native (git)
 | exclude-id | Hash | 0..1 | stored | unused |  | The id of the directory's exclude file, such as .gitignore, when the third bitmap marks it valid. |
 | name | Bytes | 1 | stored | unused |  | The directory's name within its parent's, empty for the top directory. |
 | stat | Bytes | 0..1 | stored | unused |  | The directory's stat data, as an index entry's, when the third bitmap marks its stat data and id valid. |
-| untracked | Bytes | 0..* | stored | unused |  | The names of the untracked files and directories in it, in the order git writes them. |
+| untracked | Bytes | 0..* ordered | stored | unused |  | The names of the untracked files and directories in it, in the order git writes them. |
 | valid | Bool | 1 | stored | unused |  | Whether the block's untracked names are valid, from the first bitmap. |
 
 ### GitWorktreeAdmin
@@ -342,6 +404,6 @@ Layer: native (git)
 | merge-message | Text | 0..1 | stored | unused |  | The content of MERGE\_MSG, the message git merge proposes while a merge is under way, none otherwise. |
 | merge-mode | Text | 0..1 | stored | unused |  | The content of MERGE\_MODE, the options git merge records for the commit that ends a merge, such as no-ff, none while no merge is under way. |
 | path | Path | 1 | derived | unused |  | derived from git rev-parse --absolute-git-dir, run in the worktree. Where the directory is, the common directory for the main worktree and worktrees/\<id>/ for a linked one. |
-| sparse-checkout | Text | 0..* | stored | unused |  | The lines of info/sparse-checkout, the patterns of this worktree's sparse checkout, in order. |
+| sparse-checkout | Text | 0..* ordered | stored | unused |  | The lines of info/sparse-checkout, the patterns of this worktree's sparse checkout, in order. |
 | worktree-path | Path | 0..1 | derived | held | `workspace worktrees path` | derived from the worktree line of git worktree list --porcelain: the directory that holds the .git file gitdir names for a linked worktree, the directory that holds the .git directory for the main worktree, and the git directory itself for a bare repository or a main worktree whose .git is a file, as --separate-git-dir makes. Where git says the worktree is, the top of its working tree or, for a bare repository and a main worktree whose .git is a file, the git directory itself, and none only for a worktrees/\<id>/ that git worktree list does not list, as when its gitdir file does not exist. |
 <!-- kit:end page -->

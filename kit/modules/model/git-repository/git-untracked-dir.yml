@@ -14,6 +14,7 @@ fields:
   untracked:
     type: Bytes
     arity: many
+    ordered: true
     source: stored
     status: unused
     means: The names of the untracked files and directories in it, in the order git writes them.

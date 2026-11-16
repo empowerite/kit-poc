@@ -439,8 +439,27 @@ def variant_findings($model; $name):
         end)
   end;
 
+# layer_findings($model; $name) are the findings of a native entity that reaches into the logical layer: a field whose
+# type, a relation whose to, or a variant whose field, names a logical entity. A logical entity is defined over native
+# ones, so a native one relates only to native entities and stubs; a logical entity may relate to anything.
+def layer_findings($model; $name):
+  def logical: entity_named($model) and $model.entities[.].layer == "logical" and $model.entities[.].stub != true;
+  def why: "which is logical; a native entity relates only to native entities and stubs";
+  if .layer != "native" then empty
+  else
+    ((.fields // {}) | to_entries | sort_by(.key)[] | select(.value.type | logical)
+      | "\($name) is native, and its field \(.key) has type \(.value.type), \(why)"),
+    ((.relations // {}) | to_entries | sort_by(.key)[] | select(.value.to | logical)
+      | "\($name) is native, and its relation \(.key) goes to \(.value.to), \(why)"),
+    (if (.variants | type) == "object" then
+        .variants | to_entries | sort_by(.key)[] | .key as $v | .value | select(type == "object") | .[]
+        | select(logical) | "\($name) is native, and its variant \($v) holds \(.), \(why)"
+      else empty end)
+  end;
+
 # entity_findings($model; $name) are the findings of one entity: a stub with fields, each with the file that gives it, a
-# name that is both a field and a relation, its kind, its variants, then its fields and its relations, each by name.
+# name that is both a field and a relation, its kind, its variants, its fields and its relations, each by name, and a
+# native entity's reach into the logical layer.
 def entity_findings($model; $name):
   $model.entities[$name] as $entity
   | (if $entity.stub == true and (($entity.fields // {}) | length) > 0 then
@@ -453,7 +472,8 @@ def entity_findings($model; $name):
     ($entity | kind_findings($model; $name)),
     ($entity | variant_findings($model; $name)),
     (($entity.fields // {}) | . as $fields | keys[] as $f | $fields[$f] | field_findings($model; "\($name).\($f)")),
-    (($entity.relations // {}) | . as $relations | keys[] as $r | $relations[$r] | relation_findings($model; $name; $r));
+    (($entity.relations // {}) | . as $relations | keys[] as $r | $relations[$r] | relation_findings($model; $name; $r)),
+    ($entity | layer_findings($model; $name));
 
 # check gives the findings of a built model, as an array of sentences: the merge's, then the entities' by name. Empty
 # when the model holds.

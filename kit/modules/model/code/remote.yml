@@ -63,10 +63,13 @@ fields:
     means: Whether this is the primary remote, which kit prints as "primary" or null.
   reference:
     type: Text
+    arity: option
     source: derived
     from: the repository's name and the remote's name
     status: planned
-    means: The remote's reference, its repository's reference and its name.
+    means: >-
+      The remote's reference, its repository's reference and its name, none where the remote has no repository,
+      because its URL names no host.
 relations:
   checkout:
     to: Checkout

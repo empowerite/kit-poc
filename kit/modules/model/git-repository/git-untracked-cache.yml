@@ -9,6 +9,7 @@ fields:
   environment:
     type: Text
     arity: many
+    ordered: true
     source: stored
     status: unused
     means: The strings that say where the cache holds, such as the worktree's location and the system, in order.

@@ -1,9 +1,10 @@
 # The common git directory, as gitrepository-layout lays it out: the .git directory of a checkout, the directory of a
-# bare repository, or a submodule's under its superproject's modules/<name>/. It holds what every worktree shares:
-# the objects, the shared refs, packed-refs, the configuration, the hooks, info/, shallow, the alternates, modules/,
-# and worktrees/. For the main worktree it is also that worktree's own git directory, GitWorktreeDir, which holds its
-# HEAD, index, logs/HEAD, and root refs, as worktrees/<id>/ is a linked worktree's. A bare repository has one
-# GitWorktreeDir, this directory, with a HEAD and no working tree.
+# bare repository, or a submodule's under its superproject's modules/<name>/. It holds what every worktree shares: the
+# objects, the shared refs, packed-refs, the configuration, the hooks, info/, shallow, the alternates, modules/, and
+# worktrees/. The stubs GitPack, GitPackIndex, GitMultiPackIndex, and GitCommitGraph name what objects/ holds beside
+# the loose objects, and GitRerereCache rr-cache/, each unmodelled. For the main worktree it is also that worktree's
+# own git directory, GitWorktreeDir, which holds its HEAD, index, logs/HEAD, and root refs, as worktrees/<id>/ is a
+# linked worktree's. A bare repository has one GitWorktreeDir, this directory, with a HEAD and no working tree.
 entity: GitDir
 layer: native
 tool: git
@@ -33,7 +34,9 @@ fields:
     type: Bool
     source: stored
     status: unused
-    means: The value of core.bare, whether the repository has no main worktree.
+    means: >-
+      The value of core.bare, whether the repository has no working tree of its own, so its main worktree is this
+      directory, with a HEAD and no files.
   format-version:
     type: {enum: ["0", "1"]}
     source: stored
@@ -147,15 +150,21 @@ fields:
   exclude:
     type: Text
     arity: many
+    ordered: true
     source: stored
     status: unused
-    means: The lines of info/exclude, ignore patterns of this repository alone, as gitignore reads them.
+    means: >-
+      The lines of info/exclude, ignore patterns of this repository alone, as gitignore reads them, in order, the
+      last that matches a path deciding.
   attributes:
     type: Text
     arity: many
+    ordered: true
     source: stored
     status: unused
-    means: The lines of info/attributes, attributes of this repository alone, as gitattributes reads them.
+    means: >-
+      The lines of info/attributes, attributes of this repository alone, as gitattributes reads them, in order, a
+      later line overriding an earlier one.
   hooks:
     type: Path
     arity: many

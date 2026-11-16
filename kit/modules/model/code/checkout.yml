@@ -9,7 +9,7 @@ fields:
   path:
     type: Path
     source: derived
-    from: GitDir.checkout
+    from: GitDir.checkout, or GitDir.path for a bare clone, whose GitDir.checkout is none
     status: held
     read-by: workspace repos checkouts
     means: The folder of the clone, the top of its main worktree, or for a bare clone its git directory, GitDir.path.

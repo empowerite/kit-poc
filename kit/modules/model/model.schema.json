@@ -148,6 +148,7 @@
       ]
     },
     "ordered-list": {
+      "type": "object",
       "if": { "required": ["ordered"] },
       "then": { "required": ["arity"], "properties": { "arity": { "enum": ["many", "some"] } } },
       "description": "Only a many or a some has an order."

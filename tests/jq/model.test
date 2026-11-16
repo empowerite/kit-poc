@@ -344,6 +344,12 @@ import "model" as model; model::build | model::check
 {"files": [], "strays": [".kit/model/x.yaml", ".kit/model/top.yml", ".kit/model/code/deep/e.yml"]}
 [".kit/model/x.yaml is not read: a model file is <domain>/<entity>.yml or <domain>/domain.yml, one directory down", ".kit/model/top.yml is not read: a model file is <domain>/<entity>.yml or <domain>/domain.yml, one directory down", ".kit/model/code/deep/e.yml is not read: a model file is <domain>/<entity>.yml or <domain>/domain.yml, one directory down"]
 
+# a native entity's relations, its fields of an entity type, and a native sum's variants go to native entities or stubs;
+# each that goes to a logical entity is a finding that names the entity, and a logical entity may relate to anything
+import "model" as model; model::build | model::check
+{"files": [{"domain": "git", "origin": "release", "path": "g.yml", "doc": {"entity": "G", "layer": "native", "tool": "git", "fields": {"w": {"type": "L", "status": "unused"}, "n": {"type": "H", "status": "unused"}}, "relations": {"up": {"to": "L", "arity": "many", "derived": "x"}, "peer": {"to": "G", "derived": "x"}, "far": {"to": "S", "derived": "x"}}}}, {"domain": "git", "origin": "release", "path": "h.yml", "doc": {"entity": "H", "layer": "native", "tool": "git", "sum": true, "variants": {"Up": {"l": "L"}, "Same": {"g": "G"}}}}, {"domain": "code", "origin": "release", "path": "l.yml", "doc": {"entity": "L", "layer": "logical", "over": ["G"], "relations": {"g": {"to": "G", "derived": "x"}}}}, {"domain": "p", "origin": "release", "path": "s.yml", "doc": {"entity": "S", "stub": true}}]}
+["G is native, and its field w has type L, which is logical; a native entity relates only to native entities and stubs", "G is native, and its relation up goes to L, which is logical; a native entity relates only to native entities and stubs", "H is native, and its variant Up holds L, which is logical; a native entity relates only to native entities and stubs"]
+
 # ----------------------------------------------------------------------------------------------------------------------
 # a repository's domain.yml: it adds layout hints to the release's domain, and sets nothing the release's sets
 # ----------------------------------------------------------------------------------------------------------------------

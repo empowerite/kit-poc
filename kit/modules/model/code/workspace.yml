@@ -26,6 +26,7 @@ fields:
   repos:
     type: Text
     arity: many
+    ordered: true
     source: stored
     status: unused
     means: >-
@@ -40,6 +41,7 @@ fields:
   member-names:
     type: Text
     arity: many
+    ordered: true
     source: derived
     from: the repos entries, each spelled as a member, once, in the file's order, without those exclude names
     status: held
@@ -81,6 +83,7 @@ fields:
   recent-desks:
     type: Path
     arity: many
+    ordered: true
     source: stored
     status: held
     read-by: workspaces --current recent.*.checkout

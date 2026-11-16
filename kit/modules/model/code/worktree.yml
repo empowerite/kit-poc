@@ -31,7 +31,7 @@ fields:
     status: held
     read-by: workspace worktrees branch
     means: >-
-      The name of the branch its HEAD names, an unborn one's from GitUnbornRef.short-name, none when its HEAD is
+      The name of the branch its HEAD names, an unborn one's from UnbornBranch.name, none when its HEAD is
       detached and for a bare clone's main worktree, whose branch git worktree list --porcelain does not print.
   detached:
     type: Bool
@@ -54,14 +54,15 @@ fields:
   base:
     type: Int
     arity: many
+    ordered: true
     source: derived
     from: >-
       git rev-list --left-right --count of the primary remote's default branch and HEAD, run in the worktree
     status: held
     read-by: workspace worktrees base
     means: >-
-      How many commits HEAD is ahead of the primary remote's default branch, then how many behind, none while no
-      fetch has recorded that branch.
+      A pair, [ahead, behind]: how many commits HEAD is ahead of the primary remote's default branch, then how many
+      behind it, none while no fetch has recorded that branch.
   changed:
     type: Int
     arity: option

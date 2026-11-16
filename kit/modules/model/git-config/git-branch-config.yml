@@ -72,6 +72,7 @@ fields:
   other-keys:
     type: Text
     arity: many
+    ordered: true
     source: stored
     status: unused
     means: >-

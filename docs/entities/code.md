@@ -53,6 +53,7 @@ The repositories, clones, worktrees, branches, commits, tags, and changes kit wo
 | Review.change | Change | 1 |  | Change.reviews | The change the review is on. |
 | Tag.checkout | Checkout | 1 |  | Checkout.tags | The checkout whose refs hold the tag. |
 | Tag.commit | Commit | 0..1 |  | Commit.tags | The commit the tag finally points at, through any tag objects, none for a tag of a tree or a blob, which git allows, whose id kit prints in place of a commit's. |
+| UnbornBranch.worktrees | Worktree | 1..* |  | derived | derived: the worktrees whose head is Unborn with this branch name. The worktrees whose HEAD holds this name. Two worktrees can hold one unborn name, because git refuses a second checkout of a branch only once the branch exists. |
 | Workspace.members | Repository | 0..* |  | Repository.workspaces | The repositories the workspace holds: a group's members, none for a group whose entries all are excluded, and one for a workspace of one repository. |
 | Worktree.checkout | Checkout | 1 |  | Checkout.worktrees | The checkout the worktree belongs to. |
 | Worktree.head | Head | 1 |  | Head.worktree | What the worktree has checked out, a branch, a commit, or a branch that has no commit yet. |
@@ -70,9 +71,9 @@ Layer: logical over GitRef, GitBranchConfig
 | default | Bool | 1 | derived | held | `workspace branches default` | derived from GitRemoteConfig.default-branch. Whether the branch is its remote's default branch, which kit prints as "default" or null. |
 | kind | enum(remote, gone, local) | 0..1 | derived | held | `workspace branches kind` | derived from GitRef.kind. Which row of branches prints the branch: remote for a branch on a remote, gone for a local branch whose upstream is gone, and local for a local branch with no upstream on a remote. A local branch whose upstream exists has none, because its upstream's row names it. |
 | name | Text | 1 | derived | held | `workspace branches branch` | derived from GitRef.branch. The branch's name, without refs/heads/ or the remote's name, as main. |
-| reference | Text | 1 | derived | planned |  | derived from the repository's name and the branch's name. The branch's reference, its repository's reference and its name. |
+| reference | Text | 0..1 | derived | planned |  | derived from the repository's name and the branch's name. The branch's reference, its repository's reference and its name, none where the branch's checkout has no repository, because no remote of the checkout names a host. |
 | remote-name | Text | 0..1 | derived | held | `workspace branches remote` | derived from GitRef.remote. The name of the remote that has the branch, or for a gone branch the remote its configuration still names, none for a local branch with no upstream on a remote. |
-| track | Int | 0..* | derived | held | `workspace branches upstream` | derived from what git for-each-ref %(upstream:track) prints for a local branch, as [ahead 3, behind 1]. For a local branch, how many commits it is ahead of its upstream, then how many behind, none for a branch with no upstream or a gone one. The branches stage prints the first local branch's on its upstream's row, and the worktrees stage prints it as track. |
+| track | Int | 0..* ordered | derived | held | `workspace branches upstream` | derived from what git for-each-ref %(upstream:track) prints for a local branch, as [ahead 3, behind 1]. For a local branch, a pair, [ahead, behind]: how many commits it is ahead of its upstream, then how many behind it, none for a branch with no upstream or a gone one. The branches stage prints the first local branch's on its upstream's row, and the worktrees stage prints it as track. |
 | upstream-name | Text | 0..1 | derived | held | `workspace worktrees upstream` | derived from GitBranchConfig.upstream. For a local branch, its upstream's short name, as origin/main, which the worktrees stage prints for the branch a worktree is on. |
 
 ### Change
@@ -115,7 +116,7 @@ Layer: logical over GitDir
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
 | bare | Bool | 1 | derived | unused |  | derived from GitDir.bare. Whether the clone has no working tree of its own, so its main worktree is its git directory, which kit does not print. |
-| path | Path | 1 | derived | held | `workspace repos checkouts.*` | derived from GitDir.checkout. The folder of the clone, the top of its main worktree, or for a bare clone its git directory, GitDir.path. |
+| path | Path | 1 | derived | held | `workspace repos checkouts` | derived from GitDir.checkout, or GitDir.path for a bare clone, whose GitDir.checkout is none. The folder of the clone, the top of its main worktree, or for a bare clone its git directory, GitDir.path. |
 
 ### Commit
 
@@ -146,7 +147,7 @@ Layer: logical over GitHead
 | --- | --- | --- |
 | Detached | commit | Commit |
 | OnBranch | branch | Branch |
-| Unborn | ref | GitUnbornRef |
+| Unborn | ref | UnbornBranch |
 
 ### Organization
 
@@ -174,7 +175,7 @@ Layer: logical over GitRemoteConfig
 | name | Text | 1 | derived | held | `workspace remotes remote` | derived from GitRemoteConfig.name. The remote's name, as origin. |
 | primary | Bool | 1 | derived | held | `workspace remotes primary` | derived from the primary setting in kit.yml, else origin. Whether this is the primary remote, which kit prints as "primary" or null. |
 | push-url | Text | 0..1 | derived | held | `workspace remotes push` | derived from GitRemoteConfig.push-url. The URL a push goes to, none when it is the fetch URL. |
-| reference | Text | 1 | derived | planned |  | derived from the repository's name and the remote's name. The remote's reference, its repository's reference and its name. |
+| reference | Text | 0..1 | derived | planned |  | derived from the repository's name and the remote's name. The remote's reference, its repository's reference and its name, none where the remote has no repository, because its URL names no host. |
 | url | Text | 0..1 | derived | held | `workspace remotes url` | derived from GitRemoteConfig.fetch-url. The URL a fetch reads from, none for a remote with no URL. |
 
 ### Repository
@@ -218,9 +219,19 @@ Layer: logical over GitRef, GitTag
 | age | Int | 0..1 | derived | held | `workspace tags age` | derived from GitSignature.time. How many seconds ago the tag was made, by its tagger's time, or for a lightweight tag its commit's committer time, as git for-each-ref %(creatordate) reads it. |
 | kind | enum(annotated, lightweight) | 1 | derived | held | `workspace tags kind` | derived from GitRef.tag-kind. Whether the tag names a tag object or names an object, a commit as a rule, directly. |
 | name | Text | 1 | derived | held | `workspace tags tag` | derived from GitRef.short-name. The tag's name, without refs/tags/, which is also its row's key. |
-| reference | Text | 1 | derived | planned |  | derived from the repository's name and the tag's name. The tag's reference, its repository's reference and its name. |
+| reference | Text | 0..1 | derived | planned |  | derived from the repository's name and the tag's name. The tag's reference, its repository's reference and its name, none where the tag's checkout has no repository, because no remote of the checkout names a host. |
 | subject | Text | 0..1 | derived | held | `workspace tags subject` | derived from GitMessage.subject. The title of an annotated tag's message, or for a lightweight tag its commit's. |
 | tagger | Text | 0..1 | derived | held | `workspace tags tagger` | derived from GitSignature.name. The name of who made an annotated tag, none for a lightweight tag. |
+
+### UnbornBranch
+
+A branch name a worktree's HEAD holds that no branch has yet, which the next commit there makes.
+
+Layer: logical over GitUnbornRef
+
+| Field | Type | Arity | Source | Status | Read by | Means |
+| --- | --- | --- | --- | --- | --- | --- |
+| name | Text | 1 | derived | held | `workspace worktrees branch` | derived from GitUnbornRef.short-name. The branch's name, as main, which kit prints as the worktree's branch. |
 
 ### Workspace
 
@@ -235,10 +246,10 @@ Layer: logical
 | kind | enum(group, repository) | 1 | derived | held | `workspaces --show kind` | derived from whether the name is a group's name in the workspace file, else a repository's host and path or URL. Whether the workspace is a group or one repository. |
 | last-used | Bool | 1 | stored | unused |  | Whether the workspace is the last group used, which kit keeps in kit/workspaces/last under XDG\_CACHE\_HOME and starts on outside a repository. Kit prints no key for it, only start-reason last. |
 | member-count | Int | 1 | derived | held | `workspaces workspaces.*.members` | derived from the number of member-names. How many members the group has. |
-| member-names | Text | 0..* | derived | held | `workspaces workspaces.*.repos` | derived from the repos entries, each spelled as a member, once, in the file's order, without those exclude names. The group's members by their host and path, the names the members relation stands for. |
+| member-names | Text | 0..* ordered | derived | held | `workspaces workspaces.*.repos` | derived from the repos entries, each spelled as a member, once, in the file's order, without those exclude names. The group's members by their host and path, the names the members relation stands for. |
 | name | Text | 1 | stored | held | `workspaces workspaces.*.name` | A group's name, a key of the workspace file's workspaces, or a repository's host and path for a workspace of one repository. The listing of kit workspaces --json holds the groups only, and the --show and --current forms print the name of a workspace of one repository. |
-| recent-desks | Path | 0..* | stored | held | `workspaces --current recent.*.checkout` | For a workspace of one repository, the desks kit keeps among the recent, one for each clone of the repository opened by its folder, newest first, as kit stores them in kit/workspaces/recent under XDG\_CACHE\_HOME, the ten opened last of every repository, and prints those whose working tree is there. |
-| repos | Text | 0..* | stored | unused |  | The entries of a group's repos, in the workspace file's order, each a member, a git URL, or a pattern of members, which kit reads only to find the members. |
+| recent-desks | Path | 0..* ordered | stored | held | `workspaces --current recent.*.checkout` | For a workspace of one repository, the desks kit keeps among the recent, one for each clone of the repository opened by its folder, newest first, as kit stores them in kit/workspaces/recent under XDG\_CACHE\_HOME, the ten opened last of every repository, and prints those whose working tree is there. |
+| repos | Text | 0..* ordered | stored | unused |  | The entries of a group's repos, in the workspace file's order, each a member, a git URL, or a pattern of members, which kit reads only to find the members. |
 | start-reason | enum(given, repository, last) | 0..1 | derived | held | `workspaces --current why` | derived from the workspace kit workspaces --current settles on: one given by --workspace=, the repository kit runs in, or the last group used. Why kit starts on this workspace where it runs, none for a workspace kit does not start on. When kit starts on no workspace, the --current form prints why as none, or as given for --workspace=none, beside kind none. |
 
 ### Worktree
@@ -250,8 +261,8 @@ Layer: logical over GitWorktreeDir, GitWorktreeAdmin
 
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
-| base | Int | 0..* | derived | held | `workspace worktrees base` | derived from git rev-list --left-right --count of the primary remote's default branch and HEAD, run in the worktree. How many commits HEAD is ahead of the primary remote's default branch, then how many behind, none while no fetch has recorded that branch. |
-| branch | Text | 0..1 | derived | held | `workspace worktrees branch` | derived from GitRef.branch. The name of the branch its HEAD names, an unborn one's from GitUnbornRef.short-name, none when its HEAD is detached and for a bare clone's main worktree, whose branch git worktree list --porcelain does not print. |
+| base | Int | 0..* ordered | derived | held | `workspace worktrees base` | derived from git rev-list --left-right --count of the primary remote's default branch and HEAD, run in the worktree. A pair, [ahead, behind]: how many commits HEAD is ahead of the primary remote's default branch, then how many behind it, none while no fetch has recorded that branch. |
+| branch | Text | 0..1 | derived | held | `workspace worktrees branch` | derived from GitRef.branch. The name of the branch its HEAD names, an unborn one's from UnbornBranch.name, none when its HEAD is detached and for a bare clone's main worktree, whose branch git worktree list --porcelain does not print. |
 | changed | Int | 0..1 | derived | held | `workspace worktrees changes` | derived from the changed and unmerged lines of git status --porcelain=v2, run in the worktree. How many paths are changed, staged or not, none where git status cannot run there. |
 | detached | Bool | 1 | derived | held | `workspace worktrees detached` | derived from whether git worktree list --porcelain prints detached for the worktree, its GitHead being Detached. Whether its HEAD names a commit in place of a branch, which kit prints as "detached" or null. |
 | head-id | Hash | 0..1 | derived | held | `workspace worktrees head` | derived from GitCommit.id. The first eight digits of the HEAD line git worktree list --porcelain prints, the id of the commit its HEAD resolves to, and 00000000 on an unborn branch, where git prints an id of zeros. None for a worktree with no HEAD line: a bare clone's main worktree, whose HEAD git worktree list --porcelain does not print. |

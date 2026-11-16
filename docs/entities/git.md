@@ -83,7 +83,7 @@ Layer: native (git)
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
 | encoding | Text | 0..1 | stored | unused |  | The encoding header, the message's character encoding when it is not UTF-8, from i18n.commitEncoding. |
-| extra-headers | Text | 0..* | stored | unused |  | Each header git does not know, as its name, a space, and its value, which git keeps verbatim and in order. |
+| extra-headers | Text | 0..* ordered | stored | unused |  | Each header git does not know, as its name, a space, and its value, which git keeps verbatim and in order. |
 | id | Hash | 1 | derived | held | `workspace commits key` | derived from the hash of "commit \<size>", a NUL byte, and the content, in the repository's object format, SHA-1 or SHA-256. The object's name. |
 | size | Int | 1 | derived | unused |  | derived from the length of the headers and the message in bytes, as git cat-file -s prints it. The length of the commit object's content in bytes. |
 
@@ -151,7 +151,7 @@ Layer: native (git)
 
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
-| extra-headers | Text | 0..* | stored | unused |  | Each header git does not know, as its name, a space, and its value, which git fsck accepts, in order. |
+| extra-headers | Text | 0..* ordered | stored | unused |  | Each header git does not know, as its name, a space, and its value, which git fsck accepts, in order. |
 | id | Hash | 1 | derived | unused |  | derived from the hash of "tag \<size>", a NUL byte, and the content, in the repository's object format, SHA-1 or SHA-256. The object's name. |
 | name | Text | 1 | stored | unused |  | The tag header, the name given when the tag was made, which the ref that points at the tag need not match. |
 | size | Int | 1 | derived | unused |  | derived from the length of the headers, the message, and the signature in bytes, as git cat-file -s prints it. The length of the tag object's content in bytes. |

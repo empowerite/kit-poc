@@ -30,6 +30,7 @@ fields:
   extra-headers:
     type: Text
     arity: many
+    ordered: true
     source: stored
     status: unused
     means: Each header git does not know, as its name, a space, and its value, which git fsck accepts, in order.

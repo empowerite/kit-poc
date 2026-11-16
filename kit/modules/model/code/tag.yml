@@ -48,10 +48,13 @@ fields:
     means: The title of an annotated tag's message, or for a lightweight tag its commit's.
   reference:
     type: Text
+    arity: option
     source: derived
     from: the repository's name and the tag's name
     status: planned
-    means: The tag's reference, its repository's reference and its name.
+    means: >-
+      The tag's reference, its repository's reference and its name, none where the tag's checkout has no repository,
+      because no remote of the checkout names a host.
 relations:
   checkout:
     to: Checkout

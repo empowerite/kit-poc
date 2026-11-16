@@ -16,6 +16,7 @@ fields:
   urls:
     type: Text
     arity: many
+    ordered: true
     source: stored
     status: unused
     means: The values of remote.<name>.url, as written, the first fetched from and all pushed to when no pushurl is set.
@@ -168,6 +169,7 @@ fields:
   other-keys:
     type: Text
     arity: many
+    ordered: true
     source: stored
     status: unused
     means: Each key of the section git does not document, as name=value in order, such as one a tool records.

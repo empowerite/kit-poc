@@ -1,6 +1,6 @@
 # A branch is a ref of a checkout: a local branch under refs/heads/, or a remote-tracking branch under
 # refs/remotes/<remote>/, which stands for the branch on the remote as the last fetch left it. A branch always has a
-# tip. A name HEAD holds before the first commit is an unborn branch, which is a GitUnbornRef and no Branch. Kit's
+# tip. A name HEAD holds before the first commit is an UnbornBranch, over a GitUnbornRef, and no Branch. Kit's
 # branches stage prints a row for each branch on a remote, with the local branches that pull from it, and a row for
 # each local branch with no branch on a remote.
 entity: Branch
@@ -56,20 +56,24 @@ fields:
   track:
     type: Int
     arity: many
+    ordered: true
     source: derived
     from: what git for-each-ref %(upstream:track) prints for a local branch, as [ahead 3, behind 1]
     status: held
     read-by: workspace branches upstream
     means: >-
-      For a local branch, how many commits it is ahead of its upstream, then how many behind, none for a branch
-      with no upstream or a gone one. The branches stage prints the first local branch's on its upstream's row,
-      and the worktrees stage prints it as track.
+      For a local branch, a pair, [ahead, behind]: how many commits it is ahead of its upstream, then how many
+      behind it, none for a branch with no upstream or a gone one. The branches stage prints the first local
+      branch's on its upstream's row, and the worktrees stage prints it as track.
   reference:
     type: Text
+    arity: option
     source: derived
     from: the repository's name and the branch's name
     status: planned
-    means: The branch's reference, its repository's reference and its name.
+    means: >-
+      The branch's reference, its repository's reference and its name, none where the branch's checkout has no
+      repository, because no remote of the checkout names a host.
 relations:
   checkout:
     to: Checkout

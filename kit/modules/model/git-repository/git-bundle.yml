@@ -1,0 +1,7 @@
+# A stub: a bundle file, named so the model counts it as a gap; its header and its pack are not modelled. A bundle
+# lies outside any git directory, so nothing in the repository relates to it.
+entity: GitBundle
+stub: true
+means: >-
+  A file git bundle create writes: the refs it carries and a pack of the objects they need, which git clone and git
+  fetch read in place of a remote.

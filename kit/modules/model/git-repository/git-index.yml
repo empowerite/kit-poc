@@ -84,6 +84,7 @@ fields:
   other-extensions:
     type: Bytes
     arity: many
+    ordered: true
     source: stored
     status: unused
     means: Each optional extension git does not know, as its signature, its size, and its data, in file order.

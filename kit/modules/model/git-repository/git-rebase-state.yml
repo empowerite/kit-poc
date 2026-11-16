@@ -1,0 +1,6 @@
+# A stub: the state of a rebase under way, named so the model counts it as a gap; its files are not modelled.
+entity: GitRebaseState
+stub: true
+means: >-
+  A rebase under way in a worktree: rebase-merge/ of its git directory, or rebase-apply/ for git am and the apply
+  backend, which git rebase --continue, --skip, and --abort read.

@@ -1,0 +1,7 @@
+# A stub: the index beside a pack, named so the model counts it as a gap; its fan-out table and its offsets are not
+# modelled.
+entity: GitPackIndex
+stub: true
+means: >-
+  The index of a pack, objects/pack/pack-<id>.idx beside it, which finds an object's offset in the pack by the
+  object id.

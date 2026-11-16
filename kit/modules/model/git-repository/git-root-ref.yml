@@ -17,6 +17,7 @@ fields:
   ids:
     type: Hash
     arity: many
+    ordered: true
     source: stored
     status: unused
     means: >-

@@ -1,0 +1,6 @@
+# A stub: one index over many packs, named so the model counts it as a gap; its chunks are not modelled.
+entity: GitMultiPackIndex
+stub: true
+means: >-
+  The multi-pack index, objects/pack/multi-pack-index, one index over many packs, which git multi-pack-index write
+  and git repack --write-midx make.

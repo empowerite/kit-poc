@@ -1,11 +1,13 @@
 # A worktree's own git directory, $GIT_DIR, apart from the common directory, $GIT_COMMON_DIR, that every worktree of
-# the repository shares. For the main worktree the two are one directory. For a linked worktree it is
-# worktrees/<id>/ under the common directory, whose commondir file names the common directory back. It holds the
-# worktree's HEAD, logs/HEAD, index, root refs such as ORIG_HEAD and FETCH_HEAD, its own refs under refs/bisect/,
-# refs/worktree/, and refs/rewritten/, config.worktree, and info/sparse-checkout, and also the files commands keep
-# while they run, such as COMMIT_EDITMSG, MERGE_MSG, MERGE_RR, rebase-merge/, and sequencer/. A bare repository has
-# one, the common directory, which holds a HEAD and no working tree. A linked worktree, a submodule's checkout, and
-# a main worktree of --separate-git-dir have a .git file at the top of the working tree that names this directory.
+# the repository shares. For the main worktree the two are one directory. For a linked worktree it is worktrees/<id>/
+# under the common directory, whose commondir file names the common directory back. It holds the worktree's HEAD,
+# logs/HEAD, index, root refs such as ORIG_HEAD and FETCH_HEAD, its own refs under refs/bisect/, refs/worktree/, and
+# refs/rewritten/, config.worktree, and info/sparse-checkout, and also the files commands keep while they run:
+# COMMIT_EDITMSG, MERGE_MSG, and MERGE_MODE are fields here, and the stubs GitRebaseState (rebase-merge/,
+# rebase-apply/), GitSequencerState (sequencer/), GitBisectState (BISECT_*), and GitRerereCache (MERGE_RR) name the
+# rest, unmodelled. A bare repository has one, the common directory, which holds a HEAD and no working tree. A linked
+# worktree, a submodule's checkout, and a main worktree of --separate-git-dir have a .git file at the top of the
+# working tree that names this directory.
 entity: GitWorktreeDir
 layer: native
 tool: git
@@ -48,6 +50,7 @@ fields:
   sparse-checkout:
     type: Text
     arity: many
+    ordered: true
     source: stored
     status: unused
     means: The lines of info/sparse-checkout, the patterns of this worktree's sparse checkout, in order.

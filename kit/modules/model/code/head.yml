@@ -1,5 +1,5 @@
 # A worktree's HEAD, as kit means it: the logical side of GitHead. An unborn branch is no Branch, because a Branch has
-# a tip, so the Unborn variant holds the ref name git keeps for it, the native GitUnbornRef.
+# a tip, so the Unborn variant holds an UnbornBranch, kit's side of the ref name git keeps for it.
 entity: Head
 layer: logical
 over: [GitHead]
@@ -10,7 +10,7 @@ means: >-
 variants:
   OnBranch: {branch: Branch}
   Detached: {commit: Commit}
-  Unborn: {ref: GitUnbornRef}
+  Unborn: {ref: UnbornBranch}
 relations:
   worktree:
     to: Worktree

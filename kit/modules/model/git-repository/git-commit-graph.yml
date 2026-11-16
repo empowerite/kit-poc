@@ -1,0 +1,7 @@
+# A stub: the commit-graph file, named so the model counts it as a gap; its chunks and its generation numbers are not
+# modelled.
+entity: GitCommitGraph
+stub: true
+means: >-
+  The commit graph, objects/info/commit-graph or the chain under objects/info/commit-graphs/, which holds each
+  commit's parents, tree, and generation, so git walks history without reading the commits.

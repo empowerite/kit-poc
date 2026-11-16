@@ -1,6 +1,8 @@
 # A signature a commit or a tag carries: the armored text git stores, and what checking it says. git stores only the
 # text; each result is what gpg.program, gpg.ssh.program, or gpg.x509.program says of it, as git log %G? and the
-# placeholders after it print.
+# placeholders after it print. The second signature, the compat- relations, is modelled from git's documentation of
+# the hash transition, hash-function-transition and extensions.compatObjectFormat, and not from objects git wrote,
+# which no released git writes yet.
 entity: GitObjectSignature
 layer: native
 tool: git

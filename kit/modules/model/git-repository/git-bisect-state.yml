@@ -1,0 +1,6 @@
+# A stub: the state of a bisect under way, named so the model counts it as a gap; its files and refs are not modelled.
+entity: GitBisectState
+stub: true
+means: >-
+  A git bisect under way in a worktree: the BISECT_ files of its git directory, as BISECT_LOG and BISECT_TERMS, and
+  the good and bad commits under refs/bisect/.
