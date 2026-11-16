@@ -1,0 +1,22 @@
+# One record of an index's IEOT extension, the index entry offset table: a 32-bit offset and a 32-bit count, in
+# network byte order, after the table's 32-bit version.
+entity: GitIndexEntryBlock
+layer: native
+tool: git
+means: A run of consecutive index entries that one thread can read on its own.
+fields:
+  offset:
+    type: Int
+    source: stored
+    status: unused
+    means: The offset from the start of the index file to the block's first entry, in bytes.
+  count:
+    type: Int
+    source: stored
+    status: unused
+    means: The number of entries in the block.
+relations:
+  index:
+    to: GitIndex
+    inverse: GitIndex.entry-blocks
+    means: The index whose IEOT extension holds this record.

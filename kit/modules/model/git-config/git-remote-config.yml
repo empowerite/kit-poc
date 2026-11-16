@@ -43,6 +43,18 @@ fields:
     status: held
     read-by: workspace remotes push
     means: The first URL a push goes to, which kit prints only when it differs from the fetch URL.
+  default-branch:
+    type: Text
+    arity: option
+    source: derived
+    from: >-
+      the ref the symbolic ref refs/remotes/<name>/HEAD names, after refs/remotes/<name>/, as git symbolic-ref prints
+      it
+    status: held
+    read-by: workspace remotes default
+    means: >-
+      The remote's default branch, as the symbolic ref that git clone and git remote set-head write records it, none
+      while refs/remotes/<name>/HEAD does not exist.
   proxy:
     type: Text
     arity: option
@@ -66,7 +78,7 @@ fields:
     arity: option
     source: stored
     status: unused
-    means: The older name of skip-fetch-all, the last of the two set winning.
+    means: A deprecated synonym of skip-fetch-all, the last of the two set winning.
   skip-fetch-all:
     type: Bool
     arity: option
@@ -160,11 +172,15 @@ fields:
     status: unused
     means: Each key of the section git does not document, as name=value in order, such as one a tool records.
 relations:
+  dir:
+    to: GitDir
+    inverse: GitDir.remotes
+    means: The repository whose configuration defines this remote.
   entries:
     to: GitConfigEntry
     arity: many
-    inverse: GitConfigEntry.remote
-    means: The entries of the remote.<name> section, in every scope.
+    inverse: GitConfigEntry.remotes
+    means: The entries of its repository's configuration, in every scope, whose key is in the remote.<name> section.
   fetch:
     to: GitRefspec
     arity: many

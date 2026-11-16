@@ -1,7 +1,7 @@
 # An index file, as gitformat-index lays it out: a 12-byte header, the entries sorted by path and then by stage, the
 # extensions, each a 4-byte signature, a 32-bit size, and its data, then a checksum of everything before it. An
-# extension whose signature starts with a capital is optional, and git skips one it does not know. An index is the
-# main worktree's, which dir names, or a linked worktree's, which worktree names, or a shared index, which splits names.
+# extension whose signature starts with a capital is optional, and git skips one it does not know. An index is a
+# worktree's, which dir names, or a shared index of split index mode, which splits names: exactly one of the two.
 entity: GitIndex
 layer: native
 tool: git
@@ -81,14 +81,6 @@ fields:
     source: stored
     status: unused
     means: The version of the IEOT extension, the index entry offset table, which index.threads writes.
-  entry-offsets:
-    type: Text
-    arity: many
-    source: stored
-    status: unused
-    means: >-
-      The IEOT extension's blocks, in file order, each the offset of its first entry and its count of entries, which
-      let threads read the entries in parallel.
   other-extensions:
     type: Bytes
     arity: many
@@ -135,13 +127,14 @@ relations:
     arity: many
     inverse: GitIndex.shared
     means: The index files whose link extension names this file as their shared index.
+  entry-blocks:
+    to: GitIndexEntryBlock
+    arity: many
+    ordered: true
+    inverse: GitIndexEntryBlock.index
+    means: The IEOT extension's blocks of entries, in file order, which let threads read the entries in parallel.
   dir:
-    to: GitDir
+    to: GitWorktreeDir
     arity: option
-    inverse: GitDir.index
-    means: The git directory whose index file, the main worktree's, this is.
-  worktree:
-    to: GitWorktreeAdmin
-    arity: option
-    inverse: GitWorktreeAdmin.index
-    means: The linked worktree whose index file, worktrees/<id>/index, this is.
+    inverse: GitWorktreeDir.index
+    means: The worktree's git directory whose index file this is, none for a shared index.

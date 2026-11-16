@@ -1,11 +1,10 @@
-# A linked worktree's directory under the common git directory, worktrees/<id>/, which git worktree add makes. The
-# worktree's .git file holds "gitdir: <path>" to it, and gitdir holds the path back to that .git file. It holds the
-# worktree's own HEAD, index, logs, root refs, refs/bisect/, refs/worktree/, refs/rewritten/, info/sparse-checkout,
-# and config.worktree. Everything else the worktree reads from the common directory that commondir names.
+# The files of worktrees/<id>/ that only a linked worktree has, which git worktree add writes and git worktree prune
+# reads: gitdir, the path back to the worktree's .git file, commondir, the path to the common directory, and locked.
+# The rest of the directory is the worktree's git directory, GitWorktreeDir, as the main worktree's is.
 entity: GitWorktreeAdmin
 layer: native
 tool: git
-means: The files git keeps for one linked worktree inside the common git directory.
+means: What git keeps to find a linked worktree, to tell whether it still exists, and to keep it from being pruned.
 fields:
   id:
     type: Text
@@ -18,27 +17,23 @@ fields:
     status: unused
     means: >-
       The content of gitdir, the path of the worktree's .git file, absolute or, with worktree.useRelativePaths,
-      relative.
-  path:
-    type: Path
-    source: derived
-    from: >-
-      the directory that holds the file gitdir names, as git worktree list --porcelain prints it on its worktree line
-    status: held
-    read-by: workspace worktrees path
-    means: Where the worktree is.
+      relative, which kit reads only to confirm a worktree's trust name.
   commondir:
     type: Path
     source: stored
     status: unused
-    means: The content of commondir, the common git directory's path, relative to this directory, usually ../..
+    means: >-
+      The content of commondir, the common git directory's path relative to this directory, usually ../.., which kit
+      reads only to confirm a worktree's trust name.
   locked:
     type: Bool
     source: derived
     from: whether the file locked exists
     status: held
     read-by: workspace worktrees locked
-    means: Whether git worktree lock has kept the worktree from being pruned, moved, or removed.
+    means: >-
+      Whether git worktree lock has kept the worktree from being pruned, moved, or removed, which kit prints as
+      "locked" or null.
   lock-reason:
     type: Text
     arity: option
@@ -51,7 +46,7 @@ fields:
     from: whether the worktree is unlocked and gitdir names no file, as git worktree list --porcelain prints prunable
     status: held
     read-by: workspace worktrees prunable
-    means: Whether git worktree prune would remove the directory.
+    means: Whether git worktree prune would remove the directory, which kit prints as "prunable" or null.
   prune-reason:
     type: Text
     arity: option
@@ -59,46 +54,8 @@ fields:
     from: what git worktree list --porcelain prints after prunable
     status: unused
     means: Why the directory can be pruned, as "gitdir file points to non-existent location".
-  sparse-checkout:
-    type: Text
-    arity: many
-    source: stored
-    status: unused
-    means: The lines of info/sparse-checkout, the patterns of this worktree's sparse checkout.
 relations:
-  dir:
-    to: GitDir
-    inverse: GitDir.worktrees
-    means: The common git directory this directory is under.
-  head:
-    to: GitHead
-    inverse: GitHead.worktree
-    means: The HEAD file, what the worktree has checked out.
-  head-log:
-    to: GitReflogEntry
-    arity: many
-    ordered: true
-    inverse: GitReflogEntry.worktree
-    means: The lines of logs/HEAD, oldest first, each a change to the worktree's HEAD.
-  root-refs:
-    to: GitRootRef
-    arity: many
-    inverse: GitRootRef.worktree
-    means: The worktree's refs beside its HEAD, such as ORIG_HEAD and MERGE_HEAD.
-  index:
-    to: GitIndex
-    arity: option
-    inverse: GitIndex.worktree
-    means: The index file, none while the worktree has no index file, as with git worktree add --no-checkout.
-  refs:
-    to: GitRef
-    arity: many
-    inverse: GitRef.worktree
-    means: The worktree's own refs under refs/bisect/, refs/worktree/, and refs/rewritten/.
-  config:
-    to: GitConfigEntry
-    arity: many
-    ordered: true
-    inverse: GitConfigEntry.worktree
-    means: >-
-      The entries of config.worktree, which git reads after the common config while extensions.worktreeConfig is true.
+  worktree-dir:
+    to: GitWorktreeDir
+    inverse: GitWorktreeDir.admin
+    means: The linked worktree's git directory, worktrees/<id>/, of which these are files.

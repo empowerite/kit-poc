@@ -101,12 +101,9 @@ relations:
     derived: the index entries whose target is Gitlink(this), which a superproject's index holds
     means: The gitlink entries that stage this commit as a submodule's.
   detached-in:
-    to: GitDir
-    arity: option
-    derived: the git directory whose HEAD is Detached(this)
-    means: The git directory whose main worktree has this commit checked out on a detached HEAD.
-  detached-worktrees:
-    to: GitWorktreeAdmin
+    to: GitWorktreeDir
     arity: many
-    derived: the linked worktrees whose HEAD is Detached(this)
-    means: The linked worktrees that have this commit checked out on a detached HEAD.
+    derived: the git directories of this repository's worktrees whose HEAD is Detached(this)
+    means: >-
+      The worktrees of the repository that holds this commit that have it checked out on a detached HEAD, and not
+      another repository's worktrees on a commit of the same id.

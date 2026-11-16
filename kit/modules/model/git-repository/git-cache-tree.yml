@@ -20,7 +20,7 @@ fields:
     type: Int
     source: stored
     status: unused
-    means: The number of nodes under this one, which tells where the depth-first list returns to the parent.
+    means: The number of direct subtrees, the nodes of the directory's own subdirectories, which follow this node.
   id:
     type: Hash
     arity: option

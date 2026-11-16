@@ -50,13 +50,13 @@ fields:
     status: unused
     means: The options of a merge into the branch, as git merge takes them.
   rebase:
-    type: {enum: ["true", "false", merges, interactive]}
+    type: {enum: ["true", "false", "yes", "no", "on", "off", "1", "0", merges, m, interactive, i]}
     arity: option
     source: stored
     status: unused
     means: >-
-      Whether git pull rebases the branch in place of merging, with merges, or m, keeping merge commits, and
-      interactive, or i, rebasing interactively.
+      The value as written: a boolean spelling for whether git pull rebases the branch in place of merging, merges or
+      m to rebase keeping merge commits, and interactive or i to rebase interactively.
   description:
     type: Text
     arity: option
@@ -78,11 +78,15 @@ fields:
       Each key of the section git does not document, as name=value in order, such as the merge base an editor or a
       forge's command line records.
 relations:
+  dir:
+    to: GitDir
+    inverse: GitDir.branch-configs
+    means: The repository whose configuration these settings are read from.
   entries:
     to: GitConfigEntry
     arity: some
-    inverse: GitConfigEntry.branch
-    means: The entries of the branch.<name> section, in every scope.
+    inverse: GitConfigEntry.branches
+    means: The entries of its repository's configuration, in every scope, whose key is in the branch.<name> section.
   ref:
     to: GitRef
     arity: option
@@ -102,4 +106,7 @@ relations:
     to: GitRef
     arity: option
     inverse: GitRef.upstream-of
-    means: The remote-tracking branch that is the upstream, none when the remote is . or no fetch has written it.
+    means: >-
+      The ref that is the upstream: the remote-tracking branch the remote's fetch refspecs map merge to, or, when
+      remote is . (this repository), the local ref merge names, as git rev-parse <branch>@{u} resolves it, none when
+      no such ref exists.

@@ -1,6 +1,7 @@
 # One line of a reflog under logs/: "<old> <new> <name> <<email>> <time> <offset>", then a tab and the message when
 # there is one. A reflog records ids, so the old and the new value are ids, not relations to objects, and an id may
-# name an object git has since pruned.
+# name an object the store does not hold. An entry belongs to a ref's log, logs/<name>, which ref names, or to a
+# worktree's HEAD log, logs/HEAD of its git directory, which worktree-dir names: exactly one of the two.
 entity: GitReflogEntry
 layer: native
 tool: git
@@ -50,13 +51,8 @@ relations:
     arity: option
     inverse: GitRef.reflog
     means: The ref whose log, logs/<name>, holds this entry, none for an entry of a HEAD's log.
-  dir:
-    to: GitDir
+  worktree-dir:
+    to: GitWorktreeDir
     arity: option
-    inverse: GitDir.head-log
-    means: The git directory whose logs/HEAD, the main worktree's HEAD log, holds this entry.
-  worktree:
-    to: GitWorktreeAdmin
-    arity: option
-    inverse: GitWorktreeAdmin.head-log
-    means: The linked worktree whose logs/HEAD holds this entry.
+    inverse: GitWorktreeDir.head-log
+    means: The worktree's git directory whose logs/HEAD holds this entry, none for an entry of a ref's log.

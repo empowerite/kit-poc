@@ -30,20 +30,13 @@ fields:
     means: >-
       For FETCH_HEAD, the rest of each line after its id, not-for-merge or empty, a tab, and the ref and the
       repository it was fetched from.
-  symref:
-    type: Text
-    arity: option
-    source: stored
-    status: unused
-    means: The name of the ref it holds in place of an id, as NOTES_MERGE_REF holds the notes ref being merged into.
 relations:
   dir:
-    to: GitDir
+    to: GitWorktreeDir
+    inverse: GitWorktreeDir.root-refs
+    means: The worktree's git directory this file is in.
+  symref:
+    to: GitRef
     arity: option
-    inverse: GitDir.root-refs
-    means: The git directory this file is in, for the main worktree's.
-  worktree:
-    to: GitWorktreeAdmin
-    arity: option
-    inverse: GitWorktreeAdmin.root-refs
-    means: The linked worktree whose directory, worktrees/<id>/, this file is in.
+    derived: the ref whose name the file holds in place of an id
+    means: The ref it names, as NOTES_MERGE_REF names the note ref being merged into.

@@ -123,8 +123,12 @@ fields:
     status: unused
     means: The value of gpg.minTrustLevel, the least trust a key needs for git to take its signature as good.
 relations:
+  dir:
+    to: GitDir
+    inverse: GitDir.user
+    means: The repository whose configuration these settings are read from.
   entries:
     to: GitConfigEntry
     arity: many
-    inverse: GitConfigEntry.user
-    means: The entries of these keys, in every scope.
+    inverse: GitConfigEntry.users
+    means: The entries of its repository's configuration, in every scope, whose key is one of these.

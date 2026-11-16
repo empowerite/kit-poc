@@ -1,7 +1,9 @@
 # The common git directory, as gitrepository-layout lays it out: the .git directory of a checkout, the directory of a
 # bare repository, or a submodule's under its superproject's modules/<name>/. It holds what every worktree shares:
-# the objects, the refs, the configuration, and the hooks. It also holds the main worktree's own HEAD, index, logs,
-# and root refs, as worktrees/<id>/ holds a linked worktree's.
+# the objects, the shared refs, packed-refs, the configuration, the hooks, info/, shallow, the alternates, modules/,
+# and worktrees/. For the main worktree it is also that worktree's own git directory, GitWorktreeDir, which holds its
+# HEAD, index, logs/HEAD, and root refs, as worktrees/<id>/ is a linked worktree's. A bare repository has one
+# GitWorktreeDir, this directory, with a HEAD and no working tree.
 entity: GitDir
 layer: native
 tool: git
@@ -13,14 +15,6 @@ fields:
     from: git rev-parse --path-format=absolute --git-common-dir
     status: unused
     means: Where the directory is.
-  worktree-path:
-    type: Path
-    arity: option
-    source: derived
-    from: core.worktree, else the directory that holds the git directory, as git worktree list prints it first
-    status: held
-    read-by: workspace repos checkout
-    means: Where the main worktree is, none for a bare repository.
   bare:
     type: Bool
     source: stored
@@ -98,12 +92,6 @@ fields:
     source: stored
     status: unused
     means: The lines of info/attributes, attributes of this repository alone, as gitattributes reads them.
-  sparse-checkout:
-    type: Text
-    arity: many
-    source: stored
-    status: unused
-    means: The lines of info/sparse-checkout, the patterns of the main worktree's sparse checkout.
   hooks:
     type: Path
     arity: many
@@ -121,55 +109,46 @@ fields:
     arity: many
     source: stored
     status: unused
-    means: The files under remotes/ and branches/, the older way to name a remote, which git still reads.
+    means: >-
+      The files under remotes/ and branches/, an older way to name a remote, which git reads as it reads a remote's
+      configuration.
 relations:
+  worktree-dirs:
+    to: GitWorktreeDir
+    arity: some
+    inverse: GitWorktreeDir.common
+    means: >-
+      The git directories of the repository's worktrees: this directory itself for the main worktree, or for a bare
+      repository's HEAD, and worktrees/<id>/ for each linked worktree.
   refs:
     to: GitRef
     arity: many
     inverse: GitRef.dir
-    means: Every ref under refs/, a linked worktree's own ones included, which live under worktrees/<id>/refs/.
-  head:
-    to: GitHead
-    inverse: GitHead.dir
-    means: The HEAD file, the main worktree's HEAD, which a bare repository also has.
-  head-log:
-    to: GitReflogEntry
-    arity: many
-    ordered: true
-    inverse: GitReflogEntry.dir
-    means: The lines of logs/HEAD, oldest first, each a change to the main worktree's HEAD.
-  root-refs:
-    to: GitRootRef
-    arity: many
-    inverse: GitRootRef.dir
-    means: The main worktree's refs beside HEAD, such as ORIG_HEAD and MERGE_HEAD.
-  index:
-    to: GitIndex
-    arity: option
-    inverse: GitIndex.dir
-    means: The index file, the main worktree's, none in a bare repository or while no index file exists.
+    means: >-
+      Every ref of the repository: the shared ones under refs/ here, and each worktree's own, under refs/bisect/,
+      refs/worktree/, and refs/rewritten/ of its git directory.
   config:
     to: GitConfigEntry
     arity: many
     ordered: true
-    inverse: GitConfigEntry.dir
+    inverse: GitConfigEntry.dirs
     means: >-
-      The entries of the config file and of the main worktree's config.worktree, with the files they include, in
-      the order git reads them.
-  worktrees:
-    to: GitWorktreeAdmin
-    arity: many
-    inverse: GitWorktreeAdmin.dir
-    means: The linked worktrees, one directory under worktrees/ each.
+      The entries of the system, global, and local scopes that apply to the repository, with the files they include,
+      in the order git reads them.
   remotes:
     to: GitRemoteConfig
     arity: many
-    derived: the remotes the configuration git reads here defines, of every scope
-    means: The remotes this repository fetches from and pushes to.
+    inverse: GitRemoteConfig.dir
+    means: The remotes the repository's configuration defines.
+  branch-configs:
+    to: GitBranchConfig
+    arity: many
+    inverse: GitBranchConfig.dir
+    means: The branch.<name> sections of the repository's configuration, one a branch.
   user:
     to: GitUserConfig
-    derived: the identity and signing settings the configuration git reads here gives, of every scope
-    means: Who git writes as the author and committer here, and how it signs.
+    inverse: GitUserConfig.dir
+    means: Who git writes as the author and committer in this repository, and how it signs.
   submodules:
     to: GitSubmodule
     arity: many
@@ -179,4 +158,6 @@ relations:
     to: GitSubmodule
     arity: option
     inverse: GitSubmodule.git-dir
-    means: The submodule whose git directory this is, under its superproject's modules/<name>/.
+    means: >-
+      The submodule whose git directory this is, under its superproject's modules/<name>/ or inside the submodule's
+      checkout.

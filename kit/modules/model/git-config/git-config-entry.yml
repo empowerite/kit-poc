@@ -64,35 +64,43 @@ fields:
     status: unused
     means: The value as written, none for a key written with no equals sign, which git reads as true.
 relations:
-  dir:
+  dirs:
     to: GitDir
-    arity: option
+    arity: many
     inverse: GitDir.config
     means: >-
-      The git directory whose files hold this entry, none for an entry of the system, global, or command scope,
-      which no git directory holds.
-  worktree:
-    to: GitWorktreeAdmin
+      The repositories whose configuration this entry is part of: one for an entry of a repository's own config, and
+      every repository of the machine or the user for a system or a global entry.
+  worktree-dir:
+    to: GitWorktreeDir
     arity: option
-    inverse: GitWorktreeAdmin.config
-    means: The linked worktree whose config.worktree holds this entry.
-  remote:
+    inverse: GitWorktreeDir.config
+    means: The worktree's git directory whose config.worktree holds this entry, for an entry of the worktree scope.
+  remotes:
     to: GitRemoteConfig
-    arity: option
+    arity: many
     inverse: GitRemoteConfig.entries
-    means: The remote whose remote.<name> section holds this entry.
-  branch:
+    means: >-
+      The typed configurations of remotes whose repository's configuration this entry is part of and whose
+      remote.<name> section holds it, one a repository.
+  branches:
     to: GitBranchConfig
-    arity: option
+    arity: many
     inverse: GitBranchConfig.entries
-    means: The branch whose branch.<name> section holds this entry.
-  user:
+    means: >-
+      The typed configurations of branches whose repository's configuration this entry is part of and whose
+      branch.<name> section holds it, one a repository.
+  users:
     to: GitUserConfig
-    arity: option
+    arity: many
     inverse: GitUserConfig.entries
-    means: The identity and signing settings this entry is one of.
-  submodule:
+    means: >-
+      The typed identity and signing configurations whose repository's configuration this entry is part of, one a
+      repository, for an entry of one of their keys.
+  submodules:
     to: GitSubmodule
-    arity: option
+    arity: many
     inverse: GitSubmodule.entries
-    means: The submodule whose submodule.<name> section, in .gitmodules or in the repository's config, holds this entry.
+    means: >-
+      The submodules whose repository's .gitmodules or configuration this entry is part of and whose
+      submodule.<name> section holds it.

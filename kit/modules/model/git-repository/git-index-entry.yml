@@ -1,6 +1,6 @@
 # One entry of an index file: the stat data of the file when it was staged, its mode, the id of its object, a 16-bit
 # flags field, the extended flags in version 3 and later, and the path. git compares the stat data with the file to
-# tell whether the file may have changed since.
+# tell whether the file may differ from what is staged.
 entity: GitIndexEntry
 layer: native
 tool: git
