@@ -1,0 +1,218 @@
+# A change is kit's word for a pull request on GitHub and Azure DevOps and a merge request on GitLab. Kit reads it
+# through the forge seam, modules/bash/forge.sh, which folds every forge's answer into one document. The open changes
+# are the changes stage of kit flow, and the 50 merged last are the merged stage of kit changes. A change's head
+# branch and base branch are on the forge; this machine holds them only as the branches a checkout fetched, and the
+# head branch of a change from a fork is in the fork's repository.
+# see: modules/jq/forge.jq
+entity: Change
+layer: logical
+over: [ForgeChange]
+means: A proposal to merge a branch into another on a forge, with its reviews and its checks.
+fields:
+  number:
+    type: Int
+    source: derived
+    from: the forge's change, GitHub's number, GitLab's iid, or Azure DevOps' pullRequestId
+    status: held
+    read-by: flow changes number
+    means: The change's number in its repository.
+  ref:
+    type: Text
+    source: derived
+    from: the forge's change, its number after the forge's mark
+    status: held
+    read-by: flow changes ref
+    means: The number as the forge writes it in text, #3 on GitHub, and !3 on GitLab and Azure DevOps.
+  url:
+    type: Url
+    arity: option
+    source: derived
+    from: the forge's change, its page as the forge's tool reports it or the primary remote's URL gives it
+    status: held
+    read-by: flow changes url
+    means: The change's page on the forge, none where the forge's answer gives none.
+  title:
+    type: Text
+    source: derived
+    from: the forge's change, its title
+    status: held
+    read-by: flow changes title
+    means: The change's title.
+  author:
+    type: Text
+    source: derived
+    from: the forge's change, the login of who opened it
+    status: held
+    read-by: flow changes author
+    means: The login of who opened the change, a bot's with [bot] after it.
+  branch-name:
+    type: Text
+    source: derived
+    from: the forge's change, the name of its head branch
+    status: held
+    read-by: flow changes branch
+    means: The name of the branch the change merges from, in the fork's repository for a change from a fork.
+  fork:
+    type: Text
+    arity: option
+    source: derived
+    from: the forge's change, the owner of the repository its head branch is in when that is another repository
+    status: held
+    read-by: flow changes fork
+    means: >-
+      The owner of the fork the head branch lives in, a login on GitHub and a namespace's path on GitLab, none for
+      a branch in the change's own repository and for a fork whose owner the forge does not name.
+  created:
+    type: Time
+    source: derived
+    from: the forge's change, when it was opened
+    status: held
+    read-by: flow changes createdAt
+    means: When the change was opened, as an ISO 8601 time.
+  age:
+    type: Int
+    source: derived
+    from: the forge's change, when it was opened
+    status: held
+    read-by: flow changes age
+    means: How many seconds ago the change was opened.
+  pushed-age:
+    type: Int
+    arity: option
+    source: derived
+    from: the forge's change, the time of the latest push to its branch as far as the forge tells it cheaply
+    status: held
+    read-by: flow changes pushed.age
+    means: >-
+      How many seconds ago the latest push to the branch was, on GitHub the head commit's time, none where the
+      forge does not tell it.
+  pushed-by:
+    type: Text
+    arity: option
+    source: derived
+    from: the forge's change, who pushed to its branch last as far as the forge tells it cheaply
+    status: held
+    read-by: flow changes pushed.by
+    means: The login of who pushed last, none where the forge does not name one.
+  state:
+    type: {enum: [draft, queued, conflicted, "failing:gate", no-check, "comments:open", "blocked:approval", ready]}
+    source: derived
+    from: >-
+      the forge's change, the first that holds of: a draft, a check pending, a conflict, a check failed, no check,
+      an unresolved thread, and a review that blocks the merge
+    status: held
+    read-by: flow changes state
+    means: Where the change stands on its way to a merge, ready when nothing holds it back.
+  checks-state:
+    type: {enum: [NONE, FAILURE, PENDING, SUCCESS]}
+    source: derived
+    from: the latest run of each check on the head commit, by its start
+    status: held
+    read-by: flow changes checks.state
+    means: >-
+      What the checks say together: NONE with no check, FAILURE when one failed, PENDING while one runs, and
+      SUCCESS otherwise.
+  checks-passed:
+    type: Int
+    source: derived
+    from: the latest run of each check on the head commit, by its start
+    status: held
+    read-by: flow changes checks.passed
+    means: How many checks passed.
+  checks-total:
+    type: Int
+    source: derived
+    from: the latest run of each check on the head commit, by its start
+    status: held
+    read-by: flow changes checks.total
+    means: How many checks the head commit has, a check being a name in one workflow for one event.
+  checks-failing:
+    type: Text
+    source: derived
+    from: the latest run of each check on the head commit, by its start
+    status: held
+    read-by: flow changes checks.failing
+    means: The name of the first check that failed, empty when none did.
+  checks-took:
+    type: Int
+    arity: option
+    source: derived
+    from: the latest run of each check on the head commit, by its start
+    status: held
+    read-by: flow changes checks.took
+    means: >-
+      How many seconds the longest check took, or while one runs how long the oldest running one has waited, none
+      where no run says.
+  unresolved:
+    type: Int
+    source: derived
+    from: the forge's change, its review threads
+    status: held
+    read-by: flow changes unresolved
+    means: How many review threads on the change are unresolved.
+  named:
+    type: Text
+    arity: many
+    source: derived
+    from: the forge's change, the closing keywords of its body
+    status: held
+    read-by: flow changes named
+    means: >-
+      The references a closing keyword names in the body, each once, as AB#12 of Fixes AB#12, how a change closes
+      an issue of a tracker the forge does not link by itself.
+  merged-at:
+    type: Time
+    arity: option
+    source: derived
+    from: the forge's change, when it was merged, or on Azure DevOps when it was completed
+    status: held
+    read-by: changes merged merged
+    means: When the change was merged, in seconds since the epoch, none while it is open.
+  merged-by:
+    type: Text
+    arity: option
+    source: derived
+    from: the forge's change, who merged it, or on Azure DevOps who completed it
+    status: held
+    read-by: changes merged by
+    means: The login of who merged the change, none while it is open and for a deleted account.
+  reference:
+    type: Text
+    source: derived
+    from: the repository's name and ref
+    status: planned
+    means: The change's reference, as github.com/example/repo#3 on GitHub and gitlab.com/example/repo!3 on GitLab.
+relations:
+  forge-change:
+    to: ForgeChange
+    inverse: ForgeChange.change
+    means: The forge's own record of the change, which kit reads.
+  repository:
+    to: Repository
+    inverse: Repository.changes
+    means: The repository the change merges into, which kit reads it from through the primary remote.
+  branch:
+    to: Branch
+    arity: option
+    inverse: Branch.changes
+    means: >-
+      The head branch, as a checkout of this machine holds it, a remote-tracking branch as a rule, none when no
+      checkout has fetched it, when the forge has deleted it, and for a fork's branch that no remote reaches.
+  base:
+    to: Branch
+    arity: option
+    inverse: Branch.targeted-by
+    means: >-
+      The branch the change merges into, of the change's own repository even for a change from a fork, as a
+      checkout of this machine holds it, none when no checkout has fetched it.
+  commits:
+    to: Commit
+    arity: some
+    ordered: true
+    inverse: Commit.changes
+    means: The commits the change proposes, oldest first, which a checkout holds once it fetches the head branch.
+  reviews:
+    to: Review
+    arity: many
+    inverse: Review.change
+    means: The reviews asked for and given on the change, one for each reviewer.

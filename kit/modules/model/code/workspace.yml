@@ -1,0 +1,74 @@
+# A workspace is what kit looks at. A group is kit's own: kit keeps it in workspaces.yml under XDG_CONFIG_HOME, and
+# the last group used under XDG_CACHE_HOME, so a group's fields are stored by kit and over no native entity. A
+# repository is a workspace of its own as well, with one member and nothing stored.
+# see: docs/workspaces.md
+entity: Workspace
+layer: logical
+means: What kit looks at, one repository or a named group of repositories that move together.
+fields:
+  name:
+    type: Text
+    source: stored
+    status: held
+    read-by: workspaces workspaces.*.name
+    means: >-
+      A group's name, a key of the workspace file's workspaces, or a repository's host and path for a workspace of
+      one repository.
+  kind:
+    type: {enum: [group, repository]}
+    source: derived
+    from: whether the name is a group's name in the workspace file, else a repository's host and path
+    status: planned
+    means: >-
+      Whether the workspace is a group or one repository, which kit workspaces --show and --current print, forms
+      that a read-by does not name.
+  repos:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: >-
+      The entries of a group's repos, in the workspace file's order, each a member, a git URL, or a pattern of
+      members, which kit reads only to find the members.
+  exclude:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: The entries of a group's exclude, members kit takes back out, which kit reads only to find the members.
+  member-names:
+    type: Text
+    arity: many
+    source: derived
+    from: the repos entries, each spelled as a member, once, in the file's order, without those exclude names
+    status: held
+    read-by: workspaces workspaces.*.repos
+    means: The group's members by their host and path, the names the members relation stands for.
+  member-count:
+    type: Int
+    source: derived
+    from: the number of member-names
+    status: held
+    read-by: workspaces workspaces.*.members
+    means: How many members the group has.
+  favorite:
+    type: Bool
+    source: stored
+    status: held
+    read-by: workspaces workspaces.*.favorite
+    means: Whether the workspace file's favorites name the workspace.
+  last-used:
+    type: Bool
+    source: stored
+    status: unused
+    means: >-
+      Whether the workspace is the last group used, which kit keeps under XDG_CACHE_HOME and starts on outside a
+      repository.
+relations:
+  members:
+    to: Repository
+    arity: many
+    inverse: Repository.workspaces
+    means: >-
+      The repositories the workspace holds: a group's members, none for a group whose entries all are excluded, and
+      one for a workspace of one repository.

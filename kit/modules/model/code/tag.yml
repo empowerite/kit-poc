@@ -1,0 +1,66 @@
+# A tag is a ref under refs/tags/ of a checkout: a lightweight one names an object directly, and an annotated one
+# names a tag object, GitTag, with its tagger and message. Kit reads the commit a tag finally points at, through any
+# tag objects, as git for-each-ref %(*objectname) peels it.
+entity: Tag
+layer: logical
+over: [GitRef, GitTag]
+means: A name for one commit as a rule, annotated with a tagger and a message, or lightweight.
+fields:
+  name:
+    type: Text
+    source: derived
+    from: GitRef.short-name
+    status: held
+    read-by: workspace tags tag
+    means: The tag's name, without refs/tags/, which is also its row's key.
+  kind:
+    type: {enum: [annotated, lightweight]}
+    source: derived
+    from: GitRef.tag-kind
+    status: held
+    read-by: workspace tags kind
+    means: Whether the tag names a tag object or names a commit directly.
+  tagger:
+    type: Text
+    arity: option
+    source: derived
+    from: GitSignature.name
+    status: held
+    read-by: workspace tags tagger
+    means: The name of who made an annotated tag, none for a lightweight tag.
+  age:
+    type: Int
+    arity: option
+    source: derived
+    from: GitSignature.time
+    status: held
+    read-by: workspace tags age
+    means: >-
+      How many seconds ago the tag was made, by its tagger's time, or for a lightweight tag its commit's committer
+      time, as git for-each-ref %(creatordate) reads it.
+  subject:
+    type: Text
+    arity: option
+    source: derived
+    from: GitMessage.subject
+    status: held
+    read-by: workspace tags subject
+    means: The title of an annotated tag's message, or for a lightweight tag its commit's.
+  reference:
+    type: Text
+    source: derived
+    from: the repository's name and the tag's name
+    status: planned
+    means: The tag's reference, its repository's reference and its name.
+relations:
+  checkout:
+    to: Checkout
+    inverse: Checkout.tags
+    means: The checkout whose refs hold the tag.
+  commit:
+    to: Commit
+    arity: option
+    inverse: Commit.tags
+    means: >-
+      The commit the tag finally points at, through any tag objects, none for a tag of a tree or a blob, which git
+      allows, whose id kit prints in place of a commit's.

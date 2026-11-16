@@ -31,3 +31,10 @@ relations:
     arity: many
     inverse: GitRef.dangling-symref
     means: The dangling symbolic refs that hold this name.
+  worktrees:
+    to: Worktree
+    arity: many
+    derived: the worktrees whose head is Unborn with this ref name
+    means: >-
+      The worktrees of kit's Code domain that are on this unborn branch, the same worktrees as checked-out-in, seen
+      from kit's side.

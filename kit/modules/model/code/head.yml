@@ -1,0 +1,16 @@
+# A worktree's HEAD, as kit means it: the logical side of GitHead. An unborn branch is no Branch, because a Branch has
+# a tip, so the Unborn variant holds the ref name git keeps for it, the native GitUnbornRef.
+entity: Head
+layer: logical
+over: [GitHead]
+sum: true
+means: What a worktree is on, a branch, a commit with no branch, or the name of a branch that has no commit yet.
+variants:
+  OnBranch: {branch: Branch}
+  Detached: {commit: Commit}
+  Unborn: {ref: GitUnbornRef}
+relations:
+  worktree:
+    to: Worktree
+    inverse: Worktree.head
+    means: The worktree whose HEAD this is.

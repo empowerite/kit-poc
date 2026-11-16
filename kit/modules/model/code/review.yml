@@ -1,0 +1,45 @@
+# A review is one reviewer's standing on a change: asked and not answered, or their latest answer. Kit reads it in
+# the same answer as the change, and the reviews stage of kit changes prints a row for each open change and reviewer.
+# The author's own comments are no review.
+entity: Review
+layer: logical
+over: [ForgeChange]
+means: One reviewer's request, approval, request for changes, or comment on a change.
+fields:
+  login:
+    type: Text
+    source: derived
+    from: the forge's change, a reviewer it asks or who reviewed it
+    status: held
+    read-by: changes reviews login
+    means: The reviewer's login, or a team's slug for a team asked to review on GitHub.
+  state:
+    type: {enum: [requested, approved, changes, commented]}
+    source: derived
+    from: >-
+      the forge's change, the reviewer's latest approval or request for changes on GitHub, an approval on GitLab,
+      and a vote on Azure DevOps
+    status: held
+    read-by: changes reviews state
+    means: Requested while the reviewer is asked and has not answered, else what the reviewer's latest review says.
+  at:
+    type: Time
+    arity: option
+    source: derived
+    from: the forge's change, when the reviewer answered
+    status: held
+    read-by: changes reviews at
+    means: >-
+      When the reviewer answered, in seconds since the epoch, none while asked and on Azure DevOps, which keeps no
+      time for a vote.
+  reference:
+    type: Text
+    source: derived
+    from: the change's reference and the reviewer's login
+    status: planned
+    means: The review's reference, the change's reference with the reviewer.
+relations:
+  change:
+    to: Change
+    inverse: Change.reviews
+    means: The change the review is on.

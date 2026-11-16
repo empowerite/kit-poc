@@ -1,0 +1,53 @@
+# An organization is the owner part of a repository's name: the path a remote's URL names after the host, without
+# its last segment. Kit holds only that name today. The forge says the kind. An Azure DevOps project is an
+# organization of kind project under the Azure DevOps organization, so a repository has one organization on every
+# forge, and the chain of parents holds the rest.
+entity: Organization
+layer: logical
+over: [GitRemoteConfig]
+means: >-
+  The owner a forge keeps repositories under: a GitHub user or organization, a GitLab group, which may nest in
+  another, or an Azure DevOps project, which is under an Azure DevOps organization.
+fields:
+  name:
+    type: Text
+    source: derived
+    from: GitRemoteConfig.fetch-url
+    status: held
+    read-by: workspace repos organization
+    means: >-
+      The path of the primary remote's URL after the host, without its last segment, as example for
+      github.com/example/repo and group/sub for a GitLab subgroup, which every row of every stage prints as
+      organization.
+  kind:
+    type: {enum: [user, organization, group, project]}
+    source: derived
+    from: >-
+      the forge's answer for the owner: a GitHub user or organization, a GitLab group, or an Azure DevOps
+      organization or project
+    status: planned
+    means: >-
+      What the forge calls this owner: user or organization on GitHub, group on GitLab, and organization or
+      project on Azure DevOps.
+relations:
+  repositories:
+    to: Repository
+    arity: many
+    inverse: Repository.organization
+    means: The repositories kit knows of under this organization, which may be none, as for a parent group.
+  parent:
+    to: Organization
+    arity: option
+    inverse: Organization.children
+    means: >-
+      The organization this one is under: a GitLab group's parent group, or an Azure DevOps project's organization,
+      none for a GitHub owner and a top-level group.
+  children:
+    to: Organization
+    arity: many
+    inverse: Organization.parent
+    means: The organizations directly under this one, its subgroups or its projects.
+  service:
+    to: Service
+    inverse: Service.organizations
+    means: The service that holds the organization, which the host of the remote's URL names.
