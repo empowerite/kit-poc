@@ -18,8 +18,8 @@ fields:
     means: >-
       The path of the primary remote's URL after the host, without its last segment, as example for
       github.com/example/repo and group/sub for a GitLab subgroup, which every row of every stage prints as
-      organization. On Azure DevOps that split gives org/proj/_git for https://dev.azure.com/org/proj/_git/repo and
-      v3/org/proj for git@ssh.dev.azure.com:v3/org/proj/repo, two names for one project, which the Azure DevOps
+      organization. On Azure DevOps that split gives org/proj/_git for `https://dev.azure.com/org/proj/_git/repo` and
+      v3/org/proj for `git@ssh.dev.azure.com:v3/org/proj/repo`, two names for one project, which the Azure DevOps
       provider's own place splits into the organization and the project.
   kind:
     type: {enum: [user, organization, group, project]}

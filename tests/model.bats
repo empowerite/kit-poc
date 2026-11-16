@@ -259,6 +259,80 @@ release-counts() {
   [ "$output" = 'jq: error: boom' ]
 }
 
+# kit model page: the body of a domain's page.
+
+@test "kit model page --domain= prints the page of the domain" {
+  fresh-repo
+  run kit model "--release=${fixtures}/tables/release" page --domain=git
+  [ "$status" -eq 0 ]
+  [ "$output" = '![git: the entities of the domain and how they relate](git.svg)
+
+## Relations
+
+| Relation | To | Arity | Ordered | Inverse | Means |
+| --- | --- | --- | --- | --- | --- |
+| Branch.worktree | Worktree | 1 |  | Worktree.head |  |
+| Worktree.head | Branch | 1 |  | Branch.worktree |  |
+
+## Entities
+
+### Branch
+
+Layer: native (git)
+
+| Field | Type | Arity | Source | Status | Read by | Means |
+| --- | --- | --- | --- | --- | --- | --- |
+
+### Worktree
+
+a working tree
+
+Layer: native (git)
+
+| Field | Type | Arity | Source | Status | Read by | Means |
+| --- | --- | --- | --- | --- | --- | --- |
+| branch | Text | 0..1 | stored | planned |  | the branch \| or none |
+| name | Text | 1 | derived | unused |  | derived from the path. |
+| path | Path | 1 | stored | held | work path | where it is checked out |' ]
+}
+
+@test "kit model page with no --domain=, or a domain the model does not hold, exits 2 and says so" {
+  fresh-repo
+  run kit model "--release=${fixtures}/tables/release" page
+  [ "$status" -eq 2 ]
+  [[ "${lines[0]}" == "❌ kit model page needs --domain; run: "* ]]
+  run kit model "--release=${fixtures}/tables/release" page --domain=nope
+  [ "$status" -eq 2 ]
+  [[ "${lines[0]}" == "❌ no domain named nope; the domains are: git; run: "* ]]
+}
+
+@test "a kit:generate region of kit model page is current after kit generate, and stale after the model changes" {
+  fresh-repo
+  cp -R "${fixtures}/tables/release" model
+  printf '# Git\n\n<!-- kit:generate page `kit model --release=model page --domain=git` -->\nold\n<!-- kit:end page -->\n' > page.md
+  run "${kit_checkout}/bin/kit" generate page.md
+  [ "$status" -eq 0 ]
+  grep --quiet '^### Worktree$' page.md
+  run "${kit_checkout}/bin/kit" generate --check page.md
+  [ "$status" -eq 0 ]
+  sed -i.bak 's/a working tree/a tree/' model/git/worktree.yml
+  run "${kit_checkout}/bin/kit" generate --check page.md
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"page.md: stale"* ]]
+}
+
+@test "a jq that fails ends kit model page with 1 and jq's message" {
+  fresh-repo
+  real=$(command -v jq)
+  mkdir "${BATS_TEST_TMPDIR}/fake"
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do [[ "$a" != *model::page* ]] || { echo "jq: error: boom" >&2; exit 5; }; done\nexec %q "$@"\n' \
+    "${real}" > "${BATS_TEST_TMPDIR}/fake/jq"
+  chmod +x "${BATS_TEST_TMPDIR}/fake/jq"
+  PATH="${BATS_TEST_TMPDIR}/fake:${PATH}" run kit model "--release=${fixtures}/tables/release" page --domain=git
+  [ "$status" -eq 1 ]
+  [ "$output" = 'jq: error: boom' ]
+}
+
 # kit model svg: a diagram of a domain, and an overview of every domain.
 
 @test "kit model svg --domain= prints the domain's diagram, which yq reads as XML" {

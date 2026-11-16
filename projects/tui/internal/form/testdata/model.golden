@@ -6,6 +6,7 @@
    one of required
    check      checks the model
    table      prints a table of one entity or one domain
+   page       prints the body of the page of one domain
    svg        prints a diagram of one domain, or of every domain
 
 

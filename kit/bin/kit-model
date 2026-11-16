@@ -2,7 +2,7 @@
 # kit-model - checks the model of kit's entities (kit verb: files)
 # ----------------------------------------------------------------------------------------------------------------------
 # Usage:
-#   kit model [--release=<dir>] (check | table (--entity=<name> | --domain=<name>) | svg (--domain=<name> | --overview))
+#   kit model [--release=<dir>] (check | table (--entity=<name> | --domain=<name>) | page --domain=<name> | svg (--domain=<name> | --overview))
 #
 # The model is the entities kit works with, one YAML file each: the release's under modules/model/, and the
 # repository's under .kit/model/, as docs/model.md says. kit model check reads both and checks them: every relation has
@@ -17,6 +17,10 @@
 # Relation | To | Arity | Ordered | Inverse | Means. Arity is 1, 0..1, 0..*, or 1..*. A name the model does not hold
 # exits 2 and names the ones it does.
 #
+# page prints the markdown body of a domain's page, for a page that holds it in a kit:generate region: the domain's intro,
+# its diagram as <domain>.svg, its relations table, and a section for each entity, by name, with what it means, its layer,
+# and its fields. The page's own file holds the title. A domain the model does not hold exits 2 and names the ones it does.
+#
 # svg prints a diagram of the model as SVG, the same bytes for the same model under any locale. --domain= draws a card
 # for each entity of the domain, and a line for each pair of inverse relations, with the name and arity of each
 # relation at the end it goes to; a derived relation is dashed, and a relation to another domain's entity is a short
@@ -27,14 +31,15 @@
 #   --release=<dir>    a model directory that exists, read in place of the release's modules/model; given once
 #   check              checks the model
 #   table              prints a table of one entity or one domain
+#   page               prints the body of the page of one domain
 #   svg                prints a diagram of one domain, or of every domain
 #   --entity=<name>    the entity whose fields the table lists
-#   --domain=<name>    the domain whose relations the table lists, or whose entities the diagram draws
+#   --domain=<name>    the domain whose relations the table lists, whose page is printed, or whose entities the diagram draws
 #   --overview         draws a panel for each domain of the model
 #
 # Exits 0 when the model holds, or a table or a diagram is printed; 1 when the model has a finding, a file cannot be
 # read, or jq fails; and 2 on a usage error: an empty --release=, one given twice, or one that is not a directory; table
-# with neither --entity= nor --domain=, or both; svg with neither --domain= nor --overview, or both; and a name of an
+# with neither --entity= nor --domain=, or both; page without --domain=; svg with neither --domain= nor --overview, or both; and a name of an
 # entity or a domain the model does not hold.
 #
 # see: modules/bash/model.sh, modules/jq/model.jq, modules/jq/modelsvg.jq, docs/model.md
@@ -105,6 +110,11 @@ then
   known_list=$(paste -s -d, - <<<"${names}" | sed 's/,/, /g')
   error "no ${kind} named ${name}; the ${plural} are: ${known_list}; run: kit help model"
   exit 2
+fi
+if [[ "${syntax_literals[0]}" == page ]]
+then
+  model-jq "model::page(\$name)" --arg name "${name}"
+  exit
 fi
 if [[ "${syntax_literals[0]}" == table ]]
 then

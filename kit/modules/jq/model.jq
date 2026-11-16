@@ -5,6 +5,8 @@
 #   merge   build turns the document model:load prints into one model, {domains, entities, findings}, and holds the
 #           repository's additions to the narrowing the release allows.
 #   check   check gives the findings of a built model, the merge's first, and stubs the names of its stub entities.
+#   tables  fields and relations give the markdown tables of an entity's fields and of a domain's relations.
+#   page    page gives the markdown body of a domain's page, made of those tables and the entities' sentences.
 #
 # build is given {"files": [{domain, origin, path, doc}]}, the release's files first, then the repository's. A file
 # named domain.yml is a domain's, and any other holds an entity (entity:) or an addition to one (extends:). An entity
@@ -296,6 +298,11 @@ def stubs: [.entities | to_entries[] | select(.value.stub == true) | .key] | sor
 # arity_text is the arity of a field or a relation as a range: 1, 0..1, 0..*, or 1..*. An arity not given is one.
 def arity_text: ({one: "1", option: "0..1", many: "0..*", some: "1..*"})[. // "one"];
 
+# prose is text as markdown reads it as text: a < and a * outside a code span are written \< and \*, so a name in angle
+# brackets is not taken for HTML, nor a lone star for emphasis.
+def prose:
+  (. // "") | split("`") | to_entries | map(if .key % 2 == 0 then .value | gsub("(?<c>[<*])"; "\\" + .c) else .value end) | join("`");
+
 # cell is a value as the text of a table cell: nothing is empty, a newline is a space, and a | is written \|.
 def cell:
   (. // "") | (if type == "string" then . else tojson end) | sub("\n+$"; "") | gsub("\n"; " ") | gsub("\\|"; "\\|");
@@ -313,7 +320,7 @@ def type_text:
 # field_row is the row of a field: its type, arity, source, status, what reads it, and what it means.
 def field_row($name):
   [$name, (.type | type_text), (.arity | arity_text), (.source // "stored"), .status, .["read-by"],
-    (if .source == "derived" then "derived from \(.from // ""). \(.means // "")" | sub(" $"; "") else .means end)];
+    (if .source == "derived" then "derived from \(.from // ""). \(.means // "")" | sub(" $"; "") else .means end | prose)];
 
 # fields gives the table of an entity of a built model, given its name: its fields by name; for a sum, its variants and
 # their fields; for a stub, the one line that says it is one. A table is lines joined with newlines.
@@ -333,7 +340,7 @@ def fields($name):
 def relation_row($name):
   [$name, .to, (.arity | arity_text), (if .ordered == true then "ordered" else "" end),
     (if .derived != null then "derived" else .inverse end),
-    (if .derived != null then "derived: \(.derived)" + (if (.means // "") == "" then "" else ". \(.means)" end) else .means end)];
+    ((if .derived != null then "derived: \(.derived)" + (if (.means // "") == "" then "" else ". \(.means)" end) else .means end) | prose)];
 
 # relations gives the table of the relations of a built model's domain, given its name: those of every entity in it, by
 # entity then relation. A table is lines joined with newlines.
@@ -342,3 +349,48 @@ def relations($domain):
     [.entities | to_entries | sort_by(.key)[] | select(.value.domain == $domain) | .key as $e
       | (.value.relations // {}) | to_entries | sort_by(.key)[] | .key as $r | .value | relation_row("\($e).\($r)") | row])
   | join("\n");
+
+# ----------------------------------------------------------------------------------------------------------------------
+# page
+# ----------------------------------------------------------------------------------------------------------------------
+
+# layer_line is the line that says what kind of entity one is: its layer and tool, what a logical one stands over, or, for a
+# stub, that it is one.
+def layer_line:
+  if .stub == true then "Stub: named so other entities can refer to it; its fields are not modelled."
+  elif .layer == "native" then "Layer: native (\(.tool))"
+  else "Layer: logical" + (if ((.over // []) | length) > 0 then " over \(.over | join(", "))" else "" end)
+  end;
+
+# paragraph($width) is a sentence as a paragraph: prose, with its words wrapped into lines of at most $width characters, or
+# longer for a word that is.
+def paragraph($width):
+  sub("\n+$"; "") | gsub("\n+"; " ") | prose
+  | reduce (split(" ")[]) as $word ([];
+      if length == 0 then [$word]
+      elif (.[-1] | length) + 1 + ($word | length) > $width then . + [$word]
+      else .[-1] += " " + $word end)
+  | join("\n");
+
+# entity_section($name) is the section of one entity of a built model: its name, what it means, its layer line, and its
+# fields, as the blocks of a page.
+def entity_section($name):
+  . as $model
+  | .entities[$name] as $entity
+  | ["### \($name)"]
+    + (if ($entity.means // "") == "" then [] else [$entity.means | paragraph(118)] end)
+    + [($entity | layer_line)]
+    + (if $entity.stub == true then [] else [$model | fields($name)] end);
+
+# page gives the body of the page of a built model's domain, given its name, as markdown: the domain's intro, its diagram
+# as <domain>.svg, its relations, and a section for each of its entities, by name. The page's own file holds the title.
+# Blocks are joined by a blank line, with no blank line at the end.
+def page($domain):
+  . as $model
+  | ($model.domains[$domain] // {}) as $d
+  | ([$model.entities | to_entries[] | select(.value.domain == $domain) | .key] | sort) as $names
+  | ((if ($d.intro // "") == "" then [] else [$d.intro | paragraph(118)] end)
+    + ["![\($d.name // $domain): the entities of the domain and how they relate](\($domain).svg)",
+       "## Relations", relations($domain), "## Entities"]
+    + [$names[] | . as $n | $model | entity_section($n)[]])
+  | join("\n\n");
