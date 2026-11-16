@@ -175,6 +175,38 @@ both, exits 2. A name the model does not hold exits 2 and names the entities, or
 in a `kit:generate` region whose command is `kit model table --entity=<name>`, so `kit generate --check` names the page
 when the model has changed.
 
+## The pages
+
+`model::page($domain)`, in the same module, returns the body of a domain's page as markdown, and `kit model
+[--release=<dir>] page --domain=<name>` prints it. A domain the model does not hold, or none given, exits 2; the message
+names the domains the model holds. It is, in order:
+
+- the domain's `intro`, as a paragraph;
+- the diagram, `![<Name>: the entities of the domain and how they relate](<domain>.svg)`;
+- `## Relations`, with the table of `model::relations`;
+- `## Entities`, with a `### <Name>` section for each entity of the domain, by name: what it means as a paragraph, one
+  line that says `Layer: native (<tool>)`, or `Layer: logical`, followed by `over <entities>` when it stands over any,
+  or, for a stub, `Stub: named so other entities can refer to it; its fields are not modelled.`, and then the table of
+  `model::fields`, which a stub has none of.
+
+The page's own file holds the title. A paragraph is wrapped at 118 characters, so markdownlint's line length holds,
+and a `<` or a `*` outside a code span, in a paragraph or in a `Means` cell, is written `\<` or `\*`, so a
+placeholder such as `<name>` is not read as HTML. A table row is not wrapped, as the markdown style lets a table run
+long. Write a URL or an address in a `means` between backticks.
+
+## The generated pages and diagrams
+
+These files are written from the model and never edited by hand:
+
+| File | Written by |
+| --- | --- |
+| `docs/entities/<domain>.md`, for `git`, `git-repository`, `git-config`, and `code` | `kit generate docs/entities/<domain>.md`, from the `kit:generate` region whose command is `kit model page --domain=<domain>` |
+| `docs/entities/<domain>.svg`, for the same four | `kit model svg --domain=<domain> > "${TMPDIR:-/tmp}/<domain>.svg" && mv "${TMPDIR:-/tmp}/<domain>.svg" docs/entities/<domain>.svg` |
+
+The other domains' diagrams in `docs/entities/` are hand-made until each domain is modelled. `bin/ci` holds the files to
+the model: `kit generate --check`, which `kit check` runs, fails on a page that differs from what its command prints, and
+`bin/ci` compares each diagram with `kit model svg --domain=<domain>` and fails on a difference, naming the file.
+
 ## The diagrams
 
 `modelsvg::domain($name)` and `modelsvg::overview`, in `kit/modules/jq/modelsvg.jq`, take what `model::build` gives and

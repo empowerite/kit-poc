@@ -376,6 +376,9 @@ see: [generate.md](generate.md)
   tables, for a page that holds them in a `kit:generate` region.
 - `kit model svg --domain=<name>` prints a diagram of a domain's entities and the relations between them, with the arity
   at each end, and `kit model svg --overview` a panel for each domain. The same model gives the same bytes.
+- `kit model page --domain=<name>` prints the body of a domain's page: its intro, its diagram, its relations, and each
+  entity with what it means, its layer, and its fields. The pages of the Git, Git repository, Git configuration, and
+  Code domains in `docs/entities/` are written by it, and the gate holds them and their diagrams to the model.
 
 see: [model.md](model.md)
 
