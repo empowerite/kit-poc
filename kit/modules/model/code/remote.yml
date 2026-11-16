@@ -61,6 +61,12 @@ fields:
     status: held
     read-by: workspace remotes primary
     means: Whether this is the primary remote, which kit prints as "primary" or null.
+  reference:
+    type: Text
+    source: derived
+    from: the repository's name and the remote's name
+    status: planned
+    means: The remote's reference, its repository's reference and its name.
 relations:
   checkout:
     to: Checkout

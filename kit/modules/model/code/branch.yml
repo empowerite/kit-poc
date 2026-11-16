@@ -106,10 +106,10 @@ relations:
   changes:
     to: Change
     arity: many
-    inverse: Change.branch
+    inverse: Change.branches
     means: The changes whose head is this branch.
   targeted-by:
     to: Change
     arity: many
-    inverse: Change.base
+    inverse: Change.bases
     means: The changes that merge into this branch.

@@ -4,7 +4,9 @@ entity: Head
 layer: logical
 over: [GitHead]
 sum: true
-means: What a worktree is on, a branch, a commit with no branch, or the name of a branch that has no commit yet.
+means: >-
+  What a worktree is on, a branch, a commit with no branch, or the name of a branch that has no commit yet, which kit
+  prints as the worktree's branch, detached, and head-id.
 variants:
   OnBranch: {branch: Branch}
   Detached: {commit: Commit}

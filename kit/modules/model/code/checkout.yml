@@ -28,8 +28,11 @@ relations:
   worktrees:
     to: Worktree
     arity: many
+    ordered: true
     inverse: Worktree.checkout
-    means: Its worktrees, the main one first, none for a bare clone that has no linked worktree.
+    means: >-
+      Its worktrees, the main one first, then the linked ones in the order git worktree list gives them, none for a
+      bare clone that has no linked worktree.
   main:
     to: Worktree
     arity: option
@@ -43,8 +46,9 @@ relations:
   remotes:
     to: Remote
     arity: many
+    ordered: true
     inverse: Remote.checkout
-    means: The remotes its configuration defines, the primary first.
+    means: The remotes its configuration defines, the primary first, then the rest in the order git remote gives them.
   branches:
     to: Branch
     arity: many

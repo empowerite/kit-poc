@@ -1,8 +1,10 @@
-# A stub: kit names a service so that an organization can belong to one, and models its capabilities and bindings in
-# a later pass of this domain.
+# A stub: named so that an organization can belong to a service; its fields, its capabilities, and its bindings are not
+# modelled.
 entity: Service
 stub: true
-means: One system kit talks to, such as github.com, a self-hosted GitLab, or an Azure DevOps organization.
+means: >-
+  One system kit talks to, such as github.com, a self-hosted GitLab, or an Azure DevOps organization, which holds its
+  projects.
 relations:
   organizations:
     to: Organization

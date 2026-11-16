@@ -43,7 +43,10 @@ fields:
     from: GitCommit.id
     status: held
     read-by: workspace worktrees head
-    means: The first eight digits of the id of the commit its HEAD resolves to, none on an unborn branch.
+    means: >-
+      The first eight digits of the HEAD line git worktree list --porcelain prints, the id of the commit its HEAD
+      resolves to, and 00000000 on an unborn branch, where git prints an id of zeros. None for a worktree with no
+      HEAD line, as a bare clone's entry.
   base:
     type: Int
     arity: many

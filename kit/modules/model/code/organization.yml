@@ -1,13 +1,13 @@
-# An organization is the owner part of a repository's name: the path a remote's URL names after the host, without
-# its last segment. Kit holds only that name today. The forge says the kind. An Azure DevOps project is an
-# organization of kind project under the Azure DevOps organization, so a repository has one organization on every
-# forge, and the chain of parents holds the rest.
+# An organization is the owner part of a repository's name. The service holds it: github.com or a GitHub server, a
+# GitLab server, or an Azure DevOps organization, which is a service of its own and holds projects. So a GitHub owner,
+# a GitLab group, and an Azure DevOps project are each an organization, and only a GitLab group has a parent. The name
+# kit holds is the URL's path without its last segment, split the same way on every forge, and kit computes no parent.
 entity: Organization
 layer: logical
 over: [GitRemoteConfig]
 means: >-
-  The owner a forge keeps repositories under: a GitHub user or organization, a GitLab group, which may nest in
-  another, or an Azure DevOps project, which is under an Azure DevOps organization.
+  The owner a service keeps repositories under: a GitHub user or organization, a GitLab group, which may nest in
+  another, or an Azure DevOps project.
 fields:
   name:
     type: Text
@@ -18,17 +18,17 @@ fields:
     means: >-
       The path of the primary remote's URL after the host, without its last segment, as example for
       github.com/example/repo and group/sub for a GitLab subgroup, which every row of every stage prints as
-      organization.
+      organization. On Azure DevOps that split gives org/proj/_git for https://dev.azure.com/org/proj/_git/repo and
+      v3/org/proj for git@ssh.dev.azure.com:v3/org/proj/repo, two names for one project, which the Azure DevOps
+      provider's own place splits into the organization and the project.
   kind:
     type: {enum: [user, organization, group, project]}
     source: derived
-    from: >-
-      the forge's answer for the owner: a GitHub user or organization, a GitLab group, or an Azure DevOps
-      organization or project
+    from: the service's answer for the owner, a GitHub user or organization, a GitLab group, or an Azure DevOps project
     status: planned
     means: >-
-      What the forge calls this owner: user or organization on GitHub, group on GitLab, and organization or
-      project on Azure DevOps.
+      What the service calls this owner: user or organization on GitHub, group on GitLab, and project on Azure
+      DevOps.
 relations:
   repositories:
     to: Repository
@@ -40,14 +40,15 @@ relations:
     arity: option
     inverse: Organization.children
     means: >-
-      The organization this one is under: a GitLab group's parent group, or an Azure DevOps project's organization,
-      none for a GitHub owner and a top-level group.
+      The GitLab group this group is under, none for a top-level group, a GitHub owner, and an Azure DevOps project.
   children:
     to: Organization
     arity: many
     inverse: Organization.parent
-    means: The organizations directly under this one, its subgroups or its projects.
+    means: The GitLab groups directly under this group.
   service:
     to: Service
     inverse: Service.organizations
-    means: The service that holds the organization, which the host of the remote's URL names.
+    means: >-
+      The service whose host the URL names, and on Azure DevOps the Azure DevOps organization whose segment the URL
+      names after the host.

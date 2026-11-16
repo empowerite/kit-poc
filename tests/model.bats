@@ -411,3 +411,22 @@ release-counts() {
     [ "$status" -eq 0 ] || { echo "${fixture}: ${output}"; return 1; }
   done
 }
+
+# The schema's read-by pattern, read from the schema and tried with jq's regex, which reads it as ajv does: a verb of
+# lowercase words, any after the first may be an option written without its value, then the key, never an option.
+@test "the schema's read-by takes an option among the verb's words, and refuses a malformed one or one last" {
+  local pattern good bad
+  pattern=$(jq --raw-output '."$defs".field.properties."read-by".pattern' "${kit_root}/modules/model/model.schema.json")
+  for good in 'workspace commits key' 'workspaces --show kind' 'workspaces --current recent.*.checkout' \
+    'flow changes pushed.age' 'facts tree.*.blob' 'workspaces --current --show kind'
+  do
+    jq --exit-status --null-input --arg p "${pattern}" --arg r "${good}" '$r | test($p)' >/dev/null \
+      || { echo "refused: ${good}"; return 1; }
+  done
+  for bad in '--show kind' 'workspaces -- kind' 'workspaces --Show kind' 'workspaces -show kind' \
+    'workspaces --show' 'workspaces kind --show' 'workspaces --show=team kind' 'kind'
+  do
+    ! jq --exit-status --null-input --arg p "${pattern}" --arg r "${bad}" '$r | test($p)' >/dev/null \
+      || { echo "taken: ${bad}"; return 1; }
+  done
+}

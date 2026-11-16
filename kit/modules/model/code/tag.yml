@@ -19,7 +19,7 @@ fields:
     from: GitRef.tag-kind
     status: held
     read-by: workspace tags kind
-    means: Whether the tag names a tag object or names a commit directly.
+    means: Whether the tag names a tag object or names an object, a commit as a rule, directly.
   tagger:
     type: Text
     arity: option

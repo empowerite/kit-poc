@@ -191,26 +191,30 @@ relations:
     to: Repository
     inverse: Repository.changes
     means: The repository the change merges into, which kit reads it from through the primary remote.
-  branch:
+  branches:
     to: Branch
-    arity: option
+    arity: many
     inverse: Branch.changes
     means: >-
-      The head branch, as a checkout of this machine holds it, a remote-tracking branch as a rule, none when no
-      checkout has fetched it, when the forge has deleted it, and for a fork's branch that no remote reaches.
-  base:
+      The head branch as each checkout of this machine holds it, a remote-tracking branch as a rule, one Branch a
+      checkout. None when no checkout has fetched it, when the forge has deleted it, and for a change from a fork,
+      whose head is a branch of the fork, another repository, which no remote here may reach.
+  bases:
     to: Branch
-    arity: option
+    arity: many
     inverse: Branch.targeted-by
     means: >-
-      The branch the change merges into, of the change's own repository even for a change from a fork, as a
-      checkout of this machine holds it, none when no checkout has fetched it.
+      The branch the change merges into as each checkout of this machine holds it, one Branch a checkout. It is a
+      branch of the change's own repository, which for a change from a fork is another repository than the fork,
+      so a clone of the fork alone holds none.
   commits:
     to: Commit
-    arity: some
+    arity: many
     ordered: true
     inverse: Commit.changes
-    means: The commits the change proposes, oldest first, which a checkout holds once it fetches the head branch.
+    means: >-
+      The commits the change proposes, oldest first, which are a Commit here once a checkout fetches the head branch,
+      none for a GitLab merge request made from an issue before its first push.
   reviews:
     to: Review
     arity: many

@@ -15,7 +15,8 @@ fields:
     means: >-
       The host and the path, the host in lower case and on GitHub and GitLab the path too, which is the
       repository's reference. A row of repos for a checkout that has no repository prints the checkout's folder
-      in its place.
+      in its place. On Azure DevOps the name keeps the URL's whole path, so one repository has two names,
+      dev.azure.com/org/proj/_git/repo for its https URL and ssh.dev.azure.com/v3/org/proj/repo for its ssh URL.
   host:
     type: Text
     source: derived
@@ -75,10 +76,11 @@ fields:
     arity: option
     source: derived
     from: GitRemoteConfig.default-branch
-    status: planned
+    status: unused
     means: >-
       The branch the forge opens changes against unless told otherwise, the default branch of the desk's primary
-      remote, none while no fetch has recorded it.
+      remote, none while no fetch has recorded it. Kit reads it to count what a worktree is ahead and behind, and
+      prints it only as that remote's default.
 relations:
   organization:
     to: Organization
@@ -100,9 +102,11 @@ relations:
       for a repository that is not cloned.
   workspaces:
     to: Workspace
-    arity: many
+    arity: some
     inverse: Workspace.members
-    means: The workspaces that hold this repository as a member.
+    means: >-
+      The workspaces that hold this repository as a member: the workspace of one repository, which the repository
+      itself names, and each group it is a member of.
   changes:
     to: Change
     arity: many

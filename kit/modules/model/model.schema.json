@@ -93,8 +93,8 @@
         "from": { "type": "string", "minLength": 1, "description": "Where a derived field comes from." },
         "read-by": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9-]*( [a-z][a-z0-9-]*)* (\\*|[A-Za-z_][A-Za-z0-9_-]*)(\\.(\\*|[A-Za-z_][A-Za-z0-9_-]*))*$",
-          "description": "\"<verb> <jsonkey>\": the verb that prints the field, in one or more words, then the key it prints, the last word, dotted where it is nested, with * for any key of a mapping or any element of an array."
+          "pattern": "^[a-z][a-z0-9-]*( (--)?[a-z][a-z0-9-]*)* (\\*|[A-Za-z_][A-Za-z0-9_-]*)(\\.(\\*|[A-Za-z_][A-Za-z0-9_-]*))*$",
+          "description": "\"<verb> <jsonkey>\": the verb that prints the field, in one or more words, any word after the first a lowercase word or an option such as --show written without its value, then the key it prints, the last word, dotted where it is nested, with * for any key of a mapping or any element of an array."
         },
         "means": { "type": "string", "minLength": 1 }
       },

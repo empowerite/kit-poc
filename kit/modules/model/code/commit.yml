@@ -51,10 +51,14 @@ fields:
   pushed:
     type: {enum: [pushed, local]}
     source: derived
-    from: GitRef.target
+    from: >-
+      whether git rev-list --max-count=1000 --branches --not --remotes, the commits local branches hold that no
+      remote-tracking branch reaches, leaves the commit out
     status: held
     read-by: workspace commits pushed
-    means: Whether a remote-tracking branch reaches the commit, pushed, or none does, local.
+    means: >-
+      Whether a remote-tracking branch reaches the commit, pushed, or none does, local. Kit reads at most 1000
+      commits that no remote has, so a local commit past those prints as pushed.
   signature:
     type: {enum: [good, bad, untrusted, expired, expired-key, revoked, uncheckable]}
     arity: option
@@ -79,7 +83,7 @@ relations:
     to: Commit
     arity: many
     inverse: Commit.parents
-    means: The commits that name this one as a parent, among those the checkout holds.
+    means: The commits that name this one as a parent, among the commits this machine holds.
   tipped-by:
     to: Branch
     arity: many
@@ -100,11 +104,6 @@ relations:
     arity: many
     derived: the worktrees whose HEAD resolves to this commit, on a branch whose tip it is or detached on it
     means: The worktrees whose HEAD this commit is, which the commits stage prints as worktrees.
-  detached-worktrees:
-    to: Worktree
-    arity: many
-    derived: the worktrees whose head is Detached with this commit
-    means: The worktrees that have this commit checked out with no branch.
   changes:
     to: Change
     arity: many

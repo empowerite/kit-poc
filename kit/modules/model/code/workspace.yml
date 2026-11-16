@@ -1,6 +1,7 @@
 # A workspace is what kit looks at. A group is kit's own: kit keeps it in workspaces.yml under XDG_CONFIG_HOME, and
-# the last group used under XDG_CACHE_HOME, so a group's fields are stored by kit and over no native entity. A
-# repository is a workspace of its own as well, with one member and nothing stored.
+# the last group used and the repositories opened by their folder in kit/workspaces/ under XDG_CACHE_HOME, so a
+# workspace's fields are stored by kit or derived from what it stores, over no native entity. A repository is a
+# workspace of its own as well, with one member, named by the repository.
 # see: docs/workspaces.md
 entity: Workspace
 layer: logical
@@ -13,15 +14,15 @@ fields:
     read-by: workspaces workspaces.*.name
     means: >-
       A group's name, a key of the workspace file's workspaces, or a repository's host and path for a workspace of
-      one repository.
+      one repository. kit workspaces --json lists the groups only, and --show and --current print the name of a
+      workspace of one repository.
   kind:
     type: {enum: [group, repository]}
     source: derived
-    from: whether the name is a group's name in the workspace file, else a repository's host and path
-    status: planned
-    means: >-
-      Whether the workspace is a group or one repository, which kit workspaces --show and --current print, forms
-      that a read-by does not name.
+    from: whether the name is a group's name in the workspace file, else a repository's host and path or URL
+    status: held
+    read-by: workspaces --show kind
+    means: Whether the workspace is a group or one repository.
   repos:
     type: Text
     arity: many
@@ -53,17 +54,39 @@ fields:
     means: How many members the group has.
   favorite:
     type: Bool
-    source: stored
+    source: derived
+    from: whether the workspace file's favorites list names the workspace
     status: held
     read-by: workspaces workspaces.*.favorite
-    means: Whether the workspace file's favorites name the workspace.
+    means: Whether the workspace is among the favorites, which kit keeps at hand in the workspace menu.
   last-used:
     type: Bool
     source: stored
     status: unused
     means: >-
-      Whether the workspace is the last group used, which kit keeps under XDG_CACHE_HOME and starts on outside a
-      repository.
+      Whether the workspace is the last group used, which kit keeps in kit/workspaces/last under XDG_CACHE_HOME and
+      starts on outside a repository. kit prints no key for it, only start-reason last.
+  start-reason:
+    type: {enum: [given, repository, last]}
+    arity: option
+    source: derived
+    from: >-
+      the workspace kit workspaces --current settles on: one given by --workspace=, the repository kit runs in, or
+      the last group used
+    status: held
+    read-by: workspaces --current why
+    means: >-
+      Why kit starts on this workspace where it runs, none for a workspace kit does not start on. --current prints
+      none for why when kit starts on no workspace.
+  recent-desk:
+    type: Path
+    arity: option
+    source: stored
+    status: held
+    read-by: workspaces --current recent.*.checkout
+    means: >-
+      For a workspace of one repository that kit keeps among the recent, the desk it was opened by, which kit stores
+      in kit/workspaces/recent under XDG_CACHE_HOME, the ten opened last, and prints while that working tree is there.
 relations:
   members:
     to: Repository
