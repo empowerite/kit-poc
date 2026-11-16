@@ -220,9 +220,11 @@ type Model struct {
 	built         *built // each stage's rows as last built, shared by the model's copies until it is replaced
 	landing       string // a jump to a row whose stage has not loaded it yet: the stage, a slash, and the row's key
 
-	clock source.Clock                   // what the screen's waits go through
-	quota source.Poll[[]kit.Quota]       // each forge's rate limits on the caller, as quota.go reads them
-	marks source.Poll[map[string]string] // each stage's mark, as marks.go reads them
+	clock   source.Clock                   // what the screen's waits go through
+	pulse   int                            // the frame of the dots that load again, which turns while one does
+	turning bool                           // whether a wait for the next frame is set
+	quota   source.Poll[[]kit.Quota]       // each forge's rate limits on the caller, as quota.go reads them
+	marks   source.Poll[map[string]string] // each stage's mark, as marks.go reads them
 }
 
 // built holds each stage's rows as they were last built, and each stage's lines as they were last drawn from them. A
@@ -426,6 +428,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.take(msg)
+	case pulseMsg:
+		return m, m.pulsed()
 	case meMsg:
 		m.told(msg)
 	case browsedMsg:

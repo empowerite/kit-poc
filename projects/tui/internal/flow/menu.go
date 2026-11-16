@@ -10,11 +10,13 @@ package flow
 
 import (
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/empowerite/kit/projects/tui/internal/shell"
+	"github.com/empowerite/kit/projects/tui/internal/source"
 	"github.com/empowerite/kit/projects/tui/internal/table"
 	"github.com/empowerite/kit/projects/tui/internal/tabs"
 )
@@ -109,7 +111,7 @@ func (m *Model) chose(c shell.Choice) tea.Cmd {
 				cmds = append(cmds, m.restart(s.name))
 			}
 		}
-		return tea.Batch(cmds...)
+		return tea.Batch(append(cmds, m.pulsing())...)
 	}
 	return nil
 }
@@ -218,7 +220,7 @@ func (m Model) pages() []string {
 func (m *Model) refresh(name string) tea.Cmd {
 	// a stage that takes fresh is one that shares kit's one snapshot: kit flow's, and kit changes' reviews and checks
 	if !takes(name, "fresh") {
-		return m.restart(name)
+		return tea.Batch(m.restart(name), m.pulsing())
 	}
 	var cmds []tea.Cmd
 	for _, s := range m.stages {
@@ -226,7 +228,48 @@ func (m *Model) refresh(name string) tea.Cmd {
 			cmds = append(cmds, m.restart(s.name))
 		}
 	}
-	return tea.Batch(cmds...)
+	return tea.Batch(append(cmds, m.pulsing())...)
+}
+
+// Pulse is how long each frame of a stale dot that loads again is drawn.
+const Pulse = 150 * time.Millisecond
+
+// pulseMsg turns the frame of the dots that load again.
+type pulseMsg struct{}
+
+// working says whether the stage at i shows rows, stale, while its command runs again, not the first read, which its dot shows as a pulse.
+func (m Model) working(i int) bool {
+	s := m.stages[i]
+	return s.src.Stale && s.src.Running() && !s.src.Loading && s.src.Gen() > 0
+}
+
+// anyWorking says whether any stage's dot pulses.
+func (m Model) anyWorking() bool {
+	for i := range m.stages {
+		if m.working(i) {
+			return true
+		}
+	}
+	return false
+}
+
+// pulsing starts the turning of the frames, if a dot pulses and it is not turning already.
+func (m *Model) pulsing() tea.Cmd {
+	if m.turning || !m.anyWorking() {
+		return nil
+	}
+	m.turning = true
+	return m.nextFrame()
+}
+
+// pulsed turns the frame, and goes on while a dot still pulses; when none does, the frame rests.
+func (m *Model) pulsed() tea.Cmd {
+	if !m.anyWorking() {
+		m.pulse, m.turning = 0, false
+		return nil
+	}
+	m.pulse++
+	return m.nextFrame()
 }
 
 // menuBox gives the tab's menu's lines, as internal/shell draws a menu, hanging from the tab's :, on the bar or the
@@ -286,4 +329,12 @@ func (m *Model) menuClick(x, y int) tea.Cmd {
 		return nil
 	}
 	return m.pick(chosen)
+}
+
+// nextFrame gives the wait for the next frame, on the screen's clock, or the program's where it has none.
+func (m Model) nextFrame() tea.Cmd {
+	if m.clock == nil {
+		return source.Waits.After(Pulse, pulseMsg{})
+	}
+	return m.clock.After(Pulse, pulseMsg{})
 }

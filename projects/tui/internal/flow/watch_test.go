@@ -246,3 +246,46 @@ func TestAClickOnAStaleTabsDotRefreshesIt(t *testing.T) {
 		t.Errorf("a click on the title's dot at %d: loads %v, menu %v", x, cmd != nil, next.(Model).tabMenu.Open)
 	}
 }
+
+// A click on a stale tab's dot makes it pulse while the stage loads again, frame by frame on the clock, and rest, a
+// plain dot no more, when the answer lands; a second click while it pulses sets no second wait.
+func TestAClickOnAStaleDotMakesItPulseUntilTheLoadLands(t *testing.T) {
+	m := loaded(t, options())
+	changes := slices.IndexFunc(m.stages, func(s stage) bool { return s.name == "changes" })
+	m.stages[changes].src.Stale = true
+	m.rebuild()
+	if m.working(changes) || m.pulse != 0 {
+		t.Fatal("a stage not loading again pulses")
+	}
+	clock := clockOf(m)
+	clock.Fire()
+	cmd := m.refresh("changes")
+	if cmd == nil || !m.working(changes) || !m.bar().Busy[changes] {
+		t.Fatalf("after the click: cmd %v, working %v", cmd != nil, m.working(changes))
+	}
+	if waits := clock.Timers(); len(waits) != 1 || waits[0].After != Pulse {
+		t.Fatalf("the waits after the click: %v", waits)
+	}
+	m.refresh("changes")
+	if len(clock.Timers()) != 1 {
+		t.Errorf("a second click set a second wait: %v", clock.Timers())
+	}
+	for _, msg := range clock.Fire() {
+		next, _ := m.Update(msg)
+		m = next.(Model)
+	}
+	if m.pulse != 1 || len(clock.Timers()) != 1 || m.bar().Frame != 1 {
+		t.Fatalf("a frame on: pulse %d, waits %v", m.pulse, clock.Timers())
+	}
+	m = drive(m, m.refresh("changes")())
+	if m.working(changes) {
+		t.Fatal("the stage still pulses after its answer")
+	}
+	for _, msg := range clock.Fire() {
+		next, _ := m.Update(msg)
+		m = next.(Model)
+	}
+	if m.pulse != 0 || m.turning || len(clock.Timers()) != 0 {
+		t.Errorf("the dot does not rest: pulse %d, turning %v, waits %v", m.pulse, m.turning, clock.Timers())
+	}
+}

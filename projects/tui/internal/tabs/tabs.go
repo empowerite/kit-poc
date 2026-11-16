@@ -52,6 +52,10 @@ const (
 // yellow, wherever the keyboard is.
 const Stale = "•"
 
+// Working is the frames of the dot while a stale tab is loading again, a pulse: Bar.Frame says which is drawn, and the
+// screen turns it while the load runs, so the person who clicked the dot sees that something is underway.
+var Working = []string{"∙", "•", "●", "•"}
+
 // Menu is the glyph after the selected tab's count, which opens the tab's menu: :, the key that opens it too, narrow
 // in every terminal.
 const Menu = ":"
@@ -92,6 +96,10 @@ type Bar struct {
 	Color    string
 	Alert    []bool
 	Stale    []bool
+	// Busy says, by index, which stale tabs are loading again: each draws the frame of Working that Frame names, in
+	// place of Stale, in the same cell.
+	Busy  []bool
+	Frame int
 }
 
 // Update takes a message the bar acts on, and says whether it did: tab and shift-tab, and right and left, which fold
@@ -232,7 +240,7 @@ func (b Bar) Label() string {
 	}
 	name, count, menu := b.label(b.Selected)
 	if b.stale(b.Selected) {
-		name += style.Warn(Stale)
+		name += style.Warn(b.dot(b.Selected))
 	}
 	for _, part := range []string{count, menu} {
 		if ansi.StringWidth(part) > 0 {
@@ -430,7 +438,7 @@ func (b Bar) View() string {
 		if ansi.StringWidth(b.Tabs[i].Count) > 0 || b.reserve(i) > 0 {
 			dot := " "
 			if b.stale(i) {
-				dot = style.Warn(Stale)
+				dot = style.Warn(b.dot(i))
 			}
 			body, dimBody = body+dot+" "+count, dimBody+dot+" "+count
 		}
@@ -521,6 +529,14 @@ func top(cells int) string { return "╶" + strings.Repeat("─", cells-1) }
 
 // alert says whether a tab's count wants attention.
 func (b Bar) alert(i int) bool { return i < len(b.Alert) && b.Alert[i] }
+
+// dot gives the stale dot of the tab at i: Stale, or while the tab loads again, the frame of Working that Frame names.
+func (b Bar) dot(i int) string {
+	if i < len(b.Busy) && b.Busy[i] {
+		return Working[b.Frame%len(Working)]
+	}
+	return Stale
+}
 
 // stale says whether the tab at i shows what is stale.
 func (b Bar) stale(i int) bool { return i < len(b.Stale) && b.Stale[i] }

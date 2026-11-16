@@ -112,7 +112,9 @@ func (m Model) bar() tabs.Bar {
 		b.Tabs = append(b.Tabs, tabs.Tab{Glyph: stageGlyphs[s.name], Name: label(s.name), Count: m.count(i)})
 		b.Reserves = append(b.Reserves, m.reserve(i))
 		b.Stale = append(b.Stale, s.src.Stale)
+		b.Busy = append(b.Busy, m.working(i))
 	}
+	b.Frame = m.pulse
 	return b
 }
 
