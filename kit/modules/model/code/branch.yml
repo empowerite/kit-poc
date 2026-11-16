@@ -107,9 +107,13 @@ relations:
     to: Change
     arity: many
     inverse: Change.branches
-    means: The changes whose head is this branch.
+    means: >-
+      The changes whose head branch this is: this branch is the remote-tracking branch of the head branch, or a
+      local branch whose upstream that remote-tracking branch is.
   targeted-by:
     to: Change
     arity: many
     inverse: Change.bases
-    means: The changes that merge into this branch.
+    means: >-
+      The changes that merge into this branch: this branch is the remote-tracking branch of their base branch, or a
+      local branch whose upstream that remote-tracking branch is.

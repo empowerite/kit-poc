@@ -196,17 +196,19 @@ relations:
     arity: many
     inverse: Branch.changes
     means: >-
-      The head branch as each checkout of this machine holds it, a remote-tracking branch as a rule, one Branch a
-      checkout. None when no checkout has fetched it, when the forge has deleted it, and for a change from a fork,
-      whose head is a branch of the fork, another repository, which no remote here may reach.
+      The head branch as each checkout of this machine holds it: the remote-tracking branch of the head branch, and
+      each local branch whose upstream that remote-tracking branch is, as kit work makes one. None when no checkout
+      has fetched it, when the forge has deleted it, and for a change from a fork, whose head is a branch of the fork,
+      another repository, which no remote here may reach.
   bases:
     to: Branch
     arity: many
     inverse: Branch.targeted-by
     means: >-
-      The branch the change merges into as each checkout of this machine holds it, one Branch a checkout. It is a
-      branch of the change's own repository, which for a change from a fork is another repository than the fork,
-      so a clone of the fork alone holds none.
+      The branch the change merges into as each checkout of this machine holds it: the remote-tracking branch of the
+      base branch, and each local branch whose upstream that remote-tracking branch is. It is a branch of the
+      change's own repository, which for a change from a fork is another repository than the fork, so a clone of the
+      fork alone holds none.
   commits:
     to: Commit
     arity: many

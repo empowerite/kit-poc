@@ -14,8 +14,8 @@ fields:
     read-by: workspaces workspaces.*.name
     means: >-
       A group's name, a key of the workspace file's workspaces, or a repository's host and path for a workspace of
-      one repository. kit workspaces --json lists the groups only, and --show and --current print the name of a
-      workspace of one repository.
+      one repository. The listing of kit workspaces --json holds the groups only, and the --show and --current forms
+      print the name of a workspace of one repository.
   kind:
     type: {enum: [group, repository]}
     source: derived
@@ -65,7 +65,7 @@ fields:
     status: unused
     means: >-
       Whether the workspace is the last group used, which kit keeps in kit/workspaces/last under XDG_CACHE_HOME and
-      starts on outside a repository. kit prints no key for it, only start-reason last.
+      starts on outside a repository. Kit prints no key for it, only start-reason last.
   start-reason:
     type: {enum: [given, repository, last]}
     arity: option
@@ -76,17 +76,18 @@ fields:
     status: held
     read-by: workspaces --current why
     means: >-
-      Why kit starts on this workspace where it runs, none for a workspace kit does not start on. --current prints
-      none for why when kit starts on no workspace.
-  recent-desk:
+      Why kit starts on this workspace where it runs, none for a workspace kit does not start on. When kit starts on
+      no workspace, the --current form prints why as none, or as given for --workspace=none, beside kind none.
+  recent-desks:
     type: Path
-    arity: option
+    arity: many
     source: stored
     status: held
     read-by: workspaces --current recent.*.checkout
     means: >-
-      For a workspace of one repository that kit keeps among the recent, the desk it was opened by, which kit stores
-      in kit/workspaces/recent under XDG_CACHE_HOME, the ten opened last, and prints while that working tree is there.
+      For a workspace of one repository, the desks kit keeps among the recent, one for each clone of the repository
+      opened by its folder, newest first, as kit stores them in kit/workspaces/recent under XDG_CACHE_HOME, the ten
+      opened last of every repository, and prints those whose working tree is there.
 relations:
   members:
     to: Repository

@@ -12,13 +12,15 @@ fields:
     from: GitDir.checkout
     status: held
     read-by: workspace repos checkouts.*
-    means: The folder of the clone, the top of its main worktree.
+    means: The folder of the clone, the top of its main worktree, or for a bare clone its git directory, GitDir.path.
   bare:
     type: Bool
     source: derived
     from: GitDir.bare
     status: unused
-    means: Whether the clone has no main worktree, which kit does not print.
+    means: >-
+      Whether the clone has no working tree of its own, so its main worktree is its git directory, which kit does
+      not print.
 relations:
   repository:
     to: Repository
@@ -27,17 +29,18 @@ relations:
     means: The repository its primary remote's URL names, none for a clone whose primary remote names no host.
   worktrees:
     to: Worktree
-    arity: many
+    arity: some
     ordered: true
     inverse: Worktree.checkout
     means: >-
-      Its worktrees, the main one first, then the linked ones in the order git worktree list gives them, none for a
-      bare clone that has no linked worktree.
+      Its worktrees, the main one first, then the linked ones in the order git worktree list gives them. A bare
+      clone's main worktree is its git directory.
   main:
     to: Worktree
-    arity: option
     derived: the worktree among worktrees whose kind is desk
-    means: The main worktree, the desk, which a bare clone does not have.
+    means: >-
+      The main worktree, the desk, which for a bare clone is its git directory, the first that git worktree list
+      gives.
   linked:
     to: Worktree
     arity: many

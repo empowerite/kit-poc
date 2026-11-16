@@ -282,7 +282,7 @@ native card says `native: <tool>` and a logical card `logical`, a stub is dashed
   `Repository.organization` one, `Organization.repositories` many, `Organization.parent` option, `Organization.children`
   many, `Organization.service` one `Service`, and `kind` `{enum: [user, organization, group]}`; `Branch.tip` one
   `Commit`, `Branch.upstream` option `Branch`; `Commit.parents` ordered many; `Tag` over `GitTag` and `GitRef`;
-  `Change.branch` one `Branch`, `Review.change` one `Change`.
+  `Change.branches` many `Branch`, `Change.bases` many `Branch`, `Review.change` one `Change`.
   Each logical field a verb prints is `held` with `read-by` (`workspace repos organization`, `workspace commits issue`,
   and the rest of the keys in `kit workspace --json`, `kit flow --json`).
 

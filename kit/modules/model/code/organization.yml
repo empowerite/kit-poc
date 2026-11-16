@@ -50,5 +50,6 @@ relations:
     to: Service
     inverse: Service.organizations
     means: >-
-      The service whose host the URL names, and on Azure DevOps the Azure DevOps organization whose segment the URL
-      names after the host.
+      The service whose host the URL names. On Azure DevOps it is the Azure DevOps organization the URL names: the
+      segment after dev.azure.com/ in an https URL, the segment after v3/ in an ssh.dev.azure.com URL, and the first
+      label of the host in an <org>.visualstudio.com URL.
