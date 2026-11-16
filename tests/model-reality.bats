@@ -12,7 +12,9 @@
 #   - git's side: every header, part, and tree mode of every object; every config key; every ref, file of a git
 #     directory, and worktree state; and every stage, flag, and extension of an index. A table in this file maps each
 #     to the members of the model that hold it, as Entity.member or Entity.field=value for an enum's value. What git
-#     wrote that the table does not map fails, and so does an entry whose member the model does not hold.
+#     wrote that the table does not map fails, and so does an entry whose member the model does not hold. Each walk
+#     first asserts its reach, the cases the fixture is built to hold, so a walk that observed nothing never passes,
+#     and a git call that fails or writes an error ends the walk, naming the call.
 #   - kit's side: every held field's read-by is printed by its verb, not only as null; every read-by names a verb and
 #     words kit takes; and every top-level key a row of a Code verb prints is named by a read-by of that verb, or is on
 #     the allowlist with its reason.
@@ -89,9 +91,8 @@ config_catch_all='{
 }'
 
 # A file of a git directory, a ref's namespace and kind, a worktree's HEAD, and each key of git worktree list
-# --porcelain. The files a command keeps while it runs, and the object store, are named by no member: the comment of
-# kit/modules/model/git-repository/git-worktree-dir.yml names the first, and no entity holds the second, so each is on
-# git_dir_unmodelled with its reason.
+# --porcelain. The object store, its loose objects and its packs, is GitDir.objects, and the messages git commit and
+# git merge leave are fields of GitWorktreeDir. A file may be here or on git_dir_unmodelled, never on both.
 git_dir_names='{
   "common dir file": {
     "config": ["GitDir.config"], "description": ["GitDir.description"], "hooks": ["GitDir.hooks"],
@@ -100,7 +101,9 @@ git_dir_names='{
     "info/exclude": ["GitDir.exclude"], "info/attributes": ["GitDir.attributes"], "info/grafts": ["GitDir.grafts"],
     "info/refs": ["GitDir.info-refs"], "info/sparse-checkout": ["GitWorktreeDir.sparse-checkout"],
     "objects/info/alternates": ["GitDir.alternates"], "objects/info/http-alternates": ["GitDir.http-alternates"],
-    "objects/info/packs": ["GitDir.packs"], "logs/refs": ["GitRef.reflog"],
+    "objects/info/packs": ["GitDir.packs"], "objects/??": ["GitDir.objects"], "objects/pack": ["GitDir.objects"],
+    "logs/refs": ["GitRef.reflog"], "COMMIT_EDITMSG": ["GitWorktreeDir.commit-message-draft"],
+    "MERGE_MSG": ["GitWorktreeDir.merge-message"], "MERGE_MODE": ["GitWorktreeDir.merge-mode"],
     "HEAD": ["GitWorktreeDir.head"], "index": ["GitWorktreeDir.index"], "logs/HEAD": ["GitWorktreeDir.head-log"],
     "config.worktree": ["GitWorktreeDir.config"], "ORIG_HEAD": ["GitWorktreeDir.root-refs"],
     "MERGE_HEAD": ["GitWorktreeDir.root-refs"], "AUTO_MERGE": ["GitWorktreeDir.root-refs"],
@@ -111,7 +114,9 @@ git_dir_names='{
     "HEAD": ["GitWorktreeDir.head"], "index": ["GitWorktreeDir.index"], "logs/HEAD": ["GitWorktreeDir.head-log"],
     "refs": ["GitWorktreeDir.refs"], "config.worktree": ["GitWorktreeDir.config"],
     "info/sparse-checkout": ["GitWorktreeDir.sparse-checkout"], "ORIG_HEAD": ["GitWorktreeDir.root-refs"],
-    "MERGE_HEAD": ["GitWorktreeDir.root-refs"], "AUTO_MERGE": ["GitWorktreeDir.root-refs"]},
+    "MERGE_HEAD": ["GitWorktreeDir.root-refs"], "AUTO_MERGE": ["GitWorktreeDir.root-refs"],
+    "COMMIT_EDITMSG": ["GitWorktreeDir.commit-message-draft"], "MERGE_MSG": ["GitWorktreeDir.merge-message"],
+    "MERGE_MODE": ["GitWorktreeDir.merge-mode"]},
   "ref namespace": {"refs/heads/": ["GitRef.kind=branch"], "refs/remotes/": ["GitRef.kind=remote-tracking"],
                     "refs/tags/": ["GitRef.kind=tag"], "refs/notes/": ["GitRef.kind=note"],
                     "refs/stash": ["GitRef.kind=stash"]},
@@ -126,22 +131,16 @@ git_dir_names='{
                         "prunable": ["GitWorktreeAdmin.prunable", "GitWorktreeAdmin.prune-reason"]}
 }'
 
-# What the model knowingly leaves out of a git directory, each with its reason. An entry that the fixture no longer
-# shows fails, so the list holds only what git still writes.
+# What a git directory holds that is not git's, each with its reason. An entry that the fixture no longer shows fails,
+# so the list holds only what is still written.
 git_dir_unmodelled='{
   "common dir file": {
-    "COMMIT_EDITMSG": "a file git commit keeps while it runs, which git-worktree-dir.yml names in its comment only",
-    "MERGE_MSG": "a file git merge keeps while it runs, which git-worktree-dir.yml names in its comment only",
-    "MERGE_MODE": "a file git merge keeps while it runs, which no member or comment names",
-    "kit": "kit'"'"'s own state, which kit writes under the git directory, and which is not git'"'"'s",
-    "objects/??": "the loose objects: GitObject and its variants have no relation to the GitDir that stores them",
-    "objects/pack": "the packs: GitObject and its variants have no relation to the GitDir that stores them"},
-  "linked worktree dir file": {
-    "COMMIT_EDITMSG": "a file git commit keeps while it runs, which git-worktree-dir.yml names in its comment only"}
+    "kit": "kit'"'"'s own directory, where kit keeps its state for the repository, and not git'"'"'s"}
 }'
 
 # The index format's own names: the signature, the version, each entry's stage, flags, and mode, and each extension's
-# signature. An entry's mode is git's octal, 40000 for a sparse directory.
+# signature. An entry's mode is the octal of the number the index stores, 40000 for a sparse directory, which git
+# ls-files --stage prints padded as 040000.
 index_names='{
   "index signature": {"DIRC": ["GitIndex.signature=DIRC"]},
   "index version": {"2": ["GitIndex.version=2"], "3": ["GitIndex.version=3"], "4": ["GitIndex.version=4"]},
@@ -152,12 +151,36 @@ index_names='{
                        "intent-to-add": ["GitIndexEntry.intent-to-add"]},
   "index entry mode": {"100644": ["GitIndexEntry.mode=100644"], "100755": ["GitIndexEntry.mode=100755"],
                        "120000": ["GitIndexEntry.mode=120000"], "160000": ["GitIndexEntry.mode=160000"],
-                       "40000": ["GitIndexEntry.mode=040000"]},
+                       "40000": ["GitIndexEntry.mode=40000"]},
   "index extension": {"TREE": ["GitIndex.cache-tree", "GitCacheTree.id"], "REUC": ["GitIndex.resolve-undo"],
                       "UNTR": ["GitIndex.untracked-cache"], "link": ["GitIndex.shared"], "sdir": ["GitIndex.sparse"],
                       "FSMN": ["GitIndex.fsmonitor-version"], "EOIE": ["GitIndex.entries-end"],
                       "IEOT": ["GitIndex.entry-blocks"]}
 }'
+
+# What each walk must observe, the cases the fixture is built to hold, as [kind, name]. A check asserts its reach before
+# it judges the observations, so a walk that lost a case, or observed nothing, fails.
+object_reach='[
+  ["commit header", "mergetag"], ["commit header", "encoding"], ["commit header", "gpgsig"],
+  ["commit header", "x-model-extra"], ["commit part", "trailers"], ["tag part", "signature"],
+  ["signature armor", "SSH SIGNATURE"], ["signature status", "G"], ["tree entry mode", "100755"],
+  ["tree entry mode", "120000"], ["tree entry mode", "40000"], ["tree entry mode", "160000"]
+]'
+config_reach='[
+  ["config scope", "worktree"], ["config key", "remote.*.pushurl"], ["config key", "remote.*.fetch"],
+  ["config key", "branch.*.remote"], ["config key", "submodule.*.url"], ["config key", "core.worktree"],
+  ["gitmodules key", "submodule.*.path"]
+]'
+git_dir_reach='[
+  ["worktree HEAD", "detached"], ["worktree HEAD", "unborn"], ["ref namespace", "refs/stash"],
+  ["ref namespace", "refs/notes/"], ["ref kind", "symbolic"], ["ref kind", "lightweight tag"],
+  ["worktree list key", "locked"], ["worktree list key", "prunable"], ["linked worktree dir file", "locked"],
+  ["common dir file", "MERGE_MODE"]
+]'
+index_reach='[
+  ["index entry stage", "1"], ["index entry stage", "3"], ["index entry flag", "intent-to-add"],
+  ["index extension", "REUC"], ["index extension", "TREE"], ["index version", "3"]
+]'
 
 # The value each option of a read-by takes, from the fixture: the workspace file's one group. An option this does
 # not name is given as a flag.
@@ -441,16 +464,76 @@ config-table() {
   jq --null-input --argjson t "${config_names}" --argjson c "${config_catch_all}" '$t | .["config key"] += $c'
 }
 
-# git-dir-table prints git_dir_names with each file git_dir_unmodelled holds mapped to no member, so the check passes
-# it over.
+# catch-all-wrong <observations> [<catch-all>] prints a line for each key of the catch-all, config_catch_all unless
+# given, that the fixture no longer sets, that config_names maps as a key git documents, or whose member is no
+# section's other-keys, and fails when it prints one. So a documented key cannot hide in a catch-all.
+catch-all-wrong() {
+  local found
+  found=$(jq --raw-output --argjson names "${config_names}" --argjson catch "${2:-${config_catch_all}}" '
+    [.[] | select(.kind == "config key") | .name] as $seen
+    | [$catch | to_entries[] | .key as $key
+       | (select($seen | index([$key]) | not)
+          | "config_catch_all holds \($key), which the fixture no longer sets"),
+         (select($names["config key"] | has($key))
+          | "config_catch_all holds \($key), which config_names maps as a key git documents"),
+         (.value[] | select(test("^Git(Remote|Branch)Config\\.other-keys$") | not)
+          | "config_catch_all gives \($key) to \(.), which is no section'"'"'s other-keys")]
+    | unique[]' <<<"$(observations "$1")")
+  [[ -z "${found}" ]] || { printf '%s\n' "${found}"; return 1; }
+}
+
+# git-dir-table [<names> <unmodelled>] prints git_dir_names, or <names>, with each file git_dir_unmodelled, or
+# <unmodelled>, holds mapped to no member, so the check passes it over. It fails, naming the file, for a file that is
+# on both, because the second would hide the first's members from the check.
 git-dir-table() {
-  jq --null-input --argjson t "${git_dir_names}" --argjson u "${git_dir_unmodelled}" \
+  local names=${1:-${git_dir_names}} unmodelled=${2:-${git_dir_unmodelled}} both
+  both=$(jq --raw-output --null-input --argjson t "${names}" --argjson u "${unmodelled}" '
+    $u | to_entries[] | .key as $kind | .value | keys[] | . as $file | select($t[$kind] // {} | has($file))
+    | "the \($kind) \(.) is both mapped in git_dir_names and on git_dir_unmodelled"')
+  [[ -z "${both}" ]] || { printf '%s\n' "${both}" >&2; return 1; }
+  jq --null-input --argjson t "${names}" --argjson u "${unmodelled}" \
     'reduce ($u | to_entries[]) as $e ($t; .[$e.key] += ($e.value | map_values([])))'
 }
 
-# fixture-git <dir> <git argument>… runs git in <dir> of the world, with no configuration but the repository's.
+# unmodelled-stale <observations> [<unmodelled>] prints a line for each entry of git_dir_unmodelled, or
+# <unmodelled>, that the fixture no longer shows, and fails when it prints one.
+unmodelled-stale() {
+  local found
+  found=$(jq --raw-output --argjson u "${2:-${git_dir_unmodelled}}" '
+    [.[] | [.kind, .name]] as $seen
+    | $u | to_entries[] | .key as $kind | .value | keys[] | . as $file | select($seen | index([[$kind, $file]]) | not)
+    | "git_dir_unmodelled holds the \($kind) \(.), which the fixture no longer shows"' <<<"$(observations "$1")")
+  [[ -z "${found}" ]] || { printf '%s\n' "${found}"; return 1; }
+}
+
+# reaches <observations> <reach> prints a line for each [kind, name] of the reach that no observation holds, and fails
+# when it prints one. Each check asserts its reach first, so a walk that lost what the fixture is built to hold fails,
+# and never passes over nothing.
+reaches() {
+  local found
+  found=$(jq --raw-output --argjson reach "$2" '
+    [.[] | [.kind, .name]] as $seen
+    | $reach[] | select(. as $case | $seen | index([$case]) | not)
+    | "the observations hold no \(.[0]) \(.[1]), which the fixture is built to hold"' <<<"$(observations "$1")")
+  [[ -z "${found}" ]] || { printf '%s\n' "${found}"; return 1; }
+}
+
+# fixture-git <dir> <git argument>… runs git in <dir> of the world, with no configuration but the repository's, and
+# prints what it prints. When git writes to stderr, it prints the command and what git wrote there on stderr, and
+# returns 1, so an error git reports with status 0, as %G? does, is never passed over. Otherwise it returns git's
+# status. Every caller reads git's output from a variable it set with || return, never from a pipe or a process
+# substitution, whose status bats would lose.
 fixture-git() {
-  GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 git -C "${world}/$1" "${@:2}"
+  local err=${BATS_TEST_TMPDIR}/fixture-git.err status=0
+  GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null GIT_CONFIG_NOSYSTEM=1 git -C "${world}/$1" "${@:2}" \
+    2> "${err}" || status=$?
+  if [[ -s "${err}" ]]
+  then
+    printf 'git -C %s %s wrote on stderr:\n' "$1" "${*:2}" >&2
+    cat "${err}" >&2
+    return 1
+  fi
+  return "${status}"
 }
 
 # seen <kind> <name> <at> prints one observation, its three parts tab-separated.
@@ -464,12 +547,11 @@ observations() {
   jq --raw-input --slurp 'split("\n") | map(select(. != "") | split("\t") | {kind: .[0], name: .[1], at: .[2]})' "$1"
 }
 
-# headers-seen <kind> <part kind> <at> reads an object's content on stdin, a commit or a tag, and prints an observation
-# for each header, for the message, for the trailers it ends with, and, for a tag, for the signature at its end, and
+# headers-seen <kind> <part kind> <at> <content> prints an observation for each header of an object's content, a
+# commit or a tag, for the message, for the trailers it ends with, and, for a tag, for the signature at its end, and
 # the armor of each signature. A mergetag's value is a tag, whose own headers it prints as a tag's.
 headers-seen() {
-  local kind=$1 part=$2 at=$3 content line name value='' header='' message='' in_message=false
-  content=$(cat)
+  local kind=$1 part=$2 at=$3 content=$4 line name value='' header='' message='' in_message=false trailers
   while IFS= read -r line
   do
     if [[ "${in_message}" == true ]]
@@ -482,7 +564,7 @@ headers-seen() {
     then
       value+="${line# }"$'\n'
     else
-      [[ -z "${header}" ]] || header-value-seen "${header}" "${value}" "${at}"
+      [[ -z "${header}" ]] || header-value-seen "${header}" "${value}" "${at}" || return 1
       name=${line%% *}
       header=${name}
       value="${line#"${name}"}"$'\n'
@@ -491,14 +573,15 @@ headers-seen() {
       [[ "${kind}" != "tag header" || "${name}" != type ]] || seen "tag type" "${line#type }" "${at}"
     fi
   done <<<"${content}"
-  [[ -z "${header}" ]] || header-value-seen "${header}" "${value}" "${at}"
+  [[ -z "${header}" ]] || header-value-seen "${header}" "${value}" "${at}" || return 1
   [[ -z "${message}" ]] || seen "${part}" message "${at}"
   if [[ "${part}" == "tag part" && "${message}" == *'-----BEGIN '*'-----'* ]]
   then
     seen "${part}" signature "${at}"
     armor-seen "${message}" "${at}"
   fi
-  [[ -z "$(git interpret-trailers --parse <<<"${message}")" ]] || seen "${part}" trailers "${at}"
+  trailers=$(git interpret-trailers --parse <<<"${message}") || return 1
+  [[ -z "${trailers}" ]] || seen "${part}" trailers "${at}"
 }
 
 # header-value-seen <header> <value> <at> prints what a header's value holds: a signature's armor, and a mergetag's
@@ -506,7 +589,7 @@ headers-seen() {
 header-value-seen() {
   case "$1" in
     (gpgsig | gpgsig-sha256) armor-seen "$2" "$3" ;;
-    (mergetag) headers-seen "tag header" "tag part" "the mergetag of $3" <<<"$2" ;;
+    (mergetag) headers-seen "tag header" "tag part" "the mergetag of $3" "$2" ;;
   esac
 }
 
@@ -521,64 +604,71 @@ armor-seen() {
   return 0
 }
 
-# objects-seen prints an observation for every object the fixture's repositories hold, and for every header, part,
-# and tree entry mode of each: the desk with its stash and notes, the clone stopped in a merge, and the submodule.
+# objects-seen prints an observation for every object the fixture's repositories hold, reachable or not, and for
+# every header, part, and tree entry mode of each, and each signature's status as %G? checks it: in the desk with its
+# stash and notes, the clone stopped in a merge, and the submodule.
 objects-seen() {
-  local dir id type mode status
+  local dir id type mode status objects content modes statuses
   for dir in repo conflict repo/sub
   do
+    objects=$(fixture-git "${dir}" cat-file --batch-all-objects --batch-check='%(objectname) %(objecttype)') \
+      || return 1
     while read -r id type
     do
+      [[ -n "${id}" ]] || continue
       seen "object type" "${type}" "${dir} ${id}"
       case "${type}" in
-        (commit)
-          fixture-git "${dir}" cat-file commit "${id}" | headers-seen "commit header" "commit part" "${dir} ${id}"
+        (commit | tag)
+          content=$(fixture-git "${dir}" cat-file "${type}" "${id}") || return 1
+          headers-seen "${type} header" "${type} part" "${dir} ${id}" "${content}" || return 1
           ;;
-        (tag) fixture-git "${dir}" cat-file tag "${id}" | headers-seen "tag header" "tag part" "${dir} ${id}" ;;
         (tree)
+          modes=$(fixture-git "${dir}" ls-tree --format='%(objectmode)' "${id}") || return 1
           while read -r mode
           do
-            seen "tree entry mode" "${mode#0}" "${dir} ${id}"
-          done < <(fixture-git "${dir}" ls-tree --format='%(objectmode)' "${id}")
+            [[ -z "${mode}" ]] || seen "tree entry mode" "${mode#0}" "${dir} ${id}"
+          done <<<"${modes}"
           ;;
       esac
-    done < <(fixture-git "${dir}" rev-list --all --objects | cut -d ' ' -f 1 \
-      | fixture-git "${dir}" cat-file --batch-check='%(objectname) %(objecttype)')
+    done <<<"${objects}"
+    statuses=$(fixture-git "${dir}" log --all --format='%H %G?') || return 1
     while read -r id status
     do
+      [[ -n "${id}" ]] || continue
       [[ "${status}" == N ]] || seen "signature status" "${status}" "${dir} ${id}"
-    done < <(fixture-git "${dir}" log --all --format='%H %G?')
+    done <<<"${statuses}"
   done
 }
 
 # config-seen prints an observation for every key of the configuration each worktree of the fixture reads, with its
 # scope and origin, and for every key of the desk's .gitmodules. A key's subsection is written * in a remote's, a
-# branch's, or a submodule's section.
+# branch's, or a submodule's section. git prints NUL bytes, which a variable cannot hold, so its output goes to a file.
 config-seen() {
-  local dir
+  local dir list=${BATS_TEST_TMPDIR}/config.list
   for dir in repo worktrees/feature worktrees/detached worktrees/locked worktrees/unborn conflict repo/sub
   do
-    fixture-git "${dir}" config --list --show-scope --show-origin --null \
-      | jq --raw-input --slurp --raw-output --arg dir "${dir}" '
-        def general: (split(".")) as $p
-          | if ($p | length) > 2 and ($p[0] | IN("remote", "branch", "submodule"))
-            then "\($p[0]).*.\($p[-1])" else . end;
-        split("\u0000") | [range(0; (length / 3 | floor)) as $i | .[3 * $i:3 * $i + 3]][]
-        | (.[2] | split("\n")[0]) as $key | "\($dir): \(.[0]) \(.[1])" as $at
-        | ["config key", ($key | general), $at], ["config scope", .[0], $at],
-          ["config origin", (.[1] | split(":")[0]), $at]
-        | @tsv'
+    fixture-git "${dir}" config --list --show-scope --show-origin --null > "${list}" || return 1
+    jq --raw-input --slurp --raw-output --arg dir "${dir}" '
+      def general: (split(".")) as $p
+        | if ($p | length) > 2 and ($p[0] | IN("remote", "branch", "submodule"))
+          then "\($p[0]).*.\($p[-1])" else . end;
+      split("\u0000") | [range(0; (length / 3 | floor)) as $i | .[3 * $i:3 * $i + 3]][]
+      | (.[2] | split("\n")[0]) as $key | "\($dir): \(.[0]) \(.[1])" as $at
+      | ["config key", ($key | general), $at], ["config scope", .[0], $at],
+        ["config origin", (.[1] | split(":")[0]), $at]
+      | @tsv' "${list}" || return 1
   done
-  fixture-git repo config --file .gitmodules --list --null \
-    | jq --raw-input --slurp --raw-output '
-      split("\u0000")[] | select(. != "") | split("\n")[0] | split(".")
-      | ["gitmodules key", "\(.[0]).*.\(.[-1])", "repo/.gitmodules"] | @tsv'
+  fixture-git repo config --file .gitmodules --list --null > "${list}" || return 1
+  jq --raw-input --slurp --raw-output '
+    split("\u0000")[] | select(. != "") | split("\n")[0] | split(".")
+    | ["gitmodules key", "\(.[0]).*.\(.[-1])", "repo/.gitmodules"] | @tsv' "${list}"
 }
 
 # dir-files-seen <kind> <dir> prints an observation for each file of a git directory: its name, or under info/,
 # logs/, and objects/ its path, a loose object's directory written objects/??, and under objects/info/ each file.
 dir-files-seen() {
   local kind=$1 dir=$2 path name inner file
+  [[ -d "${world}/${dir}" ]] || { echo "dir-files-seen: ${dir} is not a directory of the fixture" >&2; return 1; }
   for path in "${world}/${dir}"/* "${world}/${dir}"/.[!.]*
   do
     [[ -e "${path}" ]] || continue
@@ -612,21 +702,24 @@ dir-files-seen() {
 
 # git-dirs-seen prints an observation for each file of the fixture's git directories, the common ones and each linked
 # worktree's; for each ref, its namespace and kind; for each worktree, how its HEAD stands; and each key of git
-# worktree list --porcelain.
+# worktree list --porcelain. symbolic-ref and rev-parse --verify answer by their status alone, so a HEAD is read from
+# them; any other git call that fails ends it.
 git-dirs-seen() {
-  local dir ref type symref wt line
+  local dir ref type symref wt line refs list
   for dir in repo/.git conflict/.git repo/.git/modules/sub
   do
-    dir-files-seen "common dir file" "${dir}"
+    dir-files-seen "common dir file" "${dir}" || return 1
   done
   for dir in "${world}"/repo/.git/worktrees/*
   do
-    dir-files-seen "linked worktree dir file" "repo/.git/worktrees/${dir##*/}"
+    dir-files-seen "linked worktree dir file" "repo/.git/worktrees/${dir##*/}" || return 1
   done
   for dir in repo conflict repo/sub
   do
+    refs=$(fixture-git "${dir}" for-each-ref --format='%(refname)%09%(objecttype)%09%(symref)') || return 1
     while IFS=$'\t' read -r ref type symref
     do
+      [[ -n "${ref}" ]] || continue
       case "${ref}" in
         (refs/stash) seen "ref namespace" refs/stash "${dir} ${ref}" ;;
         (*) seen "ref namespace" "$(cut -d / -f 1-2 <<<"${ref}")/" "${dir} ${ref}" ;;
@@ -642,10 +735,11 @@ git-dirs-seen() {
           seen "ref kind" "lightweight tag" "${dir} ${ref}"
         fi
       fi
-    done < <(fixture-git "${dir}" for-each-ref --format='%(refname)%09%(objecttype)%09%(symref)')
+    done <<<"${refs}"
   done
   for wt in repo worktrees/feature worktrees/detached worktrees/locked worktrees/unborn conflict
   do
+    [[ -d "${world}/${wt}" ]] || { echo "git-dirs-seen: ${wt} is not a worktree of the fixture" >&2; return 1; }
     if ! fixture-git "${wt}" symbolic-ref --quiet HEAD >/dev/null
     then
       seen "worktree HEAD" detached "${wt}"
@@ -656,10 +750,11 @@ git-dirs-seen() {
       seen "worktree HEAD" unborn "${wt}"
     fi
   done
+  list=$(fixture-git repo worktree list --porcelain) || return 1
   while IFS= read -r line
   do
     [[ -z "${line}" ]] || seen "worktree list key" "${line%% *}" "repo: ${line}"
-  done < <(fixture-git repo worktree list --porcelain)
+  done <<<"${list}"
 }
 
 # index_jq reads an index file's bytes, as numbers, and gives an observation for its signature, its version, each
@@ -711,25 +806,27 @@ index_jq='
 # indexes-seen prints the observations of every index file of the fixture: the desk's, each linked worktree's, the
 # clone's stopped in a merge, and the submodule's.
 indexes-seen() {
-  local file
+  local file bytes
   for file in "${world}"/repo/.git/index "${world}"/repo/.git/worktrees/*/index "${world}"/conflict/.git/index \
     "${world}"/repo/.git/modules/sub/index
   do
     [[ -f "${file}" ]] || continue
-    od -An -v -tu1 "${file}" | tr -s ' \n' '\n' | grep -v '^$' \
-      | jq --slurp --raw-output --arg at "${file#"${world}/"}" "${index_jq}"'
-        index_seen(20; $at) | [.kind, .name, .at] | @tsv'
+    bytes=$(od -An -v -tu1 "${file}") || return 1
+    jq --raw-input --slurp --raw-output --arg at "${file#"${world}/"}" "${index_jq}"'
+      [splits("[ \n]+") | select(. != "") | tonumber] | index_seen(20; $at) | [.kind, .name, .at] | @tsv' \
+      <<<"${bytes}" || return 1
   done
 }
 
-# held-unprinted <model> prints a line for each held field whose read-by its verb does not print, or prints only as
-# null in every row, or whose key is * alone, which names no key; for each verb that failed or printed no JSON; and
-# for each unverified entry that kit now prints. The verbs' outputs are those setup_file kept. It fails when it prints
-# a line.
+# held-unprinted <model> [<unverified> <most>] prints a line for each held field whose read-by its verb does not
+# print, or prints only as null in every row, or whose key is * alone, which names no key; for each verb that failed or
+# printed no JSON; for each entry of the unverified list, unverified unless given, that kit now prints or that is no
+# held field; and when the list holds more than <most>, unverified_most unless given. The verbs' outputs are those
+# setup_file kept. It fails when it prints a line.
 held-unprinted() {
   local found
-  found=$(jq --raw-output --slurpfile outputs "${world}/outputs.json" --argjson unverified "${unverified}" \
-    --argjson most "${unverified_most}" "${model_jq}"'
+  found=$(jq --raw-output --slurpfile outputs "${world}/outputs.json" --argjson unverified "${2:-${unverified}}" \
+    --argjson most "${3:-${unverified_most}}" "${model_jq}"'
     $outputs[0] as $out
     | [held[] | . as $f | ($f.readby | verb) as $verb | ($f.readby | key) as $key | $out[$verb] as $o
        | ($o.line // [] | join(" ")) as $line
@@ -757,7 +854,8 @@ held-unprinted() {
 # verbs-unknown <model> prints a line for each held field whose read-by names a verb kit does not have, or words the
 # verb does not take, as kit syntax <verb> --match judges them with each option given its value, and fails when it
 # prints one. A word after the verb that is not an option must be a literal of the verb's grammar, a stage or a
-# subcommand, never an operand. Each verb's words are judged once, however many fields name them.
+# subcommand, never an operand, and an option is written without a value, as model.schema.json's read-by pattern also
+# holds. Each verb's words are judged once, however many fields name them.
 verbs-unknown() {
   local model=$1 verbs verb verdict judged='{}' found
   local -a words line
@@ -765,7 +863,10 @@ verbs-unknown() {
   while IFS= read -r verb
   do
     read -r -a words <<<"${verb}"
-    if ! grep --quiet --line-regexp --fixed-strings -- "${words[0]}" <<<"${verbs}"
+    if [[ "${verb}" == *=* ]]
+    then
+      verdict="which gives an option a value, and a read-by writes an option without one, as --show"
+    elif ! grep --quiet --line-regexp --fixed-strings -- "${words[0]}" <<<"${verbs}"
     then
       verdict="whose verb ${words[0]} kit does not have"
     else
@@ -866,6 +967,7 @@ keys-unclaimed() {
 
 @test "every header of every object in the fixture is a field of its entity" {
   objects-seen > "${BATS_TEST_TMPDIR}/seen.tsv"
+  reaches "${BATS_TEST_TMPDIR}/seen.tsv" "${object_reach}"
   unnamed "${world}/model.json" "${object_names}" "${BATS_TEST_TMPDIR}/seen.tsv"
 }
 
@@ -881,8 +983,66 @@ keys-unclaimed() {
   [ "$output" = "the model names nothing for the commit header change-id, which git wrote at a commit" ]
 }
 
+@test "a walk that observes nothing, or loses a case the fixture holds, fails its reach, naming each case" {
+  : > "${BATS_TEST_TMPDIR}/none.tsv"
+  run reaches "${BATS_TEST_TMPDIR}/none.tsv" "${object_reach}"
+  [ "$status" -eq 1 ]
+  [ "${#lines[@]}" -eq "$(jq length <<<"${object_reach}")" ]
+  [[ "$output" == *"the observations hold no commit header mergetag, which the fixture is built to hold"* ]]
+  [[ "$output" == *"the observations hold no signature status G, which the fixture is built to hold"* ]]
+  for reach in "${config_reach}" "${git_dir_reach}" "${index_reach}"
+  do
+    run reaches "${BATS_TEST_TMPDIR}/none.tsv" "${reach}"
+    [ "$status" -eq 1 ]
+    [ "${#lines[@]}" -eq "$(jq length <<<"${reach}")" ]
+  done
+  objects-seen > "${BATS_TEST_TMPDIR}/all.tsv"
+  grep -v $'^tree entry mode\t160000\t' "${BATS_TEST_TMPDIR}/all.tsv" > "${BATS_TEST_TMPDIR}/seen.tsv"
+  run reaches "${BATS_TEST_TMPDIR}/seen.tsv" "${object_reach}"
+  [ "$status" -eq 1 ]
+  [ "$output" = "the observations hold no tree entry mode 160000, which the fixture is built to hold" ]
+}
+
+@test "a git call that fails, or writes an error, ends the walk that made it, naming the call" {
+  run fixture-git repo cat-file commit 0000000000000000000000000000000000000000
+  [ "$status" -eq 1 ]
+  [[ "$output" == "git -C repo cat-file commit 0000000000000000000000000000000000000000 wrote on stderr:"* ]]
+  # %G? in a clone that names no allowed signers file says so on stderr, and exits 0
+  git clone --quiet "${world}/conflict" "${BATS_TEST_TMPDIR}/w/signed"
+  world=${BATS_TEST_TMPDIR}/w run fixture-git signed log --format='%G?'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"wrote on stderr:"*"allowedSignersFile"* ]]
+  world=${BATS_TEST_TMPDIR}/no-world
+  run objects-seen
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"git -C repo cat-file --batch-all-objects"*"wrote on stderr:"* ]]
+  run config-seen
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"git -C repo config --list"*"wrote on stderr:"* ]]
+  run git-dirs-seen
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"dir-files-seen: repo/.git is not a directory of the fixture"* ]]
+}
+
+@test "the fixture builder refuses a git older than 2.42, and a machine without ssh-keygen, saying what it needs" {
+  mkdir -p "${BATS_TEST_TMPDIR}/old"
+  printf '#!/bin/sh\necho "git version 2.41.0"\n' > "${BATS_TEST_TMPDIR}/old/git"
+  chmod +x "${BATS_TEST_TMPDIR}/old/git"
+  PATH="${BATS_TEST_TMPDIR}/old:${PATH}" run "${BATS_TEST_DIRNAME}/fixtures/model-repo/build" \
+    "${BATS_TEST_TMPDIR}/fixture"
+  [ "$status" -eq 1 ]
+  [ "$output" = "build: needs git 2.42 or later (worktree add --orphan); this is git 2.41.0" ]
+  path-without ssh-keygen
+  run "${BATS_TEST_DIRNAME}/fixtures/model-repo/build" "${BATS_TEST_TMPDIR}/fixture"
+  [ "$status" -eq 1 ]
+  [ "$output" = "build: needs ssh-keygen, which signs the fixture's commits and tags, and it is not on PATH" ]
+  [ ! -e "${BATS_TEST_TMPDIR}/fixture" ]
+}
+
 @test "every key of every config section the fixture sets is a field" {
   config-seen > "${BATS_TEST_TMPDIR}/seen.tsv"
+  reaches "${BATS_TEST_TMPDIR}/seen.tsv" "${config_reach}"
+  catch-all-wrong "${BATS_TEST_TMPDIR}/seen.tsv"
   unnamed "${world}/model.json" "$(config-table)" "${BATS_TEST_TMPDIR}/seen.tsv"
 }
 
@@ -899,13 +1059,23 @@ keys-unclaimed() {
   [[ "${lines[1]}" == "the model names nothing for the config key remote.*.gh-resolved, which git wrote at repo: local file:.git/config" ]]
 }
 
+@test "a catch-all entry the fixture no longer sets, or one that hides a key git documents, fails the check" {
+  config-seen > "${BATS_TEST_TMPDIR}/seen.tsv"
+  run catch-all-wrong "${BATS_TEST_TMPDIR}/seen.tsv" "$(jq '. + {"remote.*.nonesuch": ["GitRemoteConfig.other-keys"],
+    "core.bare": ["GitDir.bare"]}' <<<"${config_catch_all}")"
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = "config_catch_all gives core.bare to GitDir.bare, which is no section's other-keys" ]
+  [ "${lines[1]}" = "config_catch_all holds core.bare, which config_names maps as a key git documents" ]
+  [ "${lines[2]}" = "config_catch_all holds remote.*.nonesuch, which the fixture no longer sets" ]
+  [ "${#lines[@]}" -eq 3 ]
+}
+
 @test "every ref, every file of the fixture's git directories, and every worktree's state is named by the model" {
   git-dirs-seen > "${BATS_TEST_TMPDIR}/seen.tsv"
-  unnamed "${world}/model.json" "$(git-dir-table)" "${BATS_TEST_TMPDIR}/seen.tsv"
-  # what the model knowingly leaves out is still what git writes
-  observations "${BATS_TEST_TMPDIR}/seen.tsv" | jq --exit-status --argjson u "${git_dir_unmodelled}" '
-    [$u | to_entries[] | .key as $k | .value | keys[] | [$k, .]] - [.[] | [.kind, .name]] | if . == [] then true
-    else error("git_dir_unmodelled holds what the fixture no longer shows: \(map(join(" ")) | join(", "))") end'
+  reaches "${BATS_TEST_TMPDIR}/seen.tsv" "${git_dir_reach}"
+  unmodelled-stale "${BATS_TEST_TMPDIR}/seen.tsv"
+  git-dir-table > "${BATS_TEST_TMPDIR}/table.json"
+  unnamed "${world}/model.json" "$(cat "${BATS_TEST_TMPDIR}/table.json")" "${BATS_TEST_TMPDIR}/seen.tsv"
 }
 
 @test "a lock the model does not name fails the check of the git directories, naming the member" {
@@ -913,16 +1083,26 @@ keys-unclaimed() {
   run unnamed "$(broken-model git-repository/git-worktree-admin.yml 'del(.fields["lock-reason"])')" \
     "$(git-dir-table)" "${BATS_TEST_TMPDIR}/seen.tsv"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"the linked worktree dir file locked is held by GitWorktreeAdmin.lock-reason, but GitWorktreeAdmin has no field, relation, or variant lock-reason"* ]]
-  [[ "$output" == *"the worktree list key locked is held by GitWorktreeAdmin.lock-reason, but"* ]]
+  [ "${lines[0]}" = "the linked worktree dir file locked is held by GitWorktreeAdmin.lock-reason, but GitWorktreeAdmin has no field, relation, or variant lock-reason" ]
+  [ "${lines[1]}" = "the worktree list key locked is held by GitWorktreeAdmin.lock-reason, but GitWorktreeAdmin has no field, relation, or variant lock-reason" ]
+  [ "${#lines[@]}" -eq 2 ]
+}
+
+@test "a file both mapped and on git_dir_unmodelled, or an unmodelled one git no longer writes, fails the check" {
+  git-dirs-seen > "${BATS_TEST_TMPDIR}/seen.tsv"
+  run git-dir-table "$(jq '.["common dir file"]["objects/??"] = ["GitDir.store"]' <<<"${git_dir_names}")" \
+    "$(jq '.["common dir file"]["objects/??"] = "the loose objects"' <<<"${git_dir_unmodelled}")"
+  [ "$status" -eq 1 ]
+  [ "$output" = "the common dir file objects/?? is both mapped in git_dir_names and on git_dir_unmodelled" ]
+  run unmodelled-stale "${BATS_TEST_TMPDIR}/seen.tsv" \
+    "$(jq '.["common dir file"]["rebase-merge"] = "a rebase under way"' <<<"${git_dir_unmodelled}")"
+  [ "$status" -eq 1 ]
+  [ "$output" = "git_dir_unmodelled holds the common dir file rebase-merge, which the fixture no longer shows" ]
 }
 
 @test "every stage, flag, and extension of the fixture's indexes is a field of its entity" {
   indexes-seen > "${BATS_TEST_TMPDIR}/seen.tsv"
-  # the cases the fixture is built to hold reach the check: a conflict, an intent-to-add path, and resolve-undo
-  observations "${BATS_TEST_TMPDIR}/seen.tsv" | jq --exit-status '[.[] | [.kind, .name]] as $s
-    | all(["index entry stage", "1"], ["index entry stage", "3"], ["index entry flag", "intent-to-add"],
-          ["index extension", "REUC"], ["index extension", "TREE"]; . as $c | $s | index([$c]))'
+  reaches "${BATS_TEST_TMPDIR}/seen.tsv" "${index_reach}"
   unnamed "${world}/model.json" "${index_names}" "${BATS_TEST_TMPDIR}/seen.tsv"
 }
 
@@ -955,18 +1135,29 @@ keys-unclaimed() {
   [ "$output" = "Repository.path has read-by workspace repos *, whose key, * alone, names no key" ]
 }
 
+@test "an unverified field kit prints, one that is no held field, and a list past its most fail the check" {
+  run held-unprinted "${world}/model.json" '{"Remote.url": "printed", "Nobody.thing": "gone"}' 1
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = "Nobody.thing is unverified, but it is not a held field: take it off the list" ]
+  [ "${lines[1]}" = "Remote.url is unverified, and kit workspace remotes --json prints url: take it off the list" ]
+  [ "${lines[2]}" = "the unverified list holds 2 fields, more than the 1 it may" ]
+  [ "${#lines[@]}" -eq 3 ]
+}
+
 @test "no held field names a verb that does not exist" {
   verbs-unknown "${world}/model.json"
 }
 
 @test "a read-by of a verb kit does not have, or of words the verb does not take, fails the check" {
   run verbs-unknown "$(broken-model code/remote.yml '.fields.url["read-by"] = "workspace bogus url"
-    | .fields.name["read-by"] = "remotes name" | .fields.forge["read-by"] = "workspaces --nonesuch forge"')"
+    | .fields.name["read-by"] = "remotes name" | .fields.forge["read-by"] = "workspaces --nonesuch forge"
+    | .fields.primary["read-by"] = "workspaces --show=model kind"')"
   [ "$status" -eq 1 ]
   [[ "$output" == *"Remote.url has read-by workspace bogus url, which kit refuses: unknown argument 'bogus'"* ]]
   [[ "$output" == *"Remote.name has read-by remotes name, whose verb remotes kit does not have"* ]]
   [[ "$output" == *"Remote.forge has read-by workspaces --nonesuch forge, which kit refuses: unknown flag '--nonesuch'"* ]]
-  [ "${#lines[@]}" -eq 3 ]
+  [[ "$output" == *"Remote.primary has read-by workspaces --show=model kind, which gives an option a value, and a read-by writes an option without one, as --show"* ]]
+  [ "${#lines[@]}" -eq 4 ]
 }
 
 @test "every key a row of a Code verb prints is named by a read-by of that verb, or allowlisted with its reason" {
@@ -981,11 +1172,13 @@ keys-unclaimed() {
   [ "${lines[1]}" = "the allowlist gives remotes of kit workspace repos for Remote.forge, which is no relation and no held field" ]
   [ "${#lines[@]}" -eq 2 ]
   run keys-unclaimed "${world}/model.json" "$(jq --argjson n '{"nonesuch": "gone", "forge": "named"}' \
-    '.["workspace remotes"] += $n' <<<"${code_allowlist}")"
+    '.["workspace remotes"] += $n | .["workspace nonesuch"] = {"key": "a verb of no Code entity"}' \
+    <<<"${code_allowlist}")"
   [ "$status" -eq 1 ]
   [ "${lines[0]}" = "the allowlist holds forge for kit workspace remotes, which a read-by of kit workspace remotes names" ]
-  [ "${lines[1]}" = "the allowlist holds nonesuch for kit workspace remotes, which kit workspace remotes does not print" ]
-  [ "${#lines[@]}" -eq 2 ]
+  [ "${lines[1]}" = "the allowlist holds kit workspace nonesuch, which is not one of code_verbs" ]
+  [ "${lines[2]}" = "the allowlist holds nonesuch for kit workspace remotes, which kit workspace remotes does not print" ]
+  [ "${#lines[@]}" -eq 3 ]
 }
 
 # ----------------------------------------------------------------------------------------------------------------------
