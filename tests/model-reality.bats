@@ -92,11 +92,14 @@ config_catch_all='{
 
 # A file of a git directory, a ref's namespace and kind, a worktree's HEAD, and each key of git worktree list
 # --porcelain. The object store, its loose objects and its packs, is GitDir.objects, and the messages git commit and
-# git merge leave are fields of GitWorktreeDir. A file may be here or on git_dir_unmodelled, never on both.
+# git merge leave are fields of GitWorktreeDir. A file may be here or on git_dir_unmodelled, never on both. branches/
+# is here though the fixture may not show it: the templates of some gits, as some Linux distributions ship them, make
+# it empty in every new git directory, and GitDir.legacy-remotes names it.
 git_dir_names='{
   "common dir file": {
     "config": ["GitDir.config"], "description": ["GitDir.description"], "hooks": ["GitDir.hooks"],
     "refs": ["GitDir.refs"], "packed-refs": ["GitDir.refs", "GitDir.packed-refs-traits"],
+    "branches": ["GitDir.legacy-remotes"],
     "worktrees": ["GitDir.worktree-dirs"], "modules": ["GitSubmodule.git-dir"], "shallow": ["GitDir.shallow"],
     "info/exclude": ["GitDir.exclude"], "info/attributes": ["GitDir.attributes"], "info/grafts": ["GitDir.grafts"],
     "info/refs": ["GitDir.info-refs"], "info/sparse-checkout": ["GitWorktreeDir.sparse-checkout"],

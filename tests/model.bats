@@ -92,6 +92,28 @@ release-counts() {
   [[ "$output" == *"modules/model/code/bad.yml"*"alias"* ]]
 }
 
+# A file of aliases that expand ten million times is refused for its aliases before anything expands them, so the
+# refusal is quick; expanding them first took about twenty seconds, and a deeper file exhausts memory.
+@test "a file whose aliases would expand ten million times is refused quickly, before they are expanded" {
+  local level previous=a
+  mkdir -p laughs/code
+  {
+    printf 'entity: Lol\na: &a [x, x, x, x, x, x, x, x, x, x]\n'
+    for level in b c d e f g
+    do
+      printf '%s: &%s [*%s, *%s, *%s, *%s, *%s, *%s, *%s, *%s, *%s, *%s]\n' "${level}" "${level}" \
+        "${previous}" "${previous}" "${previous}" "${previous}" "${previous}" "${previous}" "${previous}" "${previous}" \
+        "${previous}" "${previous}"
+      previous=${level}
+    done
+  } > laughs/code/lol.yml
+  SECONDS=0
+  run kit-bash "model:load laughs '${fixtures}/none'"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"modules/model/code/lol.yml has an"* ]]
+  (( SECONDS < 10 )) || { echo "took ${SECONDS} s"; return 1; }
+}
+
 @test "a file with a merge key is refused with its path" {
   run kit-bash "model:load '${fixtures}/merge/release' '${fixtures}/none'"
   [ "$status" -eq 1 ]

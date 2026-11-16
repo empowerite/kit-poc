@@ -48,7 +48,6 @@ model:refusal() {
   fi
 }
 
-# yq reads a quoted "<<" key as a merge key, and drops it, unless it is told to follow the YAML spec.
 # model:read <origin> <dir> <prefix> prints, one JSON object a line, each <dir>/<domain>/*.yml, in path order, as
 # {"domain", "origin", "path", "doc"} with the path written from <prefix>, then {"stray": <path>} for each other file
 # under <dir>. It returns 1 for a file it refuses.
@@ -60,13 +59,15 @@ model:read() {
   do
     domain=$(basename "$(dirname "${file}")")
     path=${prefix}/${domain}/$(basename "${file}")
-    doc=$(yaml:eval "${file}" model-json '.' --output-format=json --indent=0 --yaml-fix-merge-anchor-to-spec=true) || return 1
+    # The refusal comes first, so a file of aliases is refused before converting it to JSON expands them.
     why=$(model:refusal "${file}") || return 1
     if [[ -n "${why}" ]]
     then
       error "${path} ${why}"
       return 1
     fi
+    # yq reads a quoted "<<" key as a merge key, and drops it, unless it is told to follow the YAML spec.
+    doc=$(yaml:eval "${file}" model-json '.' --output-format=json --indent=0 --yaml-fix-merge-anchor-to-spec=true) || return 1
     jq --null-input --compact-output --arg domain "${domain}" --arg origin "${origin}" --arg path "${path}" \
       --argjson doc "${doc:-null}" '{domain: $domain, origin: $origin, path: $path, doc: $doc}'
   done
@@ -86,7 +87,7 @@ model:strays() {
     [[ "${relative}" =~ ^[^/]+/[^/]+\.yml$ ]] && continue
     [[ "${origin}" == release && "${relative}" =~ ^(model|domain)\.schema\.json$ ]] && continue
     jq --null-input --compact-output --arg path "${prefix}/${relative}" '{stray: $path}'
-  done < <(find -L "${dir}" -mindepth 1 -name '.*' -prune -o -type f -print | sort)
+  done < <(find -L "${dir}" -mindepth 1 -name '.*' -prune -o -type f -print | LC_ALL=C sort)
 }
 
 # model:load [<release-dir> [<repo-dir>]] prints the model's files as one JSON document, as the header says.
