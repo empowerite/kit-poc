@@ -96,7 +96,7 @@ Layer: native (git)
 | alternates | Path | 0..* | stored | unused |  | The lines of objects/info/alternates, the object stores this one borrows objects from. |
 | attributes | Text | 0..* | stored | unused |  | The lines of info/attributes, attributes of this repository alone, as gitattributes reads them. |
 | bare | Bool | 1 | stored | unused |  | The value of core.bare, whether the repository has no main worktree. |
-| checkout | Path | 0..1 | derived | held | workspace repos checkout | derived from the directory that holds this directory as its .git directory, as git:desks in modules/bash/git.sh finds a desk; none where no directory does. Where the main worktree is, the desk kit names. It is none for a bare repository, for a repository whose .git is a file, as with --separate-git-dir, and for a submodule's git directory under its superproject's modules/\<name>/. That submodule's checkout holds a .git file, which core.worktree names back, and git:desks never reaches it, because its walk stops at the superproject's desk. |
+| checkout | Path | 0..1 | derived | held | `workspace repos checkout` | derived from the directory that holds this directory as its .git directory, as git:desks in modules/bash/git.sh finds a desk; none where no directory does. Where the main worktree is, the desk kit names. It is none for a bare repository, for a repository whose .git is a file, as with --separate-git-dir, and for a submodule's git directory under its superproject's modules/\<name>/. That submodule's checkout holds a .git file, which core.worktree names back, and git:desks never reaches it, because its walk stops at the superproject's desk. |
 | description | Text | 0..1 | stored | unused |  | The description file, which gitweb shows and git init fills with a placeholder. |
 | exclude | Text | 0..* | stored | unused |  | The lines of info/exclude, ignore patterns of this repository alone, as gitignore reads them. |
 | file-mode | Bool | 1 | stored | unused |  | The value of core.fileMode, whether git trusts the executable bit of the files in the worktree, which git init writes after it tests the file system. |
@@ -197,14 +197,14 @@ Layer: native (git)
 
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
-| branch | Text | 0..1 | derived | held | workspace branches branch | derived from the name after refs/heads/, or after refs/remotes/\<remote>/. For a branch its name, and for a remote-tracking branch the name of the branch on the remote. |
+| branch | Text | 0..1 | derived | held | `workspace branches branch` | derived from the name after refs/heads/, or after refs/remotes/\<remote>/. For a branch its name, and for a remote-tracking branch the name of the branch on the remote. |
 | kind | enum(branch, remote-tracking, tag, note, stash, other) | 1 | derived | unused |  | derived from the name's start: refs/heads/ for a branch, refs/remotes/ for a remote-tracking branch, refs/tags/ for a tag, refs/notes/ for a note ref, the name refs/stash for the stash, and any other for other. Which kind of ref this is, which git reads only from where its name lies under refs/. |
 | name | Text | 1 | stored | unused |  | The full name, as refs/heads/main or refs/remotes/origin/main. |
 | peeled | Hash | 0..1 | stored | unused |  | The id of the object an annotated tag the ref names points at, from the ^ line under the ref in packed-refs, which git writes when the file's header says peeled or fully-peeled. |
 | per-worktree | Bool | 1 | derived | unused |  | derived from whether the name starts refs/bisect/, refs/worktree/, or refs/rewritten/. Whether each worktree has a ref of this name of its own. |
-| remote | Text | 0..1 | derived | held | workspace branches remote | derived from the longest configured remote name that starts the name after refs/remotes/, followed by a slash. For a remote-tracking branch, the name of the remote it tracks a branch of, which may hold a slash. |
-| short-name | Text | 1 | derived | held | workspace tags tag | derived from the name after refs/heads/, refs/tags/, or refs/remotes/, else after refs/, as git for-each-ref %(refname:short) prints it, which keeps a part such as tags/ where a ref of another kind has the same short name. The name git shows the ref by, as main, origin/main, or v1.0. |
-| tag-kind | enum(annotated, lightweight) | 0..1 | derived | held | workspace tags kind | derived from the type of the target, annotated for a tag object and lightweight for any other. For a tag, whether it names a tag object or names an object directly. |
+| remote | Text | 0..1 | derived | held | `workspace branches remote` | derived from the longest configured remote name that starts the name after refs/remotes/, followed by a slash. For a remote-tracking branch, the name of the remote it tracks a branch of, which may hold a slash. |
+| short-name | Text | 1 | derived | held | `workspace tags tag` | derived from the name after refs/heads/, refs/tags/, or refs/remotes/, else after refs/, as git for-each-ref %(refname:short) prints it, which keeps a part such as tags/ where a ref of another kind has the same short name. The name git shows the ref by, as main, origin/main, or v1.0. |
+| tag-kind | enum(annotated, lightweight) | 0..1 | derived | held | `workspace tags kind` | derived from the type of the target, annotated for a tag object and lightweight for any other. For a tag, whether it names a tag object or names an object directly. |
 
 ### GitReflogEntry
 
@@ -279,7 +279,7 @@ Layer: native (git)
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
 | name | Text | 1 | stored | unused |  | The full name the HEAD or the symbolic ref holds, as refs/heads/main. |
-| short-name | Text | 1 | derived | held | workspace worktrees branch | derived from the name after refs/heads/, as git worktree list --porcelain gives it on its branch line, else after refs/. The branch's name, which kit prints as a worktree's branch, for an unborn branch as for a branch that exists, whose name GitRef holds. |
+| short-name | Text | 1 | derived | held | `workspace worktrees branch` | derived from the name after refs/heads/, as git worktree list --porcelain gives it on its branch line, else after refs/. The branch's name, which kit prints as a worktree's branch, for an unborn branch as for a branch that exists, whose name GitRef holds. |
 
 ### GitUntrackedCache
 
@@ -324,8 +324,8 @@ Layer: native (git)
 | gitdir | Path | 0..1 | stored | unused |  | The content of gitdir, the path of the worktree's .git file, absolute or, with worktree.useRelativePaths, relative, which kit reads only to confirm a worktree's trust name, none when the file does not exist, which git worktree prune gives as its reason. |
 | id | Text | 1 | stored | unused |  | The directory's name under worktrees/, the worktree's folder name with a number added where it is taken. |
 | lock-reason | Text | 0..1 | stored | unused |  | The content of locked, why the worktree is locked, none when the file is empty or absent. |
-| locked | Bool | 1 | derived | held | workspace worktrees locked | derived from whether the file locked exists. Whether git worktree lock has kept the worktree from being pruned, moved, or removed, which kit prints as "locked" or null. |
-| prunable | Bool | 1 | derived | held | workspace worktrees prunable | derived from whether the worktree is unlocked and gitdir names no file, as git worktree list --porcelain prints prunable. Whether git worktree prune would remove the directory, which kit prints as "prunable" or null. |
+| locked | Bool | 1 | derived | held | `workspace worktrees locked` | derived from whether the file locked exists. Whether git worktree lock has kept the worktree from being pruned, moved, or removed, which kit prints as "locked" or null. |
+| prunable | Bool | 1 | derived | held | `workspace worktrees prunable` | derived from whether the worktree is unlocked and gitdir names no file, as git worktree list --porcelain prints prunable. Whether git worktree prune would remove the directory, which kit prints as "prunable" or null. |
 | prune-reason | Text | 0..1 | derived | unused |  | derived from what git worktree list --porcelain prints after prunable. Why the directory can be pruned, as "gitdir file points to non-existent location". |
 
 ### GitWorktreeDir
@@ -343,5 +343,5 @@ Layer: native (git)
 | merge-mode | Text | 0..1 | stored | unused |  | The content of MERGE_MODE, the options git merge records for the commit that ends a merge, such as no-ff, none while no merge is under way. |
 | path | Path | 1 | derived | unused |  | derived from git rev-parse --absolute-git-dir, run in the worktree. Where the directory is, the common directory for the main worktree and worktrees/\<id>/ for a linked one. |
 | sparse-checkout | Text | 0..* | stored | unused |  | The lines of info/sparse-checkout, the patterns of this worktree's sparse checkout, in order. |
-| worktree-path | Path | 0..1 | derived | held | workspace worktrees path | derived from the worktree line of git worktree list --porcelain: the directory that holds the .git file gitdir names for a linked worktree, the directory that holds the .git directory for the main worktree, and the git directory itself for a bare repository or a main worktree whose .git is a file, as --separate-git-dir makes. Where git says the worktree is, the top of its working tree or, for a bare repository and a main worktree whose .git is a file, the git directory itself, and none only for a worktrees/\<id>/ that git worktree list does not list, as when its gitdir file does not exist. |
+| worktree-path | Path | 0..1 | derived | held | `workspace worktrees path` | derived from the worktree line of git worktree list --porcelain: the directory that holds the .git file gitdir names for a linked worktree, the directory that holds the .git directory for the main worktree, and the git directory itself for a bare repository or a main worktree whose .git is a file, as --separate-git-dir makes. Where git says the worktree is, the top of its working tree or, for a bare repository and a main worktree whose .git is a file, the git directory itself, and none only for a worktrees/\<id>/ that git worktree list does not list, as when its gitdir file does not exist. |
 <!-- kit:end page -->

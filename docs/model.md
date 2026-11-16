@@ -160,6 +160,8 @@ columns `Field | Type | Arity | Source | Status | Read by | Means`:
 
 - `Arity` is `1`, `0..1`, `0..*`, or `1..*` for `one`, `option`, `many`, and `some`; a field with no arity is `1`;
 - `Type` is a scalar's name, an entity's name, or `enum(a, b, c)`;
+- `Read by` is the verb and key of a held field in a code span, as `` `workspace branches remote` ``, so a key's `*`
+  stays a star;
 - `Source` is `stored` unless the field is `derived`; the `Means` of a derived field is `derived from <from>. <means>`;
 - an entity with no fields has the header and the separator only. A sum has the table `Variant | Field | Type`, one row
   for each field of each variant, in place of fields. A stub has the one line `_<Name> is a stub: named, not yet
@@ -178,7 +180,7 @@ when the model has changed.
 ## The pages
 
 `model::page($domain)`, in the same module, returns the body of a domain's page as markdown, and `kit model
-[--release=<dir>] page --domain=<name>` prints it. A domain the model does not hold, or none given, exits 2; the message
+[--release=<dir>] page --domain=<name>` prints it. A domain the model does not hold, or none given, exits 2, and the message
 names the domains the model holds. It is, in order:
 
 - the domain's `intro`, as a paragraph;
@@ -189,10 +191,20 @@ names the domains the model holds. It is, in order:
   or, for a stub, `Stub: named so other entities can refer to it; its fields are not modelled.`, and then the table of
   `model::fields`, which a stub has none of.
 
-The page's own file holds the title. A paragraph is wrapped at 118 characters, so markdownlint's line length holds,
-and a `<` or a `*` outside a code span, in a paragraph or in a `Means` cell, is written `\<` or `\*`, so a
-placeholder such as `<name>` is not read as HTML. A table row is not wrapped, as the markdown style lets a table run
-long. Write a URL or an address in a `means` between backticks.
+The page's own file holds the title. A paragraph is wrapped at 118 characters, so markdownlint's line length holds. A
+paragraph, and the `Means` of a field or a relation, are written so markdown reads them as text:
+
+- outside code spans, a backslash, a `<`, a `*`, and a backtick no span closes are each escaped with a backslash, so a
+  placeholder such as `<name>` is not read as HTML, and `a\|b` keeps its backslash. A code span pairs with the next
+  run of backticks of the same length, as CommonMark has it, and is left as written;
+- a run of spaces or a newline is one space;
+- a code span is one word, so a wrap never cuts it, and a line never starts with a word that could begin a block: `-`,
+  `+`, `>`, `#`, `=`, `~`, `|`, or a number and `.` or `)`. That word stays on the line before, and the word before it
+  goes down with it when the line would be too long. The first word of a paragraph is escaped instead, as `\-` or `1\.`;
+- a word longer than the width, a URL for one, stands alone on its line.
+
+A table row is not wrapped, as the markdown style lets a table run long. Write a URL or an address in a `means` between
+backticks.
 
 ## The generated pages and diagrams
 
@@ -203,9 +215,10 @@ These files are written from the model and never edited by hand:
 | `docs/entities/<domain>.md`, for `git`, `git-repository`, `git-config`, and `code` | `kit generate docs/entities/<domain>.md`, from the `kit:generate` region whose command is `kit model page --domain=<domain>` |
 | `docs/entities/<domain>.svg`, for the same four | `kit model svg --domain=<domain> > "${TMPDIR:-/tmp}/<domain>.svg" && mv "${TMPDIR:-/tmp}/<domain>.svg" docs/entities/<domain>.svg` |
 
-The other domains' diagrams in `docs/entities/` are hand-made until each domain is modelled. `bin/ci` holds the files to
-the model: `kit generate --check`, which `kit check` runs, fails on a page that differs from what its command prints, and
-`bin/ci` compares each diagram with `kit model svg --domain=<domain>` and fails on a difference, naming the file.
+The other domains' diagrams in `docs/entities/` are hand-made, and are replaced as each domain gets its pass. `bin/ci`
+holds the files to the model: `kit generate --check`, which `kit check` runs, fails on a page that differs from what its
+command prints, and `bin/ci` compares each diagram with `kit model svg --domain=<domain>` and fails on a difference,
+naming the file.
 
 ## The diagrams
 

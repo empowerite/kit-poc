@@ -298,10 +298,34 @@ def stubs: [.entities | to_entries[] | select(.value.stub == true) | .key] | sor
 # arity_text is the arity of a field or a relation as a range: 1, 0..1, 0..*, or 1..*. An arity not given is one.
 def arity_text: ({one: "1", option: "0..1", many: "0..*", some: "1..*"})[. // "one"];
 
-# prose is text as markdown reads it as text: a < and a * outside a code span are written \< and \*, so a name in angle
-# brackets is not taken for HTML, nor a lone star for emphasis.
+# code_spans($runs) are the [start, end] of the code spans of a text, given its runs of backticks as [{o, n}]: a run opens a
+# span that the next run of the same length closes, as CommonMark has it, and a run nothing closes is text.
+def code_spans($runs):
+  def from($i):
+    if $i >= ($runs | length) then []
+    else
+      $runs[$i] as $r
+      | ([range($i + 1; $runs | length)] | map(select($runs[.].n == $r.n)) | .[0]) as $j
+      | if $j == null then from($i + 1) else [[$r.o, $runs[$j].o + $runs[$j].n]] + from($j + 1) end
+    end;
+  from(0);
+
+# pieces is a text cut into [{code, text}]: the code spans, as written, and what lies between them.
+def pieces:
+  . as $t
+  | [match("`+"; "g") | {o: .offset, n: .length}] as $runs
+  | (reduce code_spans($runs)[] as $s ({pos: 0, out: []};
+      .out += [{code: false, text: $t[.pos:$s[0]]}, {code: true, text: $t[$s[0]:$s[1]]}] | .pos = $s[1])) as $cut
+  | $cut.out + [{code: false, text: $t[$cut.pos:]}];
+
+# plain escapes the text of a piece that is no code span: a backslash first, so each escape after it is the only one, then a
+# <, a *, and a backtick no span closes.
+def plain: gsub("\\\\"; "\\\\") | gsub("(?<c>[<*`])"; "\\" + .c);
+
+# prose is text as markdown reads it as text: outside code spans, a \, a <, and a * are written \\, \<, and \*, so a name in
+# angle brackets is not taken for HTML, nor a lone star for emphasis, nor a backslash for an escape.
 def prose:
-  (. // "") | split("`") | to_entries | map(if .key % 2 == 0 then .value | gsub("(?<c>[<*])"; "\\" + .c) else .value end) | join("`");
+  (. // "") | [pieces[] | if .code then .text else .text | plain end] | join("");
 
 # cell is a value as the text of a table cell: nothing is empty, a newline is a space, and a | is written \|.
 def cell:
@@ -319,7 +343,7 @@ def type_text:
 
 # field_row is the row of a field: its type, arity, source, status, what reads it, and what it means.
 def field_row($name):
-  [$name, (.type | type_text), (.arity | arity_text), (.source // "stored"), .status, .["read-by"],
+  [$name, (.type | type_text), (.arity | arity_text), (.source // "stored"), .status, (if (.["read-by"] // "") == "" then "" else "`\(.["read-by"])`" end),
     (if .source == "derived" then "derived from \(.from // ""). \(.means // "")" | sub(" $"; "") else .means end | prose)];
 
 # fields gives the table of an entity of a built model, given its name: its fields by name; for a sum, its variants and
@@ -362,15 +386,45 @@ def layer_line:
   else "Layer: logical" + (if ((.over // []) | length) > 0 then " over \(.over | join(", "))" else "" end)
   end;
 
-# paragraph($width) is a sentence as a paragraph: prose, with its words wrapped into lines of at most $width characters, or
-# longer for a word that is.
+# words is a sentence as the words of a paragraph: prose, a newline and a run of spaces being one space, and a code span,
+# whatever it holds, one word with what touches it.
+def words:
+  sub("\n+$"; "") | gsub("\n+"; " ")
+  | reduce pieces[] as $p ({words: [], cur: ""};
+      if $p.code then .cur += $p.text
+      else
+        reduce ($p.text | plain | split(" ") | to_entries[]) as $e (.;
+          (if $e.key > 0 and .cur != "" then .words += [.cur] | .cur = "" else . end) | .cur += $e.value)
+      end)
+  | .words + (if .cur == "" then [] else [.cur] end);
+
+# block_start is true for a word that, at the start of a line, could begin a markdown block: a bullet, a quote, a heading, a
+# rule, a fence, a table bar, or an ordered number.
+def block_start: test("^([-+>#=~|]|[0-9]+[.)])");
+
+# unblock escapes the first word of a paragraph so it cannot begin a block.
+def unblock:
+  if test("^[0-9]+[.)]") then sub("^(?<d>[0-9]+)(?<p>[.)])"; "\(.d)\\\(.p)")
+  elif test("^[-+>#=~|]") then "\\" + .
+  else . end;
+
+# paragraph($width) is a sentence as a paragraph: prose in lines of at most $width characters, or longer for a word that is.
+# A line never starts with a word that could begin a block: that word stays on the line before, and the word before it
+# goes down with it when the line is too long; the first word of the paragraph is escaped. A code span is never cut.
 def paragraph($width):
-  sub("\n+$"; "") | gsub("\n+"; " ") | prose
-  | reduce (split(" ")[]) as $word ([];
-      if length == 0 then [$word]
-      elif (.[-1] | length) + 1 + ($word | length) > $width then . + [$word]
-      else .[-1] += " " + $word end)
-  | join("\n");
+  words
+  | if length == 0 then [] else .[0] |= unblock end
+  | reduce .[] as $w ([[]];
+      (.[-1]) as $line
+      | if ($line | length) == 0 then .[-1] += [$w]
+        elif ($line | join(" ") | length) + 1 + ($w | length) <= $width then .[-1] += [$w]
+        elif ($w | block_start | not) then . + [[$w]]
+        else
+          ([range(1; $line | length)] | map(select($line[.] | block_start | not)) | last) as $k
+          | if $k == null then .[-1] += [$w]
+            else .[-1] = $line[:$k] | . + [$line[$k:] + [$w]] end
+        end)
+  | map(join(" ")) | join("\n");
 
 # entity_section($name) is the section of one entity of a built model: its name, what it means, its layer line, and its
 # fields, as the blocks of a page.

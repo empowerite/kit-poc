@@ -70,9 +70,9 @@ Layer: native (git)
 
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
-| content | Bytes | 1 | stored | held | facts tree.*.text | The bytes git stores, which kit facts gives as text, decoded as UTF-8 by jq, for a file of at most 65536 bytes with no NUL whose path kit.yml names under facts.read. |
-| id | Hash | 1 | derived | held | facts tree.*.blob | derived from the hash of "blob \<size>", a NUL byte, and the content, in the repository's object format, SHA-1 or SHA-256. The object's name, which kit facts gives for each path of the tree, except that for a gitlink path the same key holds the submodule's commit id. |
-| size | Int | 1 | derived | held | facts tree.*.size | derived from the length of the content in bytes, as git cat-file -s prints it. The content's length in bytes, which kit facts gives for each path of the tree and as 0 for a gitlink path. |
+| content | Bytes | 1 | stored | held | `facts tree.*.text` | The bytes git stores, which kit facts gives as text, decoded as UTF-8 by jq, for a file of at most 65536 bytes with no NUL whose path kit.yml names under facts.read. |
+| id | Hash | 1 | derived | held | `facts tree.*.blob` | derived from the hash of "blob \<size>", a NUL byte, and the content, in the repository's object format, SHA-1 or SHA-256. The object's name, which kit facts gives for each path of the tree, except that for a gitlink path the same key holds the submodule's commit id. |
+| size | Int | 1 | derived | held | `facts tree.*.size` | derived from the length of the content in bytes, as git cat-file -s prints it. The content's length in bytes, which kit facts gives for each path of the tree and as 0 for a gitlink path. |
 
 ### GitCommit
 
@@ -84,7 +84,7 @@ Layer: native (git)
 | --- | --- | --- | --- | --- | --- | --- |
 | encoding | Text | 0..1 | stored | unused |  | The encoding header, the message's character encoding when it is not UTF-8, from i18n.commitEncoding. |
 | extra-headers | Text | 0..* | stored | unused |  | Each header git does not know, as its name, a space, and its value, which git keeps verbatim and in order. |
-| id | Hash | 1 | derived | held | workspace commits key | derived from the hash of "commit \<size>", a NUL byte, and the content, in the repository's object format, SHA-1 or SHA-256. The object's name. |
+| id | Hash | 1 | derived | held | `workspace commits key` | derived from the hash of "commit \<size>", a NUL byte, and the content, in the repository's object format, SHA-1 or SHA-256. The object's name. |
 | size | Int | 1 | derived | unused |  | derived from the length of the headers and the message in bytes, as git cat-file -s prints it. The length of the commit object's content in bytes. |
 
 ### GitMessage
@@ -96,7 +96,7 @@ Layer: native (git)
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
 | body | Text | 1 | derived | unused |  | derived from the text after the first paragraph, as git log %b prints it. The rest of the message, trailers included. |
-| subject | Text | 1 | derived | held | workspace commits subject | derived from the first paragraph of the text, its lines joined by spaces, as git log %s prints it. The title of the message. |
+| subject | Text | 1 | derived | held | `workspace commits subject` | derived from the first paragraph of the text, its lines joined by spaces, as git log %s prints it. The title of the message. |
 | text | Bytes | 1 | stored | unused |  | The message as stored, UTF-8 unless a commit's encoding header names another, which kit reads only to parse trailers. |
 
 ### GitObject
@@ -139,7 +139,7 @@ Layer: native (git)
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
 | email | Text | 1 | stored | planned |  | The address between the angle brackets, which may be empty. |
-| name | Text | 1 | stored | held | workspace commits author | The name before the email, from user.name or the GIT_AUTHOR_NAME and GIT_COMMITTER_NAME variables. |
+| name | Text | 1 | stored | held | `workspace commits author` | The name before the email, from user.name or the GIT_AUTHOR_NAME and GIT_COMMITTER_NAME variables. |
 | offset | Text | 1 | stored | unused |  | The time zone the moment was written in, as a sign and four digits, such as -0800. |
 | time | Time | 1 | stored | unused |  | The moment, in seconds since the epoch, which kit reads only to compute an age. |
 
@@ -166,8 +166,8 @@ Layer: native (git)
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
 | separator | Text | 1 | derived | unused |  | derived from the first character after the token and any spaces or tabs, a colon or a character trailer.separators names. The character that ends the token, which spaces or tabs may precede. |
-| token | Text | 1 | derived | held | facts commits.*.trailers.*.key | derived from the trailer line up to its separator, of ASCII letters, digits, and hyphens. The trailer's name. |
-| value | Text | 1 | derived | held | facts commits.*.trailers.*.value | derived from the trailer line after its separator, with any continuation lines that start with a space or a tab. What the trailer says, its continuation lines unfolded into one. |
+| token | Text | 1 | derived | held | `facts commits.*.trailers.*.key` | derived from the trailer line up to its separator, of ASCII letters, digits, and hyphens. The trailer's name. |
+| value | Text | 1 | derived | held | `facts commits.*.trailers.*.value` | derived from the trailer line after its separator, with any continuation lines that start with a space or a tab. What the trailer says, its continuation lines unfolded into one. |
 
 ### GitTree
 

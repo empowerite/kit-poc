@@ -196,7 +196,7 @@ release-counts() {
 | --- | --- | --- | --- | --- | --- | --- |
 | branch | Text | 0..1 | stored | planned |  | the branch \| or none |
 | name | Text | 1 | derived | unused |  | derived from the path. |
-| path | Path | 1 | stored | held | work path | where it is checked out |' ]
+| path | Path | 1 | stored | held | `work path` | where it is checked out |' ]
 }
 
 @test "kit model table --domain= prints the domain's relations as a table" {
@@ -235,7 +235,7 @@ release-counts() {
   printf '<!-- kit:generate fields `kit model --release=model table --entity=Worktree` -->\nold\n<!-- kit:end fields -->\n' > page.md
   run "${kit_checkout}/bin/kit" generate page.md
   [ "$status" -eq 0 ]
-  grep --quiet '^| path | Path | 1 | stored | held | work path |' page.md
+  grep --quiet '^| path | Path | 1 | stored | held | `work path` |' page.md
   run "${kit_checkout}/bin/kit" generate --check page.md
   [ "$status" -eq 0 ]
   sed -i.bak 's/where it is checked out/where it lives/' model/git/worktree.yml
@@ -293,17 +293,20 @@ Layer: native (git)
 | --- | --- | --- | --- | --- | --- | --- |
 | branch | Text | 0..1 | stored | planned |  | the branch \| or none |
 | name | Text | 1 | derived | unused |  | derived from the path. |
-| path | Path | 1 | stored | held | work path | where it is checked out |' ]
+| path | Path | 1 | stored | held | `work path` | where it is checked out |' ]
 }
 
 @test "kit model page with no --domain=, or a domain the model does not hold, exits 2 and says so" {
   fresh-repo
   run kit model "--release=${fixtures}/tables/release" page
   [ "$status" -eq 2 ]
-  [[ "${lines[0]}" == "❌ kit model page needs --domain; run: "* ]]
+  [[ "${lines[0]}" == "❌ kit model page needs --domain; the domains are: git; run: "*"kit help model" ]]
   run kit model "--release=${fixtures}/tables/release" page --domain=nope
   [ "$status" -eq 2 ]
-  [[ "${lines[0]}" == "❌ no domain named nope; the domains are: git; run: "* ]]
+  [[ "${lines[0]}" == "❌ no domain named nope; the domains are: git; run: "*"kit help model" ]]
+  run kit model "--release=${fixtures}/none-here" page
+  [ "$status" -eq 2 ]
+  [[ "${lines[0]}" == "❌ kit model page needs --domain; run: "*"kit help model" ]]
 }
 
 @test "a kit:generate region of kit model page is current after kit generate, and stale after the model changes" {

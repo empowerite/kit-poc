@@ -51,8 +51,8 @@ Layer: native (git)
 | other-keys | Text | 0..* | stored | unused |  | Each key of the section git does not document, as name=value in order, such as the merge base an editor or a forge's command line records. |
 | push-remote | Text | 0..1 | stored | unused |  | The value of branch.\<name>.pushRemote, a remote's name or a URL, which a push uses in place of remote. |
 | rebase | enum(true, false, yes, no, on, off, 1, 0, merges, m, interactive, i) | 0..1 | stored | unused |  | The value as written: a boolean spelling for whether git pull rebases the branch in place of merging, merges or m to rebase keeping merge commits, and interactive or i to rebase interactively. |
-| remote | Text | 0..1 | stored | held | workspace branches remote | The value of branch.\<name>.remote, the remote's name, or . for this repository, which kit prints for a branch whose upstream is gone. |
-| upstream | Text | 0..1 | derived | held | workspace worktrees upstream | derived from the ref the remote's fetch refspecs map the first merge value to, short, as git status --porcelain=v2 --branch prints it on its branch.upstream line. The upstream branch, as origin/main, or the local branch's name when remote is . |
+| remote | Text | 0..1 | stored | held | `workspace branches remote` | The value of branch.\<name>.remote, the remote's name, or . for this repository, which kit prints for a branch whose upstream is gone. |
+| upstream | Text | 0..1 | derived | held | `workspace worktrees upstream` | derived from the ref the remote's fetch refspecs map the first merge value to, short, as git status --porcelain=v2 --branch prints it on its branch.upstream line. The upstream branch, as origin/main, or the local branch's name when remote is . |
 
 ### GitConfigEntry
 
@@ -96,11 +96,11 @@ Layer: native (git)
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
 | advertised-as | Text | 0..1 | stored | unused |  | The name a server advertised the remote under, when git configured it as a promisor remote from that advice. |
-| default-branch | Text | 0..1 | derived | held | workspace remotes default | derived from the ref the symbolic ref refs/remotes/\<name>/HEAD names, after refs/remotes/\<name>/, as git symbolic-ref prints it. The remote's default branch, as the symbolic ref that git clone and git remote set-head write records it, none while refs/remotes/\<name>/HEAD does not exist. |
-| fetch-url | Text | 0..1 | derived | held | workspace remotes url | derived from the first url, rewritten by the longest url.\<base>.insteadOf that starts it, as git remote get-url prints it. The URL a fetch reads from. |
+| default-branch | Text | 0..1 | derived | held | `workspace remotes default` | derived from the ref the symbolic ref refs/remotes/\<name>/HEAD names, after refs/remotes/\<name>/, as git symbolic-ref prints it. The remote's default branch, as the symbolic ref that git clone and git remote set-head write records it, none while refs/remotes/\<name>/HEAD does not exist. |
+| fetch-url | Text | 0..1 | derived | held | `workspace remotes url` | derived from the first url, rewritten by the longest url.\<base>.insteadOf that starts it, as git remote get-url prints it. The URL a fetch reads from. |
 | follow-remote-head | Text | 0..1 | stored | unused |  | What a fetch does when the remote's HEAD differs from refs/remotes/\<name>/HEAD: create, always, warn, never, or warn-if-not-\<branch>, as fetch.followRemoteHEAD takes it. |
 | mirror | Bool | 0..1 | stored | unused |  | Whether a push to the remote acts as git push --mirror. |
-| name | Text | 1 | stored | held | workspace remotes remote | The subsection of remote.\<name>, as origin. |
+| name | Text | 1 | stored | held | `workspace remotes remote` | The subsection of remote.\<name>, as origin. |
 | negotiation-include | Text | 0..* | stored | unused |  | The refs, ids, or patterns whose commits a fetch always advertises as haves. |
 | negotiation-restrict | Text | 0..* | stored | unused |  | The refs or patterns whose commits alone a fetch advertises as haves, as --negotiation-restrict takes them. |
 | other-keys | Text | 0..* | stored | unused |  | Each key of the section git does not document, as name=value in order, such as one a tool records. |
@@ -110,7 +110,7 @@ Layer: native (git)
 | proxy-auth-method | Text | 0..1 | stored | unused |  | How to authenticate to that proxy, as http.proxyAuthMethod takes it. |
 | prune | Bool | 0..1 | stored | unused |  | Whether a fetch removes the remote-tracking branches whose branch the remote no longer has. |
 | prune-tags | Bool | 0..1 | stored | unused |  | Whether a fetch that prunes also removes the local tags the remote no longer has. |
-| push-url | Text | 0..1 | derived | held | workspace remotes push | derived from the first pushurl, else the first url rewritten by url.\<base>.pushInsteadOf or insteadOf, as git remote get-url --push prints it. The first URL a push goes to, which kit prints only when it differs from the fetch URL. |
+| push-url | Text | 0..1 | derived | held | `workspace remotes push` | derived from the first pushurl, else the first url rewritten by url.\<base>.pushInsteadOf or insteadOf, as git remote get-url --push prints it. The first URL a push goes to, which kit prints only when it differs from the fetch URL. |
 | push-urls | Text | 0..* | stored | unused |  | The values of remote.\<name>.pushurl, as written, each of which a push goes to in place of the urls. |
 | receive-pack | Text | 0..1 | stored | unused |  | The program a push runs on the remote's side, as git push --receive-pack names it. |
 | server-options | Text | 0..* | stored | unused |  | The server options a fetch sends, as --server-option takes them, an empty value clearing those before it. |

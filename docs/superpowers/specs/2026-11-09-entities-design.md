@@ -218,9 +218,9 @@ These entities exist in kit today, through git and the forge seam, and keep thei
 
 ![Code: a workspace contains repositories, a repository has remotes and checkouts, a checkout holds worktrees on branches, a branch has commits and is opened as a change, a review is on a change, and a tag points at a commit](../../entities/code.svg)
 
-The page [code.md](../../entities/code.md) is generated from the model: the Code domain's fields, relations, and arity.
-The domains under it have pages of their own: [git.md](../../entities/git.md),
-[git-repository.md](../../entities/git-repository.md), and [git-config.md](../../entities/git-config.md).
+The generated page [code.md](../../entities/code.md) gives the Code domain's fields, relations, and arity, and its git
+domains have pages of their own: [git.md](../../entities/git.md), [git-repository.md](../../entities/git-repository.md),
+and [git-config.md](../../entities/git-config.md).
 
 | Entity | What it is | Reference | Today |
 | --- | --- | --- | --- |
