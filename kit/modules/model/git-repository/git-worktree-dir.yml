@@ -34,8 +34,9 @@ fields:
     status: held
     read-by: workspace worktrees path
     means: >-
-      Where git says the worktree is, the top of its working tree except where git names it by its git directory,
-      none for a worktrees/<id>/ that git worktree list does not list, as when its gitdir file does not exist.
+      Where git says the worktree is, the top of its working tree or, for a bare repository and a main worktree
+      whose .git is a file, the git directory itself, and none only for a worktrees/<id>/ that git worktree list
+      does not list, as when its gitdir file does not exist.
   dotgit:
     type: Text
     arity: option

@@ -23,8 +23,8 @@ fields:
     status: held
     read-by: workspace repos checkout
     means: >-
-      Where the main worktree is, none for a bare repository and for a repository whose main worktree is elsewhere,
-      as with --separate-git-dir or core.worktree.
+      Where the main worktree is, none for a bare repository and for a repository whose .git is a file, as with
+      --separate-git-dir.
   bare:
     type: Bool
     source: stored

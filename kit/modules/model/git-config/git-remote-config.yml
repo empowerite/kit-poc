@@ -177,12 +177,14 @@ relations:
     inverse: GitWorktreeDir.remote-configs
     means: >-
       The worktree this remote is git config's answer in, from the entries of every scope that apply there: system,
-      global, local, worktree, command, and what their includes bring.
+      global, local, and worktree, with what their includes bring.
   entries:
     to: GitConfigEntry
     arity: many
     inverse: GitConfigEntry.remotes
-    means: The entries of its repository's configuration, in every scope, whose key is in the remote.<name> section.
+    means: >-
+      The entries of the worktree's git config answer whose key is in the remote.<name> section, from every scope
+      that applies to that worktree: system, global, local, and worktree, with what its includes bring.
   fetch:
     to: GitRefspec
     arity: many
