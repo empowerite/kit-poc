@@ -20,12 +20,13 @@ module runs each time a verb does. A package is placed into a repository once, b
 | `libexec/` | `kit-call`, the bash the loader runs, and in a release the `kittui` binaries |
 | `modules/bash/` | bash modules: `<module>.sh`, sourced, never run |
 | `modules/jq/` | jq modules: `<module>.jq`, imported by the jq programs the bash modules run |
+| `modules/model/` | the model of kit's entities, one YAML file each, and its schemas; see [model.md](model.md) |
 | `modules/tutorials/` | the tutorials that ship with kit, and `modules/tutorials.yml`, which lists them |
 | `packages/` | packages |
 
 Every module sits under `modules/`, in a directory named for its language, so each language's loader searches one
-directory of its own. The tutorials are not modules. A verb runs the same through `kit <verb>` and called directly as
-`kit-<verb>`. In this repository all of it is under `kit/`, the release.
+directory of its own. The tutorials and the model are not modules: they are data the verbs read. A verb runs the same
+through `kit <verb>` and called directly as `kit-<verb>`. In this repository all of it is under `kit/`, the release.
 
 ## Bash modules
 

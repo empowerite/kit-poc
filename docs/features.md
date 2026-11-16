@@ -43,7 +43,7 @@ see: [context.md](context.md), [serve.md](serve.md)
 | Check | Fails when |
 | --- | --- |
 | `kit gate` | the repository's gate fails, or the repository has no gate |
-| `kit check` | a delivered file differs from the release, or a generated region differs from its command's output |
+| `kit check` | a delivered file differs from the release, a generated region differs from its command's output, or the repository's `.kit/model/` has a finding of `kit model check` |
 | `kit linked` | the pull request is not linked to an open issue |
 | `kit policy` | a branch name, worktree, commit subject, pull request title, or file in the tree breaks the policy |
 
@@ -371,7 +371,8 @@ see: [generate.md](generate.md)
 ## The model
 
 - `kit model check` checks the model of kit's entities, one YAML file each: the release's and the repository's
-  `.kit/model/`. It prints each finding, then how many entities and stubs there are, and fails the gate on a finding.
+  `.kit/model/`. It holds every file to the model's schemas, prints each finding, then how many entities and stubs
+  there are, and fails the gate on a finding. `kit check` runs it in a repository that has a `.kit/model/`.
 - `kit model table --entity=<name>` and `--domain=<name>` print an entity's fields and a domain's relations as markdown
   tables, for a page that holds them in a `kit:generate` region.
 - `kit model svg --domain=<name>` prints a diagram of a domain's entities and the relations between them, with the arity

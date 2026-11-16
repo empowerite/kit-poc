@@ -22,8 +22,8 @@ kittui's tabs, and providers, and an organization that adds fields and entities 
 - Every relationship is declared as two directed functions, one per direction, each with an arity: exactly one, at most
   one, any number, or at least one, and ordered where order matters. `Worktree.head` is exactly one head, and
   `Branch.worktree` is at most one worktree.
-- A value that is one of several kinds is a sum type, declared once. A worktree's head is a branch or a detached
-  commit, because git allows both.
+- A value that is one of several kinds is a sum type, declared once. A worktree's head is a branch, a detached commit,
+  or an unborn branch, because git allows all three.
 - Every entity lists every field its tool stores, unpacked into entities where a field has parts of its own: a commit
   has a tree, parents, an author, a committer, a signature, and a message, and a message has a subject, a body, and
   trailers.
@@ -85,12 +85,12 @@ kittui's tabs, and providers, and an organization that adds fields and entities 
 One file holds one entity. Directories group the files by domain, as the entities design does:
 
 ```text
-model/code/commit.yml
-model/code/worktree.yml
-model/code/branch.yml
-model/code/head.yml          # a sum
-model/code/organization.yml
-model/work/issue.yml
+modules/model/git/git-commit.yml          # native to git
+modules/model/git-repository/git-head.yml # native to git, a sum
+modules/model/code/commit.yml             # kit's, over GitCommit
+modules/model/code/worktree.yml
+modules/model/code/head.yml               # kit's, a sum
+modules/model/code/organization.yml
 ```
 
 A file names the entity, its layer, what it is, its fields, and its relations. This is the shape; the key names are the
@@ -99,7 +99,7 @@ builder's, and the example is not the final content:
 ```yaml
 entity: Worktree
 layer: logical
-over: [git worktree]
+over: [GitWorktreeDir, GitWorktreeAdmin]
 means: a working directory with its own HEAD and index, linked to one checkout
 fields:
   path:    {type: Path,     source: stored,  status: held}
@@ -117,6 +117,7 @@ means: what a worktree is on, which git lets be a branch or a bare commit
 variants:
   OnBranch: {branch: Branch}
   Detached: {commit: Commit}
+  Unborn: {ref: UnbornBranch}
 ```
 
 ```yaml
@@ -124,7 +125,7 @@ entity: Branch
 relations:
   worktree: {to: Worktree, arity: option, derived: "the worktree whose head is OnBranch(this)"}
   tip:      {to: Commit,   arity: one, inverse: Commit.tipped-by}
-  upstream: {to: Branch,   arity: option}
+  upstream: {to: Branch,   arity: option, inverse: Branch.downstream}
 ```
 
 A relation names its inverse, or says it is derived and from what. Any pair of arities is a valid relationship: `one`
@@ -142,8 +143,8 @@ on a core entity, a new relation. A file that adds to a core entity says `extend
 holds only what it adds. A new entity may be defined only once, by one file.
 
 An addition may add, and may narrow. To narrow is to accept a subset of what the core accepts: an arity from `many` to
-`some` or `option`, from `some` or `option` to `one`; an enumeration to some of its values; a scalar to a stricter
-scalar. It may not remove a core field or relation, change a type to one that is not narrower, or widen an arity. A
+`some` or `option`, from `some` or `option` to `one`; an enumeration to some of its values. A scalar type has no
+order, so it does not narrow. It may not remove a core field or relation, change a type, or widen an arity. A
 status and a layer are the release's to say. Every reader of a core entity can then rely on it. This is the rule
 settings follow in
 [the entities design](2026-11-09-entities-design.md#configuration): an organization tightens what the release says and
@@ -166,17 +167,19 @@ reaches, and `Tag` names `GitTag` in its `over`. A logical entity lists the nati
 of it that is a native's field says which.
 
 A relation may name an entity of a domain that is not yet modelled. That entity has a file with `stub: true`, which
-names it and says what it is and holds no fields. A stub is shown as one in the tables and the diagrams, and the check
-counts the stubs, so an unmodelled domain is visible. Organization's service is `Service`, a stub in Platform until
+names it and says what it is and holds no fields, only the inverse sides of the relations into it. A stub is shown as
+one in the tables and the diagrams, and the check counts the stubs, so an unmodelled domain, or a part of git the
+model does not unpack yet, is a visible gap. Organization's service is `Service`, a stub in Platform until
 that domain's pass.
 
 Native to git: Blob, Tree and its entries (a mode, a name, and a blob, a tree, a symlink, or a submodule's commit),
 Commit, Signature (an identity and a time with its offset), Message with its subject, body, and trailers, the
-signature a commit or a tag carries, annotated Tag, Ref in each kind (branch, remote-tracking, tag, note, stash, HEAD),
-Reflog entry, Index with its entries and conflict stages, Remote and branch configuration, the worktree's
+signature a commit or a tag carries, annotated Tag, Ref with its kind (branch, remote-tracking, tag, note, stash),
+HEAD, Reflog entry, Index with its entries and conflict stages, Remote and branch configuration, the worktree's
 administrative files, and Submodule.
 
-Logical to kit: Organization, Repository, Remote, Checkout, Worktree, Head, Branch, Tag, and the rest of Code. The
+Logical to kit: Organization, Repository, Workspace, Remote, Checkout, Worktree, Head, UnbornBranch, Branch, Tag, and
+the rest of Code. The
 Change and the Review are kit's names for forge entities, and their native side comes in the forge pass.
 
 Arity the first pass settles, among others:
@@ -184,14 +187,16 @@ Arity the first pass settles, among others:
 - A commit has exactly one tree, an ordered list of parents (none for a root, two or more for a merge), exactly one
   author, exactly one committer, at most one signature, and exactly one message.
 - A tree has any number of entries, each naming exactly one blob, tree, symlink, or commit.
-- A worktree has exactly one head, a branch or a detached commit. A branch is on at most one worktree.
-- A checkout has exactly one main worktree, or none when it is bare, and any number of linked worktrees.
+- A worktree has exactly one head, a branch, a detached commit, or an unborn branch. A branch is on at most one
+  worktree.
+- A checkout has exactly one main worktree, which for a bare clone is its git directory, and any number of linked
+  worktrees.
 - A repository is named by a remote's URL, so a checkout with no remote has no repository. A checkout has at most one
   repository, and a repository has any number of checkouts on a machine.
 - A repository has exactly one organization. An organization has any number of repositories, at most one parent
-  organization, and a kind (a user, an organization, a group). Azure DevOps puts a project between the organization
-  and the repository, and GitLab nests groups, so the parent relation is a chain, and the organization belongs to one
-  service.
+  organization, and a kind (a user, an organization, a group, a project). GitLab nests groups, so the parent relation
+  is a chain, and the organization belongs to one service. On Azure DevOps the service is the Azure DevOps
+  organization, and kit's Organization is its project.
 
 ## Complete, and true
 
@@ -215,20 +220,72 @@ that source.
   organization's additions need it: the organization's own pages hold its tables in `kit:generate` regions that call
   the verb, and `kit model svg` writes a diagram to a path the caller names. The verb reads the release's files and
   the repository's additions together.
-- The checks and the tables are bash, jq, and yq, as kit's other modules are, and read YAML through `yaml.sh`. The
-  diagram's layout must be deterministic, so the stale check can compare bytes. It is written in jq and bash, or in
-  the Go of the `kittui` binary the release already ships; which is the builder's call.
-- The SVGs under `docs/entities/` today are written by hand. The generated ones replace them whole, and the pages under
-  `docs/entities/` are new.
-- A check over the model: a relation's inverse exists and its arity is compatible; every type names an entity, a sum,
-  or a scalar; a sum's variants name entities; an extension does not remove or loosen a core definition; a derived
-  field names what it derives from.
+- The checks, the tables, and the diagrams are bash, jq, and yq, as kit's other modules are, and read YAML through
+  `yaml.sh`. The diagram's layout is deterministic, so the stale check compares bytes.
+- The SVG of each modelled domain under `docs/entities/` is generated, with a page beside it. The SVGs of the domains
+  not yet modelled, and the overview, are drawn by hand until each domain's pass.
+- A check over the model: a relation's inverse exists and names it back; every type names an entity, a sum, or a
+  scalar; a sum's variants name entities; an extension does not remove or loosen a core definition; a derived field
+  names what it derives from.
 - Generated tables, in `kit:generate` regions of the pages under `docs/entities/`: one per entity for its fields and
   one per domain for its relations, with arity.
-- Generated diagrams, the SVGs under `docs/entities/`, one per domain and one overview: entities as cards, relations as
-  arrows with their arity at each end, the layer and the status shown. A check fails when a diagram differs from what
-  the generator writes.
+- Generated diagrams, the SVGs under `docs/entities/`, one per modelled domain: entities as cards, relations as arrows
+  with their arity at each end, the layer and the status shown. A check fails when a diagram differs from what the
+  generator writes. `kit model svg --overview` draws a panel for each domain of the model.
 - The entities design links to the generated pages and keeps the prose, the reasons, and the open questions.
+
+## As built
+
+The model is `modules/model/<domain>/<entity>.yml` in the release, with a repository's files under `.kit/model/`. Its
+format and the verb are in [docs/model.md](../../model.md), and the generated pages are under
+[docs/entities/](../../entities/README.md).
+
+- Git's native entities are three domains, `git` (the objects), `git-repository` (the refs, the index, and the
+  directories around them), and `git-config` (the configuration). One domain of all of them draws a diagram no one can
+  read, and the configuration views belong to a worktree's git directory, not to the objects.
+- `GitRef` is one entity with a `kind` (branch, remote-tracking, tag, note, stash), which its name gives. A sum of one
+  entity per kind needs a relation back from each kind to everything that reaches a ref, and the kinds are a naming
+  convention of git's, not different objects.
+- HEAD is two sums. The native `GitHead` is `Symbolic(ref: GitRef)`, `Detached(commit: GitCommit)`, or
+  `Unborn(ref: GitUnbornRef)`. Kit's `Head` is `OnBranch(branch: Branch)`, `Detached(commit: Commit)`, or
+  `Unborn(ref: UnbornBranch)`, where `UnbornBranch` stands over `GitUnbornRef`.
+- A native entity relates only to native entities and stubs: a logical entity is defined over natives, so the
+  relation from a native to a logical entity sits on the logical side, as `UnbornBranch.worktrees` does. The check
+  finds a native field, relation, or variant that names a logical entity.
+- A relation into a sum needs a relation back from every entity a variant holds, derived or with an inverse. The
+  check names a variant's entity that has none.
+- The typed configuration views, `GitRemoteConfig`, `GitBranchConfig`, and `GitUserConfig`, belong to a
+  `GitWorktreeDir`, because git answers configuration per worktree, through `config.worktree` and `includeIf
+  "onbranch:"`. `GitDir.config` is the repository's own file, the local scope.
+- `Workspace` is in Code: one repository, or a named group of them, from the workspace file.
+- On Azure DevOps the `Service` is the Azure DevOps organization, and kit's `Organization` is its project.
+- A `read-by` names the verb, its option words written without their values, as `workspaces --show kind`, then the
+  key. A `*` in the key stands for any key of a mapping or any element of an array, and the key's last segment is a
+  key, never a `*`.
+- A scalar type does not narrow. An extension narrows an arity or an enumeration, and changes nothing else on a
+  member the release defines. Two extensions of one member narrow in turn, each from what the one before left, so
+  `many` to `some` and then `option` is a finding, though CUE's unification would take it.
+- A field or a relation whose order is data is `ordered`, as `Workspace.recent-desks` is. `Worktree.base` and
+  `Branch.track` are pairs, ahead then behind, because kit prints them as two numbers.
+- A relation carries no status: a status says whether kit reads a value, and a relation holds no value of its own.
+- A bare clone's main worktree is its git directory, which has a HEAD and no files, and which `git worktree list`
+  lists first.
+- The catch-alls `GitRemoteConfig.other-keys`, `GitBranchConfig.other-keys`, `GitCommit.extra-headers`, and
+  `GitTag.extra-headers` hold only what git does not document: a key another tool writes into a section, or a header
+  git keeps without knowing it. Every documented key and header is a field of its own, and the reality test fails
+  when one lands in a catch-all, so none is a "misc" bucket for an unmodelled field.
+- What git keeps and the model does not unpack yet is a stub, counted: the packs and their indexes, the multi-pack
+  index, the commit graph, bundles, and the state of a rebase, a sequencer, a bisect, and rerere.
+- `kit model check` reads the checks' keys, names, and patterns from `modules/model/model.schema.json` and
+  `domain.schema.json`, so the schema and the check hold one definition, and `kit check` runs it in a repository that
+  has a `.kit/model/`. A repository's `domain.yml` adds layout hints, and sets nothing the release's sets. A file
+  under `.kit/model/` that the model does not read is a finding.
+- `kit model page --domain=<domain>` writes the body of a domain's page, which `docs/entities/<domain>.md` holds in
+  a generated region. `kit model svg --domain=<domain>` writes its diagram, and `bin/ci` compares the two and holds
+  the diagram's warnings to a list of the ones no layout hint removes.
+- `kit serve` withholds `kit model`, because `--release=` reads a directory outside the repository.
+
+Left to later passes: the forge's and the trackers' native entities, the ten other domains, and the move to CUE.
 
 ## Approaches
 
@@ -259,7 +316,7 @@ For the format:
 ## My calls
 
 - Deep means git's own storage: the model unpacks what `git cat-file` shows, and a field says whether kit reads it.
-- A worktree's head is a sum of a branch and a detached commit, because git allows both.
+- A worktree's head is a sum of a branch, a detached commit, and an unborn branch, because git allows all three.
 - One file per entity, a directory per domain, with a consumer's additions in files of its own.
 - An addition may add and narrow and may not remove or loosen, the rule settings already follow.
 - YAML now, shaped for CUE, which is the intended end point.

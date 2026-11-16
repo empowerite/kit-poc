@@ -225,10 +225,13 @@ and [git-config.md](../../entities/git-config.md).
 | Entity | What it is | Reference | Today |
 | --- | --- | --- | --- |
 | Workspace | one repository, or a named group of them | its name | `kit workspaces` |
+| Organization | the owner a service keeps repositories under: a GitHub user or organization, a GitLab group, or an Azure DevOps project | `github.com/empowerite` | `kit workspace repos` |
 | Repository | a member, named by host and path | `github.com/empowerite/kit` | `kit workspace repos` |
 | Remote | a repository's named URL, with its forge | the repository's, and the remote's name | `kit workspace remotes` |
 | Checkout | a clone on this machine; the desk is its main worktree | a path | `kit workspace repos` |
-| Worktree | a linked worktree of a checkout, one per issue | a path | `kit work`, `kit workspace worktrees` |
+| Worktree | a working directory of a checkout: the desk, its main worktree, or a linked one, one per issue | a path | `kit work`, `kit workspace worktrees` |
+| Head | what a worktree is on: a branch, a detached commit, or an unborn branch | the worktree's | `kit workspace worktrees` |
+| UnbornBranch | a branch name a worktree's HEAD holds before the branch has a commit | the worktree's, and the name | `kit workspace worktrees` |
 | Branch | a branch on a remote or local, with its upstream | the repository's, and the branch | `kit workspace branches` |
 | Commit | a commit, with its issue, signature, and author | `…@<sha>` | `kit workspace commits` |
 | Tag | a tag, annotated or lightweight | the repository's, and the tag | `kit workspace tags` |

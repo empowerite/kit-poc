@@ -64,26 +64,30 @@
   <line x1="509.6" y1="172" x2="730.4" y2="172" stroke="#15803d" stroke-opacity=".35"/>
   <text class="h" style="font-size:16px;fill:#14532d" x="523.6" y="144">Code</text>
   <text class="ho" style="font-size:11.5px" x="523.6" y="162">what git and the forge hold</text>
-  <rect x="521.6" y="186" width="80.9" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
-  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="562.1" y="201">Workspace</text>
-  <rect x="608.5" y="186" width="79.3" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
-  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="648.2" y="201">Repository</text>
-  <rect x="521.6" y="214" width="60.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
-  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="551.6" y="229">Remote</text>
-  <rect x="587.6" y="214" width="69.2" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
-  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="622.2" y="229">Checkout</text>
-  <rect x="521.6" y="242" width="71.4" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
-  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="557.3" y="257">Worktree</text>
-  <rect x="599.0" y="242" width="59.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
-  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="628.5" y="257">Branch</text>
-  <rect x="521.6" y="270" width="61.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
-  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="552.1" y="285">Commit</text>
-  <rect x="588.6" y="270" width="39.4" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
-  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="608.3" y="285">Tag</text>
-  <rect x="634.0" y="270" width="59.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
-  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="663.5" y="285">Change</text>
-  <rect x="521.6" y="298" width="60.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
-  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="551.6" y="313">Review</text>
+  <rect x="521.6" y="186" width="89.4" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="566.3" y="201">Organization</text>
+  <rect x="617.0" y="186" width="79.3" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="656.6" y="201">Repository</text>
+  <rect x="521.6" y="214" width="80.9" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="562.1" y="229">Workspace</text>
+  <rect x="608.5" y="214" width="69.2" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="643.1" y="229">Checkout</text>
+  <rect x="521.6" y="242" width="60.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="551.6" y="257">Remote</text>
+  <rect x="587.6" y="242" width="71.4" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="623.3" y="257">Worktree</text>
+  <rect x="665.0" y="242" width="45.9" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="688.0" y="257">Head</text>
+  <rect x="521.6" y="270" width="59.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="551.1" y="285">Branch</text>
+  <rect x="586.6" y="270" width="61.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="617.1" y="285">Commit</text>
+  <rect x="653.6" y="270" width="39.4" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="673.3" y="285">Tag</text>
+  <rect x="521.6" y="298" width="59.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="551.1" y="313">Change</text>
+  <rect x="586.6" y="298" width="60.0" height="22" rx="11" fill="#dcfce7" stroke="#15803d" stroke-opacity=".7"/>
+  <text class="w" text-anchor="middle" style="font-size:12px;fill:#14532d" x="616.6" y="313">Review</text>
   <rect x="748.4" y="122" width="220.8" height="218" rx="12" fill="#fff" stroke="#6d28d9" stroke-width="1.5"/>
   <clipPath id="o03"><rect x="748.4" y="122" width="220.8" height="218" rx="12"/></clipPath>
   <rect x="748.4" y="122" width="220.8" height="50" fill="#ede9fe" clip-path="url(#o03)"/>
@@ -228,7 +232,7 @@
   <text class="w" text-anchor="middle" style="font-size:12px;fill:#365314" x="1156.7" y="493">Template</text>
   <rect x="999.2" y="506" width="56.1" height="22" rx="11" fill="#ecfccb" stroke="#4d7c0f" stroke-opacity=".7"/>
   <text class="w" text-anchor="middle" style="font-size:12px;fill:#365314" x="1027.2" y="521">Region</text>
-  <rect x="32.0" y="576.0" width="1176.0" height="130.0" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <rect x="32.0" y="576.0" width="1176.0" height="148.0" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
   <text class="sec" x="48.0" y="600.0">PROVENANCE: THE CHAIN THAT RUNS THROUGH THE DOMAINS, FROM AN ISSUE TO WHERE ITS CODE RUNS</text>
   <rect x="48.0" y="614" width="87.6" height="50" rx="9" fill="#ede9fe" stroke="#6d28d9" stroke-width="1.2"/>
   <text class="w" text-anchor="middle" style="font-weight:600;fill:#4c1d95" x="91.8" y="643.5">Issue</text>
@@ -265,4 +269,5 @@
   <rect x="1104.4" y="614" width="87.6" height="50" rx="9" fill="#ffe4e6" stroke="#be123c" stroke-width="1.2"/>
   <text class="w" text-anchor="middle" style="font-weight:600;fill:#881337" x="1148.2" y="643.5">Target</text>
   <text class="ho" x="48" y="694.0">Each pill takes its domain's color. Release is two entities: a version published from a tag (Delivery), and a kit version, one tarball (kit's content).</text>
+  <text class="ho" x="48" y="714.0">Code stands over git's own entities, which the Git, Git repository, and Git configuration domains model natively, each on a page of its own.</text>
 </svg>
