@@ -324,6 +324,14 @@ Layer: native (git)
   [[ "$output" == *"page.md: stale"* ]]
 }
 
+@test "kit model --help leaves no temporary directory behind" {
+  fresh-repo
+  mkdir "${BATS_TEST_TMPDIR}/private"
+  TMPDIR="${BATS_TEST_TMPDIR}/private" run kit model --help
+  [ "$status" -eq 0 ]
+  [ -z "$(ls -A "${BATS_TEST_TMPDIR}/private")" ]
+}
+
 @test "a jq that fails ends kit model page with 1 and jq's message" {
   fresh-repo
   real=$(command -v jq)

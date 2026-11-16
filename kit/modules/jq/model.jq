@@ -319,17 +319,19 @@ def pieces:
   | $cut.out + [{code: false, text: $t[$cut.pos:]}];
 
 # plain escapes the text of a piece that is no code span: a backslash first, so each escape after it is the only one, then a
-# <, a *, and a backtick no span closes.
-def plain: gsub("\\\\"; "\\\\") | gsub("(?<c>[<*`])"; "\\" + .c);
+# <, a *, an _, and a backtick no span closes.
+def plain: gsub("\\\\"; "\\\\") | gsub("(?<c>[<*_`])"; "\\" + .c);
 
-# prose is text as markdown reads it as text: outside code spans, a \, a <, and a * are written \\, \<, and \*, so a name in
-# angle brackets is not taken for HTML, nor a lone star for emphasis, nor a backslash for an escape.
+# prose is text as markdown reads it as text: outside code spans, a \, a <, a *, and an _ are written \\, \<, \*, and \_,
+# so a name in angle brackets is not taken for HTML, nor a lone star or underscore for emphasis or a rule, nor a backslash
+# for an escape.
 def prose:
   (. // "") | [pieces[] | if .code then .text else .text | plain end] | join("");
 
-# cell is a value as the text of a table cell: nothing is empty, a newline is a space, and a | is written \|.
+# cell is a value as the text of a table cell: nothing is empty, a run of spaces, tabs, and newlines is a space, and a | is
+# written \|.
 def cell:
-  (. // "") | (if type == "string" then . else tojson end) | sub("\n+$"; "") | gsub("\n"; " ") | gsub("\\|"; "\\|");
+  (. // "") | (if type == "string" then . else tojson end) | sub("\n+$"; "") | gsub("[ \t\n]+"; " ") | sub("^ "; "") | sub(" $"; "") | gsub("\\|"; "\\|");
 
 # row is the cells of an array as one line of a table.
 def row: "| " + (map(cell) | join(" | ")) + " |";
@@ -386,10 +388,10 @@ def layer_line:
   else "Layer: logical" + (if ((.over // []) | length) > 0 then " over \(.over | join(", "))" else "" end)
   end;
 
-# words is a sentence as the words of a paragraph: prose, a newline and a run of spaces being one space, and a code span,
+# words is a sentence as the words of a paragraph: prose, a run of spaces, tabs, and newlines being one space, and a code span,
 # whatever it holds, one word with what touches it.
 def words:
-  sub("\n+$"; "") | gsub("\n+"; " ")
+  gsub("[ \t\n]+"; " ")
   | reduce pieces[] as $p ({words: [], cur: ""};
       if $p.code then .cur += $p.text
       else
@@ -399,13 +401,13 @@ def words:
   | .words + (if .cur == "" then [] else [.cur] end);
 
 # block_start is true for a word that, at the start of a line, could begin a markdown block: a bullet, a quote, a heading, a
-# rule, a fence, a table bar, or an ordered number.
-def block_start: test("^([-+>#=~|]|[0-9]+[.)])");
+# rule, a fence, a table bar or a delimiter row, a link reference definition, or an ordered number.
+def block_start: test("^([-+>#=~|:\\[_]|[0-9]+[.)])");
 
 # unblock escapes the first word of a paragraph so it cannot begin a block.
 def unblock:
   if test("^[0-9]+[.)]") then sub("^(?<d>[0-9]+)(?<p>[.)])"; "\(.d)\\\(.p)")
-  elif test("^[-+>#=~|]") then "\\" + .
+  elif test("^[-+>#=~|:\\[_]") then "\\" + .
   else . end;
 
 # paragraph($width) is a sentence as a paragraph: prose in lines of at most $width characters, or longer for a word that is.
@@ -432,7 +434,7 @@ def entity_section($name):
   . as $model
   | .entities[$name] as $entity
   | ["### \($name)"]
-    + (if ($entity.means // "") == "" then [] else [$entity.means | paragraph(118)] end)
+    + (if ($entity.means // "" | test("^[ \t\n]*$")) then [] else [$entity.means | paragraph(118)] end)
     + [($entity | layer_line)]
     + (if $entity.stub == true then [] else [$model | fields($name)] end);
 
@@ -443,7 +445,7 @@ def page($domain):
   . as $model
   | ($model.domains[$domain] // {}) as $d
   | ([$model.entities | to_entries[] | select(.value.domain == $domain) | .key] | sort) as $names
-  | ((if ($d.intro // "") == "" then [] else [$d.intro | paragraph(118)] end)
+  | ((if ($d.intro // "" | test("^[ \t\n]*$")) then [] else [$d.intro | paragraph(118)] end)
     + ["![\($d.name // $domain): the entities of the domain and how they relate](\($domain).svg)",
        "## Relations", relations($domain), "## Entities"]
     + [$names[] | . as $n | $model | entity_section($n)[]])

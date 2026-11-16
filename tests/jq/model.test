@@ -418,3 +418,58 @@ import "model" as model; model::build | model::relations("code")
 import "model" as model; model::build | model::fields("A")
 {"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"n": {"type": "Text", "status": "held", "read-by": "workspaces *.name.*"}, "m": {"type": "Text", "status": "planned"}}}}]}
 "| Field | Type | Arity | Source | Status | Read by | Means |\n| --- | --- | --- | --- | --- | --- | --- |\n| m | Text | 1 | stored | planned |  |  |\n| n | Text | 1 | stored | held | `workspaces *.name.*` |  |"
+
+# an underscore outside a code span is escaped, as a star is, so a line of them is no thematic break and a pair is no emphasis; one in a code span stays
+import "model" as model; map(model::prose)
+["___", "_ _ _", "a_b _c_ `d_e`"]
+["\\_\\_\\_", "\\_ \\_ \\_", "a\\_b \\_c\\_ `d_e`"]
+
+# a paragraph of underscores, or one that opens with them, stays a paragraph, and a line of them mid-paragraph does too
+import "model" as model; map(model::paragraph(20))
+["___", "_ _ _ a", "aaaa bbbb cccc dddd ___ item"]
+["\\_\\_\\_", "\\_ \\_ \\_ a", "aaaa bbbb cccc dddd\n\\_\\_\\_ item"]
+
+# a tab is a space: it opens no indented code, ends no line with a space, and leaves no tab in a table cell
+import "model" as model; map(model::paragraph(20))
+["\ta b", "a\tb", "a \t b\t"]
+["a b", "a b", "a b"]
+
+# a tab in a table cell is a space
+import "model" as model; model::build | model::fields("A")
+{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"n": {"type": "Text", "means": "a\tb\t c"}}}}]}
+"| Field | Type | Arity | Source | Status | Read by | Means |\n| --- | --- | --- | --- | --- | --- | --- |\n| n | Text | 1 | stored |  |  | a b c |"
+
+# a first word [x]: is escaped, so the paragraph is no definition or table row
+import "model" as model; map(model::paragraph(20))
+["[x]: url"]
+["\\[x]: url"]
+
+# a first word :-- is escaped, so the paragraph is no definition or table row
+import "model" as model; map(model::paragraph(20))
+[":-- a"]
+["\\:-- a"]
+
+# a first word :--: is escaped, so the paragraph is no definition or table row
+import "model" as model; map(model::paragraph(20))
+[":--: a"]
+["\\:--: a"]
+
+# a word [x]: is not put at the start of a line
+import "model" as model; map(model::paragraph(20))
+["aaaa bbbb cccc dddd [x]: item"]
+["aaaa bbbb cccc\ndddd [x]: item"]
+
+# a word :-- is not put at the start of a line
+import "model" as model; map(model::paragraph(20))
+["aaaa bbbb cccc dddd :-- item"]
+["aaaa bbbb cccc\ndddd :-- item"]
+
+# a word :-: is not put at the start of a line
+import "model" as model; map(model::paragraph(20))
+["aaaa bbbb cccc dddd :-: item"]
+["aaaa bbbb cccc\ndddd :-: item"]
+
+# a means or an intro that is only whitespace is no paragraph, and the page has no empty block
+import "model" as model; model::build | model::page("lab")
+{"files": [{"domain": "lab", "origin": "release", "path": "m/lab/domain.yml", "doc": {"name": "Lab", "intro": " \t\n "}}, {"domain": "lab", "origin": "release", "path": "c.yml", "doc": {"entity": "Commit", "layer": "logical", "means": "  \n\t "}}]}
+"![Lab: the entities of the domain and how they relate](lab.svg)\n\n## Relations\n\n| Relation | To | Arity | Ordered | Inverse | Means |\n| --- | --- | --- | --- | --- | --- |\n\n## Entities\n\n### Commit\n\nLayer: logical\n\n| Field | Type | Arity | Source | Status | Read by | Means |\n| --- | --- | --- | --- | --- | --- | --- |"

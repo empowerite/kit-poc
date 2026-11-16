@@ -49,7 +49,6 @@ set -o errexit -o nounset -o pipefail
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
 kit:enter
 use model file
-file:temp guard_errors guard || exit 1
 
 # model-jq <program> [<jq argument>…] runs a jq program over the built model, with the model modules imported. It
 # prints the program's output, and keeps what jq writes to stderr out of it. When jq fails, it prints that output,
@@ -69,36 +68,34 @@ model-jq() {
   printf '%s\n' "${out}"
 }
 
-# A page without --domain= is a refusal of the guard, which names no domain: the verb names the ones the model holds, as it
-# does for a domain it does not know. Any other refusal is the guard's, as it printed it.
-status=0
-# shellcheck disable=SC2154  # guard_errors is set by file:temp
-guard:arguments model "$@" 2>"${guard_errors}" || status=$?
-if (( status != 0 ))
+# A page without --domain= is a refusal of the guard, which names no domain. Where the guard would not hand the form to the
+# terminal, which it does when stdin, stdout, and stderr are all terminals, the verb names the domains the model holds, as it
+# does for a domain it does not know. Every other case is the guard's, which is called as any verb calls it.
+page=false domain_given=false release_named=
+for argument in "$@"
+do
+  case "${argument}" in
+    (page) page=true ;;
+    (--domain=*) domain_given=true ;;
+    (--help | -h | help) page=false; break ;;
+    (--release=*) release_named=${argument#--release=} ;;
+    (*) ;;
+  esac
+done
+if [[ "${page}" == true && "${domain_given}" == false ]] && ! [[ -t 0 && -t 1 && -t 2 ]] \
+  && [[ -z "${release_named}" || -d "${release_named}" ]]
 then
-  message=$(<"${guard_errors}")
-  if [[ "${message}" == *"kit model page needs --domain;"* ]]
-  then
-    for argument in "$@"
-    do
-      [[ "${argument}" != --release=* ]] || guard_release=${argument#--release=}
-    done
-    if [[ -z "${guard_release:-}" || -d "${guard_release}" ]]
-    then
-      file:temp jq_errors jq || exit 1
-      loaded=$(model:load ${guard_release:+"${guard_release}"}) || exit 1
-      domains=$(model-jq '([.domains | keys[]] + [.entities[].domain] | unique)[]') || {
-        printf '%s\n' "${domains}"
-        exit 1
-      }
-      error "kit model page needs --domain; the domains are: $(paste -s -d, - <<<"${domains}" | sed 's/,/, /g');"\
-        "run: kit help model"
-      exit 2
-    fi
-  fi
-  printf '%s\n' "${message}" >&2
-  exit "${status}"
+  file:temp jq_errors jq || exit 1
+  loaded=$(model:load ${release_named:+"${release_named}"}) || exit 1
+  domains=$(model-jq '([.domains | keys[]] + [.entities[].domain] | unique)[]') || {
+    printf '%s\n' "${domains}"
+    exit 1
+  }
+  error "kit model page needs --domain; the domains are: $(paste -s -d, - <<<"${domains}" | sed 's/,/, /g');"\
+    "run: kit help model"
+  exit 2
 fi
+guard:arguments model "$@" || exit $?
 
 # shellcheck disable=SC2154  # syntax_options is set by guard:arguments
 release=${syntax_options[--release]:-}

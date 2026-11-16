@@ -44,7 +44,7 @@ The refs, index, and directories git keeps around its objects. Kit reads them an
 | GitReflogEntry.worktree-dir | GitWorktreeDir | 0..1 |  | GitWorktreeDir.head-log | The worktree's git directory whose logs/HEAD holds this entry, none for an entry of a ref's log. |
 | GitResolveUndo.index | GitIndex | 1 |  | GitIndex.resolve-undo | The index whose REUC extension holds this record. |
 | GitRootRef.dir | GitWorktreeDir | 1 |  | GitWorktreeDir.root-refs | The worktree's git directory this file is in. |
-| GitRootRef.symref | GitRef | 0..1 |  | derived | derived: the ref whose name the file holds in place of an id. The ref it names, as NOTES_MERGE_REF names the note ref being merged into. |
+| GitRootRef.symref | GitRef | 0..1 |  | derived | derived: the ref whose name the file holds in place of an id. The ref it names, as NOTES\_MERGE\_REF names the note ref being merged into. |
 | GitSubmodule.entries | GitConfigEntry | 1..* |  | GitConfigEntry.submodules | The entries of the submodule.\<name> section in the superproject's .gitmodules and in its configuration. |
 | GitSubmodule.git-dir | GitDir | 0..1 |  | GitDir.module | The submodule's own git directory: modules/\<name>/ of the superproject's, or a .git directory inside the submodule's checkout, as a repository cloned there has until git submodule absorbgitdirs moves it, and none while the submodule is not cloned. |
 | GitSubmodule.gitlinks | GitTreeEntry | 0..* |  | GitTreeEntry.submodule | The gitlink entries, of mode 160000, at the submodule's path in the superproject's trees. |
@@ -67,7 +67,7 @@ The refs, index, and directories git keeps around its objects. Kit reads them an
 | GitWorktreeDir.index | GitIndex | 0..1 |  | GitIndex.dir | The index file, none in a bare repository and while the worktree has no index file, as with git worktree add --no-checkout. |
 | GitWorktreeDir.refs | GitRef | 0..* |  | GitRef.worktree-dir | The worktree's own refs, under refs/bisect/, refs/worktree/, and refs/rewritten/ of this directory. |
 | GitWorktreeDir.remote-configs | GitRemoteConfig | 0..* |  | GitRemoteConfig.worktree-dir | The remotes git config defines when run in this worktree. |
-| GitWorktreeDir.root-refs | GitRootRef | 0..* |  | GitRootRef.dir | The refs beside HEAD, such as ORIG_HEAD, MERGE_HEAD, and FETCH_HEAD. |
+| GitWorktreeDir.root-refs | GitRootRef | 0..* |  | GitRootRef.dir | The refs beside HEAD, such as ORIG\_HEAD, MERGE\_HEAD, and FETCH\_HEAD. |
 | GitWorktreeDir.user-config | GitUserConfig | 1 |  | GitUserConfig.worktree-dir | Who git writes as the author and committer when run in this worktree, and how it signs. |
 
 ## Entities
@@ -240,15 +240,15 @@ Layer: native (git)
 
 ### GitRootRef
 
-A ref a command writes beside a worktree's HEAD to remember a state, such as ORIG_HEAD, MERGE_HEAD, or FETCH_HEAD.
+A ref a command writes beside a worktree's HEAD to remember a state, such as ORIG\_HEAD, MERGE\_HEAD, or FETCH\_HEAD.
 
 Layer: native (git)
 
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
-| fetched | Text | 0..* | stored | unused |  | For FETCH_HEAD, the rest of each line after its id, not-for-merge or empty, a tab, and the ref and the repository it was fetched from. |
-| ids | Hash | 0..* | stored | unused |  | The ids it holds, in the file's order: one for most, each commit being merged for MERGE_HEAD, and each fetched ref's for FETCH_HEAD. |
-| name | Text | 1 | stored | unused |  | The file's name: ORIG_HEAD, FETCH_HEAD, MERGE_HEAD, CHERRY_PICK_HEAD, REVERT_HEAD, REBASE_HEAD, BISECT_HEAD, AUTO_MERGE, BISECT_EXPECTED_REV, MERGE_AUTOSTASH, NOTES_MERGE_PARTIAL, NOTES_MERGE_REF, or a tool's own. |
+| fetched | Text | 0..* | stored | unused |  | For FETCH\_HEAD, the rest of each line after its id, not-for-merge or empty, a tab, and the ref and the repository it was fetched from. |
+| ids | Hash | 0..* | stored | unused |  | The ids it holds, in the file's order: one for most, each commit being merged for MERGE\_HEAD, and each fetched ref's for FETCH\_HEAD. |
+| name | Text | 1 | stored | unused |  | The file's name: ORIG\_HEAD, FETCH\_HEAD, MERGE\_HEAD, CHERRY\_PICK\_HEAD, REVERT\_HEAD, REBASE\_HEAD, BISECT\_HEAD, AUTO\_MERGE, BISECT\_EXPECTED\_REV, MERGE\_AUTOSTASH, NOTES\_MERGE\_PARTIAL, NOTES\_MERGE\_REF, or a tool's own. |
 
 ### GitSubmodule
 
@@ -336,11 +336,11 @@ Layer: native (git)
 
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
-| commit-message-draft | Text | 0..1 | stored | unused |  | The content of COMMIT_EDITMSG, the message git commit gives the editor, which stays after the commit, none before the worktree's first commit. |
+| commit-message-draft | Text | 0..1 | stored | unused |  | The content of COMMIT\_EDITMSG, the message git commit gives the editor, which stays after the commit, none before the worktree's first commit. |
 | dotgit | Text | 0..1 | stored | unused |  | The content of the .git file at the top of the working tree, gitdir: and this directory's path, which kit reads only to find a worktree's trust name, none where .git is this directory itself or there is no working tree. |
 | main | Bool | 1 | derived | unused |  | derived from whether the directory is the common directory. Whether this is the main worktree's git directory, which a bare repository's is too. |
-| merge-message | Text | 0..1 | stored | unused |  | The content of MERGE_MSG, the message git merge proposes while a merge is under way, none otherwise. |
-| merge-mode | Text | 0..1 | stored | unused |  | The content of MERGE_MODE, the options git merge records for the commit that ends a merge, such as no-ff, none while no merge is under way. |
+| merge-message | Text | 0..1 | stored | unused |  | The content of MERGE\_MSG, the message git merge proposes while a merge is under way, none otherwise. |
+| merge-mode | Text | 0..1 | stored | unused |  | The content of MERGE\_MODE, the options git merge records for the commit that ends a merge, such as no-ff, none while no merge is under way. |
 | path | Path | 1 | derived | unused |  | derived from git rev-parse --absolute-git-dir, run in the worktree. Where the directory is, the common directory for the main worktree and worktrees/\<id>/ for a linked one. |
 | sparse-checkout | Text | 0..* | stored | unused |  | The lines of info/sparse-checkout, the patterns of this worktree's sparse checkout, in order. |
 | worktree-path | Path | 0..1 | derived | held | `workspace worktrees path` | derived from the worktree line of git worktree list --porcelain: the directory that holds the .git file gitdir names for a linked worktree, the directory that holds the .git directory for the main worktree, and the git directory itself for a bare repository or a main worktree whose .git is a file, as --separate-git-dir makes. Where git says the worktree is, the top of its working tree or, for a bare repository and a main worktree whose .git is a file, the git directory itself, and none only for a worktrees/\<id>/ that git worktree list does not list, as when its gitdir file does not exist. |

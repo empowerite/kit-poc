@@ -194,13 +194,16 @@ names the domains the model holds. It is, in order:
 The page's own file holds the title. A paragraph is wrapped at 118 characters, so markdownlint's line length holds. A
 paragraph, and the `Means` of a field or a relation, are written so markdown reads them as text:
 
-- outside code spans, a backslash, a `<`, a `*`, and a backtick no span closes are each escaped with a backslash, so a
-  placeholder such as `<name>` is not read as HTML, and `a\|b` keeps its backslash. A code span pairs with the next
-  run of backticks of the same length, as CommonMark has it, and is left as written;
-- a run of spaces or a newline is one space;
-- a code span is one word, so a wrap never cuts it, and a line never starts with a word that could begin a block: `-`,
-  `+`, `>`, `#`, `=`, `~`, `|`, or a number and `.` or `)`. That word stays on the line before, and the word before it
-  goes down with it when the line would be too long. The first word of a paragraph is escaped instead, as `\-` or `1\.`;
+- outside code spans, a backslash, a `<`, a `*`, an `_`, and a backtick no span closes are each escaped with a
+  backslash, so a placeholder such as `<name>` is not read as HTML, and `a\|b` keeps its backslash. A code span pairs
+  with the next run of backticks of the same length, as CommonMark has it, and is left as written;
+- a run of spaces, tabs, and newlines is one space, in a paragraph and in a cell, and a `means` or `intro` of nothing
+  but those is empty and writes no paragraph;
+- a code span is one word, so a wrap never cuts it, and a line never starts with a word that opens one of these
+  blocks, which a word that begins with one of `-`, `+`, `>`, `#`, `=`, `~`, `|`, `:`, `[`, `_`, or a number and `.` or
+  `)` could (a bullet, a quote, a heading, a thematic break or setext underline, a fence, a table bar or delimiter
+  row, a link reference definition, or an ordered list). That word stays on the line before, and the word before it goes
+  down with it when the line would be too long. The first word of a paragraph is escaped instead, as `\-` or `1\.`;
 - a word longer than the width, a URL for one, stands alone on its line.
 
 A table row is not wrapped, as the markdown style lets a table run long. Write a URL or an address in a `means` between

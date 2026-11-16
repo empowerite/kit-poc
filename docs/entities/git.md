@@ -139,7 +139,7 @@ Layer: native (git)
 | Field | Type | Arity | Source | Status | Read by | Means |
 | --- | --- | --- | --- | --- | --- | --- |
 | email | Text | 1 | stored | planned |  | The address between the angle brackets, which may be empty. |
-| name | Text | 1 | stored | held | `workspace commits author` | The name before the email, from user.name or the GIT_AUTHOR_NAME and GIT_COMMITTER_NAME variables. |
+| name | Text | 1 | stored | held | `workspace commits author` | The name before the email, from user.name or the GIT\_AUTHOR\_NAME and GIT\_COMMITTER\_NAME variables. |
 | offset | Text | 1 | stored | unused |  | The time zone the moment was written in, as a sign and four digits, such as -0800. |
 | time | Time | 1 | stored | unused |  | The moment, in seconds since the epoch, which kit reads only to compute an age. |
 
