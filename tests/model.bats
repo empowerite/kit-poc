@@ -418,6 +418,39 @@ Layer: native (git)
   [[ "$output" == *"page.md: stale"* ]]
 }
 
+@test "kit model page's own message is only for page alone without --domain=; any other usage error is the guard's" {
+  fresh-repo
+  run kit model "--release=${fixtures}/tables/release" check page
+  [ "$status" -eq 2 ]
+  [[ "$output" != *"the domains are"* && "$output" == *"unknown argument 'page'"* ]]
+  run kit model "--release=${fixtures}/tables/release" page --bogus
+  [ "$status" -eq 2 ]
+  [[ "$output" != *"the domains are"* && "$output" == *"unknown flag '--bogus'"* ]]
+  run kit model "--release=${fixtures}/tables/release" page extra
+  [ "$status" -eq 2 ]
+  [[ "$output" != *"the domains are"* ]]
+}
+
+# A failing jq leaves stdout empty, so kit model svg > file never writes jq's message into the file, and its message goes
+# to stderr, for every subcommand.
+@test "a jq that fails writes its message to stderr and nothing to stdout, for every subcommand" {
+  fresh-repo
+  real=$(command -v jq)
+  mkdir "${BATS_TEST_TMPDIR}/fake"
+  printf '#!/usr/bin/env bash\nfor a in "$@"; do [[ "$a" != *model::build* ]] || { echo partial; echo "jq: error: boom" >&2; exit 5; }; done\nexec %q "$@"\n' \
+    "${real}" > "${BATS_TEST_TMPDIR}/fake/jq"
+  chmod +x "${BATS_TEST_TMPDIR}/fake/jq"
+  local form
+  for form in check 'table --entity=Worktree' 'table --domain=git' 'page --domain=git' 'svg --domain=git' 'svg --overview'
+  do
+    # shellcheck disable=SC2086  # form is the words of a subcommand
+    PATH="${BATS_TEST_TMPDIR}/fake:${PATH}" run --separate-stderr kit model "--release=${fixtures}/tables/release" ${form}
+    [ "$status" -eq 1 ] || { echo "${form}: status ${status}"; return 1; }
+    [ -z "$output" ] || { echo "${form}: stdout ${output}"; return 1; }
+    [[ "$stderr" == *'jq: error: boom'* ]] || { echo "${form}: stderr ${stderr}"; return 1; }
+  done
+}
+
 @test "kit model --help leaves no temporary directory behind" {
   fresh-repo
   mkdir "${BATS_TEST_TMPDIR}/private"
@@ -486,6 +519,16 @@ Layer: native (git)
   yq -p=xml . < out.svg > /dev/null
   [[ "$output" == *'>a &lt;b&gt; &amp; &quot;c&quot;</text>'* ]]
   [[ "$output" == *'>x&lt;y  1  derived</text>'* ]]
+}
+
+@test "kit model svg drops a control character XML does not allow from a means, so the diagram stays well-formed" {
+  fresh-repo
+  mkdir -p empty .kit/model/mine
+  printf 'entity: Bell\nlayer: logical\nmeans: "a \\a bell"\n' > .kit/model/mine/bell.yml
+  run --separate-stderr kit model --release=empty svg --domain=mine
+  [ "$status" -eq 0 ]
+  [[ "$output" != *$'\a'* ]]
+  [[ "$output" == *'>a bell</text>'* ]]
 }
 
 @test "kit model svg with neither --domain= nor --overview, or both, exits 2 and says so" {
@@ -565,6 +608,22 @@ Layer: native (git)
   printf '%s\n' "$output" > out.svg
   yq -p=xml . < out.svg > /dev/null
   [ "$(grep -c '<path class="edge' out.svg)" -eq 30 ]
+}
+
+# The release's own diagrams: no label covers another, whatever a crowded edge costs, as the reader cannot tell two
+# labels apart where one lies on the other.
+@test "no label of the release's diagrams overlaps another label" {
+  local loaded domain
+  loaded=$(kit-bash 'model:load')
+  for domain in git git-repository git-config code
+  do
+    jq --exit-status -L "${kit_root}/modules/jq" --arg d "${domain}" '
+      import "model" as model; import "modelsvg" as modelsvg;
+      model::build | [modelsvg::edges($d).labels[].box] as $b
+      | [range(0; $b | length) as $i | range($i + 1; $b | length) as $j | select(modelsvg::overlaps($b[$i]; $b[$j]))
+        | [$i, $j]] | if length == 0 then true else ("\($d): \(length) pairs of labels overlap" | halt_error(1)) end' \
+      <<<"${loaded}" >/dev/null || return 1
+  done
 }
 
 # The atk domain's labels have no clear place. tests/jq/modelsvg.test holds that every one of its label boxes still lies

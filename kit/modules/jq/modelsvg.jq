@@ -48,10 +48,12 @@ def char_width($size; $mono):
 def width($size; $mono): ([explode[] | char_width($size; $mono)] | add // 0) * 1.03;
 def width($size): width($size; false);
 
-# clean is a value as one line of text: nothing is empty, a value that is not a string is its JSON, and every run of
+# clean is a value as one line of text: nothing is empty, a value that is not a string is its JSON, a character XML does
+# not allow is dropped, a control character but a tab, a newline, or a return, and U+FFFE and U+FFFF, and every run of
 # whitespace is one space.
 def clean:
   (if type == "string" then . elif . == null then "" else tojson end)
+  | gsub("[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]"; "")
   | gsub("\\s+"; " ") | sub("^ "; "") | sub(" $"; "");
 
 # pieces($size; $max; $mono) is a word in pieces no wider than $max: the word itself when it fits, and otherwise broken
@@ -407,9 +409,18 @@ def gap_bands($n; $over; $under):
   ([row_gap, $over + $under + track_gap * ([$n - 1, 0] | max)] | max) as $h
   | {h: $h, mid: ($over + ($h - $over - $under) / 2)};
 
-# label_band($widths) is the band a row of labels by one card edge needs: 22 holds one row, and 34 holds a second,
-# which an edge needs when its labels, $widths, with 10 between, are wider than the card.
-def label_band($widths): if ($widths | map(. + 10) | add // 0) > card_w then 34 else 22 end;
+# label_rows is how many rows of labels a band by one card edge may hold: a third row sits 13 + 2 * 12 = 37 from the
+# edge, and a fourth would pass label_reach, where no label is placed.
+def label_rows: 3;
+
+# label_band($widths) is the band the labels by one card edge need: 10 and 12 for each row, 22 for one. The labels,
+# $widths with 10 between each, fill rows as wide as the card, the widest first, each in the first row it fits, so the
+# band holds as many rows as they take, up to label_rows.
+def label_band($widths):
+  (reduce ($widths | map(. + 10) | sort | reverse[]) as $w ([];
+    ([to_entries[] | select(.value + $w <= card_w) | .key][0]) as $i
+    | if $i == null then . + [$w] else .[$i] += $w end)) as $rows
+  | 10 + 12 * ([[($rows | length), 1] | max, label_rows] | min);
 
 # edge_labels($cells) are the widths of the labels by each card edge that opens into a gap, for the planned lines given
 # as input: {"<gap> <col> <side>": [width]}.
@@ -578,13 +589,15 @@ def overlaps($a; $b): $a[0] < $b[2] and $b[0] < $a[2] and $a[1] < $b[3] and $b[1
 def label_reach: 40;
 
 # cost($walls; $placed; $segments; $key) is what a candidate place for a label of the line $key costs, given as input:
-# 1000 for each card, label placed before it, or segment of another line within 3 that it covers; 3 for each segment
-# of its own line it crosses; and 1000000 for reaching within 4 of the left or top edge of the diagram, which does not
-# grow there, so a label that covers lines still lands where it can be read. The diagram grows right and down to hold
-# every label.
+# 1000 for each card or segment of another line within 3 that it covers; 100000 for each label placed before it that it
+# covers, so a label crosses any number of lines before it lies on another label, which no reader can tell apart; 3 for
+# each segment of its own line it crosses; and 1000000 for reaching within 4 of the left or top edge of the diagram,
+# which does not grow there, so a label that covers lines still lands where it can be read. The diagram grows right and
+# down to hold every label.
 def cost($walls; $placed; $segments; $key):
   .box as $b
-  | 1000 * ([$walls[], ($placed[].box | [.[0] - 6, .[1], .[2] + 6, .[3]]) | select(overlaps(.; $b))] | length)
+  | 1000 * ([$walls[] | select(overlaps(.; $b))] | length)
+    + 100000 * ([$placed[].box | [.[0] - 6, .[1], .[2] + 6, .[3]] | select(overlaps(.; $b))] | length)
     + (if $b[0] < 4 or $b[1] < 4 then 1000000 else 0 end)
     + 1000 * ([$segments[] | select(.key != $key) | .box | [.[0] - 3, .[1] - 3, .[2] + 3, .[3] + 3]
       | select(overlaps(.; $b))] | length)

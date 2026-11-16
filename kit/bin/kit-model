@@ -51,8 +51,9 @@ kit:enter
 use model file
 
 # model-jq <program> [<jq argument>…] runs a jq program over the built model, with the model modules imported. It
-# prints the program's output, and keeps what jq writes to stderr out of it. When jq fails, it prints that output,
-# then jq's message, and returns 1, because jq's own status, 3 or 5, is none of the verb's.
+# prints the program's output, and keeps what jq writes to stderr out of it. When jq fails, it prints nothing on stdout,
+# so a diagram redirected to a file never holds jq's message, writes jq's message to stderr, and returns 1, because
+# jq's own status, 3 or 5, is none of the verb's.
 model-jq() {
   local program=$1 out
   shift
@@ -61,36 +62,28 @@ model-jq() {
     'import "model" as model; import "modelsvg" as modelsvg; model::build | '"${program}" \
     <<<"${loaded}" 2>"${jq_errors}")
   then
-    [[ -z "${out}" ]] || printf '%s\n' "${out}"
-    cat "${jq_errors}"
+    cat "${jq_errors}" >&2
     return 1
   fi
   printf '%s\n' "${out}"
 }
 
-# A page without --domain= is a refusal of the guard, which names no domain. Where the guard would not hand the form to the
-# terminal, which it does when stdin, stdout, and stderr are all terminals, the verb names the domains the model holds, as it
-# does for a domain it does not know. Every other case is the guard's, which is called as any verb calls it.
-page=false domain_given=false release_named=
-for argument in "$@"
-do
-  case "${argument}" in
-    (page) page=true ;;
-    (--domain=*) domain_given=true ;;
-    (--help | -h | help) page=false; break ;;
-    (--release=*) release_named=${argument#--release=} ;;
-    (*) ;;
-  esac
-done
-if [[ "${page}" == true && "${domain_given}" == false ]] && ! [[ -t 0 && -t 1 && -t 2 ]] \
-  && [[ -z "${release_named}" || -d "${release_named}" ]]
+# page alone, with no --domain=, is a refusal of the guard, which names no domain. Where the guard would not hand the
+# form to the terminal, which it does when stdin, stdout, and stderr are all terminals, the verb names the domains the
+# model holds, as it does for a domain it does not know. That is so only when the words are page and, at most, a
+# --release= that names a directory: every other form, and every other usage error, is the guard's, which is called as
+# any verb calls it.
+page_alone=false release_named=
+case "$#:${1:-}:${2:-}" in
+  (1:page:) page_alone=true ;;
+  (2:--release=*:page) page_alone=true release_named=${1#--release=} ;;
+  (*) ;;
+esac
+if [[ "${page_alone}" == true ]] && ! [[ -t 0 && -t 1 && -t 2 ]] && [[ -z "${release_named}" || -d "${release_named}" ]]
 then
   file:temp jq_errors jq || exit 1
   loaded=$(model:load ${release_named:+"${release_named}"}) || exit 1
-  domains=$(model-jq '([.domains | keys[]] + [.entities[].domain] | unique)[]') || {
-    printf '%s\n' "${domains}"
-    exit 1
-  }
+  domains=$(model-jq '([.domains | keys[]] + [.entities[].domain] | unique)[]') || exit 1
   error "kit model page needs --domain; the domains are: $(paste -s -d, - <<<"${domains}" | sed 's/,/, /g');"\
     "run: kit help model"
   exit 2
@@ -123,10 +116,7 @@ else
   kind=domain plural=domains name=${syntax_options[--domain]}
   known='([.domains | keys[]] + [.entities[].domain] | unique)'
 fi
-names=$(model-jq "${known}[]") || {
-  printf '%s\n' "${names}"
-  exit 1
-}
+names=$(model-jq "${known}[]") || exit 1
 if ! grep --quiet --line-regexp --fixed-strings -- "${name}" <<<"${names}"
 then
   known_list=$(paste -s -d, - <<<"${names}" | sed 's/,/, /g')
@@ -150,10 +140,7 @@ then
 fi
 # The diagram comes after a first line that names, as JSON, the entities whose labels could not all be kept clear; each
 # is a warning on stderr, and the status stays 0.
-drawn=$(model-jq "modelsvg::render(\$name) | (.crowded | tojson), .svg" --arg name "${name}") || {
-  printf '%s\n' "${drawn}"
-  exit 1
-}
+drawn=$(model-jq "modelsvg::render(\$name) | (.crowded | tojson), .svg" --arg name "${name}") || exit 1
 printf '%s\n' "${drawn#*$'\n'}"
 while IFS= read -r entity
 do

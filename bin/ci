@@ -7,7 +7,8 @@
 #   - kit lint over every tracked path
 #   - kit syntax --check: every verb's usage line parses, and every argument has its description
 #   - kit model check: the model's entity files hold together: every relation has its other side, every type is known
-#   - kit model svg: each checked-in diagram of a modelled domain is what the model draws
+#   - kit model svg: each checked-in diagram of a modelled domain is what the model draws, and every warning it prints
+#     is one the list below expects
 #   - ajv: every package.yml, kit.yml, every model file, every kind, and the frontmatter of every rule and style
 #     against their schemas, and the examples in every schema of a tool's output under docs/integrations/ against it
 #   - lychee: every link in the markdown, offline, including fragments
@@ -30,12 +31,52 @@ cd "$(git rev-parse --show-toplevel)"
 kit/bin/kit lint --all-files
 kit/bin/kit syntax --check
 kit/bin/kit model check
-# The diagrams of the modelled domains are what the model draws. The verb's warnings stay on stderr, and the pages are
-# held by kit check, which runs kit generate --check, at the end.
-for domain in git git-repository git-config code
+frontmatter=$(mktemp -d)
+trap 'rm -rf "${frontmatter}"' EXIT
+# The diagrams of the modelled domains are what the model draws: each docs/entities/<domain>.svg whose domain has a
+# directory under kit/modules/model/ and a generated page, docs/entities/<domain>.md, beside it. A hand-made diagram,
+# such as platform.svg, has no page. The pages are held by kit check, which runs kit generate --check, at the end. A label kit model svg cannot keep clear is a warning, and each warning must be one this list expects, by domain
+# and entity, with the reason no layout hint removes it. A listed warning that no longer comes is stale, and fails too.
+# Each reason is why no hint clears the entity: an edge whose ends lie closer than their labels are wide.
+declare -A expected_warnings=(
+  [git GitTag]="it holds a relation back for each sum that reaches it, and their ends crowd its edges"
+  [git-repository GitWorktreeDir]="the lines of GitDir, GitRef, and GitReflogEntry crowd its bottom edge"
+  [code Branch]="it meets six cards, and the ends of Remote, Checkout, and Change crowd its top edge"
+  [code Worktree]="Checkout reaches it three times, and Head, Branch, Commit, and UnbornBranch crowd its bottom edge"
+)
+declare -A warned=()
+mkdir "${frontmatter}/svg"
+for svg in docs/entities/*.svg
 do
-  kit/bin/kit model svg --domain="${domain}" | cmp -s - "docs/entities/${domain}.svg" || {
-    echo "❌ docs/entities/${domain}.svg is stale: run kit model svg --domain=${domain}" >&2
+  domain=$(basename "${svg}" .svg)
+  [[ -d "kit/modules/model/${domain}" && -f "docs/entities/${domain}.md" ]] || continue
+  if ! kit/bin/kit model svg --domain="${domain}" > "${frontmatter}/svg/${domain}.svg" \
+    2> "${frontmatter}/svg/${domain}.err"
+  then
+    echo "❌ kit model svg --domain=${domain} failed:" >&2
+    cat "${frontmatter}/svg/${domain}.err" >&2
+    exit 1
+  fi
+  cmp -s "${frontmatter}/svg/${domain}.svg" "${svg}" || {
+    echo "❌ ${svg} is stale: write it afresh with kit/bin/kit model svg --domain=${domain} > ${svg}" >&2
+    exit 1
+  }
+  while IFS= read -r line
+  do
+    [[ "${line}" =~ the\ labels\ of\ ([A-Za-z0-9]+)\ could\ not ]] || continue
+    warned["${domain} ${BASH_REMATCH[1]}"]=1
+    [[ -n "${expected_warnings["${domain} ${BASH_REMATCH[1]}"]:-}" ]] || {
+      echo "❌ kit model svg --domain=${domain} warns of ${BASH_REMATCH[1]}, which bin/ci does not expect:" >&2
+      echo "${line}" >&2
+      exit 1
+    }
+  done < "${frontmatter}/svg/${domain}.err"
+done
+for key in "${!expected_warnings[@]}"
+do
+  [[ -n "${warned["${key}"]:-}" ]] || {
+    echo "❌ bin/ci expects a warning of ${key#* } in the diagram of ${key%% *}, which no longer comes;" \
+      "take it off the list" >&2
     exit 1
   }
 done
@@ -54,8 +95,6 @@ domains=(kit/modules/model/*/domain.yml)
 shopt -u nullglob
 (( ${#domains[@]} == 0 )) || ajv validate --spec=draft2020 -s kit/modules/model/domain.schema.json -d "kit/modules/model/*/domain.yml"
 # A rule's frontmatter is YAML between the two --- lines; ajv reads it from a copy of just those lines.
-frontmatter=$(mktemp -d)
-trap 'rm -rf "${frontmatter}"' EXIT
 for file in kit/packages/*/files/repo/.kit/rules/*.md kit/packages/*/*/files/repo/.kit/styles/*.md
 do
   awk 'NR == 1 && $0 == "---" { on = 1; next } on && $0 == "---" { exit } on' "${file}" > "${frontmatter}/${file//\//-}.yml"
