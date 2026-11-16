@@ -245,7 +245,10 @@ def build:
     + [$files[] | select((.doc | type) == "object") | .path as $p | .doc | keys_unsorted[]
       | select(IN(file_keys[]) | not)
       | "\($p) sets \(.), which is not a key of a model file; a model file has \(file_keys | listing)"]
-    + [$files[] | select(((.doc | type) == "object" and (.doc.entity != null or .doc.extends != null)) | not)
+    + [$files[] | select((.doc | type) != "object" and .doc != null)
+      | "\(.path) holds \(.doc | type | if . == "array" then "an array" else "a \(.)" end), not a mapping; a model file"
+        + " holds one mapping of keys"]
+    + [$files[] | select(.doc == null or ((.doc | type) == "object" and .doc.entity == null and .doc.extends == null))
       | "\(.path) names neither an entity nor an extension"]
     + [$files[] | select((.doc | type) == "object" and .doc.entity != null and .doc.extends != null)
       | "\(.path) names both an entity and an extension"]

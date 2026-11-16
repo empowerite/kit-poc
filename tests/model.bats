@@ -188,6 +188,18 @@ release-counts() {
   [ "${lines[-1]}" = "model: 1 entities, 0 stubs" ]
 }
 
+@test "kit model check names a model file whose document is a string, not a mapping, and exits 1" {
+  fresh-repo
+  mkdir -p empty .kit/model/code
+  printf 'hello\n' > .kit/model/code/bare.yml
+  printf '"hello"\n' > .kit/model/code/quoted.yml
+  run --separate-stderr kit model --release=empty check
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = '.kit/model/code/bare.yml holds a string, not a mapping; a model file holds one mapping of keys' ]
+  [ "${lines[1]}" = '.kit/model/code/quoted.yml holds a string, not a mapping; a model file holds one mapping of keys' ]
+  [ -z "${stderr}" ]
+}
+
 @test "kit model check holds a repository's file to the schema's keys, names, and read-by, naming the file" {
   fresh-repo
   mkdir -p empty .kit/model/code
@@ -635,10 +647,14 @@ Layer: native (git)
 # The release's own diagrams: no label covers another, whatever a crowded edge costs, as the reader cannot tell two
 # labels apart where one lies on the other.
 @test "no label of the release's diagrams overlaps another label" {
-  local loaded domain
+  local loaded domain svg entities=${BATS_TEST_DIRNAME}/../docs/entities checked=0
   loaded=$(kit-bash 'model:load')
-  for domain in git git-repository git-config code
+  # The diagrams bin/ci holds to the model: a domain's SVG with a model directory and a generated page beside it.
+  for svg in "${entities}"/*.svg
   do
+    domain=$(basename "${svg}" .svg)
+    [[ -d "${kit_root}/modules/model/${domain}" && -f "${entities}/${domain}.md" ]] || continue
+    checked=$(( checked + 1 ))
     jq --exit-status -L "${kit_root}/modules/jq" --arg d "${domain}" '
       import "model" as model; import "modelsvg" as modelsvg;
       model::build | [modelsvg::edges($d).labels[].box] as $b
@@ -646,6 +662,7 @@ Layer: native (git)
         | [$i, $j]] | if length == 0 then true else ("\($d): \(length) pairs of labels overlap" | halt_error(1)) end' \
       <<<"${loaded}" >/dev/null || return 1
   done
+  (( checked > 0 ))
 }
 
 # The atk domain's labels have no clear place. tests/jq/modelsvg.test holds that every one of its label boxes still lies
@@ -726,6 +743,7 @@ relations:
     [bad-stub-fields]="${base}"$'\nstub: true'
     [bad-variants-no-sum]="${base}"$'\nvariants:\n  One: {x: X}'
     [bad-sum-no-variants]="${base}"$'\nsum: true'
+    [bad-sum-empty-variants]="${base}"$'\nsum: true\nvariants: {}'
     [bad-field-ordered]="${base/status: held,/status: held, ordered: true,}"
     [bad-relation-ordered]="${base}"$'\n  best: {to: X, arity: option, ordered: true, derived: x}'
     [bad-relation-neither]="${base}"$'\n  lone: {to: X}'
@@ -765,12 +783,18 @@ relations:
   [ "$status" -eq 1 ]
   [[ "$output" == *"❌ kit model check: .kit/model/code/bad.yml sets meens, which is not a key of a model file; "* ]]
   [[ "$output" == *"❌ 1 finding(s), each named above"* ]]
+  printf 'hello\n' > .kit/model/code/bad.yml
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"❌ kit model check: .kit/model/code/bad.yml holds a string, not a mapping; "* ]]
   printf 'entity: Good\nlayer: logical\nmeans: x\n' > .kit/model/code/bad.yml
   run "${kit_checkout}/bin/kit" check
   [ "$status" -eq 0 ]
+  [[ "$output" == *"✅ kit model check: model: "*" entities, "*" stubs"* ]]
   rm -r .kit/model
   run "${kit_checkout}/bin/kit" check
   [ "$output" = "${before}" ]
+  [[ "$output" != *"kit model check"* ]]
 }
 
 # The schema's read-by pattern, read from the schema and tried with jq's regex, which reads it as ajv does: a verb of

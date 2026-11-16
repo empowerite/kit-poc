@@ -113,7 +113,7 @@ relations:
 ```yaml
 entity: Head
 sum: true
-means: what a worktree is on, which git lets be a branch or a bare commit
+means: what a worktree is on, which git lets be a branch, a detached commit, or a branch with no commit yet
 variants:
   OnBranch: {branch: Branch}
   Detached: {commit: Commit}
@@ -174,9 +174,9 @@ that domain's pass.
 
 Native to git: Blob, Tree and its entries (a mode, a name, and a blob, a tree, a symlink, or a submodule's commit),
 Commit, Signature (an identity and a time with its offset), Message with its subject, body, and trailers, the
-signature a commit or a tag carries, annotated Tag, Ref with its kind (branch, remote-tracking, tag, note, stash),
-HEAD, Reflog entry, Index with its entries and conflict stages, Remote and branch configuration, the worktree's
-administrative files, and Submodule.
+signature a commit or a tag carries, annotated Tag, Ref with its kind (branch, remote-tracking, tag, note, stash,
+other), HEAD, Reflog entry, Index with its entries and conflict stages, Remote and branch configuration, the
+worktree's administrative files, and Submodule.
 
 Logical to kit: Organization, Repository, Workspace, Remote, Checkout, Worktree, Head, UnbornBranch, Branch, Tag, and
 the rest of Code. The
@@ -243,9 +243,9 @@ format and the verb are in [docs/model.md](../../model.md), and the generated pa
 - Git's native entities are three domains, `git` (the objects), `git-repository` (the refs, the index, and the
   directories around them), and `git-config` (the configuration). One domain of all of them draws a diagram no one can
   read, and the configuration views belong to a worktree's git directory, not to the objects.
-- `GitRef` is one entity with a `kind` (branch, remote-tracking, tag, note, stash), which its name gives. A sum of one
-  entity per kind needs a relation back from each kind to everything that reaches a ref, and the kinds are a naming
-  convention of git's, not different objects.
+- `GitRef` is one entity with a `kind` (branch, remote-tracking, tag, note, stash, other), which its name gives. A sum
+  of one entity per kind needs a relation back from each kind to everything that reaches a ref, and the kinds are a
+  naming convention of git's, not different objects.
 - HEAD is two sums. The native `GitHead` is `Symbolic(ref: GitRef)`, `Detached(commit: GitCommit)`, or
   `Unborn(ref: GitUnbornRef)`. Kit's `Head` is `OnBranch(branch: Branch)`, `Detached(commit: Commit)`, or
   `Unborn(ref: UnbornBranch)`, where `UnbornBranch` stands over `GitUnbornRef`.
@@ -285,7 +285,7 @@ format and the verb are in [docs/model.md](../../model.md), and the generated pa
   the diagram's warnings to a list of the ones no layout hint removes.
 - `kit serve` withholds `kit model`, because `--release=` reads a directory outside the repository.
 
-Left to later passes: the forge's and the trackers' native entities, the ten other domains, and the move to CUE.
+Left to later passes: the forge's and the trackers' native entities, the nine other domains, and the move to CUE.
 
 ## Approaches
 

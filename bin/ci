@@ -35,8 +35,9 @@ frontmatter=$(mktemp -d)
 trap 'rm -rf "${frontmatter}"' EXIT
 # The diagrams of the modelled domains are what the model draws: each docs/entities/<domain>.svg whose domain has a
 # directory under kit/modules/model/ and a generated page, docs/entities/<domain>.md, beside it. A hand-made diagram,
-# such as platform.svg, has no page. The pages are held by kit check, which runs kit generate --check, at the end. A label kit model svg cannot keep clear is a warning, and each warning must be one this list expects, by domain
-# and entity, with the reason no layout hint removes it. A listed warning that no longer comes is stale, and fails too.
+# such as platform.svg, has no page. The pages are held by kit check, which runs kit generate --check, at the end. A
+# label kit model svg cannot keep clear is a warning, and each warning must be one this list expects, by domain and
+# entity, with the reason no layout hint removes it. A listed warning that no longer comes is stale, and fails too.
 # Each reason is why no hint clears the entity: an edge whose ends lie closer than their labels are wide.
 declare -A expected_warnings=(
   [git GitTag]="it holds a relation back for each sum that reaches it, and their ends crowd its edges"
@@ -58,7 +59,11 @@ do
     exit 1
   fi
   cmp -s "${frontmatter}/svg/${domain}.svg" "${svg}" || {
-    echo "❌ ${svg} is stale: write it afresh with kit/bin/kit model svg --domain=${domain} > ${svg}" >&2
+    # The command docs/model.md gives, through a scratch file, so a failed run leaves the diagram as it was.
+    # shellcheck disable=SC2016  # the ${TMPDIR:-/tmp} is for the reader's shell to expand
+    echo "❌ ${svg} is stale: write it afresh with" \
+      'kit/bin/kit model svg --domain='"${domain}"' > "${TMPDIR:-/tmp}/'"${domain}"'.svg" &&' \
+      'mv "${TMPDIR:-/tmp}/'"${domain}"'.svg" '"${svg}" >&2
     exit 1
   }
   while IFS= read -r line

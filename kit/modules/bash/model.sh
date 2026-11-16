@@ -66,10 +66,13 @@ model:read() {
       error "${path} ${why}"
       return 1
     fi
-    # yq reads a quoted "<<" key as a merge key, and drops it, unless it is told to follow the YAML spec.
-    doc=$(yaml:eval "${file}" model-json '.' --output-format=json --indent=0 --yaml-fix-merge-anchor-to-spec=true) || return 1
+    # yq reads a quoted "<<" key as a merge key, and drops it, unless it is told to follow the YAML spec. The document
+    # goes inside a mapping, because yq prints a document that is a string bare, which is no JSON.
+    doc=$(yaml:eval "${file}" model-json '{"doc": .}' --output-format=json --indent=0 \
+      --yaml-fix-merge-anchor-to-spec=true) || return 1
     jq --null-input --compact-output --arg domain "${domain}" --arg origin "${origin}" --arg path "${path}" \
-      --argjson doc "${doc:-null}" '{domain: $domain, origin: $origin, path: $path, doc: $doc}'
+      --argjson doc "${doc:-'{"doc": null}'}" '{domain: $domain, origin: $origin, path: $path, doc: $doc.doc}' \
+      || return 1
   done
   model:strays "${origin}" "${dir}" "${prefix}"
 }
@@ -103,7 +106,8 @@ model:load() {
   then
     lines+=$'\n'$(model:read repository "${repo}" .kit/model) || return 1
   fi
-  jq --slurp --compact-output '{files: map(select(has("doc"))), strays: map(select(has("stray")) | .stray)}' <<<"${lines}"
+  jq --slurp --compact-output '{files: map(select(has("doc"))), strays: map(select(has("stray")) | .stray)}' \
+    <<<"${lines}"
 }
 
 # model:findings [<release-dir> [<repo-dir>]] prints the model's findings and its count, as the header says.
@@ -111,7 +115,8 @@ model:findings() {
   local loaded report
   loaded=$(model:load "$@") || return 1
   report=$(jq -L "${kit_root}/modules/jq" --raw-output 'import "model" as model; model::build
-    | model::check[], "model: \(.entities | length) entities, \(model::stubs | length) stubs"' <<<"${loaded}") || return 1
+    | model::check[], "model: \(.entities | length) entities, \(model::stubs | length) stubs"' \
+    <<<"${loaded}") || return 1
   printf '%s\n' "${report}"
   [[ "${report}" != *$'\n'* ]]
 }

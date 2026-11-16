@@ -132,6 +132,8 @@ The merge's findings name the file:
 
 - A file the model does not read: `<path> is not read: a model file is <domain>/<entity>.yml or <domain>/domain.yml,
   one directory down`.
+- A model file whose document is not a mapping, such as a bare string: `<path> holds a string, not a mapping; a model
+  file holds one mapping of keys`.
 - A key a model file does not have: `<path> sets <key>, which is not a key of a model file`, followed by the keys it
   does have. The same holds a field's and a relation's keys, and a `domain.yml`'s.
 - A name the schema's pattern refuses: an entity's, a field's, a relation's, or a layout hint's.
@@ -185,9 +187,9 @@ it with the findings above. It prints each finding on a line of its own, then, l
 whatever N and M are, zero included. It exits 0 when there is no finding and 1 when there is one. A file `model:load`
 refuses ends it with status 1, and it prints what `model:load` printed.
 
-`kit check` runs the same check in a repository that has a `.kit/model/` directory, and names each finding as one of its
-own. A repository without one is checked as any other. `bin/ci` runs `kit model check` after `kit syntax --check`, so a
-finding fails the gate.
+`kit check` runs the same check in a repository that has a `.kit/model/` directory. It names each finding as one of its
+own, or, when the model holds, prints the count line with a ✅. A repository without one is checked as any other.
+`bin/ci` runs `kit model check` after `kit syntax --check`, so a finding fails the gate.
 
 `--release=<dir>` names a model directory to read in place of the release's `modules/model`, and every `kit model`
 subcommand takes it. It takes a directory that exists, once: an empty value, a second one, or a path that is not a

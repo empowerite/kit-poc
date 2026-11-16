@@ -339,6 +339,12 @@ import "model" as model; model::build | model::check
 {"files": [{"domain": "platform", "origin": "release", "path": "m/s.yml", "doc": {"entity": "Service", "stub": true, "fields": {"name": {"type": "Text", "status": "planned"}}}}, {"domain": "mine", "origin": "repository", "path": "r/s.yml", "doc": {"extends": "Service", "fields": {"host": {"type": "Text", "status": "planned"}}}}]}
 ["Service is a stub and has fields: host (r/s.yml), name (m/s.yml)"]
 
+# a model file whose document is not a mapping, a string, a list, or a number, is a finding that names the file; an empty
+# file names neither an entity nor an extension
+import "model" as model; model::build | model::check
+{"files": [{"domain": "code", "origin": "repository", "path": "r/s.yml", "doc": "hello"}, {"domain": "code", "origin": "repository", "path": "r/l.yml", "doc": ["x"]}, {"domain": "code", "origin": "repository", "path": "r/n.yml", "doc": 5}, {"domain": "code", "origin": "repository", "path": "r/e.yml", "doc": null}]}
+["r/s.yml holds a string, not a mapping; a model file holds one mapping of keys", "r/l.yml holds an array, not a mapping; a model file holds one mapping of keys", "r/n.yml holds a number, not a mapping; a model file holds one mapping of keys", "r/e.yml names neither an entity nor an extension"]
+
 # a file the loader found and did not read is a finding that names it, and says what the model reads
 import "model" as model; model::build | model::check
 {"files": [], "strays": [".kit/model/x.yaml", ".kit/model/top.yml", ".kit/model/code/deep/e.yml"]}

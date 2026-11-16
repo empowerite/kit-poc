@@ -144,8 +144,8 @@ drawn=$(model-jq "modelsvg::render(\$name) | (.crowded | tojson), .svg" --arg na
 printf '%s\n' "${drawn#*$'\n'}"
 while IFS= read -r entity
 do
-  warn "the labels of ${entity} could not all be kept clear of the other lines and labels in the diagram of ${name};"\
-    "a layout hint in its domain.yml can give it room"
+  warn "the labels of ${entity} could not all be kept clear of the other lines and labels in the diagram of ${name}:"\
+    "the ends on an edge of its card lie closer together than their labels are wide"
 done < <(jq --raw-output '.[]' <<<"${drawn%%$'\n'*}")
 
 # ----------------------------------------------------------------------------------------------------------------------

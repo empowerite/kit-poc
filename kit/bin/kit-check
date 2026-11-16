@@ -133,18 +133,24 @@ do
 done
 # Every generated region, the kit's and the repository's own.
 generate:run --check || findings=$(( findings + 1 ))
-# The repository's model, read with the release's, as kit model check reads it: each finding, and not the count line.
-# model:load names a file the model cannot read, and jq names its own failure, each as one finding.
-if [[ -d .kit/model ]] && ! report=$(model:findings)
+# The repository's model, read with the release's, as kit model check reads it: each finding, and not the count line,
+# or, when it holds, the count line. model:load names a file the model cannot read, and jq names its own failure, each
+# as one finding.
+if [[ -d .kit/model ]]
 then
-  model_findings=0
-  while IFS= read -r finding
-  do
-    [[ -n "${finding}" && "${finding}" != model:\ * ]] || continue
-    error "kit model check: ${finding}"
-    model_findings=$(( model_findings + 1 ))
-  done <<<"${report}"
-  findings=$(( findings + (model_findings > 0 ? model_findings : 1) ))
+  if report=$(model:findings)
+  then
+    ok "kit model check: ${report}"
+  else
+    model_findings=0
+    while IFS= read -r finding
+    do
+      [[ -n "${finding}" && "${finding}" != model:\ * ]] || continue
+      error "kit model check: ${finding}"
+      model_findings=$(( model_findings + 1 ))
+    done <<<"${report}"
+    findings=$(( findings + (model_findings > 0 ? model_findings : 1) ))
+  fi
 fi
 if (( findings > 0 ))
 then

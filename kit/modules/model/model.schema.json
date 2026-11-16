@@ -25,6 +25,7 @@
     "sum": { "type": "boolean" },
     "variants": {
       "type": "object",
+      "minProperties": 1,
       "propertyNames": { "$ref": "#/$defs/name" },
       "additionalProperties": {
         "type": "object",
