@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# rebase.bats - kit rebase refuses the desk and the default branch, and brings a worktree's branch up to date
+# rebase.bats - kit rebase refuses the default branch, and brings a worktree's branch up to date
 # ----------------------------------------------------------------------------------------------------------------------
 
 load helper
@@ -27,14 +27,21 @@ commit-in() {
   git -C "$1" commit --quiet --message "$2"
 }
 
-@test "rebase refuses the root checkout, whatever branch it has" {
+@test "rebase refuses the default branch at the desk" {
   run "${kit_checkout}/bin/kit" rebase
   [ "$status" -eq 1 ]
-  [[ "$output" == *"refusing to rebase main: it is the root checkout"* ]]
+  [[ "$output" == *"refusing to rebase main: it is the default branch"* ]]
+}
+
+@test "rebase moves the desk's branch onto origin/main, as it does a worktree's" {
   git switch --quiet --create desk-topic
+  commit-in . b two && git push --quiet --set-upstream origin desk-topic
+  git switch --quiet main && commit-in . c three && git push --quiet origin main
+  git switch --quiet desk-topic
   run "${kit_checkout}/bin/kit" rebase
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"refusing to rebase desk-topic: it is the root checkout"* ]]
+  [ "$status" -eq 0 ]
+  [ "$(git rev-parse HEAD~1)" = "$(git rev-parse origin/main)" ]
+  [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/desk-topic)" ]
 }
 
 @test "rebase refuses the default branch in a worktree" {
@@ -94,19 +101,6 @@ commit-in() {
   [[ "$output" != *"conflicts"* ]]
   [[ "$output" == *"origin/main does not exist"*"run: "*"git remote set-head origin --auto"* ]]
   [ "$(git -C ../wt rev-parse HEAD)" = "${before}" ]
-}
-
-@test "rebase refuses the desk on a git too old to print an absolute path, and rebases nothing" {
-  git switch --quiet --create desk-topic
-  real_git=$(command -v git)
-  mkdir ../shim
-  printf '#!/bin/sh\ncase "$*" in *--path-format=absolute*) echo "--path-format=absolute"; exit 0 ;; esac\nexec "%s" "$@"\n' \
-    "${real_git}" > ../shim/git
-  chmod +x ../shim/git
-  run env PATH="${work}/shim:${PATH}" "${kit_checkout}/bin/kit" rebase
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"git is older than 2.31"* ]]
-  [[ "$output" != *"is rebased"* ]]
 }
 
 # other-commits <file> <content> commits the file on 1-x in a second clone, ../other, and pushes it, as another

@@ -290,7 +290,7 @@ the staged paths. In CI it runs only where the repository's gate runs it, as a `
 | The forbidden git commands were not used | no check; the deny list prevents them where the harness has one (Claude Code, Gemini CLI), and elsewhere this rests on the report in the pull request body, which `kit ci` does not verify |
 | A verb's grammar, and the tools and resources `kit serve` offers, change only as a reviewed diff | this repository's gate: their snapshots, in `tests/syntax.bats` and `tests/serve.bats`; see [testing.md](testing.md#contracts) |
 | A page names verbs, flags, settings, and paths that exist, and counts and lists what the code holds as it holds them | this repository's gate: `tests/claims.bats` |
-| The desk was not changed | no check; `kit rebase` refuses the root checkout and `kit work` never switches its branch, and the deny lists refuse a few raw git commands where a harness has one |
+| The desk was not changed | no check; `kit work` never switches its branch, and the deny lists refuse a few raw git commands where a harness has one |
 
 No check verifies that an agent followed a rule after reading it. The linters cover the mechanical part for the kinds
 of file they handle, where `kit lint` runs. The rest is the report in the pull request body, which the integrity

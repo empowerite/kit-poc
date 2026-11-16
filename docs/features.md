@@ -410,8 +410,8 @@ commit` or through the lefthook hook. A commit made any other way reaches the de
 Three more claims have no check. Nothing verifies that an agent was asked for the rules of a file: `kit context`
 logs each request, and nothing reads the log. Nothing verifies that the forbidden git commands were not used: a deny
 list prevents them where the harness has one, and elsewhere the report in the pull request body is all there is.
-Nothing verifies that the desk was not changed: `kit rebase` refuses the root checkout, and `kit work` never switches
-its branch.
+Nothing verifies that the desk was not changed: `kit work` never switches its branch, and the deny lists refuse raw
+git commands that would.
 
 No check verifies that an agent followed a rule after reading it. The linters and the templates
 cover the mechanical part, for the kinds of file they handle, where `kit lint` runs. The rest

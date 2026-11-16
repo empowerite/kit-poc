@@ -43,7 +43,7 @@ Some git commands have a kit replacement that adds the check its rule requires. 
 command. Claude Code and Gemini CLI, with the kit's agents package, refuse the raw git command by its literal pattern.
 Elsewhere, this rule is the only thing that stops it.
 
-- `kit rebase`, never `git rebase`. `kit rebase` refuses to run in the root checkout or on the default branch.
+- `kit rebase`, never `git rebase`. `kit rebase` refuses to run on the default branch.
   Otherwise it rebases the worktree's branch onto the default branch at the primary remote, `origin` unless
   `primary` in `kit.yml` names another, and pushes it.
 - `kit commit`, never `git commit`. `kit commit` refuses the default branch, runs the linters over the

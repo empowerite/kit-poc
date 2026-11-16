@@ -564,7 +564,6 @@ git:push() {
 # branch at the primary remote, then pushes it to its own name on the remote git:pushes-to prints. It refuses:
 #
 #   - a checkout with no branch checked out
-#   - the root checkout (the desk, which belongs to the human), whatever branch it has
 #   - the default branch, in any checkout
 #   - a worktree with uncommitted changes
 #   - with require_signing true, a git with no signing key
@@ -575,17 +574,11 @@ git:push() {
 # a conflict it aborts the rebase and leaves the worktree as it was.
 git:rebase() {
   local worktree=${1:-.} branch default_branch primary remote before theirs target targets=() sign=() unmerged=()
-  local unmerged_names root
+  local unmerged_names
   branch=$(git -C "${worktree}" symbolic-ref --quiet --short HEAD 2>/dev/null || true)  # detached is refused below
   if [[ -z "${branch}" ]]
   then
     error "${worktree} has no branch checked out, so there is nothing to rebase"
-    return 1
-  fi
-  root=$(git:main-root "${worktree}") || return 1
-  if [[ "$(git -C "${worktree}" rev-parse --show-toplevel)" == "${root}" ]]
-  then
-    error "refusing to rebase ${branch}: it is the root checkout, the human's desk; rebase in the branch's worktree"
     return 1
   fi
   default_branch=$(git:default-branch "${worktree}") || return 1
