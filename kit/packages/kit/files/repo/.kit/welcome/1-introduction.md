@@ -57,5 +57,3 @@ way past, and a person merges what passes. Four ideas make that work.
 - kit comes as a versioned release, and a repository pins the version it uses. A pull request that bumps the version
   updates the rules in every repository the same way, and `kit check` fails when someone edits a delivered file in
   place.
-
-The next steps check this machine, then show how kit is built to be changed, then list its words.
