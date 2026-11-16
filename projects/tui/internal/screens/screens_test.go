@@ -368,9 +368,10 @@ func TestWithTheKeysBarHiddenWhatAScreenDidStillStands(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	m := New(testkit.Runner(t, "kit"), shell.Issues, noting{})
 	m = drive(m, tea.WindowSizeMsg{Width: 80, Height: 10}, shell.SwitchMsg{Screen: shell.SettingsScreen},
+		tea.KeyPressMsg{Code: tea.KeyDown}, tea.KeyPressMsg{Code: tea.KeyDown}, tea.KeyPressMsg{Code: tea.KeyDown},
 		tea.KeyPressMsg{Code: tea.KeySpace, Text: " "}, tea.KeyPressMsg{Code: tea.KeyEscape})
 	lines := strings.Split(ansi.Strip(m.View().Content), "\n")
-	if len(lines) != 10 || lines[9] != "did it" || lines[8] != "line 8" {
+	if m.settings.KeysBar || len(lines) != 10 || lines[9] != "did it" || lines[8] != "line 8" {
 		t.Errorf("%d lines:\n%s", len(lines), strings.Join(lines, "\n"))
 	}
 }

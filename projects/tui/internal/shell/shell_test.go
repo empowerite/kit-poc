@@ -412,3 +412,20 @@ func TestTheMenusLineForTheScreenItIsOnIsBoldAndClosesTheMenuAskingNothing(t *te
 		t.Errorf("a colored menu's line here: %q", lines[1])
 	}
 }
+
+// Screens gives the screens of the menu's lines in the menu's order, the guides then the apps, and NameOf gives each
+// the name of its line, none for a screen the menu has no line for.
+func TestScreensAreTheMenusLinesInOrderAndNameOfNamesEach(t *testing.T) {
+	var got []string
+	for _, s := range Screens() {
+		got = append(got, string(s)+"="+NameOf(s))
+	}
+	if len(got) != len(screens) || got[0] != "welcome=Welcome" || got[len(got)-1] != "packages=Packages" {
+		t.Errorf("the menu's screens: %q", got)
+	}
+	for _, s := range []Screen{SettingsScreen, "nowhere"} {
+		if name := NameOf(s); name != "" {
+			t.Errorf("%s has the line %q in the menu", s, name)
+		}
+	}
+}
