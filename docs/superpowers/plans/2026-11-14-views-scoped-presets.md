@@ -1,5 +1,9 @@
 # Views: Scoped Presets Implementation Plan
 
+**Status, 2026-11-15:** Tasks 1 to 6 are built (issue #590), less the saving of a preset everywhere or in the app,
+which c111c9a0 backed out because it did not work in use. Task 7, the page that says so, is not started; what a person
+does to make a preset that follows the scopes is still to be decided.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

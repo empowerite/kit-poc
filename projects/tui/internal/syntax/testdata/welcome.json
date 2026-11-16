@@ -3,8 +3,8 @@
   "purpose": "walks a newcomer through what kit needs, the toolchains, setup, and the workflow",
   "usage": [
     "kit welcome [--text]",
-    "kit welcome --checks [--json | --jq] [--folder=<path>] [--progress]",
-    "kit welcome --fix=<check> [--folder=<path>]",
+    "kit welcome --checks [--json | --jq] [--folder=<path> | --machine] [--progress]",
+    "kit welcome --fix=<check> [--folder=<path> | --machine]",
     "kit welcome --keep=<check> [--json]",
     "kit welcome --unkeep=<check> [--json]"
   ],
@@ -63,6 +63,13 @@
               "value": "path",
               "repeat": false
             }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "machine",
+              "repeat": false
+            }
           ]
         ],
         "repeat": false
@@ -98,6 +105,13 @@
               "kind": "option",
               "name": "folder",
               "value": "path",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "flag",
+              "name": "machine",
               "repeat": false
             }
           ]
@@ -174,6 +188,9 @@
     },
     "--folder": {
       "description": "the folder whose working tree holds <path>: --checks prints its checks alone, and --fix runs a folder's check there; with none, --fix runs it in the repository here"
+    },
+    "--machine": {
+      "description": "judges the machine alone, as kittui's guide does, which depends on no repository and no workspace: no folder is checked, and the forge checks are github.com's, not those of a workspace's hosts; with --checks or --fix, and not with --folder="
     },
     "--progress": {
       "description": "with --checks, says on stderr what is being checked as it goes, for kittui to show while the checks run"
