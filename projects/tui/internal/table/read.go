@@ -181,7 +181,9 @@ func (f Field) Read(record json.RawMessage) Value { return f.ReadFrom(Decoded(re
 // and a path through one maps over it; a string is itself, a number its digits, true the field's id, and false, null,
 // or an object no value. A field that says what null draws, as its Null, draws it for a record that holds null at a
 // path, and no value at any; one that says what empty draws, as its Empty, draws it for a record whose every value
-// there is an empty string, and gives no value. A json field reads its values whole, as readJSON says.
+// there is an empty string, and gives no value. A string is read without U+FE0F, which asks a terminal for the emoji
+// look of a narrow character: this program counts such a character two cells wide and iTerm draws it in one, which
+// moves every cell after it in its row. A json field reads its values whole, as readJSON says.
 func (f Field) ReadFrom(v any) Value {
 	if f.Type == "json" {
 		return f.readJSON(v)
@@ -194,7 +196,7 @@ func (f Field) ReadFrom(v any) Value {
 		for _, each := range flat(held) {
 			switch each := each.(type) {
 			case string:
-				out.Raw = append(out.Raw, each)
+				out.Raw = append(out.Raw, strings.ReplaceAll(each, "\uFE0F", ""))
 			case json.Number:
 				out.Raw = append(out.Raw, each.String())
 			case bool:

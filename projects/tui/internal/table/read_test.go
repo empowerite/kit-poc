@@ -168,3 +168,11 @@ func TestTheCatalogRefusesWhatATableCannotIndexBy(t *testing.T) {
 		t.Errorf("a stage of no fields: %v", err)
 	}
 }
+
+func TestAStringIsReadWithoutTheSelectorThatAsksForTheEmojiLook(t *testing.T) {
+	f := Field{ID: "title", Path: ".title"}
+	got := f.Read(json.RawMessage("{\"title\":\"copy and ▶️run\"}")).Raw
+	if want := []string{"copy and ▶run"}; !slices.Equal(got, want) {
+		t.Fatalf("a title with ▶️ read %q, want %q, which this program counts as iTerm draws it", got, want)
+	}
+}
