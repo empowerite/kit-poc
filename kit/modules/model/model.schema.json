@@ -47,7 +47,7 @@
   "allOf": [
     {
       "if": { "properties": { "layer": { "const": "native" } }, "required": ["layer"] },
-      "then": { "not": { "required": ["over"] } }
+      "then": { "required": ["tool"], "not": { "required": ["over"] } }
     },
     {
       "if": { "properties": { "layer": { "const": "logical" } }, "required": ["layer"] },
@@ -56,6 +56,18 @@
     {
       "if": { "properties": { "sum": { "const": true } }, "required": ["sum"] },
       "then": { "required": ["variants"] }
+    },
+    {
+      "if": { "required": ["variants"] },
+      "then": { "required": ["sum"], "properties": { "sum": { "const": true } } }
+    },
+    {
+      "if": { "properties": { "stub": { "const": true } }, "required": ["stub"] },
+      "then": { "not": { "required": ["fields"] } }
+    },
+    {
+      "if": { "required": ["entity"], "not": { "properties": { "stub": { "const": true } }, "required": ["stub"] } },
+      "then": { "required": ["layer"] }
     }
   ],
   "$defs": {
@@ -71,7 +83,7 @@
     "field": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type"],
+      "required": ["type", "status"],
       "properties": {
         "type": {
           "anyOf": [
@@ -88,13 +100,14 @@
           ]
         },
         "arity": { "$ref": "#/$defs/arity" },
+        "ordered": { "type": "boolean", "description": "For a many or a some: its order is data, as a list of recent paths." },
         "source": { "enum": ["stored", "derived"] },
         "status": { "enum": ["held", "planned", "unused"] },
         "from": { "type": "string", "minLength": 1, "description": "Where a derived field comes from." },
         "read-by": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9-]*( (--)?[a-z][a-z0-9-]*)* (\\*|[A-Za-z_][A-Za-z0-9_-]*)(\\.(\\*|[A-Za-z_][A-Za-z0-9_-]*))*$",
-          "description": "\"<verb> <jsonkey>\": the verb that prints the field, in one or more words, any word after the first a lowercase word or an option such as --show written without its value, then the key it prints, the last word, dotted where it is nested, with * for any key of a mapping or any element of an array."
+          "pattern": "^[a-z][a-z0-9-]*( (--)?[a-z][a-z0-9-]*)* ((\\*|[A-Za-z_][A-Za-z0-9_-]*)\\.)*[A-Za-z_][A-Za-z0-9_-]*$",
+          "description": "\"<verb> <jsonkey>\": the verb that prints the field, in one or more words, any word after the first a lowercase word or an option such as --show written without its value, then the key it prints, the last word, dotted where it is nested, with * for any key of a mapping or any element of an array before the last segment, which is a key."
         },
         "means": { "type": "string", "minLength": 1 }
       },
@@ -106,7 +119,8 @@
         {
           "if": { "properties": { "source": { "const": "derived" } }, "required": ["source"] },
           "then": { "required": ["from"] }
-        }
+        },
+        { "$ref": "#/$defs/ordered-list" }
       ]
     },
     "relation": {
@@ -125,7 +139,18 @@
         "derived": { "type": "string", "minLength": 1, "description": "A sentence that says how the relation is derived; it replaces inverse." },
         "means": { "type": "string", "minLength": 1 }
       },
-      "not": { "required": ["inverse", "derived"] }
+      "oneOf": [
+        { "required": ["inverse"] },
+        { "required": ["derived"] }
+      ],
+      "allOf": [
+        { "$ref": "#/$defs/ordered-list" }
+      ]
+    },
+    "ordered-list": {
+      "if": { "required": ["ordered"] },
+      "then": { "required": ["arity"], "properties": { "arity": { "enum": ["many", "some"] } } },
+      "description": "Only a many or a some has an order."
     }
   }
 }

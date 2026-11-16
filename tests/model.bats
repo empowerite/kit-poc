@@ -8,6 +8,10 @@ bats_require_minimum_version 1.5.0
 
 load helper
 
+setup_file() {
+  world-repo installed
+}
+
 setup() {
   kit_bash_modules=model
   fixtures=${BATS_TEST_DIRNAME}/fixtures/model
@@ -41,7 +45,30 @@ release-counts() {
 @test "a missing directory is an empty set" {
   run --separate-stderr kit-bash "model:load '${fixtures}/none' '${fixtures}/none'"
   [ "$status" -eq 0 ]
-  [ "$output" = '{"files":[]}' ]
+  [ "$output" = '{"files":[],"strays":[]}' ]
+}
+
+@test "outside a repository, model:load reads the release alone" {
+  mkdir "${BATS_TEST_TMPDIR}/nowhere"
+  cd "${BATS_TEST_TMPDIR}/nowhere"
+  run --separate-stderr kit-bash "model:load '${fixtures}/ok/release'"
+  [ "$status" -eq 0 ]
+  [ "$(jq --raw-output '[.files[].origin] | unique | join(",")' <<<"$output")" = release ]
+}
+
+@test "model:load names every file it does not read, a hidden one aside, and the release's schemas are no strays" {
+  mkdir -p release/code repo/code/deep repo/.hidden
+  printf 'entity: A\nlayer: logical\n' > release/code/a.yml
+  printf '{}\n' > release/model.schema.json
+  printf 'x\n' > release/notes.txt
+  printf 'entity: B\nlayer: logical\n' > repo/code/b.yml
+  printf 'entity: C\n' | tee repo/x.yaml repo/top.yml repo/code/c.yaml repo/code/deep/e.yml repo/code/.swap.yml \
+    repo/.hidden/h.yml repo/model.schema.json > /dev/null
+  run --separate-stderr kit-bash "model:load release repo"
+  [ "$status" -eq 0 ]
+  [ "$(jq --raw-output '.strays | join(",")' <<<"$output")" \
+    = 'modules/model/notes.txt,.kit/model/code/c.yaml,.kit/model/code/deep/e.yml,.kit/model/model.schema.json,.kit/model/top.yml,.kit/model/x.yaml' ]
+  [ "$(jq --raw-output '[.files[].path] | join(",")' <<<"$output")" = 'modules/model/code/a.yml,.kit/model/code/b.yml' ]
 }
 
 @test "without arguments, the release is the kit's own and the repository's is .kit/model of the repository" {
@@ -126,6 +153,65 @@ release-counts() {
   [ "$output" = "model: $((release_entities + 1)) entities, $((release_stubs + 1)) stubs" ]
 }
 
+@test "kit model check names each file of the repository it does not read, and exits 1" {
+  fresh-repo
+  mkdir -p empty .kit/model/code/deep
+  printf 'entity: A\nlayer: logical\n' > .kit/model/code/a.yml
+  printf 'entity: B\nlayer: logical\n' | tee .kit/model/x.yaml .kit/model/top.yml .kit/model/code/deep/e.yml > /dev/null
+  run kit model --release=empty check
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = '.kit/model/code/deep/e.yml is not read: a model file is <domain>/<entity>.yml or <domain>/domain.yml, one directory down' ]
+  [ "${lines[1]}" = '.kit/model/top.yml is not read: a model file is <domain>/<entity>.yml or <domain>/domain.yml, one directory down' ]
+  [ "${lines[2]}" = '.kit/model/x.yaml is not read: a model file is <domain>/<entity>.yml or <domain>/domain.yml, one directory down' ]
+  [ "${lines[-1]}" = "model: 1 entities, 0 stubs" ]
+}
+
+@test "kit model check holds a repository's file to the schema's keys, names, and read-by, naming the file" {
+  fresh-repo
+  mkdir -p empty .kit/model/code
+  cat > .kit/model/code/odd.yml <<'YAML'
+entity: lower_case name
+layer: logical
+meens: a misspelt key
+colour: red
+fields:
+  Bad Name: {type: Text, status: planned}
+  count: {type: Int, arrity: many, statuss: held, status: planned}
+  kind: {type: Text, sorce: derived, status: planned}
+  owner: {type: Text, status: held, read-by: "NOT a verb!!"}
+relations:
+  peers: {to: lower_case name, arity: many, orderd: true, derived: the others}
+YAML
+  run kit model --release=empty check
+  [ "$status" -eq 1 ]
+  local expected
+  for expected in \
+    '.kit/model/code/odd.yml sets meens, which is not a key of a model file; ' \
+    '.kit/model/code/odd.yml sets colour, which is not a key of a model file; ' \
+    '.kit/model/code/odd.yml names the entity lower_case name, which does not match ^[A-Z][A-Za-z0-9]*$' \
+    '.kit/model/code/odd.yml gives lower_case name the field Bad Name, whose name does not match ^[a-z][a-z0-9-]*$' \
+    '.kit/model/code/odd.yml sets arrity on the field lower_case name.count, which is not a key of a field; ' \
+    '.kit/model/code/odd.yml sets statuss on the field lower_case name.count, which is not a key of a field; ' \
+    '.kit/model/code/odd.yml sets sorce on the field lower_case name.kind, which is not a key of a field; ' \
+    '.kit/model/code/odd.yml sets orderd on the relation lower_case name.peers, which is not a key of a relation; ' \
+    'lower_case name.owner has read-by NOT a verb!!, which is not "<verb> <key>"'
+  do
+    [[ "$output" == *"${expected}"* ]] || { echo "missing: ${expected}"; return 1; }
+  done
+}
+
+@test "a repository's domain.yml adds layout hints, and setting the release's name is a finding" {
+  fresh-repo
+  mkdir -p .kit/model/code
+  printf 'name: Hijacked\nintro: Mine.\nlayout:\n  Ticket: {row: 0, col: 4}\n' > .kit/model/code/domain.yml
+  run kit model check
+  [ "$status" -eq 1 ]
+  [ "${lines[0]}" = '.kit/model/code/domain.yml sets name on the domain code, which modules/model/code/domain.yml sets; a later domain.yml adds only layout hints' ]
+  printf 'layout:\n  Ticket: {row: 0, col: 4}\n' > .kit/model/code/domain.yml
+  run kit model check
+  [ "$status" -eq 0 ]
+}
+
 @test "kit model --release= reads another directory in place of the release's" {
   fresh-repo
   run kit model "--release=${fixtures}/ok/release" check
@@ -162,6 +248,14 @@ release-counts() {
   run kit model "--release=${BATS_TEST_TMPDIR}/nowhere" check
   [ "$status" -eq 2 ]
   [[ "${lines[0]}" == "❌ --release=${BATS_TEST_TMPDIR}/nowhere is not a directory; run: "*"kit help model" ]]
+}
+
+@test "a --release that names a file exits 2 and names it" {
+  fresh-repo
+  : > plain
+  run kit model --release=plain check
+  [ "$status" -eq 2 ]
+  [[ "${lines[0]}" == "❌ --release=plain is not a directory; run: "*"kit help model" ]]
 }
 
 @test "--release= given twice exits 2 and says so" {
@@ -485,31 +579,134 @@ Layer: native (git)
   yq -p=xml . < atk.svg > /dev/null
 }
 
-# Every fixture made only for the diagrams is a model that holds, so a diagram test never leans on a broken model. lab is
-# left out by name: it holds an inverse that names nothing back, Tag.commit, on purpose, to draw a one-sided arrow.
-@test "every model fixture of the diagrams but lab passes kit model check" {
+# Every fixture of the model is a model that holds, so a test never leans on a broken model by accident, a new one
+# included. The fixtures left out are each broken on purpose, and each still exists.
+@test "every model fixture passes kit model check, but those broken on purpose" {
   fresh-repo
-  local fixture
-  for fixture in svg col st atk
+  local -A broken=(
+    [lab]="holds an inverse that names nothing back, Tag.commit, to draw a one-sided arrow"
+    [alias]="model:load refuses its alias" [anchor]="model:load refuses its anchor" [broken]="YAML cannot parse it"
+    [keyanchor]="model:load refuses the anchor on its key" [merge]="model:load refuses its merge key"
+    [two]="model:load refuses its second document" [quoted]="its quoted << key is no key of a model file"
+  )
+  local fixture name
+  for name in "${!broken[@]}"
   do
-    run kit model "--release=${fixtures}/${fixture}/release" check
-    [ "$status" -eq 0 ] || { echo "${fixture}: ${output}"; return 1; }
+    [ -d "${fixtures}/${name}/release" ] || { echo "no fixture ${name}, which the list names as broken"; return 1; }
+  done
+  for fixture in "${fixtures}"/*/release
+  do
+    name=$(basename "$(dirname "${fixture}")")
+    [[ -z "${broken[${name}]:-}" ]] || continue
+    run kit model "--release=${fixture}" check
+    [ "$status" -eq 0 ] || { echo "${name}: ${output}"; return 1; }
   done
 }
 
+# The schema and kit model check hold one set of rules: the check reads its keys, names, and patterns from the schema,
+# and these cases hold the rest equal. Each file breaks one rule, or none, and ajv and the check give it the same
+# verdict.
+@test "ajv with the schema and kit model check give each case the same verdict" {
+  PATH="${BATS_TEST_DIRNAME}/../node_modules/.bin:${PATH}"
+  needs ajv
+  fresh-repo
+  mkdir empty
+  local base='entity: X
+layer: logical
+means: an x
+fields:
+  name: {type: Text, status: held, read-by: workspace repos name}
+relations:
+  peers: {to: X, arity: many, inverse: X.peers}'
+  local -A cases=(
+    [good]="${base}"
+    [good-sum]=$'entity: X\nlayer: logical\nsum: true\nvariants:\n  One: {x: X}'
+    [good-stub]=$'entity: X\nstub: true\nmeans: named only'
+    [good-ordered]="${base}"$'\n  list: {to: X, arity: some, ordered: true, derived: the others}'
+    [bad-file-key]="${base}"$'\ncolour: red'
+    [bad-field-key]="${base/status: held,/status: held, sorce: derived,}"
+    [bad-relation-key]="${base/arity: many,/arity: many, orderd: true,}"
+    [bad-entity-name]="${base/entity: X/entity: lower_case}"
+    [bad-field-name]="${base/  name:/  Bad_Name:}"
+    [bad-relation-name]="${base}"$'\n  toMe: {to: X, derived: x}'
+    [bad-variant-name]=$'entity: X\nlayer: logical\nsum: true\nvariants:\n  odd: {x: X}'
+    [bad-variant-field]=$'entity: X\nlayer: logical\nsum: true\nvariants:\n  One: {Bad: X}'
+    [bad-read-by]="${base/read-by: workspace repos name/read-by: \"NOT a verb!!\"}"
+    [bad-read-by-star]="${base/read-by: workspace repos name/read-by: workspace repos checkouts.*}"
+    [bad-read-by-option]="${base/read-by: workspace repos name/read-by: workspaces --show}"
+    [bad-no-status]="${base/status: held, read-by: workspace repos name/}"
+    [bad-status]="${base/status: held/status: done}"
+    [bad-source]="${base/status: held,/status: held, source: cached,}"
+    [bad-arity]="${base/arity: many/arity: several}"
+    [bad-native-no-tool]="${base/layer: logical/layer: native}"
+    [bad-native-over]="${base/layer: logical/layer: native}"$'\ntool: git\nover: [X]'
+    [bad-logical-tool]="${base}"$'\ntool: git'
+    [bad-no-layer]="${base/layer: logical/}"
+    [bad-stub-fields]="${base}"$'\nstub: true'
+    [bad-variants-no-sum]="${base}"$'\nvariants:\n  One: {x: X}'
+    [bad-sum-no-variants]="${base}"$'\nsum: true'
+    [bad-field-ordered]="${base/status: held,/status: held, ordered: true,}"
+    [bad-relation-ordered]="${base}"$'\n  best: {to: X, arity: option, ordered: true, derived: x}'
+    [bad-relation-neither]="${base}"$'\n  lone: {to: X}'
+    [bad-relation-both]="${base}"$'\n  both: {to: X, inverse: X.both, derived: x}'
+    [bad-held-no-read-by]="${base/, read-by: workspace repos name/}"
+    [bad-derived-no-from]="${base/status: held,/status: held, source: derived,}"
+    [bad-means]="${base/means: an x/means: \"\"}"
+    [bad-enum-empty]="${base/type: Text/type: {enum: []\}}"
+    [bad-enum-twice]="${base/type: Text/type: {enum: [a, a]\}}"
+    [bad-over-twice]="${base}"$'\nover: [X, X]'
+  )
+  local name ajv_says check_says differ=''
+  for name in "${!cases[@]}"
+  do
+    mkdir -p "cases/${name}/.kit/model/x"
+    printf '%s\n' "${cases[${name}]}" > "cases/${name}/.kit/model/x/x.yml"
+    ajv validate --spec=draft2020 -s "${kit_root}/modules/model/model.schema.json" -d "cases/${name}/.kit/model/x/x.yml" \
+      >/dev/null 2>&1 && ajv_says=holds || ajv_says=refuses
+    (cd "cases/${name}" && git init --quiet && kit model "--release=${repo}/empty" check) >/dev/null 2>&1 \
+      && check_says=holds || check_says=refuses
+    [[ "${ajv_says}" == "${check_says}" && "${ajv_says}" == "$([[ "${name}" == good* ]] && echo holds || echo refuses)" ]] \
+      || differ+="${name}: ajv ${ajv_says}, kit model check ${check_says}"$'\n'
+  done
+  [ -z "${differ}" ] || { printf '%s' "${differ}"; return 1; }
+}
+
+# kit check runs kit model check where the repository has a .kit/model, and a repository without one is checked as
+# before.
+@test "kit check names each finding of the repository's model and fails; a repository with no .kit/model is as before" {
+  world-copy-repo installed
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 0 ]
+  local before=$output
+  mkdir -p .kit/model/code
+  printf 'entity: Bad\nlayer: logical\nmeens: x\n' > .kit/model/code/bad.yml
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"❌ kit model check: .kit/model/code/bad.yml sets meens, which is not a key of a model file; "* ]]
+  [[ "$output" == *"❌ 1 finding(s), each named above"* ]]
+  printf 'entity: Good\nlayer: logical\nmeans: x\n' > .kit/model/code/bad.yml
+  run "${kit_checkout}/bin/kit" check
+  [ "$status" -eq 0 ]
+  rm -r .kit/model
+  run "${kit_checkout}/bin/kit" check
+  [ "$output" = "${before}" ]
+}
+
 # The schema's read-by pattern, read from the schema and tried with jq's regex, which reads it as ajv does: a verb of
-# lowercase words, any after the first may be an option written without its value, then the key, never an option.
-@test "the schema's read-by takes an option among the verb's words, and refuses a malformed one or one last" {
+# lowercase words, any after the first may be an option written without its value, then the key, never an option, whose
+# last segment is never a bare *.
+@test "the schema's read-by takes an option among the verb's words, and refuses a malformed one, one last, or a last *" {
   local pattern good bad
   pattern=$(jq --raw-output '."$defs".field.properties."read-by".pattern' "${kit_root}/modules/model/model.schema.json")
   for good in 'workspace commits key' 'workspaces --show kind' 'workspaces --current recent.*.checkout' \
-    'flow changes pushed.age' 'facts tree.*.blob' 'workspaces --current --show kind'
+    'flow changes pushed.age' 'facts tree.*.blob' 'workspaces --current --show kind' 'workspace repos checkouts'
   do
     jq --exit-status --null-input --arg p "${pattern}" --arg r "${good}" '$r | test($p)' >/dev/null \
       || { echo "refused: ${good}"; return 1; }
   done
   for bad in '--show kind' 'workspaces -- kind' 'workspaces --Show kind' 'workspaces -show kind' \
-    'workspaces --show' 'workspaces kind --show' 'workspaces --show=team kind' 'kind'
+    'workspaces --show' 'workspaces kind --show' 'workspaces --show=team kind' 'kind' 'facts tree.*' \
+    'workspace repos checkouts.*' 'facts *'
   do
     ! jq --exit-status --null-input --arg p "${pattern}" --arg r "${bad}" '$r | test($p)' >/dev/null \
       || { echo "taken: ${bad}"; return 1; }

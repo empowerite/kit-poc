@@ -2,18 +2,60 @@
 # ----------------------------------------------------------------------------------------------------------------------
 # import "model" as model; with jq -L "${kit_jq}". It holds one section for each concern, in the order a run takes them:
 #
-#   merge   build turns the document model:load prints into one model, {domains, entities, findings}, and holds the
-#           repository's additions to the narrowing the release allows.
+#   schema  the keys, names, and patterns of a model file and a domain.yml, read from their schemas.
+#   merge   build turns the document model:load prints into one model, {domains, entities, extensions, findings}, and
+#           holds the repository's additions to the narrowing the release allows.
 #   check   check gives the findings of a built model, the merge's first, and stubs the names of its stub entities.
 #   tables  fields and relations give the markdown tables of an entity's fields and of a domain's relations.
 #   page    page gives the markdown body of a domain's page, made of those tables and the entities' sentences.
 #
-# build is given {"files": [{domain, origin, path, doc}]}, the release's files first, then the repository's. A file
-# named domain.yml is a domain's, and any other holds an entity (entity:) or an addition to one (extends:). An entity
-# is {domain, origin, layer, tool, over, means, stub, sum, variants, fields, relations}, the keys its file set, with
-# the domain and origin of the file that defines it. A finding is one sentence that names the entity and the file.
+# build is given {"files": [{domain, origin, path, doc}], "strays": [path]}, the release's files first, then the
+# repository's. A file named domain.yml is a domain's, and any other holds an entity (entity:) or an addition to one
+# (extends:). An entity is {domain, origin, path, layer, tool, over, means, stub, sum, variants, fields, relations}, the
+# keys its file set, with the domain, origin, and path of the file that defines it. A finding is one sentence that
+# names the entity, or the file.
 #
-# see: modules/bash/model.sh, docs/model.md, docs/superpowers/specs/2026-11-15-entity-model-design.md
+# see: modules/bash/model.sh, modules/model/model.schema.json, docs/model.md
+
+import "model.schema" as $model_schema {search: "../model"};
+import "domain.schema" as $domain_schema {search: "../model"};
+
+# ----------------------------------------------------------------------------------------------------------------------
+# schema
+# ----------------------------------------------------------------------------------------------------------------------
+
+# schema is modules/model/model.schema.json, the schema of an entity file, and domain_schema is domain.schema.json, the
+# schema of a domain.yml. The check reads every key, name, and pattern from them, so each rule has one definition, and
+# bin/ci holds the release's files to the same schemas with ajv.
+def schema: $model_schema[0];
+def domain_schema: $domain_schema[0];
+
+# file_keys, field_keys, relation_keys, and domain_keys are the keys a model file, a field, a relation, and a domain.yml
+# have, in the schema's order.
+def file_keys: [schema.properties | keys_unsorted[]];
+def field_keys: [schema["$defs"].field.properties | keys_unsorted[]];
+def relation_keys: [schema["$defs"].relation.properties | keys_unsorted[]];
+def domain_keys: [domain_schema.properties | keys_unsorted[]];
+
+# name_pattern is the pattern of an entity's or a variant's name, member_pattern that of a field's, a relation's, or a
+# variant field's name, and read_by_pattern that of a read-by.
+def name_pattern: schema["$defs"].name.pattern;
+def member_pattern: schema.properties.fields.propertyNames.pattern;
+def read_by_pattern: schema["$defs"].field.properties["read-by"].pattern;
+
+# member_from_pattern is the pattern of a from written Entity.member: an entity's name, a dot, and a member's name.
+def member_from_pattern: "^" + (name_pattern | ltrimstr("^") | rtrimstr("$")) + "\\." + (member_pattern | ltrimstr("^"));
+
+# scalar_types are the types that need no entity, layers the layers, and statuses and sources the values of a field's
+# status and source.
+def scalar_types: schema["$defs"].field.properties.type.anyOf[0].enum;
+def layers: schema.properties.layer.enum;
+def statuses: schema["$defs"].field.properties.status.enum;
+def sources: schema["$defs"].field.properties.source.enum;
+
+# listing is an array of words as a phrase: a, b, and c.
+def listing:
+  if length <= 2 then join(" and ") else (.[:-1] | join(", ")) + ", and " + .[-1] end;
 
 # ----------------------------------------------------------------------------------------------------------------------
 # merge
@@ -26,7 +68,7 @@ def entity_keys: ["layer", "tool", "over", "means", "stub", "sum", "variants", "
 def owned_keys: ["layer", "tool", "over", "stub", "sum", "means", "variants"];
 
 # arity_holds is the table of arities: each holds itself and the narrower ones. many holds some, option, and one; some and
-# option hold one. Its keys are the arities there are.
+# option hold one. Its keys are the arities there are, the schema's.
 def arity_holds: {many: ["many", "some", "option", "one"], some: ["some", "one"], option: ["option", "one"], one: ["one"]};
 
 # narrows($old; $new) is true when an arity $new is $old or narrower. An arity not written is one.
@@ -77,6 +119,19 @@ def sound($doc; $group; $name; $path):
        | "\($path) gives \($name).\(.key) as something that is not a mapping of keys"]}
   end;
 
+# member_findings($group; $name; $path) are the findings of the fields or relations ($group) a file gives the entity
+# $name, the input, a mapping of member name to member: a name the schema's member pattern refuses, and a key the
+# schema gives no field or relation.
+def member_findings($group; $name; $path):
+  ({fields: "field", relations: "relation"})[$group] as $kind
+  | ({fields: field_keys, relations: relation_keys})[$group] as $known
+  | to_entries[]
+  | (if (.key | test(member_pattern)) then empty
+      else "\($path) gives \($name) the \($kind) \(.key), whose name does not match \(member_pattern)" end),
+    (.key as $m | .value | select(type == "object") | keys_unsorted[] | select(IN($known[]) | not)
+      | "\($path) sets \(.) on the \($kind) \($name).\($m), which is not a key of a \($kind); a \($kind) has"
+        + " \($known | listing)");
+
 # define($files) is {entities, paths, findings}: each entity file's entity, the first definition of a name standing,
 # and a later one a finding. paths holds the path of the file that defines each entity.
 def define($files):
@@ -85,32 +140,40 @@ def define($files):
     | if .entities[$name] != null then
         .findings += ["\($name) is defined twice (\(.paths[$name]), \($f.path))"]
       else
-        (reduce ("fields", "relations") as $group ({entity: ({domain: $f.domain, origin: $f.origin}
+        (reduce ("fields", "relations") as $group ({entity: ({domain: $f.domain, origin: $f.origin, path: $f.path}
             + ($f.doc | with_entries(select(.key | IN(entity_keys[]) and (IN("fields", "relations") | not))))),
             findings: []};
           sound($f.doc; $group; $name; $f.path) as $s
           | .findings += $s.findings
-          | if $s.members != null then .entity[$group] = $s.members else . end)) as $built
+          | if $s.members != null then
+              .entity[$group] = $s.members
+              | .findings += [$s.members | member_findings($group; $name; $f.path)]
+            else . end)) as $built
         | .entities[$name] = $built.entity
+        | .findings += (if ($name | test(name_pattern)) then []
+            else ["\($f.path) names the entity \($name), which does not match \(name_pattern)"] end)
         | .findings += $built.findings
         | .paths[$name] = $f.path
       end);
 
-# extend($f) is the model {entities, findings} with the extends file $f applied: the fields and relations it adds, the
-# arities and enums it narrows, and a finding for all else.
+# extend($f) is the model {entities, extensions, findings} with the extends file $f applied: the fields and relations it
+# adds, the arities and enums it narrows, and a finding for all else. extensions records the file that adds each member.
 def extend($f):
   $f.doc.extends as $name
   | if .entities[$name] == null then .findings += ["\($f.path) extends \($name), which no file defines"]
     else
       reduce (owned_keys[] | select(. as $k | $f.doc | has($k))) as $k (.;
         .findings += ["\($f.path) sets \($k) on \($name), which it extends and does not define; \($k) is the defining"
-          + " file\u0027s to set"])
+          + " file's to set"])
       | reduce ("fields", "relations") as $group (.;
           sound($f.doc; $group; $name; $f.path) as $s
           | .findings += $s.findings
           | reduce (($s.members // {}) | keys_unsorted[]) as $m (.;
               "\($name).\($m)" as $label
-              | if .entities[$name][$group][$m] == null then .entities[$name][$group][$m] = $s.members[$m]
+              | if .entities[$name][$group][$m] == null then
+                  .entities[$name][$group][$m] = $s.members[$m]
+                  | .extensions[$name][$group][$m] = $f.path
+                  | .findings += [{($m): $s.members[$m]} | member_findings($group; $name; $f.path)]
                 else
                   (.entities[$name][$group][$m] | refine($group; $label; $f.path; $s.members[$m])) as $r
                   | .entities[$name][$group][$m] = $r.value
@@ -118,14 +181,71 @@ def extend($f):
                 end))
     end;
 
-# build gives the model of a document: {domains, entities, findings}. Every file that defines an entity is applied before
-# any that extends one, so an extension may extend an entity a file of the repository defines.
+# hint_findings($path) are the findings of a domain.yml's layout, the input: a layout that is not a mapping, a name the
+# schema's name pattern refuses, and a hint that is not {row, col} of whole numbers from 0.
+def hint_findings($path):
+  if . == null then empty
+  elif type != "object" then "\($path) gives layout as something that is not a mapping"
+  else
+    to_entries[]
+    | if (.key | test(name_pattern)) | not then
+        "\($path) gives a layout hint to \(.key), which does not match \(name_pattern)"
+      elif (.value | type) != "object" or (.value | keys) != ["col", "row"]
+        or any(.value[]; type != "number" or . < 0 or . != floor) then
+        "\($path) gives \(.key) a layout hint that is not {row, col} of whole numbers from 0"
+      else empty end
+  end;
+
+# good_hints is a layout, the input, with only the hints that hold.
+def good_hints:
+  if type != "object" then {}
+  else with_entries(select((.key | test(name_pattern)) and (.value | type) == "object" and (.value | keys) == ["col", "row"]
+    and all(.value[]; type == "number" and . >= 0 and . == floor))) end;
+
+# domains($files) is {domains, findings}: each domain.yml's domain. The first file for a domain, the release's, defines
+# it; a later one, the repository's, may only add layout hints for entities the first gives none. A key the schema gives
+# no domain.yml, a domain with no name or intro, a hint that does not hold, and a later file's name, intro, or hint the
+# first already gives, are findings.
+def domains($files):
+  reduce $files[] as $f ({domains: {}, paths: {}, findings: []};
+    $f.domain as $d
+    | $f.doc as $doc
+    | if ($doc | type) != "object" then .findings += ["\($f.path) is not a mapping of keys"]
+      else
+        .findings += [$doc | keys_unsorted[] | select(IN(domain_keys[]) | not)
+          | "\($f.path) sets \(.), which is not a key of a domain.yml; a domain.yml has \(domain_keys | listing)"]
+        | .findings += [$doc.layout | hint_findings($f.path)]
+        | if .domains[$d] == null then
+            .domains[$d] = ($doc | with_entries(select(.key | IN("name", "intro"))))
+              + (if $doc | has("layout") then {layout: ($doc.layout | good_hints)} else {} end)
+            | .paths[$d] = $f.path
+            | .findings += [("name", "intro") as $k | select(($doc[$k] | type) != "string" or $doc[$k] == "")
+                | "\($f.path) has no \($k); the domain.yml that defines a domain gives its name and intro"]
+          else
+            .paths[$d] as $first
+            | .findings += [("name", "intro") as $k | select($doc | has($k))
+                | "\($f.path) sets \($k) on the domain \($d), which \($first) sets; a later domain.yml adds only layout"
+                  + " hints"]
+            | reduce ($doc.layout | good_hints | to_entries[]) as $h (.;
+                if .domains[$d].layout[$h.key] != null then
+                  .findings += ["\($f.path) gives a layout hint to \($h.key), which \($first) gives"]
+                else .domains[$d].layout[$h.key] = $h.value end)
+          end
+      end);
+
+# build gives the model of a document: {domains, entities, extensions, findings}. Every file that defines an entity is
+# applied before any that extends one, so an extension may extend an entity a file of the repository defines.
 def build:
   [.files[] | select(.path | split("/") | last == "domain.yml")] as $domain_files
   | [.files[] | select((.path | split("/") | last) != "domain.yml")] as $files
   | [$files[] | select((.doc | type) == "object" and (.doc.entity | type) == "string" and .doc.extends == null)] as $entity_files
   | [$files[] | select((.doc | type) == "object" and .doc.entity == null and (.doc.extends | type) == "string")] as $extend_files
-  | ([$files[] | select(((.doc | type) == "object" and (.doc.entity != null or .doc.extends != null)) | not)
+  | ([(.strays // [])[]
+      | "\(.) is not read: a model file is <domain>/<entity>.yml or <domain>/domain.yml, one directory down"]
+    + [$files[] | select((.doc | type) == "object") | .path as $p | .doc | keys_unsorted[]
+      | select(IN(file_keys[]) | not)
+      | "\($p) sets \(.), which is not a key of a model file; a model file has \(file_keys | listing)"]
+    + [$files[] | select(((.doc | type) == "object" and (.doc.entity != null or .doc.extends != null)) | not)
       | "\(.path) names neither an entity nor an extension"]
     + [$files[] | select((.doc | type) == "object" and .doc.entity != null and .doc.extends != null)
       | "\(.path) names both an entity and an extension"]
@@ -135,19 +255,15 @@ def build:
     + [$files[] | select((.doc | type) == "object" and .doc.entity == null and .doc.extends != null
         and (.doc.extends | type) != "string")
       | "\(.path) gives extends as something that is not a string"]) as $unnamed
+  | domains($domain_files) as $domains
   | define($entity_files) as $defined
-  | reduce $extend_files[] as $f ({entities: $defined.entities, findings: $defined.findings}; extend($f))
-  | .findings += $unnamed
-  | {domains: ([$domain_files[] | {key: .domain, value: (.doc | with_entries(select(.key | IN("name", "intro", "layout"))))}]
-        | from_entries),
-      entities, findings};
+  | reduce $extend_files[] as $f ({entities: $defined.entities, extensions: {}, findings: $defined.findings}; extend($f))
+  | .findings = $unnamed + $domains.findings + .findings
+  | {domains: $domains.domains, entities, extensions, findings};
 
 # ----------------------------------------------------------------------------------------------------------------------
 # check
 # ----------------------------------------------------------------------------------------------------------------------
-
-# scalar_types are the types that need no entity.
-def scalar_types: ["Text", "Int", "Bool", "Bytes", "Path", "Url", "Time", "Hash"];
 
 # show is a value as a finding writes it: a string as it is, anything else as JSON.
 def show: if type == "string" then . else tojson end;
@@ -158,10 +274,16 @@ def sentence: type == "string" and . != "";
 # entity_named($model) is true when the string is the name of an entity of the model.
 def entity_named($model): . as $name | type == "string" and ($model.entities | has($name));
 
-# type_known($model) is true for a scalar, an {enum: [..]}, and the name of an entity.
+# member_path($model; $entity; $group; $m) is the path of the file that gives an entity's field or relation: the
+# extension that adds it, or the file that defines the entity.
+def member_path($model; $entity; $group; $m): $model.extensions[$entity][$group][$m] // $model.entities[$entity].path;
+
+# type_known($model) is true for a scalar, an {enum: [..]} of distinct words, and the name of an entity.
 def type_known($model):
   if type == "string" then IN(scalar_types[]) or entity_named($model)
-  elif type == "object" then (.enum | type) == "array" and (.enum | length) > 0 and all(.enum[]; type == "string")
+  elif type == "object" then
+    keys == ["enum"] and (.enum | type) == "array" and (.enum | length) > 0 and all(.enum[]; sentence)
+    and (.enum | unique | length) == (.enum | length)
   else false end;
 
 # arity_findings($label) is a finding when a field or relation sets an arity that is not in the arity table.
@@ -172,18 +294,52 @@ def arity_findings($label):
       else "\($label) has arity \($a | show), which is not one, option, many, or some" end
   else empty end;
 
-# field_findings($model; $label) are the findings of one field: its type, arity, source, status, and what a held or a
-# derived field must say.
+# ordered_findings($label) is a finding when a field or relation sets ordered to something that is not true or false,
+# or on an arity that is not many or some: only a list has an order.
+def ordered_findings($label):
+  if has("ordered") then
+    if (.ordered | type) != "boolean" then "\($label) has ordered \(.ordered | show), which is not true or false"
+    elif (has("arity") | not) or (.arity | IN("one", "option")) then
+      "\($label) sets ordered on arity \(.arity // "one"), which is not many or some"
+    else empty end
+  else empty end;
+
+# sentence_findings($label; $keys) are the findings of the keys of the input that, when set, hold a sentence.
+def sentence_findings($label; $keys):
+  . as $member
+  | $keys[] | select(. as $k | $member | has($k) and ((.[$k] | sentence) | not))
+  | "\($label) gives \(.) as something that is not a sentence";
+
+# from_findings($model; $label) is a finding when a from written Entity.member names no field or relation. A from that
+# is a sentence is not checked.
+def from_findings($model; $label):
+  if (.from | type) == "string" and (.from | test(member_from_pattern)) then
+    (.from | split(".")) as [$e, $m]
+    | if ($model.entities[$e].fields[$m] // $model.entities[$e].relations[$m]) != null then empty
+      else "\($label) names from \(.from), which is not a field or a relation of an entity" end
+  else empty end;
+
+# field_findings($model; $label) are the findings of one field: its type, arity, order, source, status, what a held or a
+# derived field must say, its read-by, and its from.
 def field_findings($model; $label):
   (if (.type | type_known($model)) then empty
     else "\($label) has type \(.type | show), which is not a scalar, an enum, or an entity" end),
   arity_findings($label),
-  (if has("source") and (.source | IN("stored", "derived") | not)
-    then "\($label) has source \(.source | show), which is not stored or derived" else empty end),
-  (if has("status") and (.status | IN("held", "planned", "unused") | not)
-    then "\($label) has status \(.status | show), which is not held, planned, or unused" else empty end),
+  ordered_findings($label),
+  (if has("source") and (.source | IN(sources[]) | not)
+    then "\($label) has source \(.source | show), which is not \(sources | map(tostring) | join(" or "))" else empty end),
+  (if has("status") | not then "\($label) has no status; it is \(statuses | listing | sub(" and "; " or "))"
+    elif (.status | IN(statuses[]) | not)
+    then "\($label) has status \(.status | show), which is not \(statuses | listing | sub(" and "; " or "))"
+    else empty end),
   (if .status == "held" and ((."read-by" | sentence) | not) then "\($label) is held and has no read-by" else empty end),
-  (if .source == "derived" and ((.from | sentence) | not) then "\($label) is derived and has no from" else empty end);
+  (if (."read-by" | sentence) and ((."read-by" | test(read_by_pattern)) | not) then
+      "\($label) has read-by \(."read-by"), which is not \"<verb> <key>\" as the read-by pattern of"
+      + " modules/model/model.schema.json writes it"
+    else empty end),
+  (if .source == "derived" and ((.from | sentence) | not) then "\($label) is derived and has no from" else empty end),
+  sentence_findings($label; ["from", "means"]),
+  from_findings($model; $label);
 
 # inverse_findings($model; $entity; $label) are the findings of the inverse a relation names: it is written
 # Entity.relation, exists, names this relation back, and sits on the entity this relation goes to. The inverse's own
@@ -227,34 +383,42 @@ def relation_findings($model; $entity; $name):
   | (if (.to | entity_named($model)) then empty
     else "\($label) goes to \(.to | show), which is not an entity" end),
   arity_findings($label),
-  (if has("ordered") then
-      if (.ordered | type) != "boolean" then "\($label) has ordered \(.ordered | show), which is not true or false"
-      elif (has("arity") | not) or (.arity | IN("one", "option")) then
-        "\($label) sets ordered on arity \(.arity // "one"), which is not many or some"
-      else empty end
-    else empty end),
+  ordered_findings($label),
   (if .inverse != null and .derived != null then "\($label) has both an inverse and a derived; it has one"
     elif .inverse == null and .derived == null then "\($label) has neither an inverse nor a derived; it has one"
     elif .derived != null then
       if (.derived | sentence) then empty else "\($label) gives derived as something that is not a sentence" end
     else inverse_findings($model; $entity; $label) end),
+  sentence_findings($label; ["means"]),
   reach_findings($model; $entity; $label);
 
-# kind_findings($name) are the findings of the keys that say what an entity is: its layer, which only a stub may leave
-# out, and tool, and sum and stub, which are true or false.
-def kind_findings($name):
+# kind_findings($model; $name) are the findings of the keys that say what an entity is: its layer, which only a stub may
+# leave out; tool, which a native entity names and a logical one does not; over, a list of entities, each once, that
+# only a logical entity stands over; sum and stub, which are true or false; and means, a sentence.
+def kind_findings($model; $name):
   (if has("layer") | not then (if .stub == true then empty else "\($name) has no layer" end) else empty end),
-  (if has("layer") and (.layer | IN("native", "logical") | not)
+  (if has("layer") and (.layer | IN(layers[]) | not)
       then "\($name) has layer \(.layer | show), which is not native or logical" else empty end),
   (if .layer == "native" and ((.tool | sentence) | not) then "\($name) is native and names no tool"
     elif .layer == "logical" and .tool != null
       then "\($name) is logical and names a tool, \(.tool | show); only a native entity has one" else empty end),
+  (if has("over") | not then empty
+    elif (.over | type) != "array" or any(.over[]; type != "string") or (.over | unique | length) != (.over | length)
+      then "\($name) gives over as something that is not a list of entity names, each once"
+    else
+      (if .layer == "native" then
+          "\($name) is native and stands over \(.over | join(", ")); only a logical entity stands over others"
+        else empty end),
+      (.over[] | select(entity_named($model) | not) | "\($name) stands over \(.), which is not an entity")
+    end),
   (("sum", "stub") as $k
     | if has($k) and (.[$k] | type) != "boolean"
-      then "\($name) has \($k) \(.[$k] | show), which is not true or false" else empty end);
+      then "\($name) has \($k) \(.[$k] | show), which is not true or false" else empty end),
+  sentence_findings($name; ["means"]);
 
-# variant_findings($model; $name) are the findings of an entity's variants: a sum has a non-empty mapping of them, each a
-# mapping of field to the entity it holds, and an entity that is not a sum has none.
+# variant_findings($model; $name) are the findings of an entity's variants: a sum has a non-empty mapping of them, each
+# named as an entity is, and each a mapping of field to the entity it holds, the field named as a member is; an entity
+# that is not a sum has none.
 def variant_findings($model; $name):
   if .sum != true then
     if has("variants") then "\($name) has variants and is not a sum" else empty end
@@ -264,20 +428,29 @@ def variant_findings($model; $name):
   else
     .variants | to_entries | sort_by(.key)[]
     | .key as $variant
-    | if (.value | type) != "object" then "\($name) variant \($variant) is not a mapping of field to entity"
-      else .value | to_entries | sort_by(.key)[]
-        | select(.value | entity_named($model) | not)
-        | "\($name) variant \($variant) field \(.key) names \(.value | show), which is not an entity"
-      end
+    | (if ($variant | test(name_pattern)) then empty
+        else "\($name) variant \($variant) has a name that does not match \(name_pattern)" end),
+      (if (.value | type) != "object" then "\($name) variant \($variant) is not a mapping of field to entity"
+        else .value | to_entries | sort_by(.key)[]
+          | (if (.key | test(member_pattern)) then empty
+              else "\($name) variant \($variant) field \(.key) has a name that does not match \(member_pattern)" end),
+            (if (.value | entity_named($model)) then empty
+              else "\($name) variant \($variant) field \(.key) names \(.value | show), which is not an entity" end)
+        end)
   end;
 
-# entity_findings($model; $name) are the findings of one entity: a stub with fields, its kind, its variants, then its
-# fields and its relations, each by name.
+# entity_findings($model; $name) are the findings of one entity: a stub with fields, each with the file that gives it, a
+# name that is both a field and a relation, its kind, its variants, then its fields and its relations, each by name.
 def entity_findings($model; $name):
   $model.entities[$name] as $entity
-  | (if $entity.stub == true and (($entity.fields // {}) | length) > 0
-      then "\($name) is a stub and has fields: \($entity.fields | keys | join(", "))" else empty end),
-    ($entity | kind_findings($name)),
+  | (if $entity.stub == true and (($entity.fields // {}) | length) > 0 then
+        "\($name) is a stub and has fields: "
+        + ([$entity.fields | keys[] | "\(.) (\(member_path($model; $name; "fields"; .)))"] | join(", "))
+      else empty end),
+    (($entity.fields // {}) | keys[] as $m | select(($entity.relations // {}) | has($m))
+      | "\($name).\($m) is both a field (\(member_path($model; $name; "fields"; $m))) and a relation"
+        + " (\(member_path($model; $name; "relations"; $m))); a member is one or the other"),
+    ($entity | kind_findings($model; $name)),
     ($entity | variant_findings($model; $name)),
     (($entity.fields // {}) | . as $fields | keys[] as $f | $fields[$f] | field_findings($model; "\($name).\($f)")),
     (($entity.relations // {}) | . as $relations | keys[] as $r | $relations[$r] | relation_findings($model; $name; $r));
@@ -343,9 +516,10 @@ def table($header; $rows): [($header | row), ($header | map("---") | row)] + $ro
 def type_text:
   if type == "object" and (.enum | type) == "array" then "enum(\(.enum | map(show) | join(", ")))" else show end;
 
-# field_row is the row of a field: its type, arity, source, status, what reads it, and what it means.
+# field_row is the row of a field: its type, its arity with ordered after it when its order is data, its source, its
+# status, what reads it, and what it means.
 def field_row($name):
-  [$name, (.type | type_text), (.arity | arity_text), (.source // "stored"), .status, (if (.["read-by"] // "") == "" then "" else "`\(.["read-by"])`" end),
+  [$name, (.type | type_text), ((.arity | arity_text) + (if .ordered == true then " ordered" else "" end)), (.source // "stored"), .status, (if (.["read-by"] // "") == "" then "" else "`\(.["read-by"])`" end),
     (if .source == "derived" then "derived from \(.from // ""). \(.means // "")" | sub(" $"; "") else .means end | prose)];
 
 # fields gives the table of an entity of a built model, given its name: its fields by name; for a sum, its variants and

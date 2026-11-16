@@ -7,7 +7,7 @@
 # domain; a key the file did not set is left out.
 import "model" as model; model::build
 {"files": [{"domain": "code", "origin": "release", "path": "m/code/domain.yml", "doc": {"name": "Code", "intro": "Source.", "layout": {"Commit": {"row": 0, "col": 0}}}}, {"domain": "code", "origin": "release", "path": "m/code/commit.yml", "doc": {"entity": "Commit", "layer": "native", "tool": "git", "means": "A commit.", "fields": {"id": {"type": "Hash"}}, "relations": {"parents": {"to": "Commit", "arity": "many"}}}}]}
-{"domains": {"code": {"name": "Code", "intro": "Source.", "layout": {"Commit": {"row": 0, "col": 0}}}}, "entities": {"Commit": {"domain": "code", "origin": "release", "layer": "native", "tool": "git", "means": "A commit.", "fields": {"id": {"type": "Hash"}}, "relations": {"parents": {"to": "Commit", "arity": "many"}}}}, "findings": []}
+{"domains": {"code": {"name": "Code", "intro": "Source.", "layout": {"Commit": {"row": 0, "col": 0}}}}, "entities": {"Commit": {"domain": "code", "origin": "release", "path": "m/code/commit.yml", "layer": "native", "tool": "git", "means": "A commit.", "fields": {"id": {"type": "Hash"}}, "relations": {"parents": {"to": "Commit", "arity": "many"}}}}, "extensions": {}, "findings": []}
 
 # an extends adds a field
 import "model" as model; model::build | {findings, fields: .entities.Commit.fields, origin: .entities.Commit.origin}
@@ -59,13 +59,13 @@ import "model" as model; model::build | [.findings, .entities]
 # an extends sets layer, tool, over, stub, or sum: each is the defining file's, and a finding; the entity is unchanged
 import "model" as model; model::build | [.findings, .entities.Commit]
 {"files": [{"domain": "code", "origin": "release", "path": "m/commit.yml", "doc": {"entity": "Commit", "layer": "native", "tool": "git"}}, {"domain": "mine", "origin": "repository", "path": "r/commit.yml", "doc": {"extends": "Commit", "layer": "logical", "tool": "hg", "over": ["Commit"], "stub": true, "sum": true, "means": "x", "variants": {"A": {"f": "Commit"}}}}]}
-[["r/commit.yml sets layer on Commit, which it extends and does not define; layer is the defining file's to set", "r/commit.yml sets tool on Commit, which it extends and does not define; tool is the defining file's to set", "r/commit.yml sets over on Commit, which it extends and does not define; over is the defining file's to set", "r/commit.yml sets stub on Commit, which it extends and does not define; stub is the defining file's to set", "r/commit.yml sets sum on Commit, which it extends and does not define; sum is the defining file's to set", "r/commit.yml sets means on Commit, which it extends and does not define; means is the defining file's to set", "r/commit.yml sets variants on Commit, which it extends and does not define; variants is the defining file's to set"], {"domain": "code", "origin": "release", "layer": "native", "tool": "git"}]
+[["r/commit.yml sets layer on Commit, which it extends and does not define; layer is the defining file's to set", "r/commit.yml sets tool on Commit, which it extends and does not define; tool is the defining file's to set", "r/commit.yml sets over on Commit, which it extends and does not define; over is the defining file's to set", "r/commit.yml sets stub on Commit, which it extends and does not define; stub is the defining file's to set", "r/commit.yml sets sum on Commit, which it extends and does not define; sum is the defining file's to set", "r/commit.yml sets means on Commit, which it extends and does not define; means is the defining file's to set", "r/commit.yml sets variants on Commit, which it extends and does not define; variants is the defining file's to set"], {"domain": "code", "origin": "release", "path": "m/commit.yml", "layer": "native", "tool": "git"}]
 
 # a file that names neither an entity nor an extension, such as one with a mistyped key, is a finding that names the
-# path; domain.yml is not one
+# path, and so is the mistyped key; domain.yml is not one
 import "model" as model; model::build | [.findings, (.entities | keys)]
-{"files": [{"domain": "code", "origin": "release", "path": "m/code/domain.yml", "doc": {"name": "Code"}}, {"domain": "mine", "origin": "repository", "path": "r/typo.yml", "doc": {"entiy": "Foo"}}, {"domain": "mine", "origin": "repository", "path": "r/ok.yml", "doc": {"entity": "Bar"}}]}
-[["r/typo.yml names neither an entity nor an extension"], ["Bar"]]
+{"files": [{"domain": "code", "origin": "release", "path": "m/code/domain.yml", "doc": {"name": "Code", "intro": "Source."}}, {"domain": "mine", "origin": "repository", "path": "r/typo.yml", "doc": {"entiy": "Foo"}}, {"domain": "mine", "origin": "repository", "path": "r/ok.yml", "doc": {"entity": "Bar"}}]}
+[["r/typo.yml sets entiy, which is not a key of a model file; a model file has entity, extends, layer, tool, over, means, stub, sum, variants, fields, and relations", "r/typo.yml names neither an entity nor an extension"], ["Bar"]]
 
 # a file that names both an entity and an extension is a finding that names the path, and it defines and extends nothing
 import "model" as model; model::build | [.findings, (.entities | keys), .entities.Bar.fields]
@@ -76,7 +76,7 @@ import "model" as model; model::build | [.findings, (.entities | keys), .entitie
 # file, whether the entity has the member or not; the rest of the file still applies
 import "model" as model; model::build | [.findings, .entities.Commit]
 {"files": [{"domain": "code", "origin": "release", "path": "m/commit.yml", "doc": {"entity": "Commit", "fields": {"a": {"type": "Text"}}, "relations": {"r": {"to": "Commit"}}}}, {"domain": "mine", "origin": "repository", "path": "r/commit.yml", "doc": {"extends": "Commit", "fields": {"a": null, "b": null, "c": {"type": "Int"}}, "relations": {"r": "many"}}}]}
-[["r/commit.yml gives Commit.a as something that is not a mapping of keys", "r/commit.yml gives Commit.b as something that is not a mapping of keys", "r/commit.yml gives Commit.r as something that is not a mapping of keys"], {"domain": "code", "origin": "release", "fields": {"a": {"type": "Text"}, "c": {"type": "Int"}}, "relations": {"r": {"to": "Commit"}}}]
+[["r/commit.yml gives Commit.a as something that is not a mapping of keys", "r/commit.yml gives Commit.b as something that is not a mapping of keys", "r/commit.yml gives Commit.r as something that is not a mapping of keys"], {"domain": "code", "origin": "release", "path": "m/commit.yml", "fields": {"a": {"type": "Text"}, "c": {"type": "Int"}}, "relations": {"r": {"to": "Commit"}}}]
 
 # an extends with fields that is not a mapping is a finding, and its relations still apply
 import "model" as model; model::build | [.findings, .entities.Commit.fields, .entities.Commit.relations]
@@ -96,12 +96,12 @@ import "model" as model; model::build | [.findings, .entities.Commit.fields]
 # an entity file with fields that is not a mapping is a finding, and the entity holds no fields; its relations still apply
 import "model" as model; model::build | [.findings, .entities.Commit]
 {"files": [{"domain": "code", "origin": "repository", "path": "r/commit.yml", "doc": {"entity": "Commit", "means": "x", "fields": ["a"], "relations": {"r": {"to": "Commit"}}}}]}
-[["r/commit.yml gives fields on Commit as something that is not a mapping"], {"domain": "code", "origin": "repository", "means": "x", "relations": {"r": {"to": "Commit"}}}]
+[["r/commit.yml gives fields on Commit as something that is not a mapping"], {"domain": "code", "origin": "repository", "path": "r/commit.yml", "means": "x", "relations": {"r": {"to": "Commit"}}}]
 
 # an entity file with relations that is not a mapping is a finding
 import "model" as model; model::build | [.findings, .entities.Commit]
 {"files": [{"domain": "code", "origin": "repository", "path": "r/commit.yml", "doc": {"entity": "Commit", "fields": {"a": {"type": "Text"}}, "relations": null}}]}
-[["r/commit.yml gives relations on Commit as something that is not a mapping"], {"domain": "code", "origin": "repository", "fields": {"a": {"type": "Text"}}}]
+[["r/commit.yml gives relations on Commit as something that is not a mapping"], {"domain": "code", "origin": "repository", "path": "r/commit.yml", "fields": {"a": {"type": "Text"}}}]
 
 # an entity file with a null field or a field that is not a mapping is a finding that names the field, and the other fields
 # stay; an extends can then still add to the entity
@@ -167,7 +167,7 @@ import "model" as model; model::build | model::check
 
 # a type that names no entity or scalar is a finding; an enum, a scalar, and an entity are not
 import "model" as model; model::build | model::check
-{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": "Ghost"}, "b": {"type": {"enum": ["x"]}}, "c": {"type": "Text"}, "d": {"type": "B"}, "e": {"type": 5}, "f": {"means": "no type"}, "g": {"type": {"oneof": []}}}}}, {"domain": "code", "origin": "release", "path": "b.yml", "doc": {"entity": "B", "layer": "logical"}}]}
+{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": "Ghost", "status": "planned"}, "b": {"type": {"enum": ["x"]}, "status": "planned"}, "c": {"type": "Text", "status": "planned"}, "d": {"type": "B", "status": "planned"}, "e": {"type": 5, "status": "planned"}, "f": {"means": "no type", "status": "planned"}, "g": {"type": {"oneof": []}, "status": "planned"}}}}, {"domain": "code", "origin": "release", "path": "b.yml", "doc": {"entity": "B", "layer": "logical"}}]}
 ["A.a has type Ghost, which is not a scalar, an enum, or an entity", "A.e has type 5, which is not a scalar, an enum, or an entity", "A.f has type null, which is not a scalar, an enum, or an entity", "A.g has type {\"oneof\":[]}, which is not a scalar, an enum, or an entity"]
 
 # a sum variant that names no entity is a finding that names the sum, the variant, and the field
@@ -198,17 +198,17 @@ import "model" as model; model::build | model::check
 
 # an arity that is not one, option, many, or some is a finding, null too, on a field or a relation of an entity: file
 import "model" as model; model::build | model::check
-{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": "Text", "arity": null}, "b": {"type": "Text", "arity": "several"}, "c": {"type": "Text", "arity": "some"}}, "relations": {"r": {"to": "A", "arity": 2, "derived": "x"}}}}]}
+{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": "Text", "arity": null, "status": "planned"}, "b": {"type": "Text", "arity": "several", "status": "planned"}, "c": {"type": "Text", "arity": "some", "status": "planned"}}, "relations": {"r": {"to": "A", "arity": 2, "derived": "x"}}}}]}
 ["A.a has arity null, which is not one, option, many, or some", "A.b has arity several, which is not one, option, many, or some", "A.r has arity 2, which is not one, option, many, or some"]
 
 # a member an extends adds with a null arity is copied by the merge and is a finding of the check
 import "model" as model; model::build | model::check
-{"files": [{"domain": "code", "origin": "release", "path": "c.yml", "doc": {"entity": "Commit", "layer": "logical"}}, {"domain": "mine", "origin": "repository", "path": "r/c.yml", "doc": {"extends": "Commit", "fields": {"ticket": {"type": "Text", "arity": null}}, "relations": {"peer": {"to": "Commit", "arity": "lots", "derived": "x"}}}}]}
+{"files": [{"domain": "code", "origin": "release", "path": "c.yml", "doc": {"entity": "Commit", "layer": "logical"}}, {"domain": "mine", "origin": "repository", "path": "r/c.yml", "doc": {"extends": "Commit", "fields": {"ticket": {"type": "Text", "arity": null, "status": "planned"}}, "relations": {"peer": {"to": "Commit", "arity": "lots", "derived": "x"}}}}]}
 ["Commit.ticket has arity null, which is not one, option, many, or some", "Commit.peer has arity lots, which is not one, option, many, or some"]
 
 # a source that is not stored or derived, and a status that is not held, planned, or unused, is a finding
 import "model" as model; model::build | model::check
-{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": "Text", "source": "cached"}, "b": {"type": "Text", "status": "done"}, "c": {"type": "Text", "source": "stored", "status": "planned"}}}}]}
+{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": "Text", "source": "cached", "status": "planned"}, "b": {"type": "Text", "status": "done"}, "c": {"type": "Text", "source": "stored", "status": "planned"}}}}]}
 ["A.a has source cached, which is not stored or derived", "A.b has status done, which is not held, planned, or unused"]
 
 # a held field with no read-by is a finding, and so is one whose read-by is empty
@@ -218,7 +218,7 @@ import "model" as model; model::build | model::check
 
 # a derived field with no from is a finding
 import "model" as model; model::build | model::check
-{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": "Text", "source": "derived"}, "b": {"type": "Text", "source": "derived", "from": "the subject"}, "c": {"type": "Text", "source": "stored"}}}}]}
+{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": "Text", "source": "derived", "status": "planned"}, "b": {"type": "Text", "source": "derived", "from": "the subject", "status": "planned"}, "c": {"type": "Text", "source": "stored", "status": "planned"}}}}]}
 ["A.a is derived and has no from"]
 
 # a relation with an inverse and a derived is a finding, and so is one with neither, and a derived that is not a sentence
@@ -226,10 +226,10 @@ import "model" as model; model::build | model::check
 {"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "relations": {"r": {"to": "B", "derived": "the r of it", "inverse": "B.x"}, "s": {"to": "B"}, "t": {"to": "B", "derived": ""}, "u": {"to": "B", "derived": 3}}}}, {"domain": "code", "origin": "release", "path": "b.yml", "doc": {"entity": "B", "layer": "logical", "relations": {"x": {"to": "A", "derived": "the x of it"}}}}]}
 ["A.r has both an inverse and a derived; it has one", "A.s has neither an inverse nor a derived; it has one", "A.t gives derived as something that is not a sentence", "A.u gives derived as something that is not a sentence"]
 
-# a stub with fields is a finding that names them
+# a stub with fields is a finding that names them, each with its file
 import "model" as model; model::build | model::check
-{"files": [{"domain": "platform", "origin": "release", "path": "s.yml", "doc": {"entity": "Service", "stub": true, "fields": {"name": {"type": "Text"}, "url": {"type": "Url"}}}}]}
-["Service is a stub and has fields: name, url"]
+{"files": [{"domain": "platform", "origin": "release", "path": "s.yml", "doc": {"entity": "Service", "stub": true, "fields": {"name": {"type": "Text", "status": "planned"}, "url": {"type": "Url", "status": "planned"}}}}]}
+["Service is a stub and has fields: name (s.yml), url (s.yml)"]
 
 # a stub may hold relations, the inverse sides of relations into it, and a relation to a stub holds; the stub is counted
 import "model" as model; model::build | [model::check, model::stubs]
@@ -248,13 +248,13 @@ import "model" as model; model::build | [model::check, model::stubs]
 
 # check gives the merge's findings first, then the structural ones in the order of entity name, field name, relation name
 import "model" as model; model::build | model::check
-{"files": [{"domain": "code", "origin": "release", "path": "b.yml", "doc": {"entity": "B", "layer": "logical", "fields": {"z": {"type": "Ghost"}, "a": {"type": "Ghost"}}, "relations": {"r": {"to": "B"}}}}, {"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": "Ghost"}}}}, {"domain": "mine", "origin": "repository", "path": "r/x.yml", "doc": {"extends": "Ghost"}}]}
+{"files": [{"domain": "code", "origin": "release", "path": "b.yml", "doc": {"entity": "B", "layer": "logical", "fields": {"z": {"type": "Ghost", "status": "planned"}, "a": {"type": "Ghost", "status": "planned"}}, "relations": {"r": {"to": "B"}}}}, {"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": "Ghost", "status": "planned"}}}}, {"domain": "mine", "origin": "repository", "path": "r/x.yml", "doc": {"extends": "Ghost"}}]}
 ["r/x.yml extends Ghost, which no file defines", "A.a has type Ghost, which is not a scalar, an enum, or an entity", "B.a has type Ghost, which is not a scalar, an enum, or an entity", "B.z has type Ghost, which is not a scalar, an enum, or an entity", "B.r has neither an inverse nor a derived; it has one"]
 
 # a layer that is not native or logical is a finding; a native entity names its tool, and a logical one has none; an entity
 # with no layer is a finding, unless it is a stub
 import "model" as model; model::build | model::check
-{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "physical"}}, {"domain": "code", "origin": "release", "path": "b.yml", "doc": {"entity": "B", "layer": "native"}}, {"domain": "code", "origin": "release", "path": "c.yml", "doc": {"entity": "C", "layer": "logical", "tool": "git"}}, {"domain": "code", "origin": "release", "path": "d.yml", "doc": {"entity": "D", "layer": "native", "tool": "git"}}, {"domain": "code", "origin": "release", "path": "e.yml", "doc": {"entity": "E", "layer": "logical", "over": ["git worktree"]}}, {"domain": "code", "origin": "release", "path": "f.yml", "doc": {"entity": "F", "layer": 3}}, {"domain": "code", "origin": "release", "path": "g.yml", "doc": {"entity": "G", "layer": "native", "tool": ""}}, {"domain": "code", "origin": "release", "path": "h.yml", "doc": {"entity": "H"}}, {"domain": "code", "origin": "release", "path": "i.yml", "doc": {"entity": "I", "stub": true}}]}
+{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "physical"}}, {"domain": "code", "origin": "release", "path": "b.yml", "doc": {"entity": "B", "layer": "native"}}, {"domain": "code", "origin": "release", "path": "c.yml", "doc": {"entity": "C", "layer": "logical", "tool": "git"}}, {"domain": "code", "origin": "release", "path": "d.yml", "doc": {"entity": "D", "layer": "native", "tool": "git"}}, {"domain": "code", "origin": "release", "path": "e.yml", "doc": {"entity": "E", "layer": "logical", "over": ["D"]}}, {"domain": "code", "origin": "release", "path": "f.yml", "doc": {"entity": "F", "layer": 3}}, {"domain": "code", "origin": "release", "path": "g.yml", "doc": {"entity": "G", "layer": "native", "tool": ""}}, {"domain": "code", "origin": "release", "path": "h.yml", "doc": {"entity": "H"}}, {"domain": "code", "origin": "release", "path": "i.yml", "doc": {"entity": "I", "stub": true}}]}
 ["A has layer physical, which is not native or logical", "B is native and names no tool", "C is logical and names a tool, git; only a native entity has one", "F has layer 3, which is not native or logical", "G is native and names no tool", "H has no layer"]
 
 # a sum or a stub that is not true or false is a finding, not ignored
@@ -269,8 +269,127 @@ import "model" as model; model::build | model::check
 
 # an enum type is a non-empty list of strings
 import "model" as model; model::build | model::check
-{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": {"enum": []}}, "b": {"type": {"enum": [1]}}, "c": {"type": {"enum": "x"}}, "d": {"type": {"enum": ["x", "y"]}}}}}]}
+{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": {"enum": []}, "status": "planned"}, "b": {"type": {"enum": [1]}, "status": "planned"}, "c": {"type": {"enum": "x"}, "status": "planned"}, "d": {"type": {"enum": ["x", "y"]}, "status": "planned"}}}}]}
 ["A.a has type {\"enum\":[]}, which is not a scalar, an enum, or an entity", "A.b has type {\"enum\":[1]}, which is not a scalar, an enum, or an entity", "A.c has type {\"enum\":\"x\"}, which is not a scalar, an enum, or an entity"]
+
+# ----------------------------------------------------------------------------------------------------------------------
+# the schema's rules: the check holds every file to what modules/model/model.schema.json and domain.schema.json say
+# ----------------------------------------------------------------------------------------------------------------------
+
+# a key a model file does not have is a finding that names the file, in an entity file and in an extension, and the
+# entity stands without it
+import "model" as model; model::build | [model::check, (.entities.A | keys)]
+{"files": [{"domain": "code", "origin": "repository", "path": "r/a.yml", "doc": {"entity": "A", "layer": "logical", "meens": "x", "colour": "red"}}, {"domain": "code", "origin": "repository", "path": "r/b.yml", "doc": {"extends": "A", "statuss": "held"}}]}
+[["r/a.yml sets meens, which is not a key of a model file; a model file has entity, extends, layer, tool, over, means, stub, sum, variants, fields, and relations", "r/a.yml sets colour, which is not a key of a model file; a model file has entity, extends, layer, tool, over, means, stub, sum, variants, fields, and relations", "r/b.yml sets statuss, which is not a key of a model file; a model file has entity, extends, layer, tool, over, means, stub, sum, variants, fields, and relations"], ["domain", "layer", "origin", "path"]]
+
+# a key a field or a relation does not have is a finding that names the file and the member, in an entity file and in a
+# member an extension adds
+import "model" as model; model::build | model::check
+{"files": [{"domain": "code", "origin": "repository", "path": "r/a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"f": {"type": "Text", "status": "planned", "sorce": "derived", "arrity": "many"}}, "relations": {"r": {"to": "A", "derived": "x", "orderd": true}}}}, {"domain": "code", "origin": "repository", "path": "r/b.yml", "doc": {"extends": "A", "fields": {"g": {"type": "Text", "status": "planned", "colour": "red"}}}}]}
+["r/a.yml sets sorce on the field A.f, which is not a key of a field; a field has type, arity, ordered, source, status, from, read-by, and means", "r/a.yml sets arrity on the field A.f, which is not a key of a field; a field has type, arity, ordered, source, status, from, read-by, and means", "r/a.yml sets orderd on the relation A.r, which is not a key of a relation; a relation has to, arity, ordered, inverse, derived, and means", "r/b.yml sets colour on the field A.g, which is not a key of a field; a field has type, arity, ordered, source, status, from, read-by, and means"]
+
+# an entity, a field, a relation, a variant, or a variant field named against the schema's patterns is a finding
+import "model" as model; model::build | model::check
+{"files": [{"domain": "code", "origin": "repository", "path": "r/a.yml", "doc": {"entity": "lower_case name", "layer": "logical", "fields": {"Bad Name": {"type": "Text", "status": "planned"}}, "relations": {"to_me": {"to": "lower_case name", "derived": "x"}}}}, {"domain": "code", "origin": "repository", "path": "r/h.yml", "doc": {"entity": "H", "layer": "logical", "sum": true, "variants": {"odd": {"Field": "H"}}}}]}
+["r/a.yml names the entity lower_case name, which does not match ^[A-Z][A-Za-z0-9]*$", "r/a.yml gives lower_case name the field Bad Name, whose name does not match ^[a-z][a-z0-9-]*$", "r/a.yml gives lower_case name the relation to_me, whose name does not match ^[a-z][a-z0-9-]*$", "H variant odd has a name that does not match ^[A-Z][A-Za-z0-9]*$", "H variant odd field Field has a name that does not match ^[a-z][a-z0-9-]*$"]
+
+# a read-by the schema's pattern refuses is a finding, a bare * as its last segment and an option last among them; one it
+# takes is not
+import "model" as model; model::build | model::check
+{"files": [{"domain": "code", "origin": "repository", "path": "r/a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": "Text", "status": "held", "read-by": "NOT a verb!!"}, "b": {"type": "Text", "status": "held", "read-by": "facts tree.*"}, "c": {"type": "Text", "status": "held", "read-by": "workspaces --show"}, "d": {"type": "Text", "status": "held", "read-by": "facts tree.*.blob"}, "e": {"type": "Text", "status": "planned", "read-by": "workspace repos checkouts"}}}}]}
+["A.a has read-by NOT a verb!!, which is not \"<verb> <key>\" as the read-by pattern of modules/model/model.schema.json writes it", "A.b has read-by facts tree.*, which is not \"<verb> <key>\" as the read-by pattern of modules/model/model.schema.json writes it", "A.c has read-by workspaces --show, which is not \"<verb> <key>\" as the read-by pattern of modules/model/model.schema.json writes it"]
+
+# a field with no status is a finding
+import "model" as model; model::build | model::check
+{"files": [{"domain": "code", "origin": "repository", "path": "r/a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": "Text"}, "b": {"type": "Text", "status": "unused"}}}}]}
+["A.a has no status; it is held, planned, or unused"]
+
+# a field may be ordered when it is a many or a some, as a relation may, and the table says so in its arity
+import "model" as model; model::build | [model::check, model::fields("A")]
+{"files": [{"domain": "code", "origin": "repository", "path": "r/a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": "Path", "arity": "many", "ordered": true, "status": "planned"}, "b": {"type": "Text", "ordered": true, "status": "planned"}, "c": {"type": "Text", "arity": "option", "ordered": false, "status": "planned"}, "d": {"type": "Text", "arity": "some", "ordered": "yes", "status": "planned"}}}}]}
+[["A.b sets ordered on arity one, which is not many or some", "A.c sets ordered on arity option, which is not many or some", "A.d has ordered yes, which is not true or false"], "| Field | Type | Arity | Source | Status | Read by | Means |\n| --- | --- | --- | --- | --- | --- | --- |\n| a | Path | 0..* ordered | stored | planned |  |  |\n| b | Text | 1 ordered | stored | planned |  |  |\n| c | Text | 0..1 | stored | planned |  |  |\n| d | Text | 1..* | stored | planned |  |  |"]
+
+# a means, a from, or a tool that is set and is no sentence is a finding, on an entity, a field, and a relation
+import "model" as model; model::build | model::check
+{"files": [{"domain": "code", "origin": "repository", "path": "r/a.yml", "doc": {"entity": "A", "layer": "logical", "means": "", "fields": {"a": {"type": "Text", "status": "planned", "means": 5, "from": ""}}, "relations": {"r": {"to": "A", "derived": "x", "means": ["y"]}}}}]}
+["A gives means as something that is not a sentence", "A.a gives from as something that is not a sentence", "A.a gives means as something that is not a sentence", "A.r gives means as something that is not a sentence"]
+
+# an enum of words given twice, or of a word that is empty, or with a key other than enum, is a finding
+import "model" as model; model::build | model::check
+{"files": [{"domain": "code", "origin": "repository", "path": "r/a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": {"enum": ["x", "x"]}, "status": "planned"}, "b": {"type": {"enum": [""]}, "status": "planned"}, "c": {"type": {"enum": ["x"], "default": "x"}, "status": "planned"}}}}]}
+["A.a has type {\"enum\":[\"x\",\"x\"]}, which is not a scalar, an enum, or an entity", "A.b has type {\"enum\":[\"\"]}, which is not a scalar, an enum, or an entity", "A.c has type {\"enum\":[\"x\"],\"default\":\"x\"}, which is not a scalar, an enum, or an entity"]
+
+# a native entity with over is a finding, as the schema has it; over names entities, each once
+import "model" as model; model::build | model::check
+{"files": [{"domain": "git", "origin": "release", "path": "g.yml", "doc": {"entity": "G", "layer": "native", "tool": "git", "over": ["L"]}}, {"domain": "code", "origin": "release", "path": "l.yml", "doc": {"entity": "L", "layer": "logical", "over": ["G", "Ghost"]}}, {"domain": "code", "origin": "release", "path": "m.yml", "doc": {"entity": "M", "layer": "logical", "over": ["G", "G"]}}, {"domain": "code", "origin": "release", "path": "n.yml", "doc": {"entity": "N", "layer": "logical", "over": "G"}}]}
+["G is native and stands over L; only a logical entity stands over others", "L stands over Ghost, which is not an entity", "M gives over as something that is not a list of entity names, each once", "N gives over as something that is not a list of entity names, each once"]
+
+# a from written Entity.member names a field or a relation of an entity; a from that is a sentence is not checked
+import "model" as model; model::build | model::check
+{"files": [{"domain": "code", "origin": "release", "path": "a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": {"type": "Text", "status": "planned", "source": "derived", "from": "B.name"}, "b": {"type": "Text", "status": "planned", "source": "derived", "from": "B.peer"}, "c": {"type": "Text", "status": "planned", "source": "derived", "from": "B.ghost"}, "d": {"type": "Text", "status": "planned", "source": "derived", "from": "Ghost.name"}, "e": {"type": "Text", "status": "planned", "source": "derived", "from": "B.name for a bare clone"}}}}, {"domain": "code", "origin": "release", "path": "b.yml", "doc": {"entity": "B", "layer": "logical", "fields": {"name": {"type": "Text", "status": "planned"}}, "relations": {"peer": {"to": "B", "derived": "x"}}}}]}
+["A.c names from B.ghost, which is not a field or a relation of an entity", "A.d names from Ghost.name, which is not a field or a relation of an entity"]
+
+# a name that is both a field and a relation is a finding that names the file of each, an extension's too
+import "model" as model; model::build | model::check
+{"files": [{"domain": "code", "origin": "release", "path": "m/c.yml", "doc": {"entity": "Commit", "layer": "logical", "relations": {"tags": {"to": "Commit", "arity": "many", "derived": "x"}}}}, {"domain": "mine", "origin": "repository", "path": "r/c.yml", "doc": {"extends": "Commit", "fields": {"tags": {"type": "Text", "arity": "many", "status": "planned"}}}}]}
+["Commit.tags is both a field (r/c.yml) and a relation (m/c.yml); a member is one or the other"]
+
+# a stub's fields are named with the file that gives each, the extension that adds one too
+import "model" as model; model::build | model::check
+{"files": [{"domain": "platform", "origin": "release", "path": "m/s.yml", "doc": {"entity": "Service", "stub": true, "fields": {"name": {"type": "Text", "status": "planned"}}}}, {"domain": "mine", "origin": "repository", "path": "r/s.yml", "doc": {"extends": "Service", "fields": {"host": {"type": "Text", "status": "planned"}}}}]}
+["Service is a stub and has fields: host (r/s.yml), name (m/s.yml)"]
+
+# a file the loader found and did not read is a finding that names it, and says what the model reads
+import "model" as model; model::build | model::check
+{"files": [], "strays": [".kit/model/x.yaml", ".kit/model/top.yml", ".kit/model/code/deep/e.yml"]}
+[".kit/model/x.yaml is not read: a model file is <domain>/<entity>.yml or <domain>/domain.yml, one directory down", ".kit/model/top.yml is not read: a model file is <domain>/<entity>.yml or <domain>/domain.yml, one directory down", ".kit/model/code/deep/e.yml is not read: a model file is <domain>/<entity>.yml or <domain>/domain.yml, one directory down"]
+
+# ----------------------------------------------------------------------------------------------------------------------
+# a repository's domain.yml: it adds layout hints to the release's domain, and sets nothing the release's sets
+# ----------------------------------------------------------------------------------------------------------------------
+
+# a later domain.yml adds the hints of entities the first gives none, and its name, its intro, and a hint the first
+# gives are findings; the first's stand
+import "model" as model; model::build | [model::check, .domains.code]
+{"files": [{"domain": "code", "origin": "release", "path": "modules/model/code/domain.yml", "doc": {"name": "Code", "intro": "Source.", "layout": {"Commit": {"row": 0, "col": 0}}}}, {"domain": "code", "origin": "repository", "path": ".kit/model/code/domain.yml", "doc": {"name": "Hijacked", "intro": "Mine.", "layout": {"Commit": {"row": 3, "col": 3}, "Ticket": {"row": 1, "col": 0}}}}]}
+[[".kit/model/code/domain.yml sets name on the domain code, which modules/model/code/domain.yml sets; a later domain.yml adds only layout hints", ".kit/model/code/domain.yml sets intro on the domain code, which modules/model/code/domain.yml sets; a later domain.yml adds only layout hints", ".kit/model/code/domain.yml gives a layout hint to Commit, which modules/model/code/domain.yml gives"], {"name": "Code", "intro": "Source.", "layout": {"Commit": {"row": 0, "col": 0}, "Ticket": {"row": 1, "col": 0}}}]
+
+# a repository's domain.yml for a domain the release does not have defines it, and needs a name and an intro
+import "model" as model; model::build | [model::check, .domains]
+{"files": [{"domain": "mine", "origin": "repository", "path": ".kit/model/mine/domain.yml", "doc": {"name": "Mine", "layout": {"T": {"row": 0, "col": 1}}}}]}
+[[".kit/model/mine/domain.yml has no intro; the domain.yml that defines a domain gives its name and intro"], {"mine": {"name": "Mine", "layout": {"T": {"row": 0, "col": 1}}}}]
+
+# a key a domain.yml does not have, a layout that is not a mapping, and a hint that is not {row, col} of whole numbers
+# from 0 are findings; the hints that hold stand
+import "model" as model; model::build | [model::check, .domains]
+{"files": [{"domain": "a", "origin": "release", "path": "a/domain.yml", "doc": {"name": "A", "intro": "x", "colour": "red", "layout": {"P": {"row": 0, "col": 0}, "Q": {"row": -1, "col": 0}, "R": {"row": 0.5, "col": 0}, "S": {"row": 0}, "T": {"row": 0, "col": 0, "span": 2}, "bad": {"row": 0, "col": 0}}}}, {"domain": "b", "origin": "release", "path": "b/domain.yml", "doc": {"name": "B", "intro": "y", "layout": ["P"]}}]}
+[["a/domain.yml sets colour, which is not a key of a domain.yml; a domain.yml has name, intro, and layout", "a/domain.yml gives Q a layout hint that is not {row, col} of whole numbers from 0", "a/domain.yml gives R a layout hint that is not {row, col} of whole numbers from 0", "a/domain.yml gives S a layout hint that is not {row, col} of whole numbers from 0", "a/domain.yml gives T a layout hint that is not {row, col} of whole numbers from 0", "a/domain.yml gives a layout hint to bad, which does not match ^[A-Z][A-Za-z0-9]*$", "b/domain.yml gives layout as something that is not a mapping"], {"a": {"name": "A", "intro": "x", "layout": {"P": {"row": 0, "col": 0}}}, "b": {"name": "B", "intro": "y", "layout": {}}}]
+
+# ----------------------------------------------------------------------------------------------------------------------
+# narrowing, the merge's leftovers, and entity: and extends: together
+# ----------------------------------------------------------------------------------------------------------------------
+
+# some and option do not narrow to each other, and many narrows to one
+import "model" as model; model::build | [.findings, (.entities.C.fields | map_values(.arity))]
+{"files": [{"domain": "code", "origin": "release", "path": "m/c.yml", "doc": {"entity": "C", "fields": {"a": {"type": "Text", "arity": "some"}, "b": {"type": "Text", "arity": "option"}, "c": {"type": "Text", "arity": "many"}}}}, {"domain": "mine", "origin": "repository", "path": "r/c.yml", "doc": {"extends": "C", "fields": {"a": {"arity": "option"}, "b": {"arity": "some"}, "c": {"arity": "one"}}}}]}
+[["r/c.yml changes the arity of C.a from some to option, which does not narrow it", "r/c.yml changes the arity of C.b from option to some, which does not narrow it"], {"a": "some", "b": "option", "c": "one"}]
+
+# two extensions narrow one member in turn, each from what the one before left: many to some, then some to option is
+# a finding, though many holds option
+import "model" as model; model::build | [.findings, .entities.C.fields.a.arity]
+{"files": [{"domain": "code", "origin": "release", "path": "m/c.yml", "doc": {"entity": "C", "fields": {"a": {"type": "Text", "arity": "many"}}}}, {"domain": "mine", "origin": "repository", "path": "r/1.yml", "doc": {"extends": "C", "fields": {"a": {"arity": "some"}}}}, {"domain": "mine", "origin": "repository", "path": "r/2.yml", "doc": {"extends": "C", "fields": {"a": {"arity": "option"}}}}]}
+[["r/2.yml changes the arity of C.a from some to option, which does not narrow it"], "some"]
+
+# the check runs over what the merge left when it dropped members that are no mapping: the merge's findings, then the
+# check's of what stands
+import "model" as model; model::build | model::check
+{"files": [{"domain": "code", "origin": "repository", "path": "r/a.yml", "doc": {"entity": "A", "layer": "logical", "fields": {"a": null, "b": {"type": "Ghost", "status": "planned"}}, "relations": {"r": "many", "s": {"to": "A", "derived": "x"}}}}]}
+["r/a.yml gives A.a as something that is not a mapping of keys", "r/a.yml gives A.r as something that is not a mapping of keys", "A.b has type Ghost, which is not a scalar, an enum, or an entity"]
+
+# an entity: null beside an extends: is an extension, and an entity: true beside one names both
+import "model" as model; model::build | [.findings, (.entities | keys), .entities.C.fields]
+{"files": [{"domain": "code", "origin": "release", "path": "m/c.yml", "doc": {"entity": "C"}}, {"domain": "mine", "origin": "repository", "path": "r/n.yml", "doc": {"entity": null, "extends": "C", "fields": {"n": {"type": "Text", "status": "planned"}}}}, {"domain": "mine", "origin": "repository", "path": "r/t.yml", "doc": {"entity": true, "extends": "C", "fields": {"t": {"type": "Text", "status": "planned"}}}}]}
+[["r/t.yml names both an entity and an extension"], ["C"], {"n": {"type": "Text", "status": "planned"}}]
 
 # ----------------------------------------------------------------------------------------------------------------------
 # tables

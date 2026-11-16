@@ -3,7 +3,7 @@ entity: T
 layer: logical
 means: target card
 relations:
-  backFromTheFirstLine: {to: L, inverse: L.t1}
-  backFromTheSecondLine: {to: L, inverse: L.t2}
-  backFromTheThirdLine: {to: R, inverse: R.t3}
-  backFromTheFourthLine: {to: R, inverse: R.t4}
+  backfromthefirstline: {to: L, inverse: L.t1}
+  backfromthesecondline: {to: L, inverse: L.t2}
+  backfromthethirdline: {to: R, inverse: R.t3}
+  backfromthefourthline: {to: R, inverse: R.t4}

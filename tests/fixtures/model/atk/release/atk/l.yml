@@ -3,12 +3,12 @@ entity: L
 layer: logical
 means: left card
 relations:
-  aboveTheLongLine: {to: L, arity: many, ordered: true, inverse: L.belowTheLongLine}
-  belowTheLongLine: {to: L, arity: many, inverse: L.aboveTheLongLine}
+  abovethelongline: {to: L, arity: many, ordered: true, inverse: L.belowthelongline}
+  belowthelongline: {to: L, arity: many, inverse: L.abovethelongline}
   mirror: {to: L, arity: option, inverse: L.mirror}
   echo: {to: L, arity: many, inverse: L.echo}
-  outA: {to: X, derived: x}
-  outB: {to: Y, derived: x}
-  t1: {to: T, arity: many, inverse: T.backFromTheFirstLine}
-  t2: {to: T, arity: many, inverse: T.backFromTheSecondLine}
+  outa: {to: X, derived: x}
+  outb: {to: Y, derived: x}
+  t1: {to: T, arity: many, inverse: T.backfromthefirstline}
+  t2: {to: T, arity: many, inverse: T.backfromthesecondline}
   u1: {to: U, derived: x}

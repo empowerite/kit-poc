@@ -18,6 +18,7 @@
 #   - a file that should hold a kit region has none
 #   - a file the repository owns lacks a line a package expects in it
 #   - a generated region differs from what its command makes
+#   - the repository's model, under .kit/model/ when it has one, has a finding of kit model check: each is named
 #
 # Files delivered to the home directory are checked only where kit install ran, that is, where ~/.kit/manifest
 # exists. Elsewhere, such as on a CI runner, kit check says so and skips them.
@@ -26,13 +27,13 @@
 #
 # Exits 0 when there are no findings, 1 otherwise, and 2 on a usage error.
 #
-# see: modules/bash/place.sh, modules/bash/materialize.sh, modules/bash/region.sh
+# see: modules/bash/place.sh, modules/bash/materialize.sh, modules/bash/region.sh, modules/bash/model.sh
 
 set -o errexit -o nounset -o pipefail
 # shellcheck source=modules/bash/1st.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
 kit:enter
-use release generate template settings resolve render region place materialize manifest file
+use release generate template settings resolve render region place materialize manifest file model
 
 guard:arguments check "$@" || exit $?
 
@@ -132,6 +133,19 @@ do
 done
 # Every generated region, the kit's and the repository's own.
 generate:run --check || findings=$(( findings + 1 ))
+# The repository's model, read with the release's, as kit model check reads it: each finding, and not the count line.
+# model:load names a file the model cannot read, and jq names its own failure, each as one finding.
+if [[ -d .kit/model ]] && ! report=$(model:findings)
+then
+  model_findings=0
+  while IFS= read -r finding
+  do
+    [[ -n "${finding}" && "${finding}" != model:\ * ]] || continue
+    error "kit model check: ${finding}"
+    model_findings=$(( model_findings + 1 ))
+  done <<<"${report}"
+  findings=$(( findings + (model_findings > 0 ? model_findings : 1) ))
+fi
 if (( findings > 0 ))
 then
   error "${findings} finding(s), each named above with what to do about it"

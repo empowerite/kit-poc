@@ -3,4 +3,4 @@ entity: U
 layer: logical
 means: under card
 relations:
-  backToRightCard: {to: R, inverse: R.u2}
+  backtorightcard: {to: R, inverse: R.u2}

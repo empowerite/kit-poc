@@ -3,8 +3,8 @@ entity: S
 layer: logical
 means: entity S
 relations:
-  parentsOfTheVeryLongName: {to: S, arity: many, ordered: true, inverse: S.childrenOfTheVeryLongName}
-  childrenOfTheVeryLongName: {to: S, arity: many, inverse: S.parentsOfTheVeryLongName}
+  parentsoftheverylongname: {to: S, arity: many, ordered: true, inverse: S.childrenoftheverylongname}
+  childrenoftheverylongname: {to: S, arity: many, inverse: S.parentsoftheverylongname}
   next: {to: S, arity: option, inverse: S.prev}
   prev: {to: S, arity: option, inverse: S.next}
   peers: {to: S, arity: many, inverse: S.peers}

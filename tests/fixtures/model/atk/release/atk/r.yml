@@ -3,11 +3,11 @@ entity: R
 layer: logical
 means: right card
 relations:
-  leftwardNeighbours: {to: R, arity: many, inverse: R.rightwardNeighbours}
-  rightwardNeighbours: {to: R, arity: many, inverse: R.leftwardNeighbours}
+  leftwardneighbours: {to: R, arity: many, inverse: R.rightwardneighbours}
+  rightwardneighbours: {to: R, arity: many, inverse: R.leftwardneighbours}
   same: {to: R, arity: option, inverse: R.same}
   alike: {to: R, arity: many, inverse: R.alike}
-  t3: {to: T, arity: many, inverse: T.backFromTheThirdLine}
-  t4: {to: T, arity: many, inverse: T.backFromTheFourthLine}
+  t3: {to: T, arity: many, inverse: T.backfromthethirdline}
+  t4: {to: T, arity: many, inverse: T.backfromthefourthline}
   t5: {to: T, derived: x}
-  u2: {to: U, arity: many, inverse: U.backToRightCard}
+  u2: {to: U, arity: many, inverse: U.backtorightcard}

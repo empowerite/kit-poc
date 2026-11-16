@@ -104,19 +104,13 @@ then
   error "--release=${release} is not a directory; run: kit help model"
   exit 2
 fi
-loaded=$(model:load ${release:+"${release}"}) || exit 1
-file:temp jq_errors jq || exit 1
 if [[ "${syntax_literals[0]}" == check ]]
 then
-  # The findings, one a line, then the count.
-  report=$(model-jq 'model::check[], "model: \(.entities | length) entities, \(model::stubs | length) stubs"') || {
-    printf '%s\n' "${report}"
-    exit 1
-  }
-  printf '%s\n' "${report}"
-  [[ "${report}" != *$'\n'* ]]
+  model:findings ${release:+"${release}"}
   exit
 fi
+loaded=$(model:load ${release:+"${release}"}) || exit 1
+file:temp jq_errors jq || exit 1
 if [[ "${syntax_literals[0]}" == svg && -n "${syntax_options[--overview]+x}" ]]
 then
   model-jq 'modelsvg::overview'

@@ -11,7 +11,7 @@ fields:
     source: derived
     from: GitDir.checkout
     status: held
-    read-by: workspace repos checkouts.*
+    read-by: workspace repos checkouts
     means: The folder of the clone, the top of its main worktree, or for a bare clone its git directory, GitDir.path.
   bare:
     type: Bool
