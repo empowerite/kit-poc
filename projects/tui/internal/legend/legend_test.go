@@ -9,6 +9,7 @@ import (
 
 	"github.com/empowerite/kit/projects/tui/internal/grid"
 	"github.com/empowerite/kit/projects/tui/internal/pane"
+	"github.com/empowerite/kit/projects/tui/internal/style"
 	"github.com/empowerite/kit/projects/tui/internal/table"
 )
 
@@ -237,5 +238,26 @@ func TestASheetsRowsStandWhereItsPaneDoes(t *testing.T) {
 		if slices.Contains(rule, y) {
 			t.Errorf("line %d is the header and the rule", y)
 		}
+	}
+}
+
+// Circled, the tab numbers have two lines in the legend, the selected tab's and the others'; plain, the one digit
+// stands for both, and the line says the bold one is selected.
+func TestTheLegendSaysWhichTabIsSelectedByItsGlyphOrByItsBold(t *testing.T) {
+	t.Cleanup(func() { style.Circled(true) })
+	says := func() []string {
+		var out []string
+		for _, p := range Tabs(Bar{Tabs: everywhere, Menu: everywhere}) {
+			out = append(out, p.Meaning)
+		}
+		return out
+	}
+	if got := says(); !slices.Contains(got, "selected tab") || !slices.Contains(got, "tab: click to select") {
+		t.Errorf("circled: %q", got)
+	}
+	style.Circled(false)
+	got := says()
+	if slices.Contains(got, "selected tab") || !slices.Contains(got, "tab: click to select; bold is selected") {
+		t.Errorf("plain: %q", got)
 	}
 }

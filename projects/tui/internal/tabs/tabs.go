@@ -179,10 +179,15 @@ func number(k tea.KeyPressMsg) (int, bool) {
 // Marker gives a tab's number: ➀ to ➈, ➊ to ➒ when selected, and past the ninth nothing, its cell then the tab's
 // border. The dingbats' sans-serif digits are one cell in every terminal, as Unicode fixes their width, and the two
 // sets come from one font; ① and ❶ are of ambiguous width, and terminals draw them from fonts of different sizes.
+// Where the person chose plain digits in the Settings, it is the digit that selects the tab, 1 to 9, the same for the
+// selected tab and the others, which the bar tells apart by drawing the selected one bold, in the accent, and the
+// others dim.
 func Marker(i int, selected bool) string {
 	switch {
 	case i >= 9:
 		return ""
+	case !style.IsCircled():
+		return string(rune('1' + i))
 	case selected:
 		return string(rune('➊' + i))
 	}

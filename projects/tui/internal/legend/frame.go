@@ -7,6 +7,7 @@ import (
 
 	"github.com/empowerite/kit/projects/tui/internal/grid"
 	"github.com/empowerite/kit/projects/tui/internal/shell"
+	"github.com/empowerite/kit/projects/tui/internal/style"
 	"github.com/empowerite/kit/projects/tui/internal/table"
 	"github.com/empowerite/kit/projects/tui/internal/tabs"
 )
@@ -38,13 +39,15 @@ func Tabs(b Bar) []Part {
 	for i := range 9 {
 		numbers, selected = append(numbers, tabs.Marker(i, false)), append(selected, tabs.Marker(i, true))
 	}
-	return []Part{
-		One(tabs.Menu, "tab menu", func(y int) bool { return b.Tabs(y) || b.Menu(y) }),
-		{selected, "selected tab", "", b.Tabs},
-		{numbers, "tab: click to select", "", b.Tabs},
-		{[]string{tabs.Before, tabs.After}, "more tabs: click to scroll", "", b.Tabs},
-		One(tabs.Stale, "stale: click to reload", b.Tabs),
+	parts := []Part{One(tabs.Menu, "tab menu", func(y int) bool { return b.Tabs(y) || b.Menu(y) })}
+	if style.IsCircled() {
+		parts = append(parts, Part{selected, "selected tab", "", b.Tabs}, Part{numbers, "tab: click to select", "", b.Tabs})
+	} else {
+		// plain digits are the same on every tab, and only the bold one is selected, so one line says so
+		parts = append(parts, Part{numbers, "tab: click to select; bold is selected", "", b.Tabs})
 	}
+	return append(parts, Part{[]string{tabs.Before, tabs.After}, "more tabs: click to scroll", "", b.Tabs},
+		One(tabs.Stale, "stale: click to reload", b.Tabs))
 }
 
 // Rows says where a table stands: the screen lines it draws its header on, the control line, the rules, and its rows.

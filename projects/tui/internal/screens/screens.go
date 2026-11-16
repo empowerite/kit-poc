@@ -81,6 +81,7 @@ func New(r kit.Runner, first shell.Screen, m tea.Model) Model {
 		settings: shell.LoadSettings(shell.SettingsFile()), home: r.Dir, start: r.Group,
 		epochs: map[shell.Screen]int{}}
 	style.Rounded(root.settings.Rounds())
+	style.Circled(root.settings.Circled())
 	root.made[first], root.first = m.Update(shell.SettingsMsg{Settings: root.settings})
 	return root
 }
@@ -494,6 +495,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // or gives it back; another, every screen made is told.
 func (m Model) changed(was shell.Settings) (tea.Model, tea.Cmd) {
 	style.Rounded(m.settings.Rounds())
+	style.Circled(m.settings.Circled())
 	switch {
 	case m.settings.KeysBar != was.KeysBar && m.size != nil:
 		return m.deliver(m.here, m.sized())

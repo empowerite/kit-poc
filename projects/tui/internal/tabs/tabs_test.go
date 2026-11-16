@@ -700,3 +700,37 @@ func TestANumberedLabelShowsTheTabsNumberInPlaceOfItsGlyph(t *testing.T) {
 		t.Errorf("no tabs: %q", got)
 	}
 }
+
+// Where the person chose plain digits, a tab's number is the digit that selects it, the same for the selected tab and
+// the others; the selected one is drawn bold, in the accent, and the others dim, as the maximized label draws it too.
+func TestPlainDigitsNumberTheTabsAndOnlyTheirStyleSaysWhichIsSelected(t *testing.T) {
+	t.Cleanup(func() { style.Circled(true) })
+	style.Circled(false)
+	for i, want := range []string{"1", "2", "3", "4", "5", "6", "7", "8", "9"} {
+		if got, sel := Marker(i, false), Marker(i, true); got != want || sel != want {
+			t.Errorf("Marker(%d) = %q, selected %q; want %q", i, got, sel, want)
+		}
+	}
+	if Marker(9, false) != "" || Marker(12, true) != "" {
+		t.Errorf("a tab past the ninth has a number: %q %q", Marker(9, false), Marker(12, true))
+	}
+	mark, _ := style.In("")
+	for selected := range 8 {
+		b := stages(selected, natural())
+		b.Focused = false
+		over := strings.Split(b.View(), "\n")[0]
+		for i := range 8 {
+			digit := Marker(i, false)
+			bold, faint := strings.Contains(over, mark(digit)), strings.Contains(over, style.Off(digit))
+			if bold != (i == selected) || faint == (i == selected) {
+				t.Errorf("tab %d of %d: number bold %v, dim %v", i, selected, bold, faint)
+			}
+		}
+	}
+	b := stages(1, 120)
+	b.Color = "33"
+	mark, _ = style.In("33")
+	if got := b.NumberedLabel(); ansi.Strip(got) != "2 underway 58 "+Menu || !strings.Contains(got, mark("2")) {
+		t.Errorf("underway's: %q", got)
+	}
+}

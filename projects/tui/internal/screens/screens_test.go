@@ -192,7 +192,7 @@ func TestTheSettingsDialogHidesTheKeysBarAndKeepsItHidden(t *testing.T) {
 		t.Fatalf("the dialog is not open over the screen:\n%s", v)
 	}
 	m, _ = testkit.Drive(m, nil, tea.KeyPressMsg{Code: tea.KeyDown}, tea.KeyPressMsg{Code: tea.KeyDown},
-		tea.KeyPressMsg{Code: tea.KeySpace, Text: " "}, tea.KeyPressMsg{Code: tea.KeyEscape})
+		tea.KeyPressMsg{Code: tea.KeyDown}, tea.KeyPressMsg{Code: tea.KeySpace, Text: " "}, tea.KeyPressMsg{Code: tea.KeyEscape})
 	if m.dialog.Open || m.settings.KeysBar || hints(bar(m)) {
 		t.Errorf("the keys bar was not hidden: open %v, shown %v, last line %q", m.dialog.Open, m.settings.KeysBar,
 			bar(m))
@@ -209,7 +209,7 @@ func TestTheSettingsDialogHidesTheKeysBarAndKeepsItHidden(t *testing.T) {
 		t.Error("the next run shows the keys bar")
 	}
 	m, _ = testkit.Drive(m, nil, shell.SwitchMsg{Screen: shell.SettingsScreen}, tea.KeyPressMsg{Code: tea.KeyDown},
-		tea.KeyPressMsg{Code: tea.KeyDown}, tea.KeyPressMsg{Code: tea.KeySpace, Text: " "},
+		tea.KeyPressMsg{Code: tea.KeyDown}, tea.KeyPressMsg{Code: tea.KeyDown}, tea.KeyPressMsg{Code: tea.KeySpace, Text: " "},
 		tea.KeyPressMsg{Code: tea.KeyEscape})
 	if !hints(bar(m)) {
 		t.Errorf("the keys bar is not shown again: %q", bar(m))
@@ -224,11 +224,11 @@ func TestAClickFlipsASettingAndOneOutsideTheDialogClosesIt(t *testing.T) {
 	m, _ = testkit.Drive(m, nil, shell.SwitchMsg{Screen: shell.SettingsScreen})
 	lines := strings.Split(ansi.Strip(m.View().Content), "\n")
 	top := slices.IndexFunc(lines, func(l string) bool { return strings.Contains(l, "╭─ Settings… ") })
-	if top < 0 || !strings.Contains(lines[top+3], "Key hints") {
+	if top < 0 || !strings.Contains(lines[top+4], "Key hints") {
 		t.Fatalf("the dialog:\n%s", strings.Join(lines, "\n"))
 	}
 	x := ansi.StringWidth(lines[top][:strings.Index(lines[top], "╭")])
-	if m, _ = testkit.Drive(m, nil, testkit.Click(x+4, top+3)); !m.dialog.Open || m.settings.KeysBar {
+	if m, _ = testkit.Drive(m, nil, testkit.Click(x+4, top+4)); !m.dialog.Open || m.settings.KeysBar {
 		t.Errorf("a click on Key hints: open %v, shown %v", m.dialog.Open, m.settings.KeysBar)
 	}
 	if m, _ = testkit.Drive(m, nil, testkit.Click(x, top)); !m.dialog.Open || m.settings.KeysBar {
@@ -269,7 +269,7 @@ func TestEveryScreenIsToldTheSettings(t *testing.T) {
 	}
 	// the keys bar flipped is the root's own: the screen is told its size, not the settings
 	m, _ = testkit.Drive(m, nil, tea.KeyPressMsg{Code: tea.KeyDown}, tea.KeyPressMsg{Code: tea.KeyDown},
-		tea.KeyPressMsg{Code: tea.KeySpace, Text: " "})
+		tea.KeyPressMsg{Code: tea.KeyDown}, tea.KeyPressMsg{Code: tea.KeySpace, Text: " "})
 	if got := m.made[shell.Issues].(told).settings; len(got) != 2 {
 		t.Errorf("the keys bar flipped told the screen: %+v", got)
 	}

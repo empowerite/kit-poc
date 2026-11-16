@@ -130,7 +130,7 @@ func TestTheSettingsDialogFlipsASettingAndSavesIt(t *testing.T) {
 	if !s.KeysBar {
 		t.Fatal("with no file, the keys bar is hidden")
 	}
-	d := SettingsDialog{Open: true, At: 2} // the settings are alphabetical: Key hints is the third
+	d := SettingsDialog{Open: true, At: 3} // the settings are alphabetical: Key hints is the fourth
 	if d, s = d.Key(key("space"), s); s.KeysBar || LoadSettings(path).KeysBar || !d.Open {
 		t.Errorf("space: shown %v, saved shown %v, open %v", s.KeysBar, LoadSettings(path).KeysBar, d.Open)
 	}
@@ -164,6 +164,13 @@ func TestTheSettingsDialogFlipsASettingAndSavesIt(t *testing.T) {
 	if d, s = d.Key(key("space"), s); s.HideBlank || LoadSettings(path).HideBlank {
 		t.Errorf("space on Auto-hide: %v, saved %v", s.HideBlank, LoadSettings(path).HideBlank)
 	}
+	d, s = d.Key(key("down"), s) // Circled tab numbers, on until the dialog turns it off
+	if !s.Circled() {
+		t.Fatal("with no file, tab numbers are plain")
+	}
+	if d, s = d.Key(key("space"), s); s.Circled() || !LoadSettings(path).PlainTabs {
+		t.Errorf("space on Circled tab numbers: circled %v, saved plain %v", s.Circled(), LoadSettings(path).PlainTabs)
+	}
 	d, s = d.Key(key("down"), s) // Key hints
 	d, s = d.Key(key("down"), s)
 	if _, s = d.Key(key("space"), s); !s.SharedEmoji || !LoadSettings(path).SharedEmoji {
@@ -175,7 +182,7 @@ func TestTheSettingsDialogFlipsASettingAndSavesIt(t *testing.T) {
 // the name alone.
 func TestTheSettingsDialogsDescriptionsStandInOneColumn(t *testing.T) {
 	s := LoadSettings(filepath.Join(t.TempDir(), "kittui.json"))
-	box := (SettingsDialog{Open: true, At: 2}).box(s, 200)
+	box := (SettingsDialog{Open: true, At: 3}).box(s, 200)
 	at := map[int]bool{}
 	for k, set := range settings {
 		at[strings.Index(ansi.Strip(box[k+1]), set.says)] = true
@@ -183,9 +190,9 @@ func TestTheSettingsDialogsDescriptionsStandInOneColumn(t *testing.T) {
 	if len(at) != 1 {
 		t.Errorf("the descriptions start at %v:\n%s", at, ansi.Strip(strings.Join(box, "\n")))
 	}
-	if !strings.Contains(box[3], style.Selected(style.Unpicked+" Key hints")+"     ") &&
-		!strings.Contains(box[3], style.Selected(style.Picked+" Key hints")+"     ") {
-		t.Errorf("Key hints: %q", box[3])
+	if !strings.Contains(box[4], style.Selected(style.Unpicked+" Key hints")+"     ") &&
+		!strings.Contains(box[4], style.Selected(style.Picked+" Key hints")+"     ") {
+		t.Errorf("Key hints: %q", box[4])
 	}
 }
 
@@ -257,7 +264,7 @@ func TestWithNoHomeTheSettingsAreTheSessionsAlone(t *testing.T) {
 		t.Errorf("the files: %q, %q", RecentFile(), SettingsFile())
 	}
 	s := LoadSettings(SettingsFile())
-	if _, s = (SettingsDialog{Open: true, At: 2}).Key(key("space"), s); s.KeysBar {
+	if _, s = (SettingsDialog{Open: true, At: 3}).Key(key("space"), s); s.KeysBar {
 		t.Error("space did not flip Key hints")
 	}
 	if entries, _ := os.ReadDir("."); len(entries) != 0 {

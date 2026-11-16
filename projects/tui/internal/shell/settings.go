@@ -18,9 +18,10 @@ import (
 // file keeps: whether the keys bar shows on the screen's last line; whether a table folds a value every row of a group
 // shares, said once in the group's heading; whether it hides, as a view loads, each column no row holds a value in;
 // whether it draws an emoji every row shown shares, which it drops otherwise; and whether a label ends in half circles,
-// which a Nerd Font draws, or in a cell of its color. With no file, or one that does not read, each is as kittui
+// which a Nerd Font draws, or in a cell of its color; and whether a tab's number is drawn in a circle or is the plain
+// digit. With no file, or one that does not read, each is as kittui
 // starts: the keys bar shown, shared values folded, empty columns hidden, shared emoji dropped, and labels rounded
-// where kit found a Nerd Font, else square. Rounded is nil until the person chooses, so a font found later is followed.
+// where kit found a Nerd Font, else square, and tab numbers circled. Rounded is nil until the person chooses, so a font found later is followed.
 type Settings struct {
 	Path        string `json:"-"`
 	KeysBar     bool   `json:"keysBar"`
@@ -28,6 +29,7 @@ type Settings struct {
 	HideBlank   bool   `json:"hideBlank"`
 	SharedEmoji bool   `json:"sharedEmoji"`
 	Rounded     *bool  `json:"roundedLabels,omitempty"`
+	PlainTabs   bool   `json:"plainTabs,omitempty"`
 }
 
 // NerdFont is the variable kit says in whether a Nerd Font is present, 1 or 0, as terminal:export-probes sets it.
@@ -40,6 +42,9 @@ func (s Settings) Rounds() bool {
 	}
 	return os.Getenv(NerdFont) == "1"
 }
+
+// Circled says whether a tab's number is drawn in a circle, as it is until the person turns it off.
+func (s Settings) Circled() bool { return !s.PlainTabs }
 
 // SettingsMsg tells a screen the settings, when it is made and whenever the dialog changes one, so a table folds and
 // draws as they say.
@@ -94,6 +99,9 @@ var settings = []setting{
 	{"Auto-hide", "hides a column while no row has a value in it",
 		func(s Settings) bool { return s.HideBlank },
 		func(s Settings) Settings { s.HideBlank = !s.HideBlank; return s }},
+	{"Circled tab numbers", "draws a tab's number in a circle; off is the plain digit",
+		func(s Settings) bool { return s.Circled() },
+		func(s Settings) Settings { s.PlainTabs = !s.PlainTabs; return s }},
 	{"Key hints", "shows the keys you can press now on the status bar, the bottom line",
 		func(s Settings) bool { return s.KeysBar },
 		func(s Settings) Settings { s.KeysBar = !s.KeysBar; return s }},

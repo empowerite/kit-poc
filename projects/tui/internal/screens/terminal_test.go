@@ -185,7 +185,7 @@ func TestLabelsAreSquareUntilANerdFontIsFoundAndTheSettingChoosesOtherwise(t *te
 		return half
 	}
 	toggle := []tea.Msg{shell.SwitchMsg{Screen: shell.SettingsScreen}, testkit.Press("down"), testkit.Press("down"),
-		testkit.Press("down"), testkit.Press("down"), testkit.Press("space"), testkit.Press("esc")}
+		testkit.Press("down"), testkit.Press("down"), testkit.Press("down"), testkit.Press("space"), testkit.Press("esc")}
 
 	t.Setenv(shell.NerdFont, "0")
 	m := issues(t)
@@ -209,5 +209,33 @@ func TestLabelsAreSquareUntilANerdFontIsFoundAndTheSettingChoosesOtherwise(t *te
 	m, _ = testkit.Drive(m, nil, toggle...)
 	if !rounded(m) {
 		t.Error("the line did not turn the half circles on again")
+	}
+}
+
+// A tab's number is circled, ➊ on the selected tab and ➁ on the others, until the Settings dialog's Circled tab numbers
+// line is turned off, and then it is the plain digit, in every screen at once; the choice is kept.
+func TestTabNumbersAreCircledUntilTheSettingTurnsThemPlain(t *testing.T) {
+	t.Cleanup(func() { style.Circled(true) })
+	circled := func(m Model) bool {
+		v := ansi.Strip(m.View().Content)
+		on, off := strings.Contains(v, "➊╶") && strings.Contains(v, "➁╶"), strings.Contains(v, "1╶") && strings.Contains(v, "2╶")
+		if on == off {
+			t.Fatalf("tab numbers are neither circled nor plain:\n%s", v)
+		}
+		return on
+	}
+	toggle := []tea.Msg{shell.SwitchMsg{Screen: shell.SettingsScreen}, testkit.Press("down"), testkit.Press("down"),
+		testkit.Press("space"), testkit.Press("esc")}
+	m := issues(t)
+	if !circled(m) {
+		t.Fatal("tab numbers start plain")
+	}
+	m, _ = testkit.Drive(m, nil, toggle...)
+	if circled(m) || !m.settings.PlainTabs || !shell.LoadSettings(m.settings.Path).PlainTabs {
+		t.Errorf("the line did not turn the circles off: %+v", m.settings)
+	}
+	m, _ = testkit.Drive(m, nil, toggle...)
+	if !circled(m) || m.settings.PlainTabs {
+		t.Errorf("the line did not turn the circles on again: %+v", m.settings)
 	}
 }

@@ -24,6 +24,10 @@ Each [app](kittui:welcome/terms/application) has its own tabs: one [stage](kittu
 - `•`  yellow dot: the tab is stale. Click it to read it again.
 - `:`  the tab menu, on the selected tab
 
+The first nine tabs are numbered, and a tab past the ninth has no number. To draw the numbers as plain digits, `1` bold
+on the selected tab and `2` dim on the others, open the app menu with `=`, choose Settings…, and turn Circled tab
+numbers off. kittui keeps the choice in its settings file.
+
 ## Keys
 
 - `1`–`9`  jump to a tab
