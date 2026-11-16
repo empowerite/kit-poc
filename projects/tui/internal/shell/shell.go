@@ -104,13 +104,11 @@ var screens = slices.Concat(sections...)
 
 // Screens gives the screens of the app's menu's lines, in its order.
 func Screens() []Screen {
-	return slices.Collect(func(yield func(Screen) bool) {
-		for _, i := range screens {
-			if !yield(i.screen) {
-				return
-			}
-		}
-	})
+	all := make([]Screen, len(screens))
+	for k, i := range screens {
+		all[k] = i.screen
+	}
+	return all
 }
 
 // NameOf gives the name of a screen's line in the app's menu, as Trust or Repositories; none for a screen the menu has
