@@ -30,8 +30,8 @@ const (
 // facets lists the facets in the order a field's constraints are listed.
 var facets = []Facet{FacetPlace, FacetOrder, FacetSort, FacetFilter, FacetRender}
 
-// FacetSet is a set of facets. A preset's Add holds the list facets that append to the broader layers' lists instead of
-// replacing them, and a setting's Off the facets it switches off for its field. In a file it is a list of names.
+// FacetSet is a set of facets. A setting's Off holds the facets it switches off for its field. In a file it is a list
+// of names.
 type FacetSet uint8
 
 // Facets gives the set of the facets named; a name that is no facet is left out.
@@ -247,9 +247,9 @@ func (r *resolving) apply(i int, l Layer) []given {
 			r.off(i, id, facet)
 		}
 	}
-	r.place(i, byFacet[FacetPlace], l.Preset.Add.Has(FacetPlace))
-	r.columns(i, byFacet[FacetOrder], l.Preset.Add.Has(FacetOrder))
-	r.sortBy(i, byFacet[FacetSort], l.Preset.Add.Has(FacetSort))
+	r.place(i, byFacet[FacetPlace])
+	r.columns(i, byFacet[FacetOrder])
+	r.sortBy(i, byFacet[FacetSort])
 	for _, it := range byFacet[FacetFilter] {
 		r.filters[it.field.ID] = ValueFilter{Include: slices.Clone(it.s.Filter.Include),
 			Exclude: slices.Clone(it.s.Filter.Exclude)}
@@ -345,8 +345,8 @@ func (r *resolving) off(i int, id string, facet Facet) {
 }
 
 // place folds a layer's placements in: a hidden field and a column leave the groups and the order, and the groups the
-// layer gives replace the list, or are appended to it where the layer adds the facet.
-func (r *resolving) place(i int, items []item, add bool) {
+// layer gives replace the list.
+func (r *resolving) place(i int, items []item) {
 	var groups []item
 	for _, it := range items {
 		id := it.field.ID
@@ -370,11 +370,11 @@ func (r *resolving) place(i int, items []item, add bool) {
 		delete(r.hidden, ids[k])
 		r.order = without(r.order, ids[k])
 	}
-	r.groups = r.listed(i, FacetPlace, r.groups, ids, add)
+	r.groups = r.listed(i, FacetPlace, r.groups, ids)
 }
 
 // columns folds a layer's positions in: a field the layer positions is a column, shown, and no group.
-func (r *resolving) columns(i int, items []item, add bool) {
+func (r *resolving) columns(i int, items []item) {
 	slices.SortStableFunc(items, func(a, b item) int { return cmp.Compare(a.s.Position, b.s.Position) })
 	ids := make([]string, len(items))
 	for k, it := range items {
@@ -383,44 +383,32 @@ func (r *resolving) columns(i int, items []item, add bool) {
 		r.groups = without(r.groups, ids[k])
 		r.deciders[slot{ids[k], FacetPlace}] = decider{layer: i}
 	}
-	r.order = r.listed(i, FacetOrder, r.order, ids, add)
+	r.order = r.listed(i, FacetOrder, r.order, ids)
 }
 
 // sortBy folds a layer's sort keys in.
-func (r *resolving) sortBy(i int, items []item, add bool) {
+func (r *resolving) sortBy(i int, items []item) {
 	slices.SortStableFunc(items, func(a, b item) int { return cmp.Compare(a.s.Priority, b.s.Priority) })
 	ids := make([]string, len(items))
 	for k, it := range items {
 		ids[k] = it.field.ID
 	}
 	before := slices.Clone(r.sorts)
-	r.sorts = r.listed(i, FacetSort, r.sorts, ids, add)
+	r.sorts = r.listed(i, FacetSort, r.sorts, ids)
 	for _, id := range before {
 		if !slices.Contains(r.sorts, id) {
 			delete(r.desc, id)
 		}
 	}
 	for _, it := range items {
-		if !slices.Contains(before, it.field.ID) || !add {
-			r.desc[it.field.ID] = it.s.Sort == "desc"
-		}
+		r.desc[it.field.ID] = it.s.Sort == "desc"
 	}
 }
 
-// listed gives a list with a layer's entries in it: the layer's entries alone, which become the layer's, or, where the
-// layer adds the facet, the list with the entries it lacks appended, those it has left where they stand. A layer that
+// listed gives a list with a layer's entries in it: the layer's entries alone, which become the layer's. A layer that
 // gives no entries leaves the list as it is.
-func (r *resolving) listed(i int, facet Facet, list, entries []string, add bool) []string {
-	switch {
-	case len(entries) == 0:
-		return list
-	case add:
-		for _, id := range entries {
-			if !slices.Contains(list, id) {
-				list = append(list, id)
-				r.deciders[slot{id, facet}] = decider{layer: i}
-			}
-		}
+func (r *resolving) listed(i int, facet Facet, list, entries []string) []string {
+	if len(entries) == 0 {
 		return list
 	}
 	for _, id := range list {

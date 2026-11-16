@@ -25,8 +25,8 @@ func grp(depth int) Setting { return Setting{Placement: PlaceGroup, Depth: depth
 
 func inc(v ...string) *ValueFilter { return &ValueFilter{Include: v} }
 
-func layerOf(name string, level Level, fields map[string]Setting, add ...Facet) Layer {
-	return Layer{Name: name, Level: level, Preset: Preset{Name: name, Fields: fields, Add: Facets(add...)}}
+func layerOf(name string, level Level, fields map[string]Setting) Layer {
+	return Layer{Name: name, Level: level, Preset: Preset{Name: name, Fields: fields}}
 }
 
 // constraintOf gives the one constraint a layer gave a field in a facet, off or not.
@@ -85,17 +85,6 @@ func TestResolveListReplaces(t *testing.T) {
 	}
 }
 
-func TestResolveListAdds(t *testing.T) {
-	got, _ := Resolve([]Layer{
-		layerOf("By org, repo", LevelGlobal, map[string]Setting{"org": grp(1), "repo": grp(2)}),
-		layerOf("Then state", LevelTab, map[string]Setting{"state": grp(1), "org": grp(1)}, FacetPlace),
-	}, resolveFields)
-	want := Preset{Fields: map[string]Setting{"org": grp(1), "repo": grp(2), "state": grp(3)}}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %+v, want %+v", got, want)
-	}
-}
-
 func TestResolveGroupsNumberedByDepth(t *testing.T) {
 	got, _ := Resolve([]Layer{
 		layerOf("Deep", LevelGlobal, map[string]Setting{"repo": grp(5), "org": grp(2)}),
@@ -106,27 +95,12 @@ func TestResolveGroupsNumberedByDepth(t *testing.T) {
 	}
 }
 
-func TestResolveSortReplacesAndAdds(t *testing.T) {
+func TestResolveSortReplaces(t *testing.T) {
 	base := layerOf("By title", LevelGlobal, map[string]Setting{"title": {Sort: "asc", Priority: 1}})
-	cases := map[string]struct {
-		next Layer
-		want Preset
-	}{
-		"replaces": {
-			layerOf("By state", LevelTab, map[string]Setting{"state": {Sort: "desc", Priority: 1}}),
-			Preset{Fields: map[string]Setting{"state": {Sort: "desc", Priority: 1}}},
-		},
-		"adds": {
-			layerOf("Then state", LevelTab, map[string]Setting{"state": {Sort: "desc", Priority: 1}}, FacetSort),
-			Preset{Fields: map[string]Setting{"title": {Sort: "asc", Priority: 1}, "state": {Sort: "desc", Priority: 2}}},
-		},
-	}
-	for name, c := range cases {
-		t.Run(name, func(t *testing.T) {
-			if got, _ := Resolve([]Layer{base, c.next}, resolveFields); !reflect.DeepEqual(got, c.want) {
-				t.Errorf("got %+v, want %+v", got, c.want)
-			}
-		})
+	next := layerOf("By state", LevelTab, map[string]Setting{"state": {Sort: "desc", Priority: 1}})
+	want := Preset{Fields: map[string]Setting{"state": {Sort: "desc", Priority: 1}}}
+	if got, _ := Resolve([]Layer{base, next}, resolveFields); !reflect.DeepEqual(got, want) {
+		t.Errorf("got %+v, want %+v", got, want)
 	}
 }
 
@@ -137,20 +111,13 @@ func TestResolveSortIgnoresADirectionItDoesNotKnow(t *testing.T) {
 	}
 }
 
-func TestResolveOrderReplacesAndAdds(t *testing.T) {
+func TestResolveOrderReplaces(t *testing.T) {
 	base := layerOf("Columns", LevelGlobal, map[string]Setting{
 		"title": {Placement: PlaceColumn, Position: 1}, "org": {Placement: PlaceColumn, Position: 2}})
 	replaced, _ := Resolve([]Layer{base,
 		layerOf("State first", LevelTab, map[string]Setting{"state": {Placement: PlaceColumn, Position: 1}})}, resolveFields)
 	if want := (Preset{Fields: map[string]Setting{"state": {Placement: PlaceColumn, Position: 1}}}); !reflect.DeepEqual(replaced, want) {
 		t.Errorf("replaced: got %+v, want %+v", replaced, want)
-	}
-	added, _ := Resolve([]Layer{base,
-		layerOf("Then state", LevelTab, map[string]Setting{"state": {Placement: PlaceColumn, Position: 1}}, FacetOrder)}, resolveFields)
-	want := Preset{Fields: map[string]Setting{"title": {Placement: PlaceColumn, Position: 1},
-		"org": {Placement: PlaceColumn, Position: 2}, "state": {Placement: PlaceColumn, Position: 3}}}
-	if !reflect.DeepEqual(added, want) {
-		t.Errorf("added: got %+v, want %+v", added, want)
 	}
 }
 
@@ -187,7 +154,7 @@ func TestResolvePlacingAColumnLeavesTheGroups(t *testing.T) {
 	got, _ := Resolve([]Layer{
 		layerOf("Groups", LevelGlobal, map[string]Setting{"org": grp(1), "repo": grp(2)}),
 		layerOf("Columns", LevelTab, map[string]Setting{"org": {Placement: PlaceColumn},
-			"repo": {Placement: PlaceColumn, Position: 1}}, FacetPlace),
+			"repo": {Placement: PlaceColumn, Position: 1}}),
 	}, resolveFields)
 	want := Preset{Fields: map[string]Setting{"org": {Placement: PlaceColumn}, "repo": {Placement: PlaceColumn, Position: 1}}}
 	if !reflect.DeepEqual(got, want) {
@@ -386,29 +353,6 @@ func TestResolveOffAnOverriddenOff(t *testing.T) {
 	}
 }
 
-func TestResolveAddKeepsAFieldWhereItStands(t *testing.T) {
-	got, p := Resolve([]Layer{
-		layerOf("Org", LevelGlobal, map[string]Setting{"org": grp(1)}),
-		layerOf("Again", LevelTab, map[string]Setting{"org": grp(1)}, FacetPlace),
-	}, resolveFields)
-	if want := (Preset{Fields: map[string]Setting{"org": grp(1)}}); !reflect.DeepEqual(got, want) {
-		t.Errorf("got %+v, want %+v", got, want)
-	}
-	if c := constraintOf(t, p, "Again", "org", FacetPlace, false); c.Status != Overridden {
-		t.Errorf("got %+v, want overridden: the field stands where it did", c)
-	}
-}
-
-func TestResolveAddIgnoresFacetsThatAreNotLists(t *testing.T) {
-	got, _ := Resolve([]Layer{
-		layerOf("A", LevelGlobal, map[string]Setting{"state": {Filter: inc("open")}}),
-		layerOf("B", LevelTab, map[string]Setting{"state": {Filter: inc("done")}}, FacetFilter, FacetRender),
-	}, resolveFields)
-	if want := (Preset{Fields: map[string]Setting{"state": {Filter: inc("done")}}}); !reflect.DeepEqual(got, want) {
-		t.Errorf("got %+v, want %+v", got, want)
-	}
-}
-
 func TestResolveNoLayersFoldToNothing(t *testing.T) {
 	got, p := Resolve(nil, resolveFields)
 	if !reflect.DeepEqual(got, Preset{}) || len(p.Constraints) != 0 {
@@ -447,17 +391,6 @@ func TestResolvedPanelEqualsApplied(t *testing.T) {
 	}
 }
 
-func TestResolveAddKeepsASortWhereItStands(t *testing.T) {
-	got, _ := Resolve([]Layer{
-		layerOf("By title", LevelGlobal, map[string]Setting{"title": {Sort: "asc", Priority: 1}}),
-		layerOf("Again", LevelTab, map[string]Setting{"title": {Sort: "desc", Priority: 1}}, FacetSort),
-	}, resolveFields)
-	want := Preset{Fields: map[string]Setting{"title": {Sort: "asc", Priority: 1}}}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %+v, want %+v", got, want)
-	}
-}
-
 func TestFacetSetJSON(t *testing.T) {
 	set := Facets(FacetFilter, FacetPlace, Facet("nonsense"))
 	data, err := json.Marshal(set)
@@ -484,10 +417,10 @@ func TestFacetSetJSONRefusesWhatIsNotAFacet(t *testing.T) {
 	}
 }
 
-func TestPresetsKeepOffAndAddInTheFile(t *testing.T) {
-	in := Preset{Name: "Mine", Add: Facets(FacetPlace), Fields: map[string]Setting{"assignee": {Off: Facets(FacetFilter)}}}
+func TestPresetsKeepOffInTheFile(t *testing.T) {
+	in := Preset{Name: "Mine", Fields: map[string]Setting{"assignee": {Off: Facets(FacetFilter)}}}
 	data, err := json.Marshal(in)
-	if err != nil || !strings.Contains(string(data), `"add":["place"]`) || !strings.Contains(string(data), `"off":["filter"]`) {
+	if err != nil || !strings.Contains(string(data), `"off":["filter"]`) {
 		t.Fatalf("marshal: got %s, %v", data, err)
 	}
 	var back Preset
@@ -495,8 +428,8 @@ func TestPresetsKeepOffAndAddInTheFile(t *testing.T) {
 		t.Errorf("round trip: got %+v, %v, want %+v", back, err, in)
 	}
 	plain, _ := json.Marshal(Preset{Name: "Plain", Fields: map[string]Setting{"title": {Sort: "asc"}}})
-	if strings.Contains(string(plain), "off") || strings.Contains(string(plain), "add") {
-		t.Errorf("a preset that adds and switches off nothing says so: %s", plain)
+	if strings.Contains(string(plain), "off") {
+		t.Errorf("a preset that switches off nothing says so: %s", plain)
 	}
 }
 
