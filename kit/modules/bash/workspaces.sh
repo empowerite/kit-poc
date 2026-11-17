@@ -236,13 +236,43 @@ workspaces:roots() {
   done
 }
 
-# workspaces:checkouts prints "<member>\t<path>" for every desk under the roots that has a member, the roots in
-# order and the desks in path order under each, a desk reached from two roots once.
+# workspaces:implied prints each root a recent desk implies once, one per line, the newest desk first: a desk laid out
+# as <root>/<host>/<path> of its member, in any case, as ~/Code/github.com/empowerite/kit is, is under <root>. A desk
+# laid out otherwise implies none.
+workspaces:implied() {
+  local desk member root
+  local -A seen=()
+  while IFS= read -r desk
+  do
+    member=$(workspaces:member-of "${desk}")
+    [[ -n "${member}" && "${desk,,}" == */"${member}" ]] || continue
+    root=${desk:0:${#desk}-${#member}-1}
+    [[ -n "${root}" && -z "${seen[${root}]:-}" ]] || continue
+    seen[${root}]=1
+    printf '%s\n' "${root}"
+  done < <(workspaces:recent)
+}
+
+# workspaces:walked prints the roots kit looks under for checkouts: the file's, or, where it names none, the roots the
+# recent desks imply, so a group of repositories kit has opened has checkouts without a line to write.
+workspaces:walked() {
+  local roots
+  roots=$(workspaces:roots) || return 1
+  if [[ -n "${roots}" ]]
+  then
+    printf '%s\n' "${roots}"
+  else
+    workspaces:implied
+  fi
+}
+
+# workspaces:checkouts prints "<member>\t<path>" for every desk under the roots that has a member, as workspaces:walked
+# gives them, the roots in order and the desks in path order under each, a desk reached from two roots once.
 workspaces:checkouts() {
   local root desk member
   local -a roots desks
   local -A seen=()
-  list:read roots workspaces:roots || return 1
+  list:read roots workspaces:walked || return 1
   for root in "${roots[@]}"
   do
     [[ -d "${root}" ]] || continue

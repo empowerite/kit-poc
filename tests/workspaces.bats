@@ -83,6 +83,40 @@ ${root}/a" ]
     github.com/empowerite/kit "${BATS_TEST_TMPDIR}/a/kit-again")" ]
 }
 
+@test "a file with no roots walks the root that a recent desk laid out as <root>/<host>/<path> implies" {
+  # a desk is kept by its physical path, as the temporary folder may be a link
+  t=$(cd "${BATS_TEST_TMPDIR}" && pwd -P)
+  clone-at "${t}/code/github.com/empowerite/kit" git@github.com:empowerite/kit.git
+  clone-at "${t}/code/github.com/Empowerite/Infra" git@github.com:empowerite/infra.git
+  clone-at "${t}/code/github.com/me/edge" git@github.com:me/edge.git
+  clone-at "${t}/elsewhere/odd" git@github.com:empowerite/odd.git
+  clone-at "${t}/code/github.com/me/not-listed" git@github.com:me/not-listed.git
+  printf 'workspaces:\n  w: {repos: [github.com/empowerite/kit]}\n' | workspaces-file
+  mkdir -p "${XDG_CACHE_HOME}/kit/workspaces"
+  printf '%s\n' "${t}/elsewhere/odd" "${t}/code/github.com/Empowerite/Infra" "${t}/code/github.com/empowerite/kit" \
+    > "${XDG_CACHE_HOME}/kit/workspaces/recent"
+  run --separate-stderr kit-bash workspaces:checkouts
+  [ "$status" -eq 0 ]
+  [ -z "$stderr" ]
+  # the odd desk is not laid out by its member, so it implies no root; the two that are imply one, once
+  [[ "$output" == *"$(printf 'github.com/empowerite/kit\t%s' "${t}/code/github.com/empowerite/kit")"* ]]
+  [[ "$output" == *"$(printf 'github.com/me/edge\t%s' "${t}/code/github.com/me/edge")"* ]]
+  # the file names no roots, and says none
+  run kit-bash workspaces:roots
+  [ -z "$output" ]
+}
+
+@test "a file that names roots walks those, and no root a recent desk implies" {
+  t=$(cd "${BATS_TEST_TMPDIR}" && pwd -P)
+  clone-at "${t}/code/github.com/empowerite/kit" git@github.com:empowerite/kit.git
+  clone-at "${t}/mine/edge" git@github.com:empowerite/edge.git
+  printf 'roots: [%s/mine]\n' "${t}" | workspaces-file
+  mkdir -p "${XDG_CACHE_HOME}/kit/workspaces"
+  printf '%s\n' "${t}/code/github.com/empowerite/kit" > "${XDG_CACHE_HOME}/kit/workspaces/recent"
+  run kit-bash workspaces:checkouts
+  [ "$output" = "$(printf 'github.com/empowerite/edge\t%s' "${t}/mine/edge")" ]
+}
+
 @test "a root given with ~ is under HOME" {
   printf 'roots: ["~/Code"]\n' | workspaces-file
   run kit-bash workspaces:roots

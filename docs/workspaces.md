@@ -165,7 +165,7 @@ workspaces:
 
 | Key | Meaning |
 | --- | --- |
-| `roots` | the directories that kit looks under for checkouts; `~` is your home directory, and a root written twice, as `~/Code` and `~/Code/`, counts once |
+| `roots` | the directories that kit looks under for checkouts; `~` is your home directory, and a root written twice, as `~/Code` and `~/Code/`, counts once. Without it, kit looks under the root that each repository you opened by its folder implies, when it is laid out as `<root>/<host>/<path>`, as `~/Code/github.com/empowerite/kit` is; a file that names `roots` has exactly those |
 | `favorites` | the workspaces to keep at hand: each is a group's name or a repository |
 | `workspaces` | your groups, by name |
 | `repos` | in a group: its members |
