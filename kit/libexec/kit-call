@@ -47,10 +47,10 @@ source "${kit_bin}/../modules/bash/log.sh"
 started=0
 log:now started
 line=''
-# What follows kit tools run is another command's, whose arguments the log has no business holding.
+# What follows kit tools run or kit bots run is another command's, whose arguments the log has no business holding.
 for word in "$@"
 do
-  if [[ "${verb}" == tools && "${word}" == run ]]
+  if [[ ( "${verb}" == tools || "${verb}" == bots ) && "${word}" == run ]]
   then
     line+=' run …'
     break

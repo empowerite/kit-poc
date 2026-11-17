@@ -45,16 +45,18 @@ logged() {
   [[ "${lines[1]}" == *" depth=0 status=2 in=. kit nosuchverb two\\ words" ]]
 }
 
-@test "a call's log line never holds a password in a URL or in a --token= word, nor what follows kit tools run" {
+@test "a call's log line never holds a password in a URL or in a --token= word, nor what follows kit tools run or kit bots run" {
   run "${kit_checkout}/bin/kit" nosuchverb --show=https://user:ghp_URLTOKEN@github.com/acme/a.git --api-token=ghp_WORD \
     --password='two words' --other=kept
   run "${kit_checkout}/bin/kit" tools run printf ghp_AFTERRUN
+  run "${kit_checkout}/bin/kit" bots --bot=nobot run claude -p 'ghp_PROMPT and its words'
   run logged kit
-  [ "${#lines[@]}" -eq 2 ]
+  [ "${#lines[@]}" -eq 3 ]
   [[ "$output" != *ghp_* ]]
   [[ "$output" != *"words"* ]]
   [[ "${lines[0]}" == *" kit nosuchverb --show=https://***@github.com/acme/a.git --api-token=*** --password=*** --other=kept" ]]
   [[ "${lines[1]}" == *" kit tools run …" ]]
+  [[ "${lines[2]}" == *" kit bots --bot=nobot run …" ]]
 }
 
 @test "kit serve logs its start, each message with its outcome, and its stop; a tool's verb is a call one deeper" {
