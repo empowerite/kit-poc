@@ -337,3 +337,15 @@ func TestTheRenderingIsChosenAutomatically(t *testing.T) {
 
 // note gives a field that is not a column.
 func note() Field { return Field{ID: "note", Label: "note", Renderings: []string{"text"}} }
+
+// A dim field's pills keep their colors: dim drawn before a pill's rounded left end, which sets a color and nothing to
+// reset it, dimmed that end alone, a darker half circle on a brighter body.
+func TestADimFieldsPillIsNotDimmedAtItsLeftEnd(t *testing.T) {
+	style.Rounded(true)
+	rules := Field{ID: "rules", Type: "label", One: "rule", Dim: true, Renderings: []string{"pills"}}
+	pill := Pill(Label{"deletion", "#b45309"})
+	if got := rules.Draw([]Value{{Raw: []string{"deletion"}}}, "")[0].Values; len(got) != 1 || strings.Contains(got[0], "\x1b[2m") ||
+		!strings.Contains(got[0], style.PillLeft) {
+		t.Errorf("a dim field's pill: %q, want it undimmed, as %q is", got, pill)
+	}
+}

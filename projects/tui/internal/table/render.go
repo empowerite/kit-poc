@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/empowerite/kit/projects/tui/internal/grid"
 	"github.com/empowerite/kit/projects/tui/internal/style"
@@ -92,7 +93,9 @@ func (f Field) Draw(vs []Value, pinned string) []grid.Cell {
 		c := &out[k]
 		if f.Dim {
 			for j, s := range c.Values {
-				if s != "" {
+				// a pill keeps its colors: dim drawn before its rounded left end, which has no color of its own to
+				// reset it, would dim that end alone
+				if s != "" && !strings.Contains(s, style.PillLeft) {
 					c.Values[j] = style.Off(s)
 				}
 			}
