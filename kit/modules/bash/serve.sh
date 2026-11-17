@@ -898,7 +898,7 @@ serve:resources() {
   for file in .kit/kinds/*.yml
   do
     [[ -f "${file}" ]] || continue
-    kind=$(context:read-kinds "${file}" | awk -F '\x1f' '$3 == "name" { printf "%s%s", sep, $2; sep = ", " }')
+    kind=$(context:read-kinds "${file}" | awk -F '\037' '$3 == "name" { printf "%s%s", sep, $2; sep = ", " }')
     printf 'kit://kinds/%s\t%s\tapplication/yaml\tthe paths and first lines that make a file of kind %s\n' \
       "$(basename "${file}" .yml)" "${file}" "${kind}"
   done

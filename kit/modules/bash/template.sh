@@ -155,8 +155,9 @@ template:holes() {
 template:render() {
   local settings
   settings=$(template:settings "$1")
-  template:jq "$1" --null-input --join-output --argjson v "$2" --argjson settings "${settings}" \
-    'import "template" as template; $template | template::parts | template::render($settings + $v)'
+  # the values are read from a pipe, not an argument, which a page's text can make longer than one argument may be
+  template:jq "$1" --null-input --join-output --slurpfile v <(printf '%s' "$2") --argjson settings "${settings}" \
+    'import "template" as template; $template | template::parts | template::render($settings + $v[0])'
 }
 
 # template:rules <path> prints the rules of the path's own kinds that have templates, most specific first. The most

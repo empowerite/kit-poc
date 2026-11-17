@@ -559,7 +559,8 @@ release-repo() {
   done < <(git -C "${root}" ls-files -z --cached --others --exclude-standard) \
     | tar -C "${root}" --null -T - -cf - | tar -C "${dir}" -xf -
   git -C "${dir}" add --all
-  git -C "${dir}" commit --quiet --allow-empty --message 'the disk'
+  git -C "${dir}" -c user.name=t -c user.email=t@example.com -c commit.gpgsign=false commit --quiet --allow-empty \
+    --message 'the disk'
   for file in "$@"
   do
     git -C "${dir}" tag "${file}" 2>/dev/null || true

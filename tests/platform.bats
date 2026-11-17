@@ -98,6 +98,11 @@ signed-in() {
 }
 
 @test "tools is read in each worktree of the clone, each row saying the worktree and its branch" {
+  # a mise that lists jq, as the real one does where it is installed: a runner has none
+  fake-tools mise
+  route mise '--version' '!0'
+  fixture ls.json <<<'{"jq": [{"version": "1.8.2", "requested_version": "1.8.2", "installed": true}]}'
+  route mise 'ls --json --current' ls.json
   repo-at "${BATS_TEST_TMPDIR}/r" github.com/o/r
   cd "${BATS_TEST_TMPDIR}/r"
   printf '[tools]\njq = "1.8.2"\n' > mise.toml
@@ -233,6 +238,11 @@ signed-in() {
 
 @test "each stage prints the keys of the fixture kittui's tests decode, and the fields its catalog declares" {
   local stage failed=0
+  # a mise that lists jq, as the real one does where it is installed: a runner has none
+  fake-tools mise
+  route mise '--version' '!0'
+  fixture ls.json <<<'{"jq": [{"version": "1.8.2", "requested_version": "1.8.2", "installed": true}]}'
+  route mise 'ls --json --current' ls.json
   repo-at "${BATS_TEST_TMPDIR}/r" github.com/o/r
   cd "${BATS_TEST_TMPDIR}/r"
   signed-in

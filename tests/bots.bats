@@ -850,7 +850,7 @@ COMMAND
 
 @test "run's session directory is the person's alone, and holds the token only there" {
   run-setup
-  run --separate-stderr kit bots run bash -c 'dir=$(dirname "$(dirname "$(command -v gh)")"); stat -f %Lp "${dir}" 2>/dev/null || stat -c %a "${dir}"; ls "${dir}"; ls "${dir}/bin"'
+  run --separate-stderr kit bots run bash -c 'dir=$(dirname "$(dirname "$(command -v gh)")"); stat -c %a "${dir}" 2>/dev/null || stat -f %Lp "${dir}"; ls "${dir}"; ls "${dir}/bin"'
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = 700 ]
   [[ "$output" == *token.json* ]]

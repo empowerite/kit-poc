@@ -54,67 +54,67 @@
     "uri": "kit://rules/workflows"
   },
   {
-    "description": "the paths and first lines that make a file of kind ",
+    "description": "the paths and first lines that make a file of kind any",
     "mimeType": "application/yaml",
     "name": "kinds/any",
     "uri": "kit://kinds/any"
   },
   {
-    "description": "the paths and first lines that make a file of kind ",
+    "description": "the paths and first lines that make a file of kind bash",
     "mimeType": "application/yaml",
     "name": "kinds/bash",
     "uri": "kit://kinds/bash"
   },
   {
-    "description": "the paths and first lines that make a file of kind ",
+    "description": "the paths and first lines that make a file of kind gitignore",
     "mimeType": "application/yaml",
     "name": "kinds/gitignore",
     "uri": "kit://kinds/gitignore"
   },
   {
-    "description": "the paths and first lines that make a file of kind ",
+    "description": "the paths and first lines that make a file of kind jq",
     "mimeType": "application/yaml",
     "name": "kinds/jq",
     "uri": "kit://kinds/jq"
   },
   {
-    "description": "the paths and first lines that make a file of kind ",
+    "description": "the paths and first lines that make a file of kind json",
     "mimeType": "application/yaml",
     "name": "kinds/json",
     "uri": "kit://kinds/json"
   },
   {
-    "description": "the paths and first lines that make a file of kind ",
+    "description": "the paths and first lines that make a file of kind just",
     "mimeType": "application/yaml",
     "name": "kinds/just",
     "uri": "kit://kinds/just"
   },
   {
-    "description": "the paths and first lines that make a file of kind ",
+    "description": "the paths and first lines that make a file of kind markdown",
     "mimeType": "application/yaml",
     "name": "kinds/markdown",
     "uri": "kit://kinds/markdown"
   },
   {
-    "description": "the paths and first lines that make a file of kind ",
+    "description": "the paths and first lines that make a file of kind sh",
     "mimeType": "application/yaml",
     "name": "kinds/sh",
     "uri": "kit://kinds/sh"
   },
   {
-    "description": "the paths and first lines that make a file of kind ",
+    "description": "the paths and first lines that make a file of kind text",
     "mimeType": "application/yaml",
     "name": "kinds/text",
     "uri": "kit://kinds/text"
   },
   {
-    "description": "the paths and first lines that make a file of kind ",
+    "description": "the paths and first lines that make a file of kind workflows",
     "mimeType": "application/yaml",
     "name": "kinds/workflows",
     "uri": "kit://kinds/workflows"
   },
   {
-    "description": "the paths and first lines that make a file of kind ",
+    "description": "the paths and first lines that make a file of kind yaml",
     "mimeType": "application/yaml",
     "name": "kinds/yaml",
     "uri": "kit://kinds/yaml"
