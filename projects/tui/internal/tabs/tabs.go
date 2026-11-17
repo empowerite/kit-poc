@@ -52,12 +52,10 @@ const (
 // yellow, wherever the keyboard is.
 const Stale = "•"
 
-// Working is the frames of the clock that takes the dot's place while a stale tab is loading again, the hands turning a
-// half hour at a time: Bar.Frame says which is drawn, and the screen turns it while the load runs, so the person who
-// clicked the dot sees that something is underway. Each is two cells wide, as every terminal draws it, and takes the dot's
-// cell and the space after it.
-var Working = []string{"🕐", "🕜", "🕑", "🕝", "🕒", "🕞", "🕓", "🕟", "🕔", "🕠", "🕕", "🕡",
-	"🕖", "🕢", "🕗", "🕣", "🕘", "🕤", "🕙", "🕥", "🕚", "🕦", "🕛", "🕧"}
+// Working is the frames of the circle that takes the dot's place while a stale tab is loading again, its filled half
+// turning: Bar.Frame says which is drawn, and the screen turns it while the load runs, so the person who clicked the dot
+// sees that something is underway. Each is one cell wide, as the dot is.
+var Working = []string{"◐", "◓", "◑", "◒"}
 
 // Menu is the glyph after the selected tab's count, which opens the tab's menu: :, the key that opens it too, narrow
 // in every terminal.
@@ -100,7 +98,7 @@ type Bar struct {
 	Alert    []bool
 	Stale    []bool
 	// Busy says, by index, which stale tabs are loading again: each draws the frame of Working that Frame names, in
-	// place of Stale and the space after it.
+	// place of Stale, in the same cell.
 	Busy  []bool
 	Frame int
 }
@@ -243,7 +241,7 @@ func (b Bar) Label() string {
 	}
 	name, count, menu := b.label(b.Selected)
 	if b.stale(b.Selected) {
-		name += b.dot(b.Selected)
+		name += style.Warn(b.dot(b.Selected))
 	}
 	for _, part := range []string{count, menu} {
 		if ansi.StringWidth(part) > 0 {
@@ -439,14 +437,11 @@ func (b Bar) View() string {
 		room := cells - 2 - ansi.StringWidth(tail)
 		body, dimBody := " "+name, b.dim(" "+name)
 		if ansi.StringWidth(b.Tabs[i].Count) > 0 || b.reserve(i) > 0 {
-			dot := "  "
+			dot := " "
 			if b.stale(i) {
-				dot = b.dot(i)
-				if !b.busy(i) {
-					dot += " "
-				}
+				dot = style.Warn(b.dot(i))
 			}
-			body, dimBody = body+dot+count, dimBody+dot+count
+			body, dimBody = body+dot+" "+count, dimBody+dot+" "+count
 		}
 		label := pane.Pad(body, room, false) + tail + " "
 		dimmed := pane.Pad(dimBody, room, false) + tail + " "
@@ -536,16 +531,15 @@ func top(cells int) string { return "╶" + strings.Repeat("─", cells-1) }
 // alert says whether a tab's count wants attention.
 func (b Bar) alert(i int) bool { return i < len(b.Alert) && b.Alert[i] }
 
-// busy says whether the tab at i is loading again, which its dot shows as a clock.
+// busy says whether the tab at i is loading again, which its dot shows as a turning circle.
 func (b Bar) busy(i int) bool { return i < len(b.Busy) && b.Busy[i] }
 
-// dot gives the stale dot of the tab at i, yellow: Stale, or, while the tab loads again, the frame of Working that
-// Frame names, which is two cells wide, and so takes the cell of the space after the dot.
+// dot gives the stale dot of the tab at i: Stale, or, while the tab loads again, the frame of Working that Frame names.
 func (b Bar) dot(i int) string {
 	if b.busy(i) {
 		return Working[b.Frame%len(Working)]
 	}
-	return style.Warn(Stale)
+	return Stale
 }
 
 // stale says whether the tab at i shows what is stale.

@@ -240,7 +240,7 @@ func view(m Model) string { return strings.Join(lines(m), "\n") }
 func shows(m Model, glyph, count string) bool {
 	re := regexp.QuoteMeta(glyph) + `( \S+)?`
 	if count != "" {
-		re += " *" + regexp.QuoteMeta(count)
+		re += " +" + regexp.QuoteMeta(count)
 	}
 	re += `( ` + regexp.QuoteMeta(tabs.Menu) + `)?`
 	// on a bar wide enough for every tab, so a stage the screen scrolls past still answers

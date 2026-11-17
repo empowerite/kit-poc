@@ -735,9 +735,9 @@ func TestPlainDigitsNumberTheTabsAndOnlyTheirStyleSaysWhichIsSelected(t *testing
 	}
 }
 
-// While a stale tab loads again a clock takes its dot's place: each frame of Working, two cells wide, in the cells of the
-// dot and the space after it, so nothing moves.
-func TestABusyTabsDotIsAClockThatTakesItsPlaceAndMovesNothing(t *testing.T) {
+// While a stale tab loads again a turning circle takes its dot's place, yellow: each frame of Working, one cell wide, in
+// the cell of the dot, so nothing moves.
+func TestABusyTabsDotIsACircleThatTurnsInPlace(t *testing.T) {
 	for _, focused := range []bool{true, false} {
 		b := stages(0, 120)
 		b.Focused = focused
@@ -746,21 +746,24 @@ func TestABusyTabsDotIsAClockThatTakesItsPlaceAndMovesNothing(t *testing.T) {
 		b.Busy = []bool{true, false, false}
 		for frame, glyph := range Working {
 			b.Frame = frame
-			if w := ansi.StringWidth(glyph); w != 2 {
+			if w := ansi.StringWidth(glyph); w != 1 {
 				t.Fatalf("frame %d, %q, is %d cells wide", frame, glyph, w)
 			}
-			lines := strings.Split(ansi.Strip(b.View()), "\n")
+			got := b.View()
+			lines := strings.Split(ansi.Strip(got), "\n")
 			if !strings.Contains(lines[1], "backlog"+glyph) || !strings.Contains(lines[1], "incoming"+Stale) {
 				t.Errorf("focused %v, frame %d: the middle line: %q", focused, frame, lines[1])
 			}
-			if strings.ReplaceAll(lines[1], glyph, Stale+" ") != still[1] {
-				t.Errorf("focused %v, frame %d: the clock moved the tabs: %q was %q", focused, frame, lines[1], still[1])
+			if !strings.Contains(got, style.Warn(glyph)) {
+				t.Errorf("focused %v, frame %d: the circle is not yellow: %q", focused, frame, got)
+			}
+			if strings.ReplaceAll(lines[1], glyph, Stale) != still[1] {
+				t.Errorf("focused %v, frame %d: the circle moved the tabs: %q was %q", focused, frame, lines[1], still[1])
 			}
 		}
-		b.Frame = len(Working) + 1
-		b.Selected = 0
-		if l := b.Label(); !strings.Contains(l, Working[1]) || strings.Contains(l, Stale) {
-			t.Errorf("focused %v: the title's label does not show the clock: %q", focused, l)
+		b.Frame, b.Selected = len(Working)+1, 0
+		if l := b.Label(); !strings.Contains(ansi.Strip(l), Working[1]) || strings.Contains(l, Stale) {
+			t.Errorf("focused %v: the title's label does not show the circle: %q", focused, l)
 		}
 	}
 }
