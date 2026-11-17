@@ -1564,6 +1564,40 @@ HELPER
   done
 }
 
+@test "under run, an alias remote without .git rewrites its host, so a sibling repository goes to its own https URL" {
+  run-setup
+  export KIT_BOT_FOR=someone
+  printf 'forge: github\n' > kit.yml
+  fake-tools ssh
+  fixture ssh-work.txt <<<$'user git\nhostname github.com\nport 22'
+  route ssh '-G -- github.com-work' ssh-work.txt
+  git remote set-url origin git@github.com-work:empowerite/kit
+  run --separate-stderr kit bots run bash -c 'git ls-remote --get-url git@github.com-work:empowerite/kit-docs.git; git ls-remote --get-url git@github.com-work:empowerite/kit; git ls-remote --get-url ssh://git@github.com-work/empowerite/kit-docs.git'
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = https://github.com/empowerite/kit-docs.git ]
+  [ "${lines[1]}" = https://github.com/empowerite/kit ]
+  [ "${lines[2]}" = https://github.com/empowerite/kit-docs.git ]
+}
+
+@test "under run, a PATH entry with a glob character expands to no directory, and the session's bin is still found" {
+  run-setup
+  export KIT_BOT_FOR=someone
+  fake-tools mise
+  route mise '--version' '!0'
+  touch mise.toml
+  mkdir -p "${BATS_TEST_TMPDIR}/glob/real/bin"
+  # a directory the glob would expand to, laid out as a run's bin is, which an expanded entry would put before the real one
+  printf '#!/usr/bin/env bash\n' > "${BATS_TEST_TMPDIR}/glob/real/bin/gh"
+  cp "${BATS_TEST_TMPDIR}/glob/real/bin/gh" "${BATS_TEST_TMPDIR}/glob/real/bin/git-credential-kit-bot"
+  chmod +x "${BATS_TEST_TMPDIR}/glob/real/bin/gh" "${BATS_TEST_TMPDIR}/glob/real/bin/git-credential-kit-bot"
+  : > "${BATS_TEST_TMPDIR}/glob/real/refresh"
+  fixture paths.txt <<<"${BATS_TEST_TMPDIR}/toolchain"
+  route mise 'bin-paths' paths.txt
+  run --separate-stderr kit bots run bash -c 'PATH="$1:${PATH}" kit tools run bash -c "command -v gh"' x "${BATS_TEST_TMPDIR}/glob/*/bin"
+  [ "$status" -eq 0 ]
+  [[ "$output" == "${TMPDIR}"*/bin/gh ]]
+}
+
 @test "under run, a toolchain's gh comes after the session's, so kit tools run and kit gate keep the bot's renewing gh" {
   run-setup
   export KIT_BOT_FOR=someone

@@ -476,9 +476,11 @@ toolchain:run() {
 # toolchain:bot-bin prints, under kit bots run, KIT_BOT set, the first directory on PATH that is a run's bin directory,
 # which holds the gh and the credential helper of the run's session beside its refresh, or nothing.
 toolchain:bot-bin() {
-  local dir IFS=:
+  local dir
+  local -a dirs
   [[ -n "${KIT_BOT:-}" ]] || return 0
-  for dir in ${PATH}
+  IFS=: read -r -a dirs <<<"${PATH}"
+  for dir in "${dirs[@]}"
   do
     if [[ "${dir}" == */bin && -x "${dir}/gh" && -x "${dir}/git-credential-kit-bot" && -f "${dir%/bin}/refresh" ]]
     then

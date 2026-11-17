@@ -371,7 +371,9 @@ GitHub for it: the App's permissions, a token narrowed to one repository, and a 
   act as the bot. Off github.com, `GH_ENTERPRISE_TOKEN` and `GITHUB_ENTERPRISE_TOKEN` hold it too, and on github.com
   kit unsets both. git's credential helper for the host answers with the token, and `url.<base>.insteadOf` rules send
   the host's ssh URLs, `git@${host}:` and `ssh://git@${host}/`, and any remote whose ssh alias stands for the host,
-  over https, so a push to an ssh remote is the bot's too. An installation token cannot read `GET /user`, which
+  over https, so a push to an ssh remote is the bot's too. Only the `gh` shim renews the token, so a tool other than
+  `gh` that reads `GITHUB_TOKEN` has the one minted when the run started, which stops working after an hour: a long
+  run uses `gh`, or `kit bots token` for a fresh token. An installation token cannot read `GET /user`, which
   GitHub answers 403, so kit checks that it reaches the forge with `gh api repos/{owner}/{repo}` instead.
 - GitHub Enterprise Server answers at `https://${host}/api/v3`, and github.com at `https://api.github.com`. The
   host is the one `gh`'s calls go to: for an ssh URL, the host `ssh -G` says a `Host` of the ssh configuration

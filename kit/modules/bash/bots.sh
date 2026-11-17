@@ -545,10 +545,13 @@ bots:token() {
 # helper answers as the bot, so a push to an ssh remote is the bot's too: "<https URL>\t<prefix>" a line, a rule
 # url.<https URL>.insteadOf <prefix>. git@<host>: and ssh://git@<host>/ go to https://<host>/. So does each remote of
 # this checkout that the forge's provider reads as a repository on <host>, though its URL names another host, as an ssh
-# Host alias or GitHub's ssh.github.com does: its URL goes to the repository's https URL.
+# Host alias or GitHub's ssh.github.com does: the prefix of its URL that names the host, up to and with the separator,
+# goes to https://<host>/. git matches insteadOf by prefix, so a rule on the whole URL would also rewrite a sibling
+# such as <URL>-docs.git; the host's own prefix, ending in : or /, cannot.
 bots:rewrites() {
-  local host=$1 remote url pages repository
-  local -a remotes
+  local host=$1 remote url pages repository prefix
+  local -a remotes prefixes
+  local -A seen=()
   list:read remotes git remote || return 1
   printf 'https://%s/\t%s\n' "${host}" "git@${host}:" "${host}" "ssh://git@${host}/"
   for remote in "${remotes[@]}"
@@ -559,7 +562,21 @@ bots:rewrites() {
     [[ "${pages}" != null ]] || continue
     repository=$(jq --raw-output .repository <<<"${pages}")
     [[ "$(forge:url-host "${repository}")" == "${host}" ]] || continue
-    printf '%s.git\t%s\n' "${repository}" "${url}"
+    prefixes=()
+    if [[ "${url}" =~ ^[a-z][a-z0-9+.-]*://([^/]*)/ ]]
+    then
+      prefixes+=("${BASH_REMATCH[0]}")
+      # without a port, the scp form of the same host names the same repositories
+      [[ "${url%%://*}" != ssh || "${BASH_REMATCH[1]}" == *:* ]] || prefixes+=("${BASH_REMATCH[1]}:")
+    else
+      prefixes+=("${url%%:*}:" "ssh://${url%%:*}/")
+    fi
+    for prefix in "${prefixes[@]}"
+    do
+      [[ -z "${seen["${prefix}"]:-}" ]] || continue
+      seen["${prefix}"]=1
+      printf 'https://%s/\t%s\n' "$(forge:url-host "${repository}")" "${prefix}"
+    done
   done
 }
 
