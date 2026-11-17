@@ -1,12 +1,12 @@
 <!-- kit:generated -- kit welcome's first step, the introduction, from the kit package -->
 <!-- see: "Changing what kit adds" in .kit/1st.md, to replace it -->
-# Introduction — let your agents move fast, and trust what they ship
+# Introduction — let your agents move fast, and verify what they ship
 
-Coding agents are fast, and they take the same shortcuts people do: they call work done when it is not, skip the
-tests, and rewrite other people's branches. kit keeps the speed and takes the doubt out. Type `kit work 7` and a
-[worktree](kittui:welcome/terms/worktree), a branch, and a draft [pull request](kittui:welcome/terms/pull%20request)
-for [issue](kittui:welcome/terms/issue) 7 exist in seconds. The agent works there, under rules it cannot talk its
-way past, and a person merges what passes. Four ideas make that work.
+Coding agents are fast, and they take the same shortcuts people do: they call work done when it is not, skip the tests,
+and rewrite other people's branches. kit keeps the speed and takes no one's word: it checks. Type `kit work 7` and a
+[worktree](kittui:welcome/terms/worktree), a branch, and a draft [pull request](kittui:welcome/terms/pull%20request) for
+[issue](kittui:welcome/terms/issue) 7 exist in seconds. The agent works there, under rules it cannot talk its way past,
+and a person merges what passes. Four ideas make that work.
 
 ## Commands: each step of the work is one command
 
