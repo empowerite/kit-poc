@@ -129,18 +129,38 @@ group-has() {
   [[ "$output" == "❌ unknown verb 'che'; run: cd "*" && kit help" ]]
 }
 
-@test "every verb prints its page on --help or -h, before any --, as kit help <verb> does, through bin/kit or called directly" {
+# help-of-verbs <shard> <shards> checks, for every <shards>th verb from the <shard>th, that --help prints the page kit
+# help does. The verbs are split into shards, tests of their own, as bats --jobs runs them side by side.
+help-of-verbs() {
   cd "${BATS_TEST_TMPDIR}" && git init --quiet --initial-branch=main
   local verb page
-  for verb in "${kit_root}"/bin/kit-*
+  for verb in $(verb-shard "$1" "$2")
   do
-    [[ -x "${verb}" ]] || continue
-    verb=${verb##*/kit-}
     page=$("${kit_root}/bin/kit" help "${verb}")
     run "${kit_root}/bin/kit" "${verb}" --help
     [ "$status" -eq 0 ] || { echo "${verb}: exit ${status}: ${output}"; return 1; }
     [ "$output" = "${page}" ] || { echo "${verb}: ${output}"; return 1; }
   done
+}
+
+@test "every verb prints its page on --help, as kit help <verb> does, through bin/kit: shard 1 of 4" {
+  help-of-verbs 1 4
+}
+
+@test "every verb prints its page on --help, as kit help <verb> does, through bin/kit: shard 2 of 4" {
+  help-of-verbs 2 4
+}
+
+@test "every verb prints its page on --help, as kit help <verb> does, through bin/kit: shard 3 of 4" {
+  help-of-verbs 3 4
+}
+
+@test "every verb prints its page on --help, as kit help <verb> does, through bin/kit: shard 4 of 4" {
+  help-of-verbs 4 4
+}
+
+@test "-h and --help come before any --, and bin/kit-flow called directly prints its page" {
+  cd "${BATS_TEST_TMPDIR}" && git init --quiet --initial-branch=main
   run "${kit_root}/bin/kit-flow" -h
   [ "$status" -eq 0 ]
   [[ "${lines[0]}" == "kit flow - "* ]]

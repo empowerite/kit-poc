@@ -203,6 +203,19 @@ fresh-repo() {
   printf '%s\n' "${repo}"
 }
 
+# verb-shard <shard> <shards> prints the name of every <shards>th verb in bin/, from the <shard>th, counting from 1, a
+# line each. A test that runs something for every verb is split into shards, tests of their own, so bats --jobs runs
+# them side by side, not as one long test that the others wait behind.
+verb-shard() {
+  local verb n=0
+  for verb in "${kit_root}"/bin/kit-*
+  do
+    [[ -x "${verb}" ]] || continue
+    (( n++ % $2 == $1 - 1 )) && printf '%s\n' "${verb##*/kit-}"
+  done
+  return 0
+}
+
 # checkout-copy makes a repository of its own from the checkout's tracked files and its .kit/, under BATS_TEST_TMPDIR,
 # and moves into it. A test that checks this repository's own files runs the kit there, so whatever a verb compiles or
 # logs lands in the copy's .git, never in the checkout's.
