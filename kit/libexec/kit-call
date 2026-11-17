@@ -79,8 +79,9 @@ fi
 # ignored, as in the background of a script, runs a verb that ignores it too. A TERM or HUP here is sent on to the
 # verb, or, when it comes before the verb has started, once it has. An INT is not, as the terminal sends it to the
 # verb too. A trapped signal ends wait early, so it waits until the verb has ended, and takes its status: 128+signal
-# where a signal ended it. bash keeps a child's status for each wait on it, so a wait after the verb's end, as when a
-# signal comes between its end and the check, takes the same status.
+# where a signal ended it. Bash keeps a child's status for each wait on it, so a wait after the verb's end, as when a
+# signal comes between its end and the check, takes the same status, or, where bash has let the verb go, 127, and the
+# status of the wait before it is kept.
 verb_pid=''
 pending=()
 # shellcheck disable=SC2329  # the TERM and HUP traps call it
@@ -102,11 +103,15 @@ do
   kill -s "${signal}" "${verb_pid}" 2>/dev/null || :
 done
 signaled=1
+status=0
 while [[ -n "${signaled}" ]]
 do
   signaled=''
-  status=0
-  wait "${verb_pid}" || status=$?
+  waited=0
+  wait "${verb_pid}" || waited=$?
+  # Bash 5.3 may have forgotten a verb that ended while its trap ran, and says it is no child of this shell, 127; the
+  # status the wait that the trap ended gave, 128+signal, then stands.
+  (( waited == 127 && status > 128 )) || status=${waited}
 done
 log:call kit "${started}" "pid=$$" "depth=${kit_depth:-0}" "status=${status}" "in=${directory}" "${line}"
 # A verb that Ctrl-C ended makes kit die of the INT too, as a verb run directly does, so a script or a loop that called
