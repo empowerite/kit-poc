@@ -81,6 +81,7 @@ func (m Model) park(left kit.Workspace, stays func(shell.Screen) bool) Model {
 		m.seq++
 		m.epochs[to] = m.seq
 	}
+	saveViews(left, p.made)
 	if len(p.made) == 0 {
 		return m
 	}

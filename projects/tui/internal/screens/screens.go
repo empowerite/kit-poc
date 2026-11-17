@@ -112,6 +112,7 @@ func (m Model) Shown() tea.Model { return m.made[m.here] }
 
 // Close ends what every screen made started and still runs.
 func (m Model) Close() {
+	saveViews(m.workspace, m.made)
 	closeAll(m.made)
 	for _, p := range m.parked {
 		closeAll(p.made)
@@ -259,6 +260,12 @@ func (m Model) answered(msg workspaceMsg) (tea.Model, tea.Cmd) {
 		m.runner.Dir = msg.ws.Checkout
 	}
 	if !moved {
+		if left.Kind == "" {
+			// the screens made before kit said the workspace are given where they were left there
+			for to, s := range m.made {
+				m.made[to] = restoreViews(msg.ws, to, s)
+			}
+		}
 		return m.tellWorkspace()
 	}
 	m = m.dropped()
@@ -561,7 +568,11 @@ func (m Model) place(to shell.Screen, s tea.Model) (tea.Model, tea.Cmd) {
 func (m Model) open(to shell.Screen) (tea.Model, error) {
 	switch {
 	case flow.IsApp(to):
-		return flow.OpenApp(m.runner, to, m.words)
+		app, err := flow.OpenApp(m.runner, to, m.words)
+		if err != nil {
+			return nil, err
+		}
+		return restoreViews(m.workspace, to, app), nil
 	}
 	switch to {
 	case shell.Welcome:

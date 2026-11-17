@@ -195,6 +195,12 @@ A table has three kinds of preset:
 - A screen saves through `table.KeepPresets`. It reads the file again and applies what the screen did, so two
   kittui on one file keep each other's presets.
 - The search history is `search-history.json` and the settings are `kittui.json`, both beside `presets.json`.
+- Where the person left each screen of a workspace, apart from its rows and its table, is kept in the cache, in
+  `kit/kittui/views/` under `~/.cache`, or under `XDG_CACHE_HOME`: a file for each workspace, written when the
+  workspace is left and when kittui ends. It holds the tab selected and, for each tab, the row under the cursor, how far
+  the rows and columns scrolled, the folds, and the rows selected. A screen made over the workspace again, after a
+  restart, or once the memory its screens held was taken back, opens as it was left. A file of another version, or one
+  that cannot be read, is passed by; it is safe to delete.
 
 ## Rules a change keeps
 
