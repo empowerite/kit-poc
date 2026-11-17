@@ -65,18 +65,46 @@ func TestAnAnswerForAParkedScreenReachesIt(t *testing.T) {
 	}
 }
 
-func TestScreensParkedPastTheMostAreClosed(t *testing.T) {
+// budgeted makes the memory kittui holds one unit for each workspace parked, and the limit as many units as given.
+func budgeted(t *testing.T, units int) {
+	t.Helper()
+	was := memory
+	memory = func(parked int) (uint64, uint64) { return uint64(parked), uint64(units) }
+	t.Cleanup(func() { memory = was })
+}
+
+func TestScreensAreParkedWhileTheMemoryHeldIsUnderTheBudgetAndTheOldestClosedPastIt(t *testing.T) {
 	m, _ := movers(t)
+	budgeted(t, 3)
 	for i, name := range []string{"b", "c", "d", "e", "f"} {
 		m.asked++
 		ws := kit.Workspace{Kind: "repository", Name: "github.com/o/" + name, Checkout: t.TempDir()}
 		m = drive(m, workspaceMsg{gen: m.asked, ws: ws})
-		if want := min(i+1, parkedMost); len(m.parked) != want {
+		if want := min(i+1, 3); len(m.parked) != want {
 			t.Fatalf("after %s: %d parked, want %d", name, len(m.parked), want)
 		}
 	}
 	if got := m.parked[0].ws.Name; got != "github.com/o/e" {
 		t.Errorf("the latest left, first: %s", got)
+	}
+}
+
+func TestTheWorkspaceJustLeftIsKeptWhateverItHolds(t *testing.T) {
+	m, _ := movers(t)
+	budgeted(t, 0)
+	for _, name := range []string{"b", "c"} {
+		m.asked++
+		m = drive(m, workspaceMsg{gen: m.asked, ws: kit.Workspace{Kind: "repository", Name: "github.com/o/" + name,
+			Checkout: t.TempDir()}})
+	}
+	if len(m.parked) != 1 || m.parked[0].ws.Name != "github.com/o/b" {
+		t.Errorf("parked: %d", len(m.parked))
+	}
+}
+
+func TestTheMemoryHeldAndTheBudgetAreWhatTheMachineSays(t *testing.T) {
+	if held, limit := memory(0); held == 0 || limit == 0 {
+		t.Errorf("held %d, limit %d", held, limit)
 	}
 }
 

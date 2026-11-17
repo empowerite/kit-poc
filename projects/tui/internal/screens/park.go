@@ -2,11 +2,12 @@
 // back, so switching from one repository to another and back loads nothing from the start. What a screen started goes
 // on while it is parked: its answers reach it, by the epoch it was made under, which no other screen has had. A screen
 // parked longer than parkedFresh is told to read again as it is shown, over what it kept, so the rows are there at
-// once and the forge's answer replaces them. Only parkedMost workspaces are kept, the one left longest ago closed
-// first, since each screen holds its rows.
+// once and the forge's answer replaces them. What is kept is bounded by the memory kittui holds, not by a count: past
+// a share of the machine's memory, the workspace left longest ago is closed first, and the next, until it is under.
 package screens
 
 import (
+	"runtime"
 	"slices"
 	"time"
 
@@ -16,14 +17,25 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/shell"
 )
 
-// parkedMost is how many workspaces, beside the one shown, keep their screens.
-const parkedMost = 3
+// memoryShare is the part of the machine's memory the screens kittui holds may take, one over this: what each screen
+// holds is its rows, so this is far above what any workspace takes, and only a machine short of memory reaches it.
+const memoryShare = 16
 
 // parkedFresh is how long a workspace's screens may be parked and shown again as they are, with no read.
 const parkedFresh = time.Minute
 
 // now is the clock the screens read; the tests set it.
 var now = time.Now
+
+// memory says how much memory kittui holds, as the garbage collector counts it once it has run, and how much the
+// screens it holds may take: a share of the machine's. It is told how many workspaces are kept, which the tests count
+// instead.
+var memory = func(int) (held, limit uint64) {
+	runtime.GC()
+	var stats runtime.MemStats
+	runtime.ReadMemStats(&stats)
+	return stats.HeapAlloc, physicalMemory() / memoryShare
+}
 
 // parked is the screens of a workspace left: the workspace as kit said it, when it was left, each screen and its epoch.
 type parked struct {
@@ -53,8 +65,7 @@ func same(a, b kit.Workspace) bool {
 }
 
 // park keeps the screens made that read the workspace left, all but those kept says stay, each with a new epoch for
-// the screen made there next. A workspace kit never said is not kept, nor are screens when none was left; the ones
-// kept longest ago are closed past parkedMost.
+// the screen made there next. A workspace kit never said is not kept, nor are screens when none was left.
 func (m Model) park(left kit.Workspace, stays func(shell.Screen) bool) Model {
 	p := &parked{ws: left, at: now(), made: map[shell.Screen]tea.Model{}, epochs: map[shell.Screen]int{}}
 	for to, s := range m.made {
@@ -74,13 +85,7 @@ func (m Model) park(left kit.Workspace, stays func(shell.Screen) bool) Model {
 		return m
 	}
 	m.parked = append([]*parked{p}, m.parked...)
-	if len(m.parked) > parkedMost {
-		for _, o := range m.parked[parkedMost:] {
-			closeAll(o.made)
-		}
-		m.parked = m.parked[:parkedMost]
-	}
-	return m
+	return m.trimmed()
 }
 
 // unpark brings back the screens kept of the workspace, under the epochs they were made with, and gives what asks
@@ -123,4 +128,19 @@ func (m Model) deliverParked(msg tagged) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+// trimmed closes the workspaces kept, the one left longest ago first, while kittui holds more memory than memory says it may,
+// and leaves the one just left, which is kept whatever it holds. The count is read after the garbage collector ran,
+// so what a closed screen held is not counted again.
+func (m Model) trimmed() Model {
+	for len(m.parked) > 1 {
+		if held, limit := memory(len(m.parked)); held <= limit {
+			break
+		}
+		last := len(m.parked) - 1
+		closeAll(m.parked[last].made)
+		m.parked = m.parked[:last]
+	}
+	return m
 }
