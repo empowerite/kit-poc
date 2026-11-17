@@ -158,12 +158,12 @@ JSON
    "author": {"login": "bob"}, "body": "Fixes AB#12",
    "mergedBy": {"login": "ada"}}]}}}}
 JSON
-  route gh 'api graphql*states: MERGED*' "${GITHUB_MERGED:-gh-merged.json}"
-  route gh 'api graphql*deployments(first: 50*' "${GITHUB_DEPLOYMENTS:-gh-deployments.json}"
-  route gh 'api graphql*projectsV2*' "${GITHUB_ITERATIONS:-gh-iterations.json}"
+  route gh 'api graphql*states: MERGED*' "${FAKE_GITHUB_MERGED:-gh-merged.json}"
+  route gh 'api graphql*deployments(first: 50*' "${FAKE_GITHUB_DEPLOYMENTS:-gh-deployments.json}"
+  route gh 'api graphql*projectsV2*' "${FAKE_GITHUB_ITERATIONS:-gh-iterations.json}"
   route gh 'api graphql*after=c1*projectItems*' gh-issue-iterations.json
-  route gh 'api graphql*projectItems*' "${GITHUB_ISSUE_ITERATIONS:-gh-issue-iterations.json}"
-  route gh 'api graphql*number=3*' "${GITHUB_CLOSING:-closing.json}"
+  route gh 'api graphql*projectItems*' "${FAKE_GITHUB_ISSUE_ITERATIONS:-gh-issue-iterations.json}"
+  route gh 'api graphql*number=3*' "${FAKE_GITHUB_CLOSING:-closing.json}"
   route gh 'api graphql*' open-prs.json
 }
 
@@ -478,10 +478,10 @@ named-afresh() {
 # here <NAME=value>… prints what forge:pr-here answers in a shell that sets those variables and no other that names a
 # change or marks a CI system: a forge's own, or a CI system's.
 here() {
-  env -u GITHUB_EVENT_PATH -u CI_MERGE_REQUEST_IID -u SYSTEM_PULLREQUEST_PULLREQUESTID -u BUILDKITE_PULL_REQUEST \
+  env -u FAKE_GITHUB_EVENT_PATH -u CI_MERGE_REQUEST_IID -u SYSTEM_PULLREQUEST_PULLREQUESTID -u BUILDKITE_PULL_REQUEST \
     -u CIRCLE_PULL_REQUEST -u CHANGE_ID -u SYSTEM_PULLREQUEST_PULLREQUESTNUMBER -u CODEBUILD_WEBHOOK_TRIGGER \
     -u CI_COMMIT_PULL_REQUEST -u DRONE_PULL_REQUEST -u BUILDKITE -u CIRCLECI -u JENKINS_URL -u TF_BUILD \
-    -u CODEBUILD_BUILD_ID -u CI -u DRONE -u GITHUB_ACTIONS -u GITLAB_CI "$@" \
+    -u CODEBUILD_BUILD_ID -u CI -u DRONE -u FAKE_GITHUB_ACTIONS -u GITLAB_CI "$@" \
     bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge && forge:pr-here'
 }
 
@@ -573,7 +573,7 @@ here() {
   do
     world "${forge}"
     if [[ "${forge}" == github ]]
-    then marker=GITHUB_ACTIONS=true named=GITHUB_EVENT_PATH=${BATS_TEST_TMPDIR}/event.json
+    then marker=FAKE_GITHUB_ACTIONS=true named=FAKE_GITHUB_EVENT_PATH=${BATS_TEST_TMPDIR}/event.json
     else marker=GITLAB_CI=true named=CI_MERGE_REQUEST_IID=99
     fi
     # a shell that exports the forge's own variable, and not the marker its runner sets on every job, is a desk
@@ -590,7 +590,7 @@ here() {
   # so a verb that writes takes its change from the branch, never from the variable
   world github
   route gh 'pr ready 3' '!0'
-  GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json" run "${kit_root}/bin/kit" ready
+  FAKE_GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json" run "${kit_root}/bin/kit" ready
   [ "$status" -eq 0 ]
   [[ "$output" == *"pull request #3 is ready for review"* ]]
   grep --quiet --line-regexp 'pr ready 3' "${FAKE_DIR}/gh.calls"
@@ -858,7 +858,7 @@ here() {
   export GITHUB_STEP_SUMMARY="${BATS_TEST_TMPDIR}/summary.md"
   for forge in github gitlab
   do
-    GITHUB_CLOSING=closing-none.json GITLAB_CLOSES=none.json world "${forge}"
+    FAKE_GITHUB_CLOSING=closing-none.json GITLAB_CLOSES=none.json world "${forge}"
     mkdir -p .kit && printf 'linked_exempt:\n  - ada\n' > kit.yml
     : > "${GITHUB_STEP_SUMMARY}"
     run "${kit_root}/bin/kit" linked 3
@@ -898,21 +898,21 @@ here() {
 {"data": {"repository": {"issues": {"pageInfo": {"hasNextPage": true, "endCursor": "c1"}, "nodes": [
   {"number": 9, "projectItems": {"nodes": [{"fieldValues": {"nodes": [{"title": "Sprint 1"}]}}]}}]}}}}
 JSON
-  GITHUB_ISSUE_ITERATIONS=gh-issue-iterations-1.json world github
+  FAKE_GITHUB_ISSUE_ITERATIONS=gh-issue-iterations-1.json world github
   run --separate-stderr call open-issues
   [ "$status" -eq 0 ]
   [ "$(jq --slurp --compact-output 'map([.number, .iteration])' <<<"$output")" = '[[7,"Sprint 2"],[9,"Sprint 1"]]' ]
   [ "$(grep --count 'projectItems' "${FAKE_DIR}/gh.calls")" -eq 2 ]
   forge-forget
   fixture gh-scope.txt <<<'gh: Your token has not been granted the required scopes to execute this query. The '"'"'projectItems'"'"' field requires one of the following scopes: ['"'"'read:project'"'"'], but your token has only been granted the: ['"'"'repo'"'"'] scopes. (INSUFFICIENT_SCOPES)'
-  GITHUB_ISSUE_ITERATIONS='!1 gh-scope.txt' world github
+  FAKE_GITHUB_ISSUE_ITERATIONS='!1 gh-scope.txt' world github
   run --separate-stderr call open-issues
   [ "$status" -eq 0 ]
   [ "$(jq --slurp --compact-output 'map([.number, .milestone, .iteration])' <<<"$output")" = '[[7,"v0.1",null],[9,null,null]]' ]
   [ -z "$stderr" ]
   forge-forget
   fixture gh-down.txt <<<'gh: HTTP 502: Bad Gateway'
-  GITHUB_ISSUE_ITERATIONS='!1 gh-down.txt' world github
+  FAKE_GITHUB_ISSUE_ITERATIONS='!1 gh-down.txt' world github
   run --separate-stderr call open-issues
   [ "$status" -eq 1 ]
   [ -z "$output" ]
@@ -920,7 +920,7 @@ JSON
   # a token that is forbidden the projects, as a fine-grained or installation token may be, has no iterations either
   forge-forget
   fixture gh-forbidden.txt <<<'gh: Resource not accessible by personal access token (FORBIDDEN)'
-  GITHUB_ISSUE_ITERATIONS='!1 gh-forbidden.txt' world github
+  FAKE_GITHUB_ISSUE_ITERATIONS='!1 gh-forbidden.txt' world github
   run --separate-stderr call open-issues
   [ "$status" -eq 0 ]
   [ -z "$stderr" ]
@@ -930,7 +930,7 @@ JSON
 {"data": {"repository": {"issues": {"pageInfo": {"hasNextPage": false}, "nodes": [
   {"number": 7, "projectItems": {"totalCount": 6, "nodes": [{"fieldValues": {"totalCount": 1, "nodes": [{}]}}]}}]}}}}
 JSON
-  GITHUB_ISSUE_ITERATIONS=gh-cut.json world github
+  FAKE_GITHUB_ISSUE_ITERATIONS=gh-cut.json world github
   run --separate-stderr call open-issues
   [ "$status" -eq 1 ]
   [[ "$stderr" == *"at most 5 projects and 20 field values of an issue"* ]]
@@ -1189,7 +1189,7 @@ JSON
   run call iterations
   [ "$(jq --raw-output '.title' <<<"$output" | paste -sd, -)" = 'Sprint 1,Sprint 2' ]
   [ "$(jq --raw-output 'select(.title == "Sprint 2") | .end' <<<"$output")" = 1795996799 ]
-  GITHUB_ITERATIONS=gh-iterations-none.json world github
+  FAKE_GITHUB_ITERATIONS=gh-iterations-none.json world github
   run call iterations
   [ "$status" -eq 0 ]
   [ -z "$output" ]
@@ -1235,7 +1235,7 @@ JSON
   jq '.data.repository.pullRequests |= (.totalCount = 70 | .nodes += [.nodes[0] | .number = 1
        | .mergedAt = "2026-01-05T09:00:00Z" | .updatedAt = "2026-10-05T09:00:00Z"])' "${FAKE_DIR}/gh-merged.json" \
     | fixture gh-merged-70.json
-  GITHUB_MERGED=gh-merged-70.json world github
+  FAKE_GITHUB_MERGED=gh-merged-70.json world github
   run --separate-stderr call merged-prs
   [ "$status" -eq 0 ]
   [ "$(jq --slurp --compact-output 'map(.number // .)' <<<"$output")" = '[2,{"limited":1}]' ]
@@ -1310,11 +1310,11 @@ JSON
    "latestStatus": {"state": "SUCCESS", "logUrl": "https://github.com/empowerite/example/actions/runs/103/job/1",
                     "environmentUrl": null}}]}}}}
 JSON
-  route gh 'api repos/{owner}/{repo}/actions/artifacts?per_page=100' "${GITHUB_ARTIFACTS:-gh-artifacts.json}"
+  route gh 'api repos/{owner}/{repo}/actions/artifacts?per_page=100' "${FAKE_GITHUB_ARTIFACTS:-gh-artifacts.json}"
   route gh 'api --paginate --slurp repos/{owner}/{repo}/environments?per_page=100' \
-    "${GITHUB_ENVIRONMENTS:-gh-environments.json}"
+    "${FAKE_GITHUB_ENVIRONMENTS:-gh-environments.json}"
   route gh 'api repos/{owner}/{repo}/environments/*/deployment-branch-policies?per_page=100' \
-    "${GITHUB_BRANCH_POLICIES:-gh-branch-policies.json}"
+    "${FAKE_GITHUB_BRANCH_POLICIES:-gh-branch-policies.json}"
 }
 
 # delivery-gitlab is delivery-github's world, seen through GitLab: job 13 of pipeline 103 kept kit-0.1.0.tar.gz, and
@@ -1365,12 +1365,7 @@ JSON
   do
     world "${forge}"
     run --separate-stderr call artifacts
-    [ "$status" -eq 0 ] || {
-      echo "${forge}: ${stderr}"
-      echo "DEBUG bash $BASH_VERSION"
-      bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge && PS4="+ " && set -x && forge:artifacts' 2>&1 | tail -n 60
-      return 1
-    }
+    [ "$status" -eq 0 ] || { echo "${forge}: ${stderr}"; return 1; }
     [ "$(jq --slurp 'length' <<<"$output")" -eq 1 ] || { echo "${forge}: ${output}"; return 1; }
     [ "$(jq --raw-output '.age > 0' <<<"$output")" = true ]
     # GitLab keeps no digest of an artifact that its API shows
@@ -1389,7 +1384,7 @@ JSON
   done
   # GitHub's count past the page read, or a page of 100 of GitLab's jobs, says the list stopped at those drawn
   jq '.total_count = 150' "${FAKE_DIR}/gh-artifacts.json" | fixture gh-artifacts-150.json
-  GITHUB_ARTIFACTS=gh-artifacts-150.json world github
+  FAKE_GITHUB_ARTIFACTS=gh-artifacts-150.json world github
   run --separate-stderr call artifacts
   [ "$status" -eq 0 ]
   [ "$(jq --slurp --compact-output 'map(.id // .)' <<<"$output")" = '[13,{"limited":1}]' ]
@@ -1444,7 +1439,7 @@ JSON
   world github
   jq '.[0].environments = [range(25) as $i | .[0].environments[0] | .name = "env-\(100 + $i)"]
       | .[0].total_count = 25' "${FAKE_DIR}/gh-environments.json" | fixture gh-environments-25.json
-  GITHUB_ENVIRONMENTS=gh-environments-25.json world github
+  FAKE_GITHUB_ENVIRONMENTS=gh-environments-25.json world github
   run --separate-stderr call environments
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq --slurp --compact-output '[length, .[0].name, .[19].name, .[20]]' <<<"$output")" \
@@ -1452,7 +1447,7 @@ JSON
   [ "$(grep -c 'deployment-branch-policies' "${FAKE_DIR}/gh.calls")" -eq 20 ]
   # an environment with more branch policies than a page holds fails the read, as it would be partial
   jq '.total_count = 101' "${FAKE_DIR}/gh-branch-policies.json" | fixture gh-branch-policies-101.json
-  GITHUB_BRANCH_POLICIES=gh-branch-policies-101.json world github
+  FAKE_GITHUB_BRANCH_POLICIES=gh-branch-policies-101.json world github
   run --separate-stderr call environments
   [ "$status" -eq 1 ]
   [ -z "$output" ]
@@ -1480,7 +1475,7 @@ JSON
   jq '.data.repository.deployments |= (.totalCount = 60
        | .nodes = [range(60) as $i | .nodes[0] | .databaseId = (100 - $i)])' "${FAKE_DIR}/gh-deployments.json" \
     | fixture gh-deployments-60.json
-  GITHUB_DEPLOYMENTS=gh-deployments-60.json world github
+  FAKE_GITHUB_DEPLOYMENTS=gh-deployments-60.json world github
   run --separate-stderr call deployments
   [ "$status" -eq 0 ]
   [ "$(jq --slurp --compact-output '[length, .[0].id, .[49].id, .[50]]' <<<"$output")" = '[51,100,51,{"limited":50}]' ]
@@ -1491,7 +1486,7 @@ JSON
   [ "$(jq --slurp --compact-output '[length, .[0].id, .[49].id, .[50]]' <<<"$output")" = '[51,100,51,{"limited":50}]' ]
   # a GitHub answer with no repository could not be read
   fixture gh-null.json <<<'{"data": {"repository": null}}'
-  GITHUB_DEPLOYMENTS=gh-null.json world github
+  FAKE_GITHUB_DEPLOYMENTS=gh-null.json world github
   run --separate-stderr call deployments
   [ "$status" -eq 1 ]
   [ -z "$output" ]
@@ -1546,10 +1541,10 @@ JSON
     {"createdAt": "2026-09-01T09:00:00Z", "author": null, "latestReviews": null}]}}}}
 JSON
   route gh 'api --paginate --slurp repos/{owner}/{repo}/collaborators?per_page=100' \
-    "${GITHUB_COLLABORATORS:-gh-collaborators.json}"
-  route gh 'api repos/{owner}/{repo}/teams?per_page=21' "${GITHUB_TEAMS:-gh-teams.json}"
-  route gh 'api graphql*team(slug:*' "${GITHUB_TEAM_MEMBERS:-gh-team-members.json}"
-  route gh 'api graphql*history(first: 100)*' "${GITHUB_BOTS:-gh-bots.json}"
+    "${FAKE_GITHUB_COLLABORATORS:-gh-collaborators.json}"
+  route gh 'api repos/{owner}/{repo}/teams?per_page=21' "${FAKE_GITHUB_TEAMS:-gh-teams.json}"
+  route gh 'api graphql*team(slug:*' "${FAKE_GITHUB_TEAM_MEMBERS:-gh-team-members.json}"
+  route gh 'api graphql*history(first: 100)*' "${FAKE_GITHUB_BOTS:-gh-bots.json}"
 }
 
 # people-gitlab is people-github's world, seen through GitLab: ada is the owner, bob a developer, inherited too as a
@@ -1600,7 +1595,7 @@ JSON
 
 @test "GitHub shows who has access only to who may push, and its teams to some: each refusal names an admin" {
   fixture gh-push.txt <<<'gh: Must have push access to view repository collaborators. (HTTP 403)'
-  GITHUB_COLLABORATORS='!1 gh-push.txt' world github
+  FAKE_GITHUB_COLLABORATORS='!1 gh-push.txt' world github
   run --separate-stderr call collaborators
   [ "$status" -eq 1 ]
   [ -z "$output" ]
@@ -1608,14 +1603,14 @@ JSON
   [ "$stderr" = "${ask} who has access only to who may push (the collaborators could not be read)" ]
   # GitHub says not why it hides a repository's teams, so the line claims no role
   fixture gh-404.txt <<<'gh: Not Found (HTTP 404)'
-  GITHUB_TEAMS='!1 gh-404.txt' world github
+  FAKE_GITHUB_TEAMS='!1 gh-404.txt' world github
   run --separate-stderr call teams
   [ "$status" -eq 1 ]
   [ -z "$output" ]
   local hidden="❌ GitHub shows a repository's teams only to some who can reach it; ask an admin of empowerite/example"
   [ "$stderr" = "${hidden} (the teams could not be read)" ]
   # a collaborators list GitHub does not find, as for a token without repo on a private one, is no refusal to push
-  GITHUB_COLLABORATORS='!1 gh-404.txt' world github
+  FAKE_GITHUB_COLLABORATORS='!1 gh-404.txt' world github
   run --separate-stderr call collaborators
   [ "$status" -eq 1 ]
   [[ "$stderr" == '❌ run: cd '*' && gh auth status (the collaborators could not be read)' ]]
@@ -1640,7 +1635,7 @@ JSON
   jq '[range(21) as $i | .[0] | .slug = "t\(100 + $i)"]' "${FAKE_DIR}/gh-teams.json" | fixture gh-teams-21.json
   jq '.data.organization = ([range(20) as $i | {key: "t\($i)", value: .data.organization.t0}] | from_entries)' \
     "${FAKE_DIR}/gh-team-members.json" | fixture gh-team-members-20.json
-  GITHUB_TEAMS=gh-teams-21.json GITHUB_TEAM_MEMBERS=gh-team-members-20.json world github
+  FAKE_GITHUB_TEAMS=gh-teams-21.json FAKE_GITHUB_TEAM_MEMBERS=gh-team-members-20.json world github
   run --separate-stderr call teams
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq --slurp --compact-output '[length, .[0].team, .[19].team, .[20]]' <<<"$output")" \
@@ -1661,7 +1656,7 @@ JSON
   # a team past its first 100 members is drawn with them, and the list says it stopped
   jq '.data.organization.t0.members.totalCount = 150' "${FAKE_DIR}/gh-team-members.json" \
     | fixture gh-team-members-150.json
-  GITHUB_TEAM_MEMBERS=gh-team-members-150.json world github
+  FAKE_GITHUB_TEAM_MEMBERS=gh-team-members-150.json world github
   run --separate-stderr call teams
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq --slurp --compact-output 'map(.members // .)' <<<"$output")" = '[["ada","bob"],{"limited":1}]' ]
@@ -1674,7 +1669,7 @@ JSON
   [ "$(jq --slurp --compact-output 'map(.members // .)' <<<"$output")" = '[["ada","bob"],{"limited":1}]' ]
   # a team the caller cannot see has its members unknown, null
   fixture gh-team-hidden.json <<<'{"data": {"organization": {"t0": null}}}'
-  GITHUB_TEAM_MEMBERS=gh-team-hidden.json world github
+  FAKE_GITHUB_TEAM_MEMBERS=gh-team-hidden.json world github
   run --separate-stderr call teams
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq --compact-output '[.team, .members]' <<<"$output")" = '["core",null]' ]
@@ -1686,7 +1681,7 @@ JSON
     = '["empowerite/core",null,"https://gitlab.com/groups/empowerite/core"]' ]
   # a repository a user owns, or a project shared with no group, has no teams, and asks no more
   fixture none.json <<<'[]'
-  GITHUB_TEAMS=none.json world github
+  FAKE_GITHUB_TEAMS=none.json world github
   : > "${FAKE_DIR}/gh.calls"
   run --separate-stderr call teams
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
@@ -1706,7 +1701,7 @@ JSON
   # a team with no slug, or a group with no path, would give the teams after it the members of the one before
   world github
   jq '.[1:] = [.[0] | .slug = "other"] | .[0].slug = null' "${FAKE_DIR}/gh-teams.json" | fixture gh-teams-nameless.json
-  GITHUB_TEAMS=gh-teams-nameless.json world github
+  FAKE_GITHUB_TEAMS=gh-teams-nameless.json world github
   run --separate-stderr call teams
   [ "$status" -eq 1 ]
   [ -z "$output" ]
@@ -1720,7 +1715,7 @@ JSON
   [[ "$stderr" == '❌ run: cd '*' && glab auth status (the teams could not be read)' ]]
   # an answer of errors alone, with no data, could not be read
   fixture gql-errors.json <<<'{"errors": [{"message": "Internal server error"}]}'
-  GITHUB_TEAM_MEMBERS=gql-errors.json world github
+  FAKE_GITHUB_TEAM_MEMBERS=gql-errors.json world github
   run --separate-stderr call teams
   [ "$status" -eq 1 ]
   [ -z "$output" ]
@@ -1737,7 +1732,7 @@ JSON
   said+=" requires one of the following scopes: ['read:org'], but your token has only been granted the: ['repo']"
   said+=" scopes. (INSUFFICIENT_SCOPES)"
   printf '%s\n' "${said}" | fixture gh-org.txt
-  GITHUB_TEAM_MEMBERS='!1 gh-org.txt' world github
+  FAKE_GITHUB_TEAM_MEMBERS='!1 gh-org.txt' world github
   run --separate-stderr call teams
   [ "$status" -eq 1 ]
   [ -z "$output" ]
@@ -1772,7 +1767,7 @@ JSON
   for cut in '.data.repository.open.totalCount = 150' '.data.repository.merged.nodes[0].latestReviews.totalCount = 21'
   do
     jq "${cut}" "${FAKE_DIR}/gh-bots.json" | fixture gh-bots-cut.json
-    GITHUB_BOTS=gh-bots-cut.json world github
+    FAKE_GITHUB_BOTS=gh-bots-cut.json world github
     run --separate-stderr call bots
     [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
     [ "$(jq --slurp --compact-output '[length, .[-1]]' <<<"$output")" = '[5,{"limited":4}]' ] \
@@ -1781,13 +1776,13 @@ JSON
   grep --quiet 'latestReviews(first: 20) { totalCount' "${FAKE_DIR}/gh.calls"
   # a repository with no commits has none of them, and an answer with no repository could not be read
   jq '.data.repository.defaultBranchRef = null' "${FAKE_DIR}/gh-bots.json" | fixture gh-bots-empty.json
-  GITHUB_BOTS=gh-bots-empty.json world github
+  FAKE_GITHUB_BOTS=gh-bots-empty.json world github
   run --separate-stderr call bots
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq --raw-output .login <<<"$output" | paste -sd, -)" \
     = 'copilot-swe-agent[bot],dependabot[bot],copilot-pull-request-reviewer[bot]' ]
   fixture gh-null.json <<<'{"data": {"repository": null}}'
-  GITHUB_BOTS=gh-null.json world github
+  FAKE_GITHUB_BOTS=gh-null.json world github
   run --separate-stderr call bots
   [ "$status" -eq 1 ]
   [ -z "$output" ]
@@ -2616,24 +2611,24 @@ JSON
  "required_conversation_resolution": {"enabled": false}, "lock_branch": {"enabled": false},
  "required_signatures": {"enabled": false}}
 JSON
-  route gh 'api repos/{owner}/{repo}/releases?per_page=6' "${GITHUB_EVIDENCE_RELEASES:-gh-evidence-releases.json}"
-  route gh 'api repos/{owner}/{repo}/actions/artifacts?per_page=20' "${GITHUB_EVIDENCE_ARTIFACTS:-gh-artifacts.json}"
+  route gh 'api repos/{owner}/{repo}/releases?per_page=6' "${FAKE_GITHUB_EVIDENCE_RELEASES:-gh-evidence-releases.json}"
+  route gh 'api repos/{owner}/{repo}/actions/artifacts?per_page=20' "${FAKE_GITHUB_EVIDENCE_ARTIFACTS:-gh-artifacts.json}"
   route gh 'api --paginate --slurp repos/{owner}/{repo}/attestations/sha256:ab12?per_page=100' \
-    "${GITHUB_ATTESTATIONS:-gh-attestations.json}"
+    "${FAKE_GITHUB_ATTESTATIONS:-gh-attestations.json}"
   route gh 'api --paginate --slurp repos/{owner}/{repo}/attestations/*' '!1 gh-attest-404.txt'
   route gh "api --paginate --slurp repos/{owner}/{repo}/code-scanning/alerts?state=open&${alerts}" \
-    "${GITHUB_CODE_OPEN:-gh-code-open.json}"
+    "${FAKE_GITHUB_CODE_OPEN:-gh-code-open.json}"
   route gh "api --paginate --slurp repos/{owner}/{repo}/code-scanning/alerts?state=dismissed&${alerts}" \
-    "${GITHUB_CODE_DISMISSED:-gh-code-dismissed.json}"
+    "${FAKE_GITHUB_CODE_DISMISSED:-gh-code-dismissed.json}"
   route gh "api --paginate --slurp repos/{owner}/{repo}/dependabot/alerts?state=*&${alerts}" \
-    "${GITHUB_DEPENDABOT:-gh-dependabot.json}"
+    "${FAKE_GITHUB_DEPENDABOT:-gh-dependabot.json}"
   route gh "api --paginate --slurp repos/{owner}/{repo}/secret-scanning/alerts?state=open&${alerts}" \
-    "${GITHUB_SECRET_OPEN:-!1 gh-secret-off.txt}"
+    "${FAKE_GITHUB_SECRET_OPEN:-!1 gh-secret-off.txt}"
   route gh "api --paginate --slurp repos/{owner}/{repo}/secret-scanning/alerts?state=resolved&*" \
-    "${GITHUB_SECRET_RESOLVED:-!1 gh-secret-off.txt}"
-  route gh 'api graphql*rulesets(first: 100*' "${GITHUB_RULESETS:-gh-rulesets.json}"
-  route gh 'api repos/{owner}/{repo}/branches/main' "${GITHUB_BRANCH:-gh-branch.json}"
-  route gh 'api repos/{owner}/{repo}/branches/main/protection' "${GITHUB_PROTECTION:-gh-protection.json}"
+    "${FAKE_GITHUB_SECRET_RESOLVED:-!1 gh-secret-off.txt}"
+  route gh 'api graphql*rulesets(first: 100*' "${FAKE_GITHUB_RULESETS:-gh-rulesets.json}"
+  route gh 'api repos/{owner}/{repo}/branches/main' "${FAKE_GITHUB_BRANCH:-gh-branch.json}"
+  route gh 'api repos/{owner}/{repo}/branches/main/protection' "${FAKE_GITHUB_PROTECTION:-gh-protection.json}"
 }
 
 # trust-gitlab is trust-github's world, seen through GitLab's vulnerability report: SAST found alert 4 open, and ada
@@ -2716,7 +2711,7 @@ JSON
   # signer are unknown, but for one GitHub made itself
   jq '.[0].attestations = [{repository_id: 1, initiator: "github", bundle: null, bundle_url: "https://b"}]' \
     "${FAKE_DIR}/gh-attestations.json" | fixture gh-attestations-apart.json
-  GITHUB_ATTESTATIONS=gh-attestations-apart.json world github
+  FAKE_GITHUB_ATTESTATIONS=gh-attestations-apart.json world github
   run --separate-stderr call attestations
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq --compact-output '[.subject, .kind, .signer, (.age > 0)]' <<<"$output")" \
@@ -2724,13 +2719,13 @@ JSON
   # a sixth release, or more artifacts than the 20 read, say the attestations drawn are not all there are
   jq '. + [range(5) as $i | .[0] | .tag_name = "v0.0.\($i)" | .assets = []]' "${FAKE_DIR}/gh-evidence-releases.json" \
     | fixture gh-evidence-releases-6.json
-  GITHUB_EVIDENCE_RELEASES=gh-evidence-releases-6.json world github
+  FAKE_GITHUB_EVIDENCE_RELEASES=gh-evidence-releases-6.json world github
   run --separate-stderr call attestations
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq --slurp --compact-output '[length, .[-1]]' <<<"$output")" = '[2,{"limited":1}]' ] \
     || { echo "${output}"; return 1; }
   jq '.total_count = 30' "${FAKE_DIR}/gh-artifacts.json" | fixture gh-artifacts-30.json
-  GITHUB_EVIDENCE_ARTIFACTS=gh-artifacts-30.json world github
+  FAKE_GITHUB_EVIDENCE_ARTIFACTS=gh-artifacts-30.json world github
   run --separate-stderr call attestations
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq --slurp --compact-output '[length, .[-1]]' <<<"$output")" = '[2,{"limited":1}]' ]
@@ -2738,7 +2733,7 @@ JSON
   jq '.[0].assets[0] as $a
       | .[0].assets = [range(60) as $i | $a | .name = "f\($i)" | .digest = "sha256:\(1000 + $i)"]' \
     "${FAKE_DIR}/gh-evidence-releases.json" | fixture gh-evidence-releases-60.json
-  GITHUB_EVIDENCE_RELEASES=gh-evidence-releases-60.json world github
+  FAKE_GITHUB_EVIDENCE_RELEASES=gh-evidence-releases-60.json world github
   : > "${FAKE_DIR}/gh.calls"
   run --separate-stderr call attestations
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
@@ -2746,15 +2741,15 @@ JSON
   [ "$(grep -c 'attestations/' "${FAKE_DIR}/gh.calls")" -eq 50 ]
   # releases that are not a list, or artifacts with none, could not be read, and print nothing
   fixture gh-object.json <<<'{}'
-  GITHUB_EVIDENCE_RELEASES=gh-object.json world github
+  FAKE_GITHUB_EVIDENCE_RELEASES=gh-object.json world github
   run --separate-stderr call attestations
   [ "$status" -eq 1 ] && [ -z "$output" ] || { echo "${output}"; return 1; }
   [[ "$stderr" == '❌ run: cd '*' && gh auth status (the attestations could not be read)' ]]
-  GITHUB_EVIDENCE_ARTIFACTS=gh-object.json world github
+  FAKE_GITHUB_EVIDENCE_ARTIFACTS=gh-object.json world github
   run --separate-stderr call attestations
   [ "$status" -eq 1 ] && [ -z "$output" ] || { echo "${output}"; return 1; }
   # a read GitHub refuses fails, saying so
-  GITHUB_ATTESTATIONS='!1' world github
+  FAKE_GITHUB_ATTESTATIONS='!1' world github
   run --separate-stderr call attestations
   [ "$status" -eq 1 ]
   [ -z "$output" ]
@@ -2781,7 +2776,7 @@ JSON
   # pages, and is drawn once, as the last read gives it
   jq '.[0] += [.[0][0] | .state = "dismissed" | .dismissed_by = {login: "ada"}]' "${FAKE_DIR}/gh-code-open.json" \
     | fixture gh-code-twice.json
-  GITHUB_CODE_DISMISSED=gh-code-twice.json world github
+  FAKE_GITHUB_CODE_DISMISSED=gh-code-twice.json world github
   run --separate-stderr call code-scanning-alerts
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq --compact-output '[.number, .state, .by]' <<<"$output" | paste -sd, -)" = '[4,"dismissed","ada"]' ]
@@ -2797,7 +2792,7 @@ JSON
     "created_at": "2026-10-01T09:00:00Z", "html_url": "s", "first_location_detected": {"path": ".env"}}]]\n' \
     | fixture gh-secret-resolved.json
   fixture gh-none.json <<<'[[]]'
-  GITHUB_SECRET_OPEN=gh-none.json GITHUB_SECRET_RESOLVED=gh-secret-resolved.json world github
+  FAKE_GITHUB_SECRET_OPEN=gh-none.json FAKE_GITHUB_SECRET_RESOLVED=gh-secret-resolved.json world github
   run --separate-stderr call secret-scanning-alerts
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq --compact-output 'del(.age)' <<<"$output")" \
@@ -2837,13 +2832,13 @@ JSON
     'gh: Advanced Security must be enabled for this repository to use code scanning. (HTTP 403)'
   do
     printf '%s\n' "${said}" | fixture gh-said.txt
-    GITHUB_CODE_OPEN='!1 gh-said.txt' world github
+    FAKE_GITHUB_CODE_OPEN='!1 gh-said.txt' world github
     run --separate-stderr call code-scanning-alerts
     [ "$status" -eq 3 ] || { echo "${said}: ${status} ${stderr}"; return 1; }
     [ -z "$output$stderr" ]
   done
   printf '%s\n' 'gh: Dependabot alerts are disabled for this repository. (HTTP 403)' | fixture gh-said.txt
-  GITHUB_DEPENDABOT='!1 gh-said.txt' world github
+  FAKE_GITHUB_DEPENDABOT='!1 gh-said.txt' world github
   run --separate-stderr call dependabot-alerts
   [ "$status" -eq 3 ]
   # a rate limit, primary or secondary, answers 403 too, and is named as one, never a refusal
@@ -2851,7 +2846,7 @@ JSON
     'gh: You have exceeded a secondary rate limit. Please wait a few minutes before you try again. (HTTP 403)'
   do
     printf '%s\n' "${said}" | fixture gh-said.txt
-    GITHUB_DEPENDABOT='!1 gh-said.txt' world github
+    FAKE_GITHUB_DEPENDABOT='!1 gh-said.txt' world github
     route gh 'api rate_limit' '!1'
     run --separate-stderr call dependabot-alerts
     [ "$status" -eq 1 ] || { echo "${said}: ${status}"; return 1; }
@@ -2863,7 +2858,7 @@ JSON
   printf '%s\n' 'gh: Resource not accessible by integration (HTTP 403)' | fixture gh-said.txt
   printf 'HTTP/2.0 403 Forbidden\r\nX-Oauth-Scopes: gist, read:org\r\n%s\r\n\r\n{}\n' \
     'X-Accepted-Oauth-Scopes: repo, security_events' | fixture gh-head-scopes.txt
-  GITHUB_DEPENDABOT='!1 gh-said.txt' world github
+  FAKE_GITHUB_DEPENDABOT='!1 gh-said.txt' world github
   route gh 'api --include repos/{owner}/{repo}/dependabot/alerts*' '!1 >gh-head-scopes.txt'
   run --separate-stderr call dependabot-alerts
   [ "$status" -eq 1 ]
@@ -2873,7 +2868,7 @@ JSON
   printf '%s\n' 'gh: You are not authorized to read code scanning alerts. (HTTP 403)' | fixture gh-said.txt
   printf 'HTTP/2.0 403 Forbidden\r\nX-Oauth-Scopes: repo, read:org\r\n%s\r\n\r\n{}\n' \
     'X-Accepted-Oauth-Scopes: repo, security_events' | fixture gh-head-role.txt
-  GITHUB_CODE_OPEN='!1 gh-said.txt' world github
+  FAKE_GITHUB_CODE_OPEN='!1 gh-said.txt' world github
   route gh 'api --include repos/{owner}/{repo}/code-scanning/alerts*' '!1 >gh-head-role.txt'
   run --separate-stderr call code-scanning-alerts
   [ "$status" -eq 1 ]
@@ -2894,14 +2889,14 @@ JSON
   grep --quiet 'on PullRequestParameters { requiredApprovingReviewCount }' "${FAKE_DIR}/gh.calls"
   # a branch protection of its own is read for the rules, which GitHub shows only to an admin
   jq '.protection.enabled = true' "${FAKE_DIR}/gh-branch.json" | fixture gh-branch-protected.json
-  GITHUB_BRANCH=gh-branch-protected.json world github
+  FAKE_GITHUB_BRANCH=gh-branch-protected.json world github
   run --separate-stderr call rulesets
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "${lines[1]}" = '{"id":"protection","control":"main","target":["main"],"enforcement":"active",'\
 '"rules":["deletion","non_fast_forward","pull_request","required_linear_history","required_status_checks"],'\
 '"checks":["ci"],"reviews":1,"source":"protection","url":"https://github.com/empowerite/example/settings/branches"}' ]
   fixture gh-404.txt <<<'gh: Not Found (HTTP 404)'
-  GITHUB_BRANCH=gh-branch-protected.json GITHUB_PROTECTION='!1 gh-404.txt' world github
+  FAKE_GITHUB_BRANCH=gh-branch-protected.json FAKE_GITHUB_PROTECTION='!1 gh-404.txt' world github
   run --separate-stderr call rulesets
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq --compact-output 'select(.source == "protection") | [.id, .rules, .checks, .reviews]' <<<"$output")" \
@@ -2910,19 +2905,19 @@ JSON
   jq '.data.repository.rulesets.nodes[1].conditions.refName.include = ["refs/heads/ma*"]
       | .data.repository.rulesets.nodes[0].conditions.refName.exclude = ["refs/heads/main"]' \
     "${FAKE_DIR}/gh-rulesets.json" | fixture gh-rulesets-patterns.json
-  GITHUB_RULESETS=gh-rulesets-patterns.json world github
+  FAKE_GITHUB_RULESETS=gh-rulesets-patterns.json world github
   run --separate-stderr call rulesets
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq --compact-output '[.id, .enforcement]' <<<"$output")" = '[8,"evaluate"]' ]
   # more rulesets than one read holds fails, as the list would be partial; so does an answer with no repository
   jq '.data.repository.rulesets.totalCount = 101' "${FAKE_DIR}/gh-rulesets.json" | fixture gh-rulesets-101.json
-  GITHUB_RULESETS=gh-rulesets-101.json world github
+  FAKE_GITHUB_RULESETS=gh-rulesets-101.json world github
   run --separate-stderr call rulesets
   [ "$status" -eq 1 ]
   [ "$stderr" = '❌ kit reads at most 100 rulesets, and 100 rules and bypass actors of each'\
 ' (the rulesets could not be read)' ]
   fixture gh-null.json <<<'{"data": {"repository": null}}'
-  GITHUB_RULESETS=gh-null.json world github
+  FAKE_GITHUB_RULESETS=gh-null.json world github
   run --separate-stderr call rulesets
   [ "$status" -eq 1 ]
   [[ "$stderr" == '❌ run: cd '*' && gh auth status (the rulesets could not be read)' ]]
@@ -2960,7 +2955,7 @@ JSON
   ! grep --quiet 'alerts' "${FAKE_DIR}/gh.calls"
   # a branch protection's own allowances bypass its pull request rule
   jq '.protection.enabled = true' "${FAKE_DIR}/gh-branch.json" | fixture gh-branch-protected.json
-  GITHUB_BRANCH=gh-branch-protected.json world github
+  FAKE_GITHUB_BRANCH=gh-branch-protected.json world github
   run --separate-stderr call bypasses
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq --compact-output 'select(.waives == "protection") | [.actor, .reason]' <<<"$output" | paste -sd, -)" \
@@ -2972,7 +2967,7 @@ JSON
         {bypassMode: "EXEMPT", repositoryRoleName: "maintain", actor: null}]
       | .data.repository.rulesets.nodes[0].bypassActors.totalCount = 4' "${FAKE_DIR}/gh-rulesets.json" \
     | fixture gh-rulesets-hidden.json
-  GITHUB_RULESETS=gh-rulesets-hidden.json world github
+  FAKE_GITHUB_RULESETS=gh-rulesets-hidden.json world github
   run --separate-stderr call bypasses
   [ "$status" -eq 0 ] || { echo "${stderr}"; return 1; }
   [ "$(jq --compact-output '[.actor, .reason, .hidden]' <<<"$output" | paste -sd, -)" \
