@@ -303,3 +303,17 @@ func TestLabelsRoundWhereThePersonChoseElseWhereANerdFontWasFound(t *testing.T) 
 		t.Errorf("the file keeps a choice nobody made: %s", data)
 	}
 }
+
+// Every setting flips what it reads, and flips it back.
+func TestEverySettingFlipsWhatItReadsAndFlipsItBack(t *testing.T) {
+	for _, set := range settings {
+		var s Settings
+		was := set.get(s)
+		if s = set.flip(s); set.get(s) == was {
+			t.Errorf("%s did not flip", set.name)
+		}
+		if s = set.flip(s); set.get(s) != was {
+			t.Errorf("%s did not flip back", set.name)
+		}
+	}
+}

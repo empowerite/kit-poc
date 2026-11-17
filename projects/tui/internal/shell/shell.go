@@ -468,6 +468,11 @@ func boxIn(items []Item, enabled func(int) bool, at int, mark string, glyph, roo
 	if keyed > 0 {
 		inner += 2 + keyed
 	}
+	// where any line opens a submenu, a cell and its > after the keys
+	arrows := slices.ContainsFunc(items, func(i Item) bool { return i.Opens })
+	if arrows {
+		inner += 2
+	}
 	width, cells := inner+2, ansi.StringWidth(mark)
 	switch {
 	case glyph < 0:
@@ -511,23 +516,30 @@ func boxIn(items []Item, enabled func(int) bool, at int, mark string, glyph, roo
 		if keyed > 0 {
 			shortcut = "  " + pane.Pad(item.Keys, keyed, true)
 		}
+		arrow := ""
+		if arrows {
+			arrow = "  "
+			if item.Opens {
+				arrow = " >"
+			}
+		}
 		switch {
 		case item.Name == "":
 			lines = append(lines, edge("│")+" "+style.Off(strings.Repeat("─", inner-2))+" "+edge("│"))
 			continue
 		case !enabled(k):
 			// dim, and never under the keyboard, even when what it acts on changed under an open menu
-			text = style.Off(text + shortcut + " ")
+			text = style.Off(text + shortcut + arrow + " ")
 		case k == at && item.Here:
-			text = underHere(text + shortcut + " ")
+			text = underHere(text + shortcut + arrow + " ")
 		case k == at:
-			text = under(text + shortcut + " ")
+			text = under(text + shortcut + arrow + " ")
 		case item.Here:
-			text = style.Label(text) + style.Off(shortcut) + " "
+			text = style.Label(text) + style.Off(shortcut+arrow) + " "
 		case item.Keys != "":
-			text += style.Off(shortcut) + " "
+			text += style.Off(shortcut+arrow) + " "
 		default:
-			text += shortcut + " "
+			text += shortcut + style.Off(arrow) + " "
 		}
 		lines = append(lines, edge("│")+text+edge("│"))
 	}
@@ -583,4 +595,20 @@ func Splice(line, box string, left int) string {
 	right := left + ansi.StringWidth(box)
 	line = pane.Pad(line, right, false)
 	return pane.Cells(line, 0, left) + box + pane.Cells(line, right, ansi.StringWidth(line))
+}
+
+// SubBox gives the box of a submenu hung from a line of its parent: the parent's, as Placed says where it stands, and
+// the line, counted from the first under its top edge. The submenu's top edge is on that line, and its left edge on
+// the parent's right one; where that runs past the room, so wide, its right edge is on the parent's left one instead,
+// and where it would run past the screen's height, it is moved up to end on the last line; neither moves it off the
+// screen's left.
+func SubBox(items []Item, enabled func(int) bool, at int, parent Placed, row, room, height int) Placed {
+	lines, _ := Box(items, enabled, at, "", -1, room)
+	width := ansi.StringWidth(lines[0])
+	left := parent.Left + ansi.StringWidth(parent.Lines[0]) - 1
+	if left+width > room {
+		left = parent.Left - width + 1
+	}
+	top := min(parent.Top+1+row, height-len(lines))
+	return Placed{Lines: lines, Top: max(0, top), Left: max(0, left)}
 }

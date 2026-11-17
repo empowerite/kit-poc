@@ -13,10 +13,49 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// Dropdown is a dropdown's own state: whether it is open, and the line under the keyboard, -1 for none.
+// Dropdown is a dropdown's own state: whether it is open, and the line under the keyboard, -1 for none. Path is the
+// lines that opened the submenus now open, the root's first, none while only the root is; At is then a line of the
+// deepest submenu.
 type Dropdown struct {
 	Open bool
 	At   int
+	Path []int
+}
+
+// Subs gives the lines of the submenu the path names, and which of them act: the line chosen at each level, from the
+// root, that opened it. Its owner holds them, as it does the root's.
+type Subs func(path []int) (items []Item, enabled func(int) bool)
+
+// level gives the lines of the deepest open menu, and which of them act.
+func (d Dropdown) level(items []Item, enabled func(int) bool, subs Subs) ([]Item, func(int) bool) {
+	if len(d.Path) == 0 || subs == nil {
+		return items, enabled
+	}
+	return subs(d.Path)
+}
+
+// opens gives the dropdown with the submenu of the line under the keyboard open, its first line that acts under the
+// keyboard, when that line opens one and acts; else the dropdown as it was, and false.
+func (d Dropdown) opens(items []Item, enabled func(int) bool, subs Subs) (Dropdown, bool) {
+	here, on := d.level(items, enabled, subs)
+	if subs == nil || d.At < 0 || d.At >= len(here) || !here[d.At].Opens || !on(d.At) {
+		return d, false
+	}
+	d.Path = append(slices.Clone(d.Path), d.At)
+	sub, subOn := subs(d.Path)
+	d.At = Move(sub, subOn, -1, 1)
+	return d, true
+}
+
+// closed gives the dropdown with its deepest submenu closed, the line that opened it under the keyboard, or, with none
+// open, the dropdown closed.
+func (d Dropdown) closed() Dropdown {
+	if len(d.Path) == 0 {
+		d.Open = false
+		return d
+	}
+	d.At, d.Path = d.Path[len(d.Path)-1], slices.Clone(d.Path[:len(d.Path)-1])
+	return d
 }
 
 // Opened gives the dropdown open, its first line that acts under the keyboard.
@@ -28,21 +67,89 @@ func (d Dropdown) Opened(items []Item, enabled func(int) bool) Dropdown {
 // Key takes a key while the dropdown is open, as the header says, and gives the dropdown and the line chosen, -1 for
 // none. Choosing a line closes it, as esc and each of closes do.
 func (d Dropdown) Key(k tea.KeyPressMsg, items []Item, enabled func(int) bool, closes ...string) (Dropdown, int) {
+	d, path := d.KeyIn(k, items, enabled, nil, closes...)
+	if path == nil {
+		return d, -1
+	}
+	return d, path[0]
+}
+
+// KeyIn takes a key as Key does, for a menu with submenus, which subs gives: → and . and enter on a line that opens
+// one and acts open it, ← closes the deepest, and esc does, or, with none open, closes the menu; up, down, a line's
+// shortcut, and a letter act in the deepest open menu. It gives the dropdown and the path of the line chosen, the line
+// at each level from the root, nil for none. → and . on a line that opens nothing do nothing.
+func (d Dropdown) KeyIn(k tea.KeyPressMsg, items []Item, enabled func(int) bool, subs Subs, closes ...string) (Dropdown,
+	[]int) {
+	here, on := d.level(items, enabled, subs)
 	switch key := k.String(); {
 	case key == "up":
-		d.At = Move(items, enabled, d.At, -1)
+		d.At = Move(here, on, d.At, -1)
 	case key == "down":
-		d.At = Move(items, enabled, d.At, 1)
+		d.At = Move(here, on, d.At, 1)
+	case key == "right" || key == ".":
+		d, _ = d.opens(items, enabled, subs)
 	case key == "enter" || key == "space":
-		return d.choose(d.At, items, enabled)
+		if opened, ok := d.opens(items, enabled, subs); ok {
+			return opened, nil
+		}
+		return d.chosen(d.At, here, on)
+	case key == "left":
+		if len(d.Path) > 0 {
+			d = d.closed()
+		}
 	case key == "esc" || slices.Contains(closes, key):
-		d.Open = false
-	case Shortcut(items, enabled, key) >= 0:
-		return d.choose(Shortcut(items, enabled, key), items, enabled)
+		d = d.closed()
+	case Shortcut(here, on, key) >= 0:
+		return d.chosen(Shortcut(here, on, key), here, on)
 	default:
-		d.At = NextItem(items, enabled, d.At, k.Text)
+		d.At = NextItem(here, on, d.At, k.Text)
 	}
-	return d, -1
+	return d, nil
+}
+
+// chosen gives the dropdown closed and the path of the line k of the deepest open menu, when it acts and opens no
+// submenu; else the dropdown as it was, and none.
+func (d Dropdown) chosen(k int, here []Item, on func(int) bool) (Dropdown, []int) {
+	if k < 0 || k >= len(here) || !on(k) {
+		return d, nil
+	}
+	path := append(slices.Clone(d.Path), k)
+	d.Open, d.Path = false, nil
+	return d, path
+}
+
+// Level is an open menu's lines, which of them act, where its box stands, and the first of its lines the box shows.
+type Level struct {
+	Items   []Item
+	Enabled func(int) bool
+	Box     Placed
+	First   int
+}
+
+// ClickAt takes a left click while the dropdown is open, on the boxes of the levels open, the root's first: the
+// deepest box the click falls on takes it. A line that acts and opens a submenu opens it, and closes those deeper than
+// its level; one that acts is chosen, and gives its path; one that does not, or an edge, does nothing; and a click off
+// every box closes the dropdown. It gives the dropdown and the path chosen, nil for none.
+func (d Dropdown) ClickAt(x, y int, levels []Level, subs Subs) (Dropdown, []int) {
+	for i := len(levels) - 1; i >= 0; i-- {
+		l := levels[i]
+		line, on := l.Box.Hit(x, y)
+		if !on {
+			continue
+		}
+		k := l.First + line
+		if line < 0 || k >= len(l.Items) || !l.Enabled(k) {
+			return d, nil
+		}
+		d.Path = slices.Clone(d.Path[:i])
+		d.At = k
+		if opened, ok := d.opens(levels[0].Items, levels[0].Enabled, subs); ok {
+			return opened, nil
+		}
+		return d.chosen(k, l.Items, l.Enabled)
+	}
+	d.Open, d.Path = false, nil
+	return d, nil
 }
 
 // Click takes a left click while the dropdown is open, drawn as a box so many cells wide, its top edge on the screen
