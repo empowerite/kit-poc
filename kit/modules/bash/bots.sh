@@ -810,7 +810,10 @@ BODY
   # a TERM or a HUP is forwarded, and the run ends when the command has, with 128 and its number: until now the default
   # action ends the run, and the exit sweep revokes. One that comes before the command has started is sent once it has.
   # The terminal sends an interrupt to the whole group, the command's with it, so it is not forwarded and the command's
-  # own status stands: the trap only keeps run alive to revoke.
+  # own status stands: run only has to stay alive to revoke. The trap is for the command's start, which then has the
+  # interrupt back, as a signal that run ignored would stay ignored for it; run ignores it once the command is started,
+  # as a trap ends wait early, and a command that has ended by then is no child of this shell to wait for again, its
+  # status lost.
   trap ':' INT
   trap 'bots:run-forward TERM 15' TERM
   trap 'bots:run-forward HUP 1' HUP
@@ -842,6 +845,7 @@ BODY
     exec "$@"
   ) <&0 &
   child=$!
+  trap '' INT
   for signal in "${pending[@]}"
   do
     kill -s "${signal}" "${child}" 2>/dev/null || true  # the command may have ended already
