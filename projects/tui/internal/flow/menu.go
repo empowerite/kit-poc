@@ -325,3 +325,10 @@ func (m Model) nextFrame() tea.Cmd {
 	}
 	return m.clock.After(Pulse, pulseMsg{})
 }
+
+// Refreshed runs every stage kittui draws again, as the app's menu's Refresh All does, for a screen kept and shown
+// again after a while: the rows it has stay on the screen, stale, until the new ones come.
+func (m Model) Refreshed() (tea.Model, tea.Cmd) {
+	cmd := m.chose(shell.Choice{Own: RefreshAll})
+	return m, cmd
+}

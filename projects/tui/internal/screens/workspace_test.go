@@ -183,15 +183,19 @@ func TestAFormOpenAtAPickIsKeptOnlyWhereItsFolderStays(t *testing.T) {
 	}
 	m = drive(m, shell.PickMsg{Workspace: "github.com/o/b"})
 	help := m.made[shell.Help].(app.Model)
-	if m.here != shell.Help || help.InForm() || help.Runner().Dir != b || m.epochs[shell.Help] != was+1 {
-		t.Errorf("after the pick: on %s, in a form %v, reads %q, made %d times more", m.here, help.InForm(),
-			help.Runner().Dir, m.epochs[shell.Help]-was)
+	if m.here != shell.Help || help.InForm() || help.Runner().Dir != b || m.epochs[shell.Help] == was {
+		t.Errorf("after the pick: on %s, in a form %v, reads %q, epoch %d (was %d)", m.here, help.InForm(),
+			help.Runner().Dir, m.epochs[shell.Help], was)
 	}
-	// a help not shown, with a form open, is closed, and made anew when it is next shown
+	// a help not shown, with a form open, is parked with the rest of b's screens, and the form open at a, kept, is back
+	// when a is
+	home := m.home
 	m = drive(m, palette.OpenMsg{Verb: "version"}, shell.SwitchMsg{Screen: shell.Issues},
 		shell.PickMsg{Workspace: "github.com/o/a"})
-	if _, made := m.made[shell.Help]; made || m.here != shell.Issues {
-		t.Errorf("the help with a form open was kept, on %s", m.here)
+	help, made := m.made[shell.Help].(app.Model)
+	if m.here != shell.Issues || !made || !help.InForm() || help.Runner().Dir == b || m.epochs[shell.Help] != was {
+		t.Errorf("the help of a: on %s, made %v, in a form %v, reads %q, epoch %d (was %d), home %q", m.here, made,
+			help.InForm(), help.Runner().Dir, m.epochs[shell.Help], was, home)
 	}
 	// over a group the screens read where kittui started, and so does a form opened there: another group keeps it
 	m, _ = helped(t, shell.PickMsg{Workspace: "w"})

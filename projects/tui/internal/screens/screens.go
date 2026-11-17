@@ -9,8 +9,9 @@
 // The root reads the workspace from kit once kittui starts, and tells every screen made, as it tells the settings. A
 // screen's workspace menu asks for another; the root asks kit for it, keeping a group as the last used, and tells every
 // screen again. When the place the screens read moves, to another repository or onto or off a group, the screens made
-// are made anew there, all but the welcome, the tutorials, and the workspaces' screen, which read kit alone, and the
-// help, which is told where its forms now read and run. Only the latest ask lands. The menu's
+// are parked, as park.go says, and the ones parked there before are shown again, the rest made anew there; all but the
+// welcome, the tutorials, and the workspaces' screen, which read kit alone, and the help, which is told where its
+// forms now read and run. Only the latest ask lands. The menu's
 // Open Repository… opens a dialog over the screen shown, where a repository's folder is typed: kit keeps it among the
 // recent and says the workspace, which is switched to as a pick's is, or says why not, in the dialog. A link from one
 // screen to another leaves a crumb back, which crumb.go keeps.
@@ -56,7 +57,9 @@ type Model struct {
 	workspace kit.Workspace        // the workspace kit said last, zero until it says
 	refused   string               // kit's line, when kit could not say the workspace last asked for
 	asked     int                  // the latest ask, 0 at kittui's start: an older ask's answer is dropped
-	epochs    map[shell.Screen]int // how many times each screen was made again: an answer to one closed is dropped
+	epochs    map[shell.Screen]int // the epoch of each screen shown or kept here, as park.go says: an answer to another's is dropped
+	seq       int                  // the last epoch given, so no two screens made have one
+	parked    []*parked            // the screens of the workspaces left, the latest left first, as park.go keeps them
 	crumb     *crumb               // the screen shown's crumb, while a link led to it, as crumb.go keeps the chain
 	words     flow.Words           // kit flow's words kittui started with, which every app made after takes
 	first     tea.Cmd              // what the first screen started when New told it the settings, which Init runs
@@ -109,10 +112,9 @@ func (m Model) Shown() tea.Model { return m.made[m.here] }
 
 // Close ends what every screen made started and still runs.
 func (m Model) Close() {
-	for _, s := range m.made {
-		if c, ok := s.(interface{ Close() }); ok {
-			c.Close()
-		}
+	closeAll(m.made)
+	for _, p := range m.parked {
+		closeAll(p.made)
 	}
 }
 
@@ -244,6 +246,7 @@ func (m Model) answered(msg workspaceMsg) (tea.Model, tea.Cmd) {
 		moved = msg.ws.Kind != m.workspace.Kind || msg.ws.Name != m.workspace.Name ||
 			msg.ws.Checkout != m.workspace.Checkout || !slices.Equal(msg.ws.Members, m.workspace.Members)
 	}
+	left := m.workspace
 	m.workspace, m.refused = msg.ws, ""
 	if m.opener.Open {
 		m.opener = m.opener.Told(msg.ws)
@@ -267,38 +270,36 @@ func (m Model) answered(msg workspaceMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 	kept := func(s shell.Screen) bool { return readsKitAlone(s) || s == shell.Help && followed }
-	// the screen shown is made anew first, so one that cannot open there gives way to the welcome, which always opens,
-	// kit's line on the last line, before anything is closed; one already made reads kit alone, so it is shown as it was
-	here, remade := m.here, !kept(m.here)
-	var shown tea.Model
-	if remade {
-		var err error
-		if shown, err = m.open(here); err != nil {
-			m.refusal, here = refusalLine(err), shell.Welcome
-			if _, made := m.made[here]; made {
-				remade = false
-			} else {
-				shown, _ = m.open(here)
-			}
-		}
-	}
-	for to, s := range m.made {
-		if kept(to) {
-			continue
-		}
-		if c, ok := s.(interface{ Close() }); ok {
-			c.Close()
-		}
-		delete(m.made, to)
-		m.epochs[to]++
-	}
-	if !remade {
+	// what the place left read is kept as it was, and what was kept of the place moved to is brought back
+	m = m.park(left, kept)
+	m, back := m.unpark(msg.ws)
+	// the screen shown is made anew when it was not kept, so one that cannot open there gives way to the welcome, which
+	// always opens, kit's line on the last line; one already made reads kit alone, or was kept here before, so it is
+	// shown as it was
+	here := m.here
+	if _, made := m.made[here]; made {
 		m.here = here
-		return m.tellWorkspace()
+		next, told := m.tellWorkspace()
+		cmds := []tea.Cmd{told, back}
+		if m.size != nil {
+			_, sized := next.(Model).deliver(here, m.sized())
+			cmds = append(cmds, sized)
+		}
+		return next, tea.Batch(cmds...)
 	}
-	next, made := m.place(here, shown)
+	shown, err := m.open(here)
+	if err != nil {
+		m.refusal, here = refusalLine(err), shell.Welcome
+		if _, made := m.made[here]; made {
+			m.here = here
+			next, told := m.tellWorkspace()
+			return next, tea.Batch(told, back)
+		}
+		shown, _ = m.open(here)
+	}
+	next, placed := m.place(here, shown)
 	next, told := next.(Model).tellWorkspace()
-	return next, tea.Batch(made, told)
+	return next, tea.Batch(placed, told, back)
 }
 
 // readsKitAlone says whether a screen reads kit alone, not the place the screens read, so a move leaves it as it was:
@@ -405,8 +406,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		next, landed := next.(Model).deliver(msg.Screen, msg)
 		return next, tea.Batch(shown, landed)
 	case tagged:
-		if msg.epoch != m.epochs[msg.to] {
-			return m, nil
+		if _, here := m.made[msg.to]; !here || msg.epoch != m.epochs[msg.to] {
+			return m.deliverParked(msg)
 		}
 		return m.deliver(msg.to, msg.msg)
 	case workspaceMsg:

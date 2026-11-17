@@ -521,6 +521,23 @@ func TestRefreshAllRunsEveryStageAgain(t *testing.T) {
 	}
 }
 
+// A screen kept while another workspace was shown reads again, as Refresh All does, and keeps its rows until the
+// answers come.
+func TestRefreshedRunsEveryStageAgainOverTheRowsItHas(t *testing.T) {
+	record := filepath.Join(t.TempDir(), "calls")
+	t.Setenv("FAKE_FLOW_CALLS", record)
+	m := loaded(t, options(), tab, tab, tab, tab)
+	next, cmd := m.Refreshed()
+	m = next.(Model)
+	if cmd == nil || !shows(m, Release, "3") || !m.find("releases").src.Stale {
+		t.Fatalf("Refreshed did not run releases again:\n%s", view(m))
+	}
+	m = drive(m, cmd())
+	if got := calls(t, record); len(got) != 10 || slices.Index(got[5:], "flow releases --json") < 0 {
+		t.Errorf("the calls: %q", got)
+	}
+}
+
 func TestARefusedStageShowsKitsLineAndRefreshTriesAgain(t *testing.T) {
 	t.Setenv("FAKE_FLOW_REFUSE", "changes")
 	m := loaded(t, options(), tab)
