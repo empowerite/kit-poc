@@ -240,17 +240,19 @@ workspaces:roots() {
 # as <root>/<host>/<path> of its member, in any case, as ~/Code/github.com/empowerite/kit is, is under <root>. A desk
 # laid out otherwise implies none.
 workspaces:implied() {
-  local desk member root
+  local desks desk member root
   local -A seen=()
+  desks=$(workspaces:recent) || return 1
   while IFS= read -r desk
   do
+    [[ -n "${desk}" ]] || continue
     member=$(workspaces:member-of "${desk}")
     [[ -n "${member}" && "${desk,,}" == */"${member}" ]] || continue
     root=${desk:0:${#desk}-${#member}-1}
     [[ -n "${root}" && -z "${seen[${root}]:-}" ]] || continue
     seen[${root}]=1
     printf '%s\n' "${root}"
-  done < <(workspaces:recent)
+  done <<<"${desks}"
 }
 
 # workspaces:walked prints the roots kit looks under for checkouts: the file's, or, where it names none, the roots the
