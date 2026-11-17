@@ -1,0 +1,17 @@
+# kit.yml - the opa this kit release pins, for a pull request whose base pins none and whose runner has none
+# ----------------------------------------------------------------------------------------------------------------------
+# On a CI runner, kit policy judges a branch with the opa its base pins in kit.lock. Where the base pins none, as for the
+# first pull request of a repository, and the runner has none of its own, it installs this one, into a directory it makes
+# new, from kit.lock here, which holds the hash of each download. They come with the release, so the branch has no say in
+# which opa judges it. kit.lock beside this file is this repository's own rows for opa; tests/policy.bats holds the two
+# the same.
+#
+# see: modules/bash/policy.sh
+
+tools:
+  opa:
+    version: "1.21.4"
+    release: open-policy-agent/opa
+    asset: opa_{os}_{arch}
+    os: {macos: darwin}
+    arch: {x64: amd64}

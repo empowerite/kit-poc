@@ -90,7 +90,8 @@ guard:arguments policy "$@" || exit $?
 # The engine and the tools beside it come from no directory of the checkout, which the branch being judged fills:
 # those go off PATH. At a desk the chosen toolchain's directories then go first, as kit gate has them, and no
 # dependency provider's, since node_modules/.bin and .venv/bin are the checkout's. On a runner the toolchain's tools
-# are the ones the branch's own files pin, so none of them goes first: policy:base-tools installs the opa the base pins.
+# are the ones the branch's own files pin, so none of them goes first: policy:base-tools installs the opa the base pins,
+# or, where it pins none, the one this kit release does.
 policy:judging-path policy || exit 1
 if ! policy:on-runner
 then

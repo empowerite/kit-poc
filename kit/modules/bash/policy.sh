@@ -92,7 +92,8 @@
 # The tools a judgement runs come from no directory of the checkout either (policy:judging-path): kit policy and kit
 # linked take each off PATH, so an opa or a forge tool the branch carries in node_modules/.bin or .venv/bin is never
 # run. On a runner, nothing the chosen toolchain installs from the branch's own files judges: kit policy puts no
-# toolchain directory first, and with the opa engine installs the opa the base's kit.lock pins (policy:base-tools).
+# toolchain directory first, and with the opa engine installs the opa the base's kit.lock pins, or, where it pins none and
+# the runner has none, the one this kit release pins (policy:base-tools).
 # kit ci installs the change's tools after the two judgements, and the delivered workflow before neither. docs/policy.md
 # says what that covers and what it leaves open.
 #
@@ -370,38 +371,59 @@ policy:judging-path() {
 }
 
 # policy:base-tools <dir> makes the opa engine, on a CI runner, the one the base pins in kit.lock, and puts it first
-# on PATH. <dir> is the directory policy:from-base wrote the base's kit.yml into, <dir>/base.yml. Only the opa engine
-# on a runner needs it: at a desk the person's own tools judge, and the patterns engine runs none. The base's kit.lock
-# row for opa, and its kit.yml's opa entry and sources, are copied into a directory of their own, and the kit toolchain
-# installs from them into a home and a download cache that are new, so a copy an earlier run left, as the runner's cache
-# restores ~/.kit/tools, is never trusted: the download is checked against the hash the base's lock holds, and nothing
-# else is. Where the base pins no opa in kit.lock, as where the kit toolchain is not its tool manager or it is the
-# first change of a repository, nothing is installed and the opa on the runner's PATH judges, never one the branch
-# pins. It returns 1, saying so, when the pin cannot be installed.
+# on PATH. <dir> is the directory policy:from-base wrote the base's kit.yml into, <dir>/base.yml, where the base has one.
+# Only the opa engine on a runner needs it: at a desk the person's own tools judge, and the patterns engine runs none.
+# The base's kit.lock row for opa, and its kit.yml's opa entry and sources, are copied into a directory of their own,
+# and the kit toolchain installs from them into a home and a download cache that are new, so a copy an earlier run left,
+# as the runner's cache restores ~/.kit/tools, is never trusted: the download is checked against the hash the base's
+# lock holds, and nothing else is. Where the base pins no opa in kit.lock, as where the kit toolchain is not its tool
+# manager or it is the first change of a repository, the opa on the runner's PATH judges, never one the branch pins;
+# and where the runner has none, the opa this kit release pins, modules/policy/opa/, which the branch cannot change, is
+# installed the same way, from the hashes that release holds. It returns 1, saying so, when the pin cannot be installed.
 policy:base-tools() {
-  local dir=$1 object tools engine
+  local dir=$1 tools engine pinned
   policy:on-runner || return 0
-  [[ -f "${dir}/base.yml" ]] || return 0
   engine=$(policy:engine) || return 1
   [[ "${engine}" == opa ]] || return 0
   use toolchain toolchain/kit
-  # a head that is no commit of the base's cannot be asked for its lock, and policy:base has said so already
-  object=$(policy:object "$(policy:base)" "${toolchain_kit_lock}") || return 1
-  [[ -n "${object}" ]] || return 0
+  pinned="the base pins it in ${toolchain_kit_lock}"
   tools=${dir}/tools
   rm -rf "${tools:?}" && mkdir -p "${tools}" || return 1
-  policy:blob "${object}" "${tools}/${toolchain_kit_lock}.all" "${toolchain_kit_lock} in the base" || return 1
-  awk -F '\t' '$1 == "opa"' "${tools}/${toolchain_kit_lock}.all" > "${tools}/${toolchain_kit_lock}"
-  [[ -s "${tools}/${toolchain_kit_lock}" ]] || return 0
-  yq '{"tools": {"opa": .tools.opa}, "sources": .sources}' "${dir}/base.yml" > "${tools}/kit.yml" || return 1
+  if [[ -f "${dir}/base.yml" ]]
+  then
+    policy:base-pin "${dir}" "${tools}" || return 1
+  fi
+  if [[ ! -s "${tools}/${toolchain_kit_lock}" ]]
+  then
+    # the base pins none: the runner's own opa judges, and where it has none, the one this release pins
+    ! command -v opa >/dev/null 2>&1 || return 0
+    # shellcheck disable=SC2154  # kit_root is exported by modules/bash/1st.sh
+    cp "${kit_root}/modules/policy/opa/kit.yml" "${tools}/kit.yml" \
+      && cp "${kit_root}/modules/policy/opa/kit.lock" "${tools}/${toolchain_kit_lock}" || return 1
+    pinned='this kit release pins it'
+  fi
   if ! (cd "${tools}" && export KIT_HOME=${tools}/home XDG_CACHE_HOME=${tools}/cache \
     && toolchain:call kit install && toolchain:call kit path > dirs)
   then
-    error "opa, as the base pins it in ${toolchain_kit_lock}, could not be installed, so the policy cannot be judged"
+    error "opa, as ${pinned}, could not be installed, so the policy cannot be judged"
     return 1
   fi
   [[ -s "${tools}/dirs" ]] || return 0
   PATH="$(paste -s -d ':' - < "${tools}/dirs"):${PATH}"
+}
+
+# policy:base-pin <dir> <tools> puts the base's kit.lock row for opa, and its kit.yml's opa entry and sources, <dir> being
+# where policy:from-base put the base's kit.yml, into <tools>, as the lock and the kit.yml of the kit toolchain's install.
+# It puts nothing where the base pins no opa in its kit.lock. It returns 1 where the base's lock cannot be read.
+policy:base-pin() {
+  local dir=$1 tools=$2 object
+  # a head that is no commit of the base's cannot be asked for its lock, and policy:base has said so already
+  object=$(policy:object "$(policy:base)" "${toolchain_kit_lock}") || return 1
+  [[ -n "${object}" ]] || return 0
+  policy:blob "${object}" "${tools}/${toolchain_kit_lock}.all" "${toolchain_kit_lock} in the base" || return 1
+  awk -F '\t' '$1 == "opa"' "${tools}/${toolchain_kit_lock}.all" > "${tools}/${toolchain_kit_lock}"
+  [[ -s "${tools}/${toolchain_kit_lock}" ]] || return 0
+  yq '{"tools": {"opa": .tools.opa}, "sources": .sources}' "${dir}/base.yml" > "${tools}/kit.yml"
 }
 
 # policy:branch prints the branch to check: the change's source branch on a CI runner, or a merge group's head there,

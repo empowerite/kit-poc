@@ -17,7 +17,8 @@ A release is one tarball, `kit-<version>.tar.gz`, with the layout of this checko
 - `modules/` holds the modules the verbs share, one directory for each language: `modules/bash/`, loaded with `use`, and
   `modules/jq/`, imported by the jq programs they run; see [Bash modules](#bash-modules). It also holds the tutorials
   that `kit tutorials` opens, under `modules/tutorials/`, and the model of kit's entities that `kit model` reads, under
-  `modules/model/`; see [the model](model.md).
+  `modules/model/`; see [the model](model.md). `modules/policy/opa/` holds the `opa` the kit pins, which `kit policy`
+  installs on a CI runner where the pull request's base pins none; see [policy](policy.md).
 - `packages/` holds everything a release delivers.
 - `libexec/` holds `kit-call`, the bash that the loader runs for every call, and, in a release, `kittui-<os>-<arch>`,
   the binary `kit tui` runs, for linux and darwin on amd64 and arm64. The binaries are built from this checkout's

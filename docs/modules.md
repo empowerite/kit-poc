@@ -21,6 +21,7 @@ module runs each time a verb does. A package is placed into a repository once, b
 | `modules/bash/` | bash modules: `<module>.sh`, sourced, never run |
 | `modules/jq/` | jq modules: `<module>.jq`, imported by the jq programs the bash modules run |
 | `modules/model/` | the model of kit's entities, one YAML file each, and its schemas; see [model.md](model.md) |
+| `modules/policy/` | what `kit policy` installs on a runner: `opa/`, the kit's own pin of `opa`, `kit.yml` and `kit.lock`, for a pull request whose base pins none; see [policy.md](policy.md) |
 | `modules/tutorials/` | the tutorials that ship with kit, and `modules/tutorials.yml`, which lists them |
 | `packages/` | packages |
 

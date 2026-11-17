@@ -154,10 +154,11 @@ The base depends on where the verb runs:
   runner's cache of `~/.kit/tools` restores one, is never used; the download must have the hash the base's lock
   records, and a branch that pins a different engine in its own `kit.yml` and `kit.lock` changes nothing.
   `jq`, `yq`, `git`, and `gh` are the runner's own. A base whose `kit.lock` holds no `opa` row, as one whose tool
-  manager is mise or nix, or the first pull request of a repository, installs nothing: the `opa` on the runner's
-  `PATH` judges, and `kit policy` fails, saying so, where there is none. It never takes the branch's.
-  A runner image that carries `opa`, or a step of the repository's own before `kit ci` that installs it from the
-  base's files, supplies one.
+  manager is mise or nix, or the first pull request of a repository, pins none. The `opa` on the runner's `PATH`
+  then judges, as a runner image that carries one, or a step of the repository's own before `kit ci`, supplies it.
+  Where the runner has none, `kit policy` installs the `opa` the kit release pins, in `modules/policy/opa/`, the same
+  way, into a directory it makes new, and the download must have the hash that release holds. It never takes the
+  branch's.
 - The delivered workflow takes the kit release from the base's `kit.yml`, the commit the pull request's event names,
   and sets `KIT_VERSION` to it, since kit otherwise chooses its release by the `kit.yml` it is run in, the branch's.
 - `policy`, `policy_engine`, `linked_exempt`, `facts`, `forge`, and `forges` come from the base's `kit.yml`. Where
@@ -208,10 +209,11 @@ The guarantee covers what a branch holds in its files, with the tools a runner s
   the base repository, or with a code owner's review of `.github/workflows/`. See
   [integrations/gh.md](integrations/gh.md#pull-requests-from-forks-and-the-event-that-runs-the-workflow).
 - A base that pins its `opa` outside `kit.lock`, in `mise.toml`, a flake, a Brewfile, or an image, and a runner with
-  no `opa`: kit does not install it from there before the judgements, so the engine is the runner's own, or none and
-  the judgement fails. Installing the base's `mise.toml` would need `mise trust` on a file kit has not read; that
-  is left to the repository's own step.
-- A repository whose kit is `unreleased`, the kit's own: the judge is the checkout's `kit/bin`, which a branch edits.
+  no `opa`: kit does not install it from there before the judgements, so the engine is the one the kit release pins,
+  not the base's. Installing the base's `mise.toml` would need `mise trust` on a file kit has not read; the
+  repository's own step before `kit ci` can install the one it means.
+- A repository whose kit is `unreleased`, the kit's own: the judge is the checkout's `kit/bin`, which a branch edits,
+  and so is the `opa` the release pins, in the checkout's `kit/modules/policy/opa/`.
 - `jq`, `yq`, `git`, and `gh` are the runner's own, so a self-hosted runner that earlier jobs left tools on is that
   runner's to keep clean.
 - The gate and `kit check` run the branch's own commands and tools, as they must. They run after the judgements.
