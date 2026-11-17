@@ -858,6 +858,9 @@ the desk its first row; run: cd "*" && kit workspace worktrees" ]]
 
 @test "kit flow --mine under a bot is the person's, not the bot's" {
   forge-world
+  # under a bot, GitHub refuses GET /user, so kit reads the repository the token is narrowed to
+  fixture repo-rest.json <<<'{"full_name": "empowerite/example"}'
+  route 'api repos/{owner}/{repo} *' repo-rest.json
   run env KIT_BOT_LOGIN='kit-bot[bot]' KIT_BOT_FOR=bob "${kit_root}/bin/kit" flow --no-fetch --mine --json
   [ "$status" -eq 0 ]
   [ "$(jq -c '.issues | map(.number)' <<<"$output")" = '[7]' ]
