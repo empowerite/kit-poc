@@ -1365,7 +1365,15 @@ JSON
   do
     world "${forge}"
     run --separate-stderr call artifacts
-    [ "$status" -eq 0 ] || { echo "${forge}: ${stderr}"; return 1; }
+    [ "$status" -eq 0 ] || {
+      echo "${forge}: ${stderr}"
+      echo "DEBUG date: $(date +%s)"
+      jq -L "${kit_jq}" --argjson now "$(date +%s)" --arg url u 'import "forge" as forge; forge::github_artifacts($now; $url)' \
+        < "${FAKE_DIR}/gh-artifacts.json" 2>&1
+      gh api 'repos/{owner}/{repo}/actions/artifacts?per_page=100' 2>&1 | head -c 600
+      echo "DEBUG calls: $(tail -n 5 "${FAKE_DIR}/gh.calls" 2>&1)"
+      return 1
+    }
     [ "$(jq --slurp 'length' <<<"$output")" -eq 1 ] || { echo "${forge}: ${output}"; return 1; }
     [ "$(jq --raw-output '.age > 0' <<<"$output")" = true ]
     # GitLab keeps no digest of an artifact that its API shows

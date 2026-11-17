@@ -478,9 +478,10 @@ context:matcher() {
     # other took first.
     mkdir -p "${file%/*}"
     context:compile > "${file}.${BASHPID}" || { rm -f "${file}.${BASHPID}"; return 1; }
+    # find may say that a file the other prune took first is gone, which is no word of this lookup's
     [[ -n "${context_matcher}" ]] \
       || find "${dir}" \( -name 'kinds-*.awk' -o -name 'kinds-*.awk.*' \) ! -name "kinds-${key}.awk" -mmin +1440 \
-        -exec rm -f {} +
+        -exec rm -f {} + 2> /dev/null || true
     mv "${file}.${BASHPID}" "${file}"
   elif [[ -z "${context_matcher}" ]]
   then
