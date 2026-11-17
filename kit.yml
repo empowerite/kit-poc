@@ -32,8 +32,8 @@ packages:
   - empowerite
   - house
 answers:
-  # About twice a run: the job takes 12 to 18 minutes on GitHub's runners, with bats on four jobs.
-  ci_timeout_minutes: "35"
+  # About twice a run: the job takes 25 to 30 minutes on GitHub's runners, with bats on four jobs.
+  ci_timeout_minutes: "60"
   ci_toolchain: kit
 
 # The tools the gate runs, pinned for the kit toolchain: kit.lock records what each download is, and its hash, for
