@@ -154,6 +154,24 @@ commit-all() {
   [[ "${stderr}" == *"${said}"* ]]
 }
 
+@test "at ci, a branch whose commits come to more than a command line takes still has its facts: none is an argument of jq" {
+  git commit --quiet --allow-empty --message "#1 start: the first"
+  git update-ref refs/remotes/origin/main HEAD
+  git switch --quiet --create 7-fix-the-thing
+  # 45 subjects of 30 KB are 1.3 MB of JSON, more than the 128 KiB Linux takes in one argument, or the 1 MiB macOS takes
+  # in all
+  local subject i
+  subject=$(head -c 30000 /dev/zero | tr '\0' x)
+  for (( i = 1; i <= 45; i++ ))
+  do
+    git commit --quiet --allow-empty --message "#7 cli: ${i} ${subject}"
+  done
+  run --separate-stderr kit-bash 'facts:document ci'
+  [ "${status}" -eq 0 ]
+  [ "$(jq '.commits | length' <<<"${output}")" -eq 45 ]
+  [ "$(jq --raw-output '.commits[0].subject | length' <<<"${output}")" -gt 30000 ]
+}
+
 @test "kit.yml with a facts key the kit does not know is refused" {
   printf 'facts:\n  reed:\n    - x\n' > kit.yml
   kit_bash_modules="facts settings"

@@ -112,15 +112,24 @@ facts:document() {
     fi
     change=$(facts:change)
   fi
-  # The tree can be large, so it reaches jq on stdin, never as an argument. Each stage's status is checked, since a
-  # caller may not set pipefail.
+  # The tree can be large, so it reaches jq on stdin, never as an argument. So can the commits, which are those of a
+  # long branch, and the change and the rules, as a command line, or one argument of it, may be no larger than 128 KiB
+  # on Linux: they reach jq from files, as --slurpfile, each read as the one value it holds. Each stage's status is
+  # checked, since a caller may not set pipefail.
+  local commits_file change_file rules_file
+  file:temp commits_file facts-commits || return 1
+  file:temp change_file facts-change || return 1
+  file:temp rules_file facts-rules || return 1
+  # shellcheck disable=SC2154  # the files are set by file:temp
+  printf '%s\n' "${commits}" > "${commits_file}" && printf '%s\n' "${change}" > "${change_file}" \
+    && printf '%s\n' "${rules}" > "${rules_file}" || return 1
   facts:document-tree "${moment}" "${treeish}" \
     | jq --arg moment "${moment}" --arg branch "${branch}" --arg default_branch "${default_branch}" \
-      --arg worktree "${worktree}" --argjson commits "${commits}" --argjson change "${change}" \
-      --argjson policy "${rules}" \
+      --arg worktree "${worktree}" --slurpfile commits "${commits_file}" --slurpfile change "${change_file}" \
+      --slurpfile policy "${rules_file}" \
       '{moment: $moment, branch: (if $branch == "" then null else $branch end), default_branch: $default_branch,
-        worktree: (if $worktree == "" then null else $worktree end), commits: $commits, change: $change, tree: .,
-        policy: $policy}'
+        worktree: (if $worktree == "" then null else $worktree end), commits: $commits[0], change: $change[0], tree: .,
+        policy: $policy[0]}'
   local -a statuses=("${PIPESTATUS[@]}")
   (( statuses[0] == 0 && statuses[1] == 0 ))
 }
