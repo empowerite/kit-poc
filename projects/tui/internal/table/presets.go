@@ -22,7 +22,8 @@ import (
 // down. FieldsButton, after its glyph, Fields, stands before the selector, and opens the columns dialog. The presets'
 // menu's items are SaveIt, after its glyph, Save, SaveAs, and ManageIt, which opens the presets dialog, whose RenameIt
 // and DeleteIt stand after Renamed and Deleted; Save, Renamed, and Deleted start what each did says. SavingAsWord and RenamingWord stand, dim, before the name typed for
-// Save As… and Rename…. Checked marks the view the table is set as. Starred stands at the right of a view the person
+// Save As… and Rename…. Checked is the glyph of a dialog's line that is on, as the Packages app's active set. The view the table is set as has
+// the gutter's ✔. Starred stands at the right of a view the person
 // starred, Unstarred at the right of the others, and Starring starts what starring one says.
 const (
 	Starred      = "★"
@@ -98,14 +99,14 @@ func presetLines(h Host) []presetLine {
 		}
 		lines = append(lines, presetLine{item: shell.Item{Name: heading}})
 		for _, name := range names {
-			glyph, star := "", Unstarred
+			check, star := shell.Off, Unstarred
 			if name == is {
-				glyph = Checked
+				check = shell.On
 			}
 			if slices.Contains(favorites, name) {
 				star = Starred
 			}
-			lines = append(lines, presetLine{item: shell.Item{Glyph: glyph, Name: name, Keys: star}, view: name})
+			lines = append(lines, presetLine{item: shell.Item{Check: check, Name: name, Keys: star}, view: name})
 		}
 	}
 	others := func(ps []Preset) []string {
@@ -128,11 +129,11 @@ func presetLines(h Host) []presetLine {
 		_, active := v.at(l)
 		lines = append(lines, presetLine{item: shell.Item{Name: heading}})
 		for _, p := range presets {
-			glyph := ""
+			check := shell.Off
 			if slices.Contains(active, p.Name) {
-				glyph = Checked
+				check = shell.On
 			}
-			lines = append(lines, presetLine{item: shell.Item{Glyph: glyph, Name: p.Name}, level: l, scoped: true})
+			lines = append(lines, presetLine{item: shell.Item{Check: check, Name: p.Name}, level: l, scoped: true})
 		}
 	}
 	app := cmp.Or(v.App, "this app")
@@ -193,7 +194,7 @@ func PresetEnabled(h Host, k int) bool {
 
 // Drop gives the presets' menu dropped down, the view the table is set as under the keyboard, else Save As….
 func (pm PresetMenu) Drop(h Host) PresetMenu {
-	at := slices.IndexFunc(PresetItems(h), func(it shell.Item) bool { return it.Glyph == Checked })
+	at := slices.IndexFunc(PresetItems(h), func(it shell.Item) bool { return it.Check == shell.On })
 	if _, ok := PresetView(h, at); !ok {
 		at = -1
 	}

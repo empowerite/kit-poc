@@ -1,7 +1,8 @@
 // Watch: a stage watched loads again once it is stale, as its mark says, without waiting for Refresh All. Watch, in
-// the tab's menu, watches the selected stage, and reads Stop Watching while it is watched; Watch All, in the app's
-// menu under Refresh All, watches every stage, and is dim once every one is; Stop Watching All, after it, stops them
-// all, and is dim while none is. The keys bar's right end says watching while the selected stage is watched. Nothing
+// the tab's menu, is a toggle: it watches the selected stage, and reads Watching, checked, while it is watched, and
+// choosing that stops it. Watch All, in the app's menu under Refresh All, is one too, over every stage that can be
+// watched: blank while none is, – while some are, where choosing it watches the rest, and Watching All, checked, once
+// all are, which stops them all. The keys bar's right end says watching while the selected stage is watched. Nothing
 // is watched at the start. A stage that loads again keeps its rows on the screen, and its dot, until the new ones
 // come; it reads the forge afresh, as the change its mark says of is newer than the snapshot the stages share. A stage
 // its verb never marks, as its catalog entry's marked false says of kit people's, never goes stale, so its tab's menu
@@ -16,23 +17,25 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/style"
 )
 
-// The watch items' names and glyphs: 🔭 to watch, and 🛑 to stop.
+// The watch items' names: Watch, and Watching once it is on, each checked in the menu's gutter as it stands; and the
+// app's, Watch All, and Watching All once every stage that can be is watched. RefreshAll is the app's other own line.
+// Unwatched is the glyph the legend gives a watched stage.
 const (
 	WatchIt     = "Watch"
-	StopIt      = "Stop Watching"
+	Watching    = "Watching"
 	WatchAll    = "Watch All"
-	StopAll     = "Stop Watching All"
+	WatchingAll = "Watching All"
 	RefreshAll  = "Refresh All"
 	Unwatched   = "🔭"
-	StopWatched = "🛑"
 )
 
-// watchItem gives the tab's menu's line for the stage at i: Watch, or Stop Watching while it is watched.
+// watchItem gives the tab's menu's line for the stage at i: Watch, a toggle that is off, or Watching, checked, while it
+// is watched.
 func (m Model) watchItem(i int) shell.Item {
 	if i < len(m.stages) && m.stages[i].src.Watch {
-		return shell.Item{Glyph: StopWatched, Name: StopIt, Keys: "W"}
+		return shell.Item{Name: Watching, Keys: "W", Check: shell.On}
 	}
-	return shell.Item{Glyph: Unwatched, Name: WatchIt, Keys: "W"}
+	return shell.Item{Name: WatchIt, Keys: "W", Check: shell.Off}
 }
 
 // watchable says whether the stage at i can be watched now: kittui draws it, its verb marks it, and kit's last read
@@ -56,19 +59,22 @@ func (m Model) watching() (watched, all int) {
 	return watched, all
 }
 
-// ownItems gives the picture's own lines of the app's menu, Refresh All, Watch All, and Stop Watching All, and the
-// names of those that do nothing now: Watch All once every stage is watched, Stop Watching All while none is.
+// ownItems gives the picture's own lines of the app's menu, Refresh All and Watch All, and the names of those that do
+// nothing now: Watch All while no stage can be watched. Watch All is a toggle over every stage that can be: blank while
+// none is watched, – while some are, so that choosing it watches the rest, and, once all are, Watching All, checked,
+// which stops them all.
 func (m Model) ownItems() (items []shell.Item, dim []string) {
-	items = []shell.Item{{Glyph: Reload, Name: RefreshAll}, {Glyph: Unwatched, Name: WatchAll},
-		{Glyph: StopWatched, Name: StopAll}}
 	watched, all := m.watching()
-	if watched == all {
+	watch := shell.Item{Name: WatchAll, Check: shell.Off}
+	switch {
+	case all > 0 && watched == all:
+		watch = shell.Item{Name: WatchingAll, Check: shell.On}
+	case watched > 0:
+		watch.Check = shell.Mixed
+	case all == 0:
 		dim = append(dim, WatchAll)
 	}
-	if watched == 0 {
-		dim = append(dim, StopAll)
-	}
-	return items, dim
+	return []shell.Item{{Name: RefreshAll}, watch}, dim
 }
 
 // syncOwn gives the app's menu the picture's own lines as they stand now.

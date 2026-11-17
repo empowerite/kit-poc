@@ -33,7 +33,7 @@ func openRows(m Model) int {
 func TestColonDropsTheTabsMenuDownAndItShowsOrHidesALevel(t *testing.T) {
 	m := flat(t, options(), tab, tab, press(':'))
 	if !m.tabMenu.Open || m.appMenu.Open || lines(m)[23] != " "+menuKeys ||
-		!strings.Contains(view(m), "│ "+More+" Show More ") || strings.Contains(view(m), "Settings") {
+		!strings.Contains(view(m), "│   Show More ") || strings.Contains(view(m), "Settings") {
 		t.Fatalf(": did not drop the tab's menu down:\n%s", view(m))
 	}
 	// the menu's left edge is two cells before the menu glyph, its top edge on the bar's middle line, through the
@@ -42,10 +42,10 @@ func TestColonDropsTheTabsMenuDownAndItShowsOrHidesALevel(t *testing.T) {
 	glyph, cells := m.bar().MenuAt(), ansi.StringWidth(tabs.Menu)
 	if box, left := m.menuBox(); left != glyph-2 || len(box) != len(m.tabItems())+2 || m.tabMenu.At != 0 ||
 		ansi.Cut(lines(m)[m.menuTop()], glyph-1, glyph+cells+1) != "╴"+tabs.Menu+"╶" ||
-		!strings.Contains(box[1], " "+Reload+" Refresh") || !strings.Contains(box[2], " "+Unwatched+" Watch") ||
-		!strings.Contains(box[3], " "+Maximize+"  Maximize") ||
+		!strings.Contains(box[1], "   Refresh") || !strings.Contains(box[2], "   Watch") ||
+		!strings.Contains(box[3], "   Maximize") ||
 		strings.Contains(box[len(box)-2], table.FieldsButton) ||
-		!strings.Contains(box[6], strings.TrimSuffix(style.Off("x"), "x\x1b[m")+" "+Less+" Show Less ") ||
+		!strings.Contains(box[6], strings.TrimSuffix(style.Off("x"), "x\x1b[m")+"   Show Less ") ||
 		box[0] != style.Menu(ansi.Strip(box[0])) {
 		t.Errorf("the menu's left edge %d, the glyph at %d, the keyboard on %d:\n%s", left, glyph, m.tabMenu.At, view(m))
 	}
@@ -100,7 +100,7 @@ func TestColonDropsTheTabsMenuDownAndItShowsOrHidesALevel(t *testing.T) {
 func TestEqualsDropsTheAppsMenuDownToRefreshAnotherScreenOrQuit(t *testing.T) {
 	m := loaded(t, options(), press('='))
 	if !m.appMenu.Open || m.tabMenu.Open || !strings.HasPrefix(lines(m)[shell.Top], "╭╴"+shell.App+"╶") ||
-		!strings.Contains(view(m), "│ "+Reload+" Refresh All ") || !strings.Contains(view(m), "Welcome") ||
+		!strings.Contains(view(m), "│   Refresh All ") || !strings.Contains(view(m), "Welcome") ||
 		lines(m)[23] != " "+menuKeys {
 		t.Fatalf("= did not drop the app's menu down:\n%s", view(m))
 	}

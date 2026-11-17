@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/empowerite/kit/projects/tui/internal/shell"
+
 	"github.com/empowerite/kit/projects/tui/internal/grid"
 )
 
@@ -43,7 +45,7 @@ func TestAPresetActiveEverywhereAppliesOnOpeningAndAClickTurnsItOffAndOn(t *test
 	}
 	// ✅ on its line; a click on it stops it being active; the note shows again, and the file says so
 	k := itemAt(t, &s, "Quiet")
-	if PresetItems(&s)[k].Glyph != Checked {
+	if PresetItems(&s)[k].Check != shell.On {
 		t.Error("no ✅")
 	}
 	s.choose(k)

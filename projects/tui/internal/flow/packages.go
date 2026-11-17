@@ -21,9 +21,8 @@ const packagesStage = packagesVerb + "/packages"
 
 // The glyphs beside the Packages app's actions: a package added, one removed, and the active set made the selection.
 const (
-	Plus   = "➕"
-	Minus  = "➖"
-	Target = "🎯"
+	Plus  = "➕"
+	Minus = "➖"
 )
 
 // The Packages app's actions, by the names the tab's menu gives them.
@@ -36,8 +35,8 @@ const (
 // packageActions gives the Packages app's actions, in the tab's menu's order: those on the packages selected, there
 // with nothing selected too, dim, so the menu shows what selecting packages makes possible.
 func packageActions() []shell.Item {
-	return []shell.Item{{Glyph: Plus, Name: AddPackages}, {Glyph: Minus, Name: RemovePackages},
-		{Glyph: Target, Name: OnlyPackages}}
+	return []shell.Item{{Name: AddPackages}, {Name: RemovePackages},
+		{Name: OnlyPackages}}
 }
 
 // onPackages says whether the selected stage is kit packages'.

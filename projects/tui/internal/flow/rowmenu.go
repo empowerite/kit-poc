@@ -27,7 +27,6 @@ import (
 // the cursor selected, or, once it is, no longer; and, on a stage whose rows lead to a row of another tab or app, the
 // row's first such link followed, as a click on it does.
 const (
-	Follow     = "🧭" // beside Follow Link
 	OpenPage   = "Open Page"
 	FollowLink = "Follow Link"
 	SelectIt   = "Select"
@@ -93,10 +92,10 @@ func (m Model) selectItem() shell.Item {
 	if r, ok := m.underCursor(); ok {
 		s := m.stages[m.stage]
 		if s.Picked[r.Key] && !r.Aside || table.GroupMarks(m.every(m.stage), s.Picked)[r.Key] == grid.Chosen {
-			return shell.Item{Glyph: Sweep, Name: UnselectIt}
+			return shell.Item{Name: UnselectIt}
 		}
 	}
-	return shell.Item{Glyph: Checked, Name: SelectIt}
+	return shell.Item{Name: SelectIt}
 }
 
 // linkOf gives what a row's first link to a row of another tab or app leads to, as jump reads it, none for a row with no
@@ -120,9 +119,9 @@ func (m Model) leads() bool {
 // tab or app followed, on a stage whose rows have some; the row selected, or no longer; and, a rule apart, the stage's actions on rows, where it has some. New…, which acts on no row, is the
 // tab's menu's alone.
 func (m Model) rowItems() []shell.Item {
-	items := []shell.Item{{Glyph: Browse, Name: OpenPage, Keys: "O"}}
+	items := []shell.Item{{Name: OpenPage, Keys: "O"}}
 	if m.leads() {
-		items = append(items, shell.Item{Glyph: Follow, Name: FollowLink})
+		items = append(items, shell.Item{Name: FollowLink})
 	}
 	items = append(items, m.selectItem())
 	actions := slices.DeleteFunc(m.actions(), func(i shell.Item) bool { return i.Name == "New…" })

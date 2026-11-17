@@ -78,7 +78,66 @@ const (
 type Item struct {
 	Glyph, Name, Keys string
 	Here              bool
+	Check             Check
+	Opens             bool
 }
+
+// Check is the state of a line that is a toggle, as the gutter at its left shows it: Off, blank, as a line that is no
+// toggle is; On, ✔; Mixed, –, where some of what the line stands for is on and some is not. NoCheck is a line that is
+// no toggle: when no line of a menu is one, the menu keeps no gutter.
+type Check int
+
+// The states of a toggle.
+const (
+	NoCheck Check = iota
+	Off
+	On
+	Mixed
+)
+
+// mark gives the cell of the gutter that shows a state.
+func (c Check) mark() string {
+	switch c {
+	case On:
+		return "✔"
+	case Mixed:
+		return "–"
+	}
+	return " "
+}
+
+// gutterOf gives the cells a menu keeps at its lines' left for the toggles' marks: two, the mark and a space, where any
+// line is a toggle, else none.
+func gutterOf(items []Item) int {
+	if slices.ContainsFunc(items, func(i Item) bool { return i.Check != NoCheck }) {
+		return 2
+	}
+	return 0
+}
+
+// lead gives what a menu line draws before its name: the mark in the gutter, and the glyph and a space.
+func lead(item Item, gutter int) string {
+	out := ""
+	if gutter > 0 {
+		out = item.Check.mark() + " "
+	}
+	if item.Glyph != "" {
+		out += item.Glyph + " "
+	}
+	return out
+}
+
+// leadOf gives the cells of a menu line before its name: the gutter, then its glyph and a space where it has one.
+func leadOf(item Item, gutter int) int {
+	if item.Glyph == "" {
+		return gutter
+	}
+	return gutter + ansi.StringWidth(item.Glyph) + 1
+}
+
+// NameCol gives the cells from the left edge of a menu's box to where the name of its line k starts: the edge, a cell,
+// the gutter where the menu has one, and the glyph and a space where the line has one.
+func NameCol(items []Item, k int) int { return 2 + leadOf(items[k], gutterOf(items)) }
 
 // screenItem is one of the app's menu's screens, with the item it is chosen by.
 type screenItem struct {
@@ -183,11 +242,11 @@ func (m Menu) Items() []Item {
 		items = append(items, Item{})
 	}
 	items = append(items, m.Own...)
-	return append(items, settingsItem, Item{}, Item{Glyph: Leave, Name: "Quit", Keys: "⌃Q"})
+	return append(items, settingsItem, Item{}, Item{Name: "Quit", Keys: "⌃Q"})
 }
 
 // settingsItem is the menu's line that opens the Settings dialog.
-var settingsItem = Item{Glyph: Configure, Name: "Settings…"}
+var settingsItem = Item{Name: "Settings…"}
 
 // enabled says whether the menu's line k can be chosen: the screen's own items but those it dims, kit's screens, the
 // one it is on too, which closes the menu and does nothing else, the settings, and quit; the rules never can.
@@ -228,9 +287,9 @@ func (m Menu) choice(k, room int) Choice {
 		return Choice{Quit: true}
 	}
 	if item == settingsItem {
-		// the line's name starts after the box's edge, a cell, the glyph's two cells, and a cell
+		// the line's name starts where NameCol says, from the box's edge
 		_, left := m.box(room)
-		return Choice{Screen: SettingsScreen, From: &image.Point{X: left + 5, Y: Top + 1 + k}}
+		return Choice{Screen: SettingsScreen, From: &image.Point{X: left + NameCol(m.Items(), k), Y: Top + 1 + k}}
 	}
 	return Choice{Own: item.Name}
 }
@@ -394,14 +453,18 @@ func boxIn(items []Item, enabled func(int) bool, at int, mark string, glyph, roo
 		shown = max(1, rows-2)
 		first = min(max(0, at-shown/2), len(items)-shown)
 	}
+	gutter := gutterOf(items)
 	names, keys := make([]string, len(items)), make([]string, len(items))
 	for k, item := range items {
 		names[k], keys[k] = item.Name, item.Keys
 	}
-	// a line is a cell, the glyph's two, a cell, the name, and a cell; then, where any line has keys, two cells and the
-	// widest keys, every line's keys flush right
-	named, keyed := pane.Width(names), pane.Width(keys)
-	inner := named + 5
+	// a line is a cell, the gutter where any line is a toggle, a line's glyph and a space where it has one, the name, and
+	// a cell; then, where any line has keys, two cells and the widest keys, every line's keys flush right
+	keyed, named := pane.Width(keys), 0
+	for _, item := range items {
+		named = max(named, leadOf(item, gutter)+ansi.StringWidth(item.Name))
+	}
+	inner := named + 2
 	if keyed > 0 {
 		inner += 2 + keyed
 	}
@@ -442,7 +505,8 @@ func boxIn(items []Item, enabled func(int) bool, at int, mark string, glyph, roo
 		if k < first || k >= first+shown {
 			continue
 		}
-		text := " " + pane.Pad(item.Glyph, 2, false) + " " + pane.Pad(item.Name, named, false)
+		text := " " + pane.Pad(lead(item, gutter), leadOf(item, gutter), false) +
+			pane.Pad(item.Name, named-leadOf(item, gutter), false)
 		shortcut := ""
 		if keyed > 0 {
 			shortcut = "  " + pane.Pad(item.Keys, keyed, true)

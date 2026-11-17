@@ -84,7 +84,7 @@ func TestTheMenusKeysMoveChooseAndClose(t *testing.T) {
 	if m, c := m.Opened().Key(key("s")); !m.Open || c != (Choice{}) {
 		t.Errorf("s: open %v, %+v", m.Open, c)
 	} else if m, c = m.Key(key("enter")); c.Screen != SettingsScreen || c.From == nil ||
-		*c.From != (image.Point{X: At - 2 + 5, Y: Top + 1 + 14}) || !m.Open || m.At != 14 {
+		*c.From != (image.Point{X: At - 2 + 2, Y: Top + 1 + 14}) || !m.Open || m.At != 14 {
 		// the menu stays open on Settings…, which the dialog then stands over, and esc closes it back to the menu
 		t.Errorf("settings: open %v at %d, %+v", m.Open, m.At, c)
 	}
@@ -137,7 +137,7 @@ func TestTheMenuHangsFromTheTitlesGlyphAndAClickChooses(t *testing.T) {
 		at(m.Overlay(slices.Clone(screen), 60), "Settings…") != *c.From {
 		t.Errorf("a click on Settings…: open %v at %d, %+v", m.Open, m.At, c)
 	} else if d := (SettingsDialog{Open: true, From: c.From}); at(d.Overlay(m.Overlay(slices.Clone(screen), 60),
-		Settings{}, 60), "╭─ Settings…").Add(image.Point{X: 3}) != *c.From {
+		Settings{}, 60), "╭─ Settings…").Add(image.Point{X: 3}) != (image.Point{X: max(3, c.From.X), Y: c.From.Y}) {
 		t.Errorf("the dialog over the menu:\n%s", ansi.Strip(strings.Join(d.Overlay(m.Overlay(slices.Clone(screen), 60),
 			Settings{}, 60), "\n")))
 	} else {
@@ -289,18 +289,18 @@ func TestAMenuShowsEachLinesKeysAtItsRight(t *testing.T) {
 		{Name: "Off", Keys: "⌃O"}}
 	enabled := func(k int) bool { return k < 3 }
 	box, _ := Box(items, enabled, 1, "", -1, 40)
-	for k, want := range map[int]string{1: "│ ✅ Select All   ⌃A │", 2: "│    Find        ⇧⌃F │",
-		3: "│    Refresh         │", 5: "│    Off          ⌃O │"} {
+	for k, want := range map[int]string{1: "│ ✅ Select All   ⌃A │", 2: "│ Find           ⇧⌃F │",
+		3: "│ Refresh            │", 5: "│ Off             ⌃O │"} {
 		if got := ansi.Strip(box[k]); got != want {
 			t.Errorf("line %d: %q, want %q", k, got, want)
 		}
 	}
 	_, under := style.MenuIn("")
-	if !strings.Contains(box[1], style.Off("   ⌃A")) || !strings.Contains(box[2], under("    Find        ⇧⌃F ")) ||
-		!strings.Contains(box[5], style.Off("    Off          ⌃O ")) {
+	if !strings.Contains(box[1], style.Off("   ⌃A")) || !strings.Contains(box[2], under(" Find           ⇧⌃F ")) ||
+		!strings.Contains(box[5], style.Off(" Off             ⌃O ")) {
 		t.Errorf("the keys' styles:\n%q", box)
 	}
-	if plain, _ := Box([]Item{{Name: "Refresh"}}, Every, 0, "", -1, 40); ansi.Strip(plain[1]) != "│    Refresh │" {
+	if plain, _ := Box([]Item{{Name: "Refresh"}}, Every, 0, "", -1, 40); ansi.Strip(plain[1]) != "│ Refresh │" {
 		t.Errorf("no keys: %q", ansi.Strip(plain[1]))
 	}
 	if quit := (Menu{}).Items(); quit[len(quit)-1].Keys != "⌃Q" {
@@ -408,7 +408,7 @@ func TestTheMenusLineForTheScreenItIsOnIsBoldAndClosesTheMenuAskingNothing(t *te
 	}
 	// a line of a menu that belongs to a group is bold on the group's color
 	lines, _ := BoxColored([]Item{{Name: "Here", Here: true}}, func(int) bool { return true }, 0, App, At, 60, "75")
-	if !strings.Contains(lines[1], style.MenuHereIn("75")(" "+pane.Pad("", 2, false)+" Here ")) {
+	if !strings.Contains(lines[1], style.MenuHereIn("75")(" Here ")) {
 		t.Errorf("a colored menu's line here: %q", lines[1])
 	}
 }

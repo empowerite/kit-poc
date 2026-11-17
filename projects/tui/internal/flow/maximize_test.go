@@ -34,17 +34,17 @@ func maximize(t *testing.T, m Model) Model {
 
 func TestTheTabsMenusFirstSectionIsRefreshWatchAndMaximize(t *testing.T) {
 	m := drive(loaded(t, viewing("")), press(':'))
-	if got := m.tabItems()[:4]; got[0].Name != "Refresh" || got[1].Name != WatchIt || got[2].Glyph != Maximize ||
+	if got := m.tabItems()[:4]; got[0].Name != "Refresh" || got[1].Name != WatchIt || got[2].Glyph != "" ||
 		got[2].Name != "Maximize" || got[3].Name != "" || !m.enabled(2) || m.tabMenu.At != 0 {
 		t.Fatalf("the tab's menu's first section: %+v, the keyboard on %d", got, m.tabMenu.At)
 	}
-	if ansi.StringWidth(Maximize) != 1 || ansi.StringWidth(Restore) != 1 || ansi.StringWidth(Banner) != 1 {
-		t.Errorf("a glyph is not one cell: %q %q %q", Maximize, Restore, Banner)
+	if ansi.StringWidth(Banner) != 1 {
+		t.Errorf("the banner is not one cell: %q", Banner)
 	}
 	if m = maximize(t, loaded(t, viewing(""))); !m.maximized || m.tabMenu.Open {
 		t.Fatalf("Maximize: maximized %v, menu %v", m.maximized, m.tabMenu.Open)
 	}
-	if m = drive(m, press(':')); m.tabItems()[2].Glyph != Restore || m.tabItems()[2].Name != "Restore" {
+	if m = drive(m, press(':')); m.tabItems()[2].Glyph != "" || m.tabItems()[2].Name != "Restore" {
 		t.Errorf("maximized, the tab's menu's third item is %+v", m.tabItems()[2])
 	}
 }
@@ -166,7 +166,7 @@ func TestClicksFollowTheTop(t *testing.T) {
 	}
 	if box, left := m.menuBox(); left != glyph-2 || m.menuTop() != 0 ||
 		ansi.Cut(lines(m)[0], glyph-1, glyph+2) != "╴"+tabs.Menu+"╶" ||
-		!strings.Contains(ansi.Strip(box[3]), Restore+"  Restore") {
+		!strings.Contains(ansi.Strip(box[3]), "Restore") {
 		t.Errorf("the menu hangs at %d from %d:\n%s", left, glyph, raw(m))
 	}
 	_, left := m.menuBox()

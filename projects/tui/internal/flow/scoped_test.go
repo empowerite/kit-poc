@@ -45,7 +45,7 @@ func TestAPresetActiveEverywhereAppliesOnEveryStageAndFollowsTheToggleAndARestar
 	// the menu lists it under everywhere, with its ✅; a choice makes it no longer active, on every stage
 	m = toPresets(m)
 	k := slices.IndexFunc(table.PresetItems(&m), func(it shell.Item) bool { return it.Name == "No age" })
-	if k < 0 || table.PresetItems(&m)[k].Glyph != Checked {
+	if k < 0 || table.PresetItems(&m)[k].Check != shell.On {
 		t.Fatalf("the menu: %+v", table.PresetItems(&m))
 	}
 	m.choosePreset(k)

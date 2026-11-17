@@ -25,7 +25,7 @@ const refreshName = "Refresh"
 // tabItems gives the tab's menu's lines, top to bottom: Refresh, then Maximize, or Restore once maximized; and on a
 // step drawn as a table, a rule and its folds.
 func (m Model) tabItems() []shell.Item {
-	items := []shell.Item{{Glyph: tabs.Reload, Name: refreshName}, tabs.SizeItem(m.maximized)}
+	items := []shell.Item{{Name: refreshName}, tabs.SizeItem(m.maximized)}
 	if !m.gridded() {
 		return items
 	}

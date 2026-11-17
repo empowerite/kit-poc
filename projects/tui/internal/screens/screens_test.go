@@ -410,7 +410,7 @@ func TestTheSettingsDialogOpensOverTheMenuAndEscGoesBackToIt(t *testing.T) {
 		t.Fatalf("no Settings… in the menu:\n%s", ansi.Strip(m.View().Content))
 	}
 	m, _ = testkit.Drive(m, nil, testkit.Click(x, y))
-	if dx, dy, ok := cell(m, "╭─ Settings…"); !m.dialog.Open || !ok || dx+3 != x || dy != y {
+	if dx, dy, ok := cell(m, "╭─ Settings…"); !m.dialog.Open || !ok || dx != max(0, x-3) || dy != y {
 		t.Fatalf("the dialog at %d, %d, Settings… at %d, %d:\n%s", dx, dy, x, y, ansi.Strip(m.View().Content))
 	}
 	m, _ = testkit.Drive(m, nil, tea.KeyPressMsg{Code: tea.KeyEscape})

@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/empowerite/kit/projects/tui/internal/shell"
+
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
@@ -35,7 +37,7 @@ func itemNames(h Host) []string {
 func TestThePresetsMenuListsWhatCanBeDoneWithViewsThenTheViews(t *testing.T) {
 	h := presetting()
 	want := []string{SaveIt, SaveAs, ManageIt, "", BuiltinHeading, Default, "Grouped", MineHeading, "Mine"}
-	if got := itemNames(h); !slices.Equal(got, want) || PresetItems(h)[5].Glyph != Checked ||
+	if got := itemNames(h); !slices.Equal(got, want) || PresetItems(h)[5].Check != shell.On ||
 		PresetItems(h)[5].Keys != Unstarred {
 		t.Fatalf("the menu: %q", got)
 	}
@@ -261,7 +263,7 @@ func TestThePresetsMenuListsWhatIsActiveEverywhereAndInTheApp(t *testing.T) {
 		t.Fatalf("the menu: %q", got)
 	}
 	items := PresetItems(h)
-	if items[10].Glyph != "" || items[11].Glyph != Checked || items[13].Glyph != "" {
+	if items[10].Glyph != "" || items[11].Check != shell.On || items[13].Glyph != "" {
 		t.Errorf("the ✅: %+v", items)
 	}
 	if l, name, ok := PresetScoped(h, 11); !ok || l != LevelGlobal || name != "Quiet" {

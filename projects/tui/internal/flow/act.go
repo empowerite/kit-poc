@@ -27,18 +27,6 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/style"
 )
 
-// The glyphs beside the issues' actions that the picture's own glyphs do not name already: a new issue written, the
-// issues handed to someone, the caller walking away from them, gathered in a basket, closed as not planned, and
-// closed as a twin.
-const (
-	Write  = "📝"
-	Hand   = "👥"
-	Leave  = "🚶"
-	Gather = "🧺"
-	Drop   = "🚫"
-	Twin   = "♊"
-)
-
 // issuesStage is kit flow's stage of every open issue, in the backlog and underway, whose rows the issues' actions act
 // on.
 const issuesStage = "issues"
@@ -55,17 +43,17 @@ func (m Model) actions() []shell.Item {
 		return nil
 	}
 	items := []shell.Item{
-		{Glyph: Write, Name: "New…", Keys: "N"},
-		{Glyph: Sprout, Name: "Start Local Work for Each"},
-		{Glyph: Branch, Name: "Start Local Work Together…"},
-		{Glyph: Change, Name: "Add to Pull Request…"},
-		{Glyph: Owner, Name: "Assign to Me", Keys: "A"},
-		{Glyph: Hand, Name: "Assign to…"},
-		{Glyph: Leave, Name: "Unassign"},
-		{Glyph: Gather, Name: "Gather Under a Parent…"},
-		{Glyph: Drop, Name: "Close as Not Planned"},
-		{Glyph: Twin, Name: "Close as Duplicate of…"},
-		{Glyph: ToPage, Name: "Copy Links"},
+		{Name: "New…", Keys: "N"},
+		{Name: "Start Local Work for Each"},
+		{Name: "Start Local Work Together…"},
+		{Name: "Add to Pull Request…"},
+		{Name: "Assign to Me", Keys: "A"},
+		{Name: "Assign to…"},
+		{Name: "Unassign"},
+		{Name: "Gather Under a Parent…"},
+		{Name: "Close as Not Planned"},
+		{Name: "Close as Duplicate of…"},
+		{Name: "Copy Links"},
 	}
 	if m.find("changes") == nil {
 		// the pull requests to add to are those the changes tab read: an app without it never has one

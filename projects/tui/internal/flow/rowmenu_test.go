@@ -69,7 +69,7 @@ func TestEnterOnARowDropsItsMenuDownAndEnterAgainOpensItsPage(t *testing.T) {
 			len(box), y)
 	}
 	if v := lines(m); !strings.Contains(v[y], "#46") || !strings.Contains(v[top], "╭") ||
-		!strings.Contains(v[top+1], "🌐 Open Page") || !strings.Contains(v[top+1], " O │") ||
+		!strings.Contains(v[top+1], "Open Page") || !strings.Contains(v[top+1], " O │") ||
 		!strings.Contains(v[len(v)-1], "esc close ↑↓ move ⏎ choose") {
 		t.Errorf("the menu as drawn:\n%s", view(m))
 	}

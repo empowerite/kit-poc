@@ -21,24 +21,11 @@ import (
 	"github.com/empowerite/kit/projects/tui/internal/tabs"
 )
 
-// The glyphs beside the tab's menu's items, the tab maximized and restored, one cell each, the stage loaded again, a
-// level more shown and a level less, the selected rows shown, all the way down to them, and hidden, the selected rows'
-// pages opened, every row selected, and the selection swept away; beside the presets' menu's, the one the table
-// stands as, two cells wide as the others; beside the app's menu's own, every stage loaded again; and the line under
-// the title of a maximized tab, in the tab's color, a cell of it.
+// The line under the title of a maximized tab, in the tab's color, a cell of it; and the glyph packages.go draws beside
+// a member of the active set.
 const (
-	Maximize = tabs.Maximize
-	Restore  = tabs.Restore
-	Banner   = shell.Rule
-	More     = tabs.More
-	Less     = tabs.Less
-	Expand   = tabs.Expand
-	Collapse = tabs.Collapse
-	Checked  = table.Checked
-	Reload   = tabs.Reload
-	Browse   = "🌐"
-	Every    = tabs.Every
-	Sweep    = table.Sweep
+	Banner  = shell.Rule
+	Checked = table.Checked
 )
 
 // tabItems gives the tab's menu's lines, top to bottom: the stage loaded again; watched, or no longer, as watch.go
@@ -49,13 +36,13 @@ const (
 // same with the menu closed, as shortcut says.
 func (m Model) tabItems() []shell.Item {
 	size := tabs.SizeItem(m.maximized)
-	items := []shell.Item{{Glyph: Reload, Name: "Refresh", Keys: "R"}}
+	items := []shell.Item{{Name: "Refresh", Keys: "R"}}
 	if len(m.stages) == 0 || everMarked(m.stages[m.stage].name) {
 		items = append(items, m.watchItem(m.stage))
 	}
 	items = append(append(items, size, shell.Item{}), m.folds()...)
 	items = append(append(append(items, shell.Item{}), tabs.SelectItems()...), shell.Item{})
-	return append(append(items, m.actions()...), shell.Item{Glyph: Browse, Name: OpenPage, Keys: "O"})
+	return append(append(items, m.actions()...), shell.Item{Name: OpenPage, Keys: "O"})
 }
 
 // shortcut gives the tab's menu's line whose key the press is, when it acts now, or -1; with the menu closed, the key
@@ -100,7 +87,7 @@ func (m *Model) chose(c shell.Choice) tea.Cmd {
 		return m.quit()
 	case c.Screen != "":
 		return c.Switch()
-	case c.Own == WatchAll, c.Own == StopAll:
+	case c.Own == WatchAll, c.Own == WatchingAll:
 		return m.watchAll(c.Own == WatchAll)
 	case c.Own == RefreshAll:
 		m.quota.Reset()
@@ -134,7 +121,7 @@ func (m Model) acts(name string) bool {
 	switch name {
 	case "Maximize", "Restore":
 		return true
-	case "Refresh", StopIt:
+	case "Refresh", Watching:
 		return sourced(s.name)
 	case WatchIt:
 		return m.watchable(m.stage)
@@ -179,7 +166,7 @@ func (m *Model) do(name string) tea.Cmd {
 		return nil
 	case "Refresh":
 		return m.refresh(s.name)
-	case WatchIt, StopIt:
+	case WatchIt, Watching:
 		return m.toggleWatch(m.stage)
 	case OpenPage:
 		return m.openPages(m.pages())

@@ -327,7 +327,7 @@ func TestATabWithANullMarkIsNeverStale(t *testing.T) {
 	m := appOf(t, shell.People, tea.WindowSizeMsg{Width: 160, Height: 30})
 	m = drive(m, clockOf(m).Fire()...)
 	for range m.stages {
-		if s := m.stages[m.stage]; item(m, WatchIt) >= 0 || item(m, StopIt) >= 0 || s.src.Stale {
+		if s := m.stages[m.stage]; item(m, WatchIt) >= 0 || item(m, Watching) >= 0 || s.src.Stale {
 			t.Errorf("%s offers Watch, or is stale %v", s.name, s.src.Stale)
 		}
 		if m = drive(m, typed("w")...); m.stages[m.stage].src.Watch {
