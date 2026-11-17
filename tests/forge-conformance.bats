@@ -478,10 +478,10 @@ named-afresh() {
 # here <NAME=value>… prints what forge:pr-here answers in a shell that sets those variables and no other that names a
 # change or marks a CI system: a forge's own, or a CI system's.
 here() {
-  env -u FAKE_GITHUB_EVENT_PATH -u CI_MERGE_REQUEST_IID -u SYSTEM_PULLREQUEST_PULLREQUESTID -u BUILDKITE_PULL_REQUEST \
+  env -u GITHUB_EVENT_PATH -u CI_MERGE_REQUEST_IID -u SYSTEM_PULLREQUEST_PULLREQUESTID -u BUILDKITE_PULL_REQUEST \
     -u CIRCLE_PULL_REQUEST -u CHANGE_ID -u SYSTEM_PULLREQUEST_PULLREQUESTNUMBER -u CODEBUILD_WEBHOOK_TRIGGER \
     -u CI_COMMIT_PULL_REQUEST -u DRONE_PULL_REQUEST -u BUILDKITE -u CIRCLECI -u JENKINS_URL -u TF_BUILD \
-    -u CODEBUILD_BUILD_ID -u CI -u DRONE -u FAKE_GITHUB_ACTIONS -u GITLAB_CI "$@" \
+    -u CODEBUILD_BUILD_ID -u CI -u DRONE -u GITHUB_ACTIONS -u GITLAB_CI "$@" \
     bash -c 'source "${kit_root}/modules/bash/1st.sh" && use forge && forge:pr-here'
 }
 
@@ -573,7 +573,7 @@ here() {
   do
     world "${forge}"
     if [[ "${forge}" == github ]]
-    then marker=FAKE_GITHUB_ACTIONS=true named=FAKE_GITHUB_EVENT_PATH=${BATS_TEST_TMPDIR}/event.json
+    then marker=GITHUB_ACTIONS=true named=GITHUB_EVENT_PATH=${BATS_TEST_TMPDIR}/event.json
     else marker=GITLAB_CI=true named=CI_MERGE_REQUEST_IID=99
     fi
     # a shell that exports the forge's own variable, and not the marker its runner sets on every job, is a desk
@@ -590,7 +590,7 @@ here() {
   # so a verb that writes takes its change from the branch, never from the variable
   world github
   route gh 'pr ready 3' '!0'
-  FAKE_GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json" run "${kit_root}/bin/kit" ready
+  GITHUB_EVENT_PATH="${BATS_TEST_TMPDIR}/event.json" run "${kit_root}/bin/kit" ready
   [ "$status" -eq 0 ]
   [[ "$output" == *"pull request #3 is ready for review"* ]]
   grep --quiet --line-regexp 'pr ready 3' "${FAKE_DIR}/gh.calls"
