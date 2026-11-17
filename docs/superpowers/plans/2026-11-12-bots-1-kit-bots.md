@@ -1,9 +1,8 @@
 # Bots, step 1: `kit bots` Implementation Plan
 
-**Status, 2026-11-12:** The review of 2026-11-12 read this plan against commit `0e76266c`, where it found Tasks 1 and
-2 of the 8 built. Commits after that one, under #258, added `kit bots` with `--check`, `token`, and `run`, the bot's
-principal, and the Welcome check; nobody has counted the tasks again since. [The review's
-page](../reviews/2026-11-12-review-plans.md) has each task's evidence.
+**Status, 2026-11-17:** Step 1 is built. All 8 tasks are built under #258, and so are the fixes the review of the
+whole branch asked for. Where the design and this plan differ, [the design](../specs/2026-11-12-bots-design.md)
+records what was built.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

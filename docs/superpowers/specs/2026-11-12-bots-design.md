@@ -140,12 +140,13 @@ App's key, never stored.
 The key lives in the operating system's secret store, under service `kit-bot`, account `<host>/<app>`: the macOS
 keychain through `security`, or the Secret Service through `secret-tool` on Linux. kit stores the key base64-encoded,
 so `security` never hands it back as hex. Where neither store exists, `kit bots` refuses and names the store to
-install. In CI the key comes from the environment, `KIT_BOT_KEY`, filled from a secret.
+install. Step 1 reads the key from the store alone. In CI, step 7's package reads it from the environment,
+`KIT_BOT_KEY`, filled from a secret.
 
 ### `kit bots`
 
-`kit bots` lists the person's bots: name, host, App, owner, the repositories each installation reaches, and the
-jobs its permissions allow. Its forms:
+`kit bots` lists the person's bots: name, host, App, owner, jobs, and whether the secret store keeps the bot's key.
+Its forms:
 
 | Form | Does |
 | --- | --- |
@@ -178,8 +179,14 @@ The jobs ask for these permissions, and nothing else:
 `--check` names each permission the App lacks for a job, and each one it holds that no job needs: `empowerite-jig`
 holds actions to write, which no job needs. It exits 1 when a job lacks a permission, since that job would fail when
 the bot acts, and when the installation does not reach this repository; a permission no job needs is advice, and exits
-0. A change of permissions is the App owner's, on the App's page, and every installation accepts it on its own page;
-kit opens both and waits.
+0. Where the installation does not reach this repository, `--check` names the page to add it on: the page of the
+installation on the repository's owner, else the App's page to install it there. It opens no page and waits for
+nothing. A change of permissions is the App owner's, on the App's page, and every installation accepts it on its own
+page.
+
+A token holds only the permissions the bot's jobs need, as the table lists them, each at no more than the level the
+installation holds, and none the installation lacks, which GitHub refuses. So no token holds a permission no job
+needs.
 
 ### `kit bots --new`
 
@@ -204,15 +211,16 @@ instead, as jig chose.
 
 `kit bots run <command>…` runs the command with:
 
-- `GH_TOKEN` set to a fresh installation token, and a `gh` on `PATH` that mints a new one when the old is within ten
-  minutes of its hour, so a session that runs all afternoon keeps working. Tokens live only in a directory of the
-  session's own, which `file:scratch` makes, readable by the person alone, removed when the command ends, and are
-  revoked then.
+- `GH_TOKEN` and `GITHUB_TOKEN` set to a fresh installation token, and a `gh` on `PATH` that mints a new one when the
+  old is within ten minutes of its hour, so a session that runs all afternoon keeps working. `kit tools run` and
+  `kit gate` keep that `gh` before any the toolchain has. Tokens live only in a directory of the session's own,
+  which `file:scratch` makes, readable by the person alone, removed when the command ends, and are revoked then.
 - `KIT_BOT` set to the bot's name, `KIT_BOT_LOGIN` to its login, `<name>[bot]`, which `forge:me` and the commit
-  trailer read, and `KIT_BOT_FOR` to the person's login. `GH_HOST` is always the forge's. `GH_ENTERPRISE_TOKEN` holds
-  the token off github.com, and is unset on it.
-- git's credential helper for the forge's host answering with the same token, so `git push` and `kit submit` push as
-  the bot.
+  trailer read, and `KIT_BOT_FOR` to the person's login. `GH_HOST` is always the forge's. `GH_ENTERPRISE_TOKEN` and
+  `GITHUB_ENTERPRISE_TOKEN` hold the token off github.com, and are unset on it.
+- git's credential helper for the forge's host answering with the same token, and rules that send the host's ssh
+  URLs over https, where the helper answers, so `git push` and `kit submit` push as the bot to any remote on the host.
+  The host is the forge's own: the one an ssh `Host` alias stands for, and github.com for `ssh.github.com`.
 
 Under `kit bots run`, kit itself changes in four places:
 
@@ -316,15 +324,16 @@ same claim and the same command.
 
 ### Welcome
 
-- `bot-<host>`, an offer, holds where no bot is set up and offers `kit bots --new`.
-- Where a bot is set up, the check fails, each with its remedy, when the key is missing from the store, when the
-  installation does not reach this repository, or when the permissions lack a job's need.
+- `bot`, an offer, holds where no bot is set up on the primary remote's host and offers `kit bots --add`; step 2
+  makes it offer `kit bots --new`.
+- Where a bot is set up, the check fails, each with its remedy, when the key is missing from the store or the store
+  cannot be read, when the installation does not reach this repository, or when the permissions lack a job's need.
 
 ## The order of the work
 
 1. `kit bots`: the bots file, `--add` from a key file or a keychain item, the secret stores, `token`, `run` with
-   the refreshing `gh`, `--check`, `--remove`, `forge:me` and `forge:principal` under `KIT_BOT`, the commit trailer,
-   and the Welcome check. Proved against `empowerite-jig`.
+   the refreshing `gh`, `--check`, `--remove`, `forge:me` and `forge:principal` under `kit bots run`, the commit
+   trailer, and the Welcome check. Proved against `empowerite-jig`.
 2. `kit bots --new`: the manifest helper in kittui, the install, and `--repos`.
 3. Handing: `kit assign --to=bot`, `kit unassign --from=bot`, the tracker's `label` and `unlabel`, `--queue`,
    `--claim`, `--ask`, and `--brief`.

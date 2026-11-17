@@ -40,7 +40,7 @@ Rate limits on Server are off unless its administrator turns them on.
 
 | Capability | Command |
 | --- | --- |
-| Signed in | `gh api user --jq .login`; `gh auth status` passes with a revoked token, so kit makes a real call |
+| Signed in | `gh api user --jq .login`; `gh auth status` passes with a revoked token, so kit makes a real call; under `kit bots run`, `gh api 'repos/{owner}/{repo}' --jq .full_name`, as GitHub refuses a bot's token `GET /user` |
 | Owner and name | `gh repo view --json nameWithOwner --jq .nameWithOwner` |
 | Browser URL | `gh repo view --json url --jq .url`; a change's is `${url}/pull/${n}` |
 | Caller's login | `gh api user --jq .login` (raw API) |
@@ -353,18 +353,26 @@ GitHub for it: the App's permissions, a token narrowed to one repository, and a 
 
 - An installation token is minted from the App's key. The App signs a JSON Web Token (JWT) with the key, and `POST
   /app/installations/${installation}/access_tokens` exchanges it for a token that lasts an hour. kit sends
-  `{"repositories": ["${name}"]}`, so the token reaches the current repository alone, whatever else the installation
-  reaches. The same `POST` with `{"permissions": {"metadata": "read"}}` and no repository mints a proof of the key.
-  `kit bots --add` uses it where the App reaches no repository here, and revokes it at once.
-  `DELETE /installation/token` revokes a token. `GET /app` and `GET /app/installations` read the App and where it is
-  installed, `GET /repos/${owner}/${repo}/installation` the installation that reaches a repository, and
-  `GET /installation/repositories` what a token reaches.
+  `{"repositories": ["${name}"], "permissions": ${permissions}}`, so the token reaches the current repository alone,
+  whatever else the installation reaches. `${permissions}` is what the bot's jobs need, as the table above lists,
+  each at no more than the level the installation holds, and none the installation lacks, which GitHub refuses. So a
+  token never holds a permission no job needs. The same `POST` with `{"permissions": {"metadata": "read"}}` and no
+  repository mints a proof of the key. `kit bots --add` uses it outside a repository, and inside one that the App's
+  installation does not reach, and revokes it at once. `DELETE /installation/token` revokes a token. `GET /app` and
+  `GET /app/installations` read the App and where it is installed, `GET /repos/${owner}/${repo}/installation` the
+  installation that reaches a repository, and `GET /installation/repositories` what a token reaches.
 - The installation is a page in a browser, and so is a change to which repositories it reaches. `kit bots --check`
   names the page where the installation does not reach the repository.
 - The key is in the macOS keychain or the Linux Secret Service, as service `kit-bot`, account `${host}/${app}`, kept
   base64-encoded on one line. It reaches `security` or `secret-tool` on stdin, never in an argument.
 - `gh` is not used for these calls, since its login is the person's. They go through `curl`, with the JWT or the
   token in a header read from stdin, bounded by `--connect-timeout 10 --max-time 30`.
+- Under `kit bots run`, `GH_TOKEN` and `GITHUB_TOKEN` hold the bot's token, so `gh` and any tool that reads either
+  act as the bot. Off github.com, `GH_ENTERPRISE_TOKEN` and `GITHUB_ENTERPRISE_TOKEN` hold it too, and on github.com
+  kit unsets both. git's credential helper for the host answers with the token, and `url.<base>.insteadOf` rules send
+  the host's ssh URLs, `git@${host}:` and `ssh://git@${host}/`, and any remote whose ssh alias stands for the host,
+  over https, so a push to an ssh remote is the bot's too. An installation token cannot read `GET /user`, which
+  GitHub answers 403, so kit checks that it reaches the forge with `gh api repos/{owner}/{repo}` instead.
 - GitHub Enterprise Server answers at `https://${host}/api/v3`, and github.com at `https://api.github.com`. The
   host is the one `gh`'s calls go to: for an ssh URL, the host `ssh -G` says a `Host` of the ssh configuration
   stands for, and github.com for `ssh.github.com`.

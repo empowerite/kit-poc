@@ -288,7 +288,9 @@ label, a comment, or a pull request, shows on GitHub as the work of `<slug>[bot]
 - `kit bots --check` compares the App's permissions with the jobs the bot is set
   up for. It also says whether the App's installation reaches this repository.
 - `kit bots run <command>…` runs a command as the bot. The command gets a fresh token
-  that reaches only this repository, and kit revokes the token when the command ends.
+  that reaches only this repository and holds only the permissions the bot's jobs need, and kit revokes the token
+  when the command ends. The token is in `GH_TOKEN` and `GITHUB_TOKEN`, so `gh` and other tools act as the bot, and
+  `git push` pushes as the bot to an https remote and to an ssh one alike.
 - Under `kit bots run`, `kit commit` adds the trailer `Agent: <name>[bot]` to the
   commit message. You stay the author and the committer, so signing keeps working.
 
