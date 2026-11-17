@@ -31,15 +31,27 @@ secrets:backend() {
 # secrets:put <service> <account> stores stdin as the item, base64-encoded, replacing any item of that name, then reads
 # the item back and compares it: a backend that exits 0 and keeps nothing is caught here, not at the first use of the
 # key. It says which backend failed and returns 1 where there is none, or it refused, or it kept something else.
+#
+# security -i reads a line in pieces of about 4096 bytes, and echoes on stderr the rest of a longer line, which holds
+# the secret's tail, as a command it does not know. So the keychain refuses a line longer than 4000 bytes, which a
+# PEM of an RSA key of 4096 bits makes, and what security says goes to a scratch file, never to the screen.
 secrets:put() {
-  local backend encoded kept
+  local backend encoded kept line said
   backend=$(secrets:backend) || return 1
   encoded=$(base64) || return 1
   encoded=${encoded//$'\n'/}
   case "${backend}" in
     (keychain)
       # base64 holds no space or quote, so the one line security -i reads is safe
-      printf 'add-generic-password -U -s %s -a %s -w %s\n' "$1" "$2" "${encoded}" | security -i
+      printf -v line 'add-generic-password -U -s %s -a %s -w %s' "$1" "$2" "${encoded}"
+      if (( ${#line} > 4000 ))
+      then
+        error "use a key of 2048 bits, as GitHub makes one (the keychain cannot keep $1 $2: its line to security -i" \
+          "is ${#line} bytes, over the 4000 that security reads whole)"
+        return 1
+      fi
+      file:temp said secrets-said || return 1
+      printf '%s\n' "${line}" | security -i 2> "${said}"
       ;;
     (secret-service)
       printf '%s' "${encoded}" | secret-tool store --label="$1 $2" service "$1" account "$2"
@@ -67,18 +79,25 @@ secrets:raw() {
   (( status == 0 )) || return 1
 }
 
+# secrets:unreadable <backend> <service> <account> <why file> says that the store could not be read for the item,
+# with the first line the backend said, in <why file>.
+secrets:unreadable() {
+  local said=''
+  IFS= read -r said < "$4" || true  # a failure that said nothing has no line
+  error "the $1 could not be read for $2 $3${said:+ (${said})}; unlock it, or check that it works"
+}
+
 # secrets:get <service> <account> prints the secret secrets:put stored, as it was given. It prints nothing and returns
 # 1, silent, where there is no item, and 2, saying why, where the store cannot be read: no backend, or one that failed.
 # The value is base64, which the keychain never hex-encodes, so it is not un-hexed.
 secrets:get() {
-  local backend stored why said='' status=0
+  local backend stored why status=0
   backend=$(secrets:backend) || return 2
   file:temp why secrets-why || return 2
   stored=$(secrets:raw "${backend}" "$1" "$2" "${why}") || status=$?
   if (( status == 2 ))
   then
-    IFS= read -r said < "${why}" || true  # a failure that said nothing has no line
-    error "the ${backend} could not be read for $1 $2${said:+ (${said})}; unlock it, or check that it works"
+    secrets:unreadable "${backend}" "$1" "$2" "${why}"
     return 2
   fi
   (( status == 0 )) || return 1
@@ -107,11 +126,18 @@ secrets:delete() {
 
 # secrets:foreign <service> <account> prints an item another tool stored, as it stored it: the keychain answers hex
 # where the value holds a newline, so a value of hex digits alone is turned back into its bytes. It returns 1,
-# silent, where there is no item.
+# silent, where there is no item, and 2, saying why, where the store cannot be read, as secrets:get does.
 secrets:foreign() {
-  local backend value
-  backend=$(secrets:backend) || return 1
-  value=$(secrets:raw "${backend}" "$1" "$2") || return 1
+  local backend value why status=0
+  backend=$(secrets:backend) || return 2
+  file:temp why secrets-why || return 2
+  value=$(secrets:raw "${backend}" "$1" "$2" "${why}") || status=$?
+  if (( status == 2 ))
+  then
+    secrets:unreadable "${backend}" "$1" "$2" "${why}"
+    return 2
+  fi
+  (( status == 0 )) || return 1
   if [[ "${backend}" == keychain && "${value}" =~ ^([0-9A-Fa-f]{2})+$ ]]
   then
     printf '%s' "${value}" | xxd -r -p

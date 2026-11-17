@@ -164,3 +164,34 @@ only-secret-tool() {
   PATH="${lean}" run kit-bash 'secrets:delete kit-bot h/none'
   [ "$status" -eq 0 ]
 }
+
+@test "secrets:put refuses a value whose line security -i would split, and nothing of it reaches the screen" {
+  head -c 3000 /dev/urandom > "${BATS_TEST_TMPDIR}/long"
+  run --separate-stderr kit-bash "secrets:put kit-bot h/long < '${BATS_TEST_TMPDIR}/long'"
+  [ "$status" -eq 1 ]
+  [[ "$stderr" == *'use a key of 2048 bits'*'the keychain cannot keep kit-bot h/long'*'over the 4000 that security reads whole'* ]]
+  [[ "$stderr" != *"$(base64 < "${BATS_TEST_TMPDIR}/long" | tr -d '\n' | cut -c3990-4030)"* ]]
+  [ ! -e "${FAKE_DIR}/security.calls" ] || run -1 grep --quiet --line-regexp -- -i "${FAKE_DIR}/security.calls"
+  # the secret service reads it on stdin, whatever its length
+  only-secret-tool
+  PATH="${lean}" run --separate-stderr kit-bash "secrets:put kit-bot h/long < '${BATS_TEST_TMPDIR}/long' && secrets:get kit-bot h/long | base64"
+  [ "$status" -eq 0 ]
+  [ "$output" = "$(base64 < "${BATS_TEST_TMPDIR}/long")" ]
+}
+
+@test "secrets:put keeps what security -i says off the screen, which may echo the secret" {
+  FAKE_SECRETS_ECHO=1 run --separate-stderr kit-bash 'printf "%s\n" "${PEM}" | secrets:put kit-bot h/1 && secrets:get kit-bot h/1'
+  [ "$status" -eq 0 ]
+  [ "$output" = "${PEM}" ]
+  [[ "$stderr" != *"$(printf '%s\n' "${PEM}" | base64 | tr -d '\n' | cut -c1-40)"* ]]
+}
+
+@test "secrets:foreign of a store that cannot be read says so and returns 2, apart from no item, which returns 1" {
+  FAKE_SECRETS_FAIL_READ=1 run --separate-stderr kit-bash 'secrets:foreign other github.com/7'
+  [ "$status" -eq 2 ]
+  [ -z "$output" ]
+  [[ "$stderr" == *'the keychain could not be read for other github.com/7 (security: User interaction is not allowed.)'* ]]
+  run --separate-stderr kit-bash 'secrets:foreign other github.com/7'
+  [ "$status" -eq 1 ]
+  [ -z "$stderr" ]
+}
