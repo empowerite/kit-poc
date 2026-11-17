@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 // fake gives a Runner over testdata/fake-kit in the directory dir.
@@ -852,7 +854,7 @@ func TestHelperSession(t *testing.T) {
 	if os.Getenv("KIT_TEST_HELPER") != "session" {
 		t.Skip("the helper runs under TestKitsChildrenRunInASessionOfTheirOwnWithNoTerminal alone")
 	}
-	sid, _ := syscall.Getsid(0)
+	sid, _ := unix.Getsid(0)
 	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
 	if err == nil {
 		tty.Close()
