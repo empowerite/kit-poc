@@ -354,9 +354,11 @@ GitHub for it: the App's permissions, a token narrowed to one repository, and a 
 - An installation token is minted from the App's key. The App signs a JSON Web Token (JWT) with the key, and `POST
   /app/installations/${installation}/access_tokens` exchanges it for a token that lasts an hour. kit sends
   `{"repositories": ["${name}"]}`, so the token reaches the current repository alone, whatever else the installation
-  reaches. `DELETE /installation/token` revokes it. `GET /app` and `GET /app/installations` read the App and where
-  it is installed, `GET /repos/${owner}/${repo}/installation` the installation that reaches a repository, and `GET
-  /installation/repositories` what a token reaches.
+  reaches. The same `POST` with `{"permissions": {"metadata": "read"}}` and no repository mints a proof of the key.
+  `kit bots --add` uses it where the App reaches no repository here, and revokes it at once.
+  `DELETE /installation/token` revokes a token. `GET /app` and `GET /app/installations` read the App and where it is
+  installed, `GET /repos/${owner}/${repo}/installation` the installation that reaches a repository, and
+  `GET /installation/repositories` what a token reaches.
 - The installation is a page in a browser, and so is a change to which repositories it reaches. `kit bots --check`
   names the page where the installation does not reach the repository.
 - The key is in the macOS keychain or the Linux Secret Service, as service `kit-bot`, account `${host}/${app}`, kept

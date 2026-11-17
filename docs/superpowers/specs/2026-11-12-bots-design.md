@@ -208,13 +208,16 @@ instead, as jig chose.
   minutes of its hour, so a session that runs all afternoon keeps working. Tokens live only in a directory of the
   session's own, which `file:scratch` makes, readable by the person alone, removed when the command ends, and are
   revoked then.
-- `KIT_BOT` set to the bot's name, and `KIT_BOT_FOR` to the person's login.
+- `KIT_BOT` set to the bot's name, `KIT_BOT_LOGIN` to its login, `<name>[bot]`, which `forge:me` and the commit
+  trailer read, and `KIT_BOT_FOR` to the person's login. `GH_HOST` is always the forge's. `GH_ENTERPRISE_TOKEN` holds
+  the token off github.com, and is unset on it.
 - git's credential helper for the forge's host answering with the same token, so `git push` and `kit submit` push as
   the bot.
 
-Under `KIT_BOT`, kit itself changes in four places:
+Under `kit bots run`, kit itself changes in four places:
 
-- `forge:me` answers the bot's login, and a new call, `forge:principal`, the person's.
+- `forge:me` answers the bot's login, `KIT_BOT_LOGIN`, and `forge:principal` the person's, `KIT_BOT_FOR`.
+  `forge:principal` is the seam's own, and no provider implements it.
 - `kit work` assigns the person, never the bot, and marks the issue for the bot where it must.
 - `kit commit` keeps the person as the author and the committer, so signing and `require_signing` keep working, and
   adds a trailer, `Agent: empowerite-jig[bot]`. Pushes, pull requests, comments, labels, and reviews are the bot's.
