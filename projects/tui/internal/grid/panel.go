@@ -160,12 +160,24 @@ func (p Panel) Counts(id string) bool {
 }
 
 // Label gives the name the header and the columns dialog give a field: one of its values' while the rows stand once
-// per value of it, else its label, else its id.
+// per value of it, else its label, else its id. One of its values' is not taken where another field has that name,
+// as the rows of packages that stand once per package that needs one have a field of their own named package: the
+// header then says the field's label, needed by, which no other field has.
 func (p Panel) Label(id string) string {
-	if p.Lists(id) && p.Fields[id].Flat {
+	if p.Lists(id) && p.Fields[id].Flat && !p.names(id, p.Ones[id]) {
 		return p.Ones[id]
 	}
 	return cmp.Or(p.Labels[id], id)
+}
+
+// names says whether a field other than id has name for its label.
+func (p Panel) names(id, name string) bool {
+	for other, label := range p.Labels {
+		if other != id && label == name {
+			return true
+		}
+	}
+	return false
 }
 
 // Flattened gives the panel with the rows standing once per value of a field that holds a list, or, unflattened, once

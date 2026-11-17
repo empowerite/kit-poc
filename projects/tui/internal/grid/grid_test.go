@@ -1867,3 +1867,14 @@ func TestRowsThatAreAllAsidesScrollNothing(t *testing.T) {
 		t.Errorf("scrolled to %d, before %v, after %v", to, before, after)
 	}
 }
+
+// A field that holds a list names one of its values in the header while the rows stand once per value of it, unless
+// another field has that name: a package's needed by, flat, would read package beside the field of that name.
+func TestAFlatListKeepsItsLabelWhereAnotherFieldHasTheNameOfOneOfItsValues(t *testing.T) {
+	p := Panel{Labels: map[string]string{"name": "package", "dependents": "needed by", "labels": "labels"},
+		Ones: map[string]string{"dependents": "package", "labels": "label"}}
+	flat := p.Flattened("dependents", true).Flattened("labels", true)
+	if got, other := flat.Label("dependents"), flat.Label("labels"); got != "needed by" || other != "label" {
+		t.Errorf("flat headers: %q and %q, want \"needed by\" and \"label\"", got, other)
+	}
+}
