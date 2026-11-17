@@ -39,9 +39,10 @@
 #     Homebrew prefix but is not on PATH, brew-path, whose fix kit shows and never runs; then the machine's package
 #     manager
 #   - the machine, setup: for each distinct forge host among every folder's remotes, its tool installed, then logged
-#     in to that host, once per host; then, where KIT_TERMINAL_PROBES holds what the terminal answered, the terminal
-#     kit runs in: its heading, each finding of its settings, and each probe, as modules/bash/terminal.sh judges them,
-#     each fix shown and never run
+#     in to that host, once per host; then, only where brew installed kit and the person's login shell is zsh,
+#     completion-zsh, whose fix kit shows and never runs; then, where KIT_TERMINAL_PROBES holds what the terminal
+#     answered, the terminal kit runs in: its heading, each finding of its settings, and each probe, as
+#     modules/bash/terminal.sh judges them, each fix shown and never run
 #   - each folder, setup: a git repository; kit installed, with the version kit.yml declares; then, where kit is,
 #     .kit/ hydrated and the git hooks installed when hooks/lefthook is active; the project's tool manager; then, where
 #     kit is, lefthook when hooks/lefthook is active, each dependency provider whose manifest is there, installed from
@@ -136,12 +137,13 @@ welcome:step() {
 }
 
 # welcome:machine <id> succeeds for the id of a machine check, which holds for the whole machine: what kit runs on,
-# brew on PATH, the machine's package manager, each forge host's tool and login, and the terminal's. Every other check
+# brew on PATH, the machine's package manager, each forge host's tool and login, zsh's completion, and the terminal's.
+# Every other check
 # is a folder's.
 welcome:machine() {
   case "$1" in
     (tool-bash | tool-git | tool-jq | tool-yq | brew-path | toolchain-system) ;;
-    (forge-cli-* | forge-login-* | terminal-*) ;;
+    (forge-cli-* | forge-login-* | completion-zsh | terminal-*) ;;
     (*) return 1
   esac
 }
@@ -602,6 +604,7 @@ welcome:plan-machine() {
     welcome_ids+=("forge-cli-${host}" "forge-login-${host}")
     welcome_host_forge[${host}]=${forge}
   done < <(welcome:hosts)
+  ! welcome:completion-due || welcome_ids+=(completion-zsh)
   [[ -z "${1:-}" || "$1" == terminal-* ]] || return 0
   welcome:plan-terminal
 }
@@ -815,6 +818,71 @@ welcome:brew-path() {
   welcome:record brew-path false "brew is installed at ${prefix} but not on your PATH" "eval \"\$(${brew} shellenv)\"" \
     false "run it in your shell, and add it to your shell's profile so it holds in every shell" false
 }
+
+# welcome:brewed prints the Homebrew prefix that installed kit, and fails when brew did not: brew puts a release at
+# <prefix>/Cellar/kit/<version>/libexec, and links its bin/kit into <prefix>/bin.
+welcome:brewed() {
+  [[ "${kit_root}" =~ ^(.+)/Cellar/kit/[^/]+/libexec$ ]] || return 1
+  printf '%s\n' "${BASH_REMATCH[1]}"
+}
+
+# welcome:completion-due succeeds when completion-zsh is a check here: brew installed kit, and the person's login shell
+# is zsh, the one shell kit completes. Another shell has no completion to check.
+welcome:completion-due() {
+  [[ "${SHELL:-}" == */zsh ]] && welcome:brewed >/dev/null
+}
+
+# welcome:zsh-probe prints what an interactive zsh says of kit's completion, as the person's own configuration leaves
+# it: "<1 when compinit ran, else 0>:<the function that completes kit, or nothing>". It prints nothing when zsh does
+# not answer. zsh reads no input, and says nothing of what its configuration prints.
+welcome:zsh-probe() {
+  # shellcheck disable=SC2016  # the code is zsh's, which expands it
+  "${SHELL}" -ic 'print -r -- "kit-completion:${+functions[compdef]}:${_comps[kit]-}"' </dev/null 2>/dev/null \
+    | sed -n 's/^kit-completion://p' | tail -n 1
+}
+
+# welcome:completion-zsh prints the check that zsh loads kit's completion, for a kit that brew installed. Brew links
+# the script into <prefix>/share/zsh/site-functions, which zsh needs on its fpath before compinit, and brew's own
+# shellenv puts there. The check asks the person's zsh, so what it reports holds in the shell they use. Its fix is a
+# line for the person's .zshrc, which a subshell cannot change: kit shows it and never runs it, as for brew-path.
+welcome:completion-zsh() {
+  local prefix dir fpath_line probe compinit loaded
+  prefix=$(welcome:brewed) || return 0
+  dir=${prefix}/share/zsh/site-functions
+  # shellcheck disable=SC2016  # the line is for the person's shell, which expands FPATH
+  printf -v fpath_line 'FPATH="%s:${FPATH}"' "${dir}"
+  if [[ ! -f "${dir}/_kit" ]]
+  then
+    welcome:record completion-zsh false "brew did not install kit's zsh completion at ${dir}/_kit" \
+      'brew reinstall kit' false "${welcome_completion_doc}" false
+    return 0
+  fi
+  # a zsh that fails answers nothing
+  probe=$(welcome:zsh-probe) || probe=''
+  if [[ -z "${probe}" ]]
+  then
+    welcome:record completion-zsh false "kit could not ask ${SHELL} whether it loads kit's completion" '' false \
+      "${welcome_completion_doc}" false
+    return 0
+  fi
+  IFS=: read -r compinit loaded <<<"${probe}"
+  if [[ -n "${loaded}" ]]
+  then
+    welcome:record completion-zsh true "zsh loads kit's completion"
+  elif [[ "${compinit}" != 1 ]]
+  then
+    welcome:record completion-zsh false "zsh never runs compinit, so it loads no completion, kit's included" \
+      "${fpath_line}; autoload -Uz compinit && compinit" false \
+      "add it to your .zshrc, where it holds in every shell; ${welcome_completion_doc}" false
+  else
+    welcome:record completion-zsh false \
+      "zsh does not have ${dir}, where brew put kit's completion, on its fpath before compinit" "${fpath_line}" false \
+      "add it to your .zshrc above compinit, where it holds in every shell; brew shellenv does the same" false
+  fi
+}
+
+# welcome_completion_doc is where to read about kit's completion.
+declare -gr welcome_completion_doc=https://github.com/empowerite/kit/blob/main/docs/completion.md
 
 # welcome:forge-tool <host> prints the tool the host's forge is reached through: gh, glab, or az.
 welcome:forge-tool() {
@@ -1118,6 +1186,7 @@ welcome:judge() {
     (tool-jq) welcome:jq ;;
     (tool-yq) welcome:yq ;;
     (brew-path) welcome:brew-path ;;
+    (completion-zsh) welcome:completion-zsh ;;
     (toolchain-project) welcome:toolchain project ;;
     (toolchain-system) welcome:toolchain system ;;
     (tool-lefthook) welcome:tool tool-lefthook lefthook "it runs the git hooks" ;;

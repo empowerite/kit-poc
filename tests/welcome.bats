@@ -204,6 +204,64 @@ ambient-system() {
   [[ "$output" == *'- brew-path: eval "$('*"kit does not run it"* ]]
 }
 
+# brewed-kit <prefix> puts a copy of the release where brew does, <prefix>/Cellar/kit/9.9.9/libexec, with the zsh
+# completion's folder beside it, and prints the release's directory.
+brewed-kit() {
+  local release=$1/Cellar/kit/9.9.9/libexec
+  mkdir -p "${release}" "$1/share/zsh/site-functions"
+  cp -R "${kit_root}/bin" "${kit_root}/libexec" "${kit_root}/modules" "${kit_root}/packages" "${release}/"
+  printf '%s\n' "${release}"
+}
+
+@test "welcome asks zsh whether it loads kit's completion, where brew installed kit, and shows no check otherwise" {
+  local prefix release dir
+  prefix=$(mkdir -p "${BATS_TEST_TMPDIR}/brew" && cd "${BATS_TEST_TMPDIR}/brew" && pwd -P)
+  release=$(brewed-kit "${prefix}")
+  dir=${prefix}/share/zsh/site-functions
+  # an interactive zsh that says what the person's would: compinit ran or not, and the function that completes kit
+  fake-script zsh 'printf "a banner\nkit-completion:%s\n" "${PROBE}"'
+  export SHELL="${fakes}/zsh" PROBE=1:_kit
+  # kit not installed by brew: no check, with the shell zsh all the same
+  run --separate-stderr check completion-zsh
+  [ -z "$output" ]
+  # brew's kit, with another shell: no check
+  SHELL=/bin/bash run --separate-stderr "${release}/bin/kit" welcome --checks --json
+  [ "$(jq --raw-output 'map(select(.id == "completion-zsh")) | length' <<<"$output")" = 0 ]
+  # brew installed kit and the shell is zsh, but brew put no completion in place: the check says so
+  run --separate-stderr "${release}/bin/kit" welcome --checks --json
+  [ "$(jq --raw-output '.[] | select(.id == "completion-zsh") | [.step, .ok, .fix, .runs] | @tsv' <<<"$output")" = \
+    $'setup\tfalse\tbrew reinstall kit\tfalse' ]
+  [[ "$(jq --raw-output '.[] | select(.id == "completion-zsh") | .line' <<<"$output")" == *"${dir}/_kit"* ]]
+  # in place, and zsh has the function: it holds, with no fix
+  printf '#compdef kit\n' > "${dir}/_kit"
+  run --separate-stderr "${release}/bin/kit" welcome --checks --json
+  [ "$(jq --raw-output '.[] | select(.id == "completion-zsh") | [.ok, .line, .fix] | @tsv' <<<"$output")" = \
+    $'true\tzsh loads kit\'s completion\t' ]
+  # no compinit: the fix puts the folder on fpath and runs compinit
+  PROBE=0: run --separate-stderr "${release}/bin/kit" welcome --checks --json
+  [ "$(jq --raw-output '.[] | select(.id == "completion-zsh") | [.ok, .fix] | @tsv' <<<"$output")" = \
+    "$(printf 'false\tFPATH="%s:${FPATH}"; autoload -Uz compinit && compinit' "${dir}")" ]
+  [[ "$(jq --raw-output '.[] | select(.id == "completion-zsh") | .line' <<<"$output")" == *compinit* ]]
+  # compinit ran without the folder on fpath: the fix is the fpath line alone
+  PROBE=1: run --separate-stderr "${release}/bin/kit" welcome --checks --json
+  [ "$(jq --raw-output '.[] | select(.id == "completion-zsh") | [.ok, .fix] | @tsv' <<<"$output")" = \
+    "$(printf 'false\tFPATH="%s:${FPATH}"' "${dir}")" ]
+  [[ "$(jq --raw-output '.[] | select(.id == "completion-zsh") | .more' <<<"$output")" == *.zshrc* ]]
+  # it follows the forge checks, and --fix does not run it: kit cannot change the shell it was started from
+  fake-gh
+  run --separate-stderr "${release}/bin/kit" welcome --checks --json --machine
+  [ "$(jq --raw-output 'map(.id) | .[-3:] | join(" ")' <<<"$output")" = \
+    "forge-cli-github.com forge-login-github.com completion-zsh" ]
+  PROBE=1: run --separate-stderr "${release}/bin/kit" welcome --fix=completion-zsh
+  [ "$status" -eq 2 ]
+  [[ "$stderr" == *"must run in your own shell"* ]]
+  # a zsh that does not answer: kit says it could not look, and has no fix
+  fake-script zsh 'exit 1'
+  run --separate-stderr "${release}/bin/kit" welcome --checks --json
+  [ "$(jq --raw-output '.[] | select(.id == "completion-zsh") | [.ok, .fix] | @tsv' <<<"$output")" = $'false\t' ]
+  [[ "$(jq --raw-output '.[] | select(.id == "completion-zsh") | .line' <<<"$output")" == "kit could not ask "* ]]
+}
+
 @test "welcome refuses a git older than 2.31, which kit's absolute paths need, and accepts 2.31" {
   local real_git
   real_git=$(command -v git)

@@ -140,6 +140,7 @@ tap-world() {
   [ "$status" -eq 0 ]
   [[ "$output" == "# kit - "* ]]
   [[ "$output" == *"class Kit < Formula"* ]]
+  [[ "$output" == *'generate_completions_from_executable(bin/"kit", "completion", shells: [:zsh])'* ]]
   [[ "$output" == *'url "https://github.com/empowerite/kit/releases/download/release/1.2.3/kit-1.2.3.tar.gz"'* ]]
   [[ "$output" == *"sha256 \"${digest}\""* ]]
   [[ "$output" != *"{{"* ]]

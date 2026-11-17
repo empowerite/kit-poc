@@ -19,6 +19,18 @@ Put the script on zsh's `fpath` as `_kit`, which is where a package manager puts
 kit completion zsh > "${completion_dir}/_kit"
 ```
 
+With Homebrew, `brew install kit` does it: the formula puts `_kit` in `$(brew --prefix)/share/zsh/site-functions`.
+zsh loads it only when that folder is on its `fpath` before `compinit` runs, which `brew shellenv` arranges. Where it
+is not, `kit welcome` says so in the check `completion-zsh`, and shows the line for your `.zshrc`:
+
+```bash
+FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
+autoload -Uz compinit && compinit
+```
+
+The check runs only for a kit that brew installed, and for a login shell of zsh, the one shell kit completes. It asks
+your own zsh, as an interactive shell, so it reads your `.zshrc` as a new terminal does.
+
 Or evaluate it from `.zshrc`, after `compinit`:
 
 ```bash

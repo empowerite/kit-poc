@@ -1341,10 +1341,12 @@ repository, desk, branch, kit}`.
 - `interactive` is true when the fix needs you at the terminal, as `gh auth login` does.
 - `more` is where to read, or the other commands beside the fix, or `null`.
 - `runs` is false when kit only shows the fix and never runs it, as for a line that must run in your own shell
-  (`brew-path`). It is true for every other check. `--fix` refuses a check whose `runs` is false, with exit 2.
+  (`brew-path`, `completion-zsh`). It is true for every other check. `--fix` refuses a check whose `runs` is false,
+  with exit 2.
 - `folder` is the absolute path of a folder's check, and `null` for a machine check. The machine checks are bash, git,
   jq, yq, `brew-path`, the machine's package manager, and each forge host's tool and login, once per host among every
-  folder's remotes.
+  folder's remotes. `completion-zsh` is the machine's too, but only where brew installed kit and your login shell is
+  zsh: it asks an interactive zsh whether it loads kit's completion.
 - `repository` is the folder's member, host and path, or its desk's folder name where it has no remote.
 - `desk` is true for the desk and false for a worktree.
 - `branch` is the folder's branch, and `kit` is the kit version its `kit.yml` declares.

@@ -20,9 +20,12 @@ class Kit < Formula
     keep = "kittui-#{OS.mac? ? "darwin" : "linux"}-#{Hardware::CPU.arm? ? "arm64" : "amd64"}"
     (libexec/"libexec").glob("kittui-*").each { |f| f.unlink if f.basename.to_s != keep }
     bin.install_symlink libexec/"bin/kit"
+    # kit completes in zsh alone; Homebrew links the script into share/zsh/site-functions as _kit.
+    generate_completions_from_executable(bin/"kit", "completion", shells: [:zsh])
   end
 
   test do
     assert_match version.to_s, shell_output("#{bin}/kit version")
+    assert_match "#compdef kit", (zsh_completion/"_kit").read
   end
 end
