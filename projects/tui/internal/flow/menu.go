@@ -232,7 +232,7 @@ func (m *Model) refresh(name string) tea.Cmd {
 }
 
 // Pulse is how long each frame of the circle that takes a stale dot's place, while its stage loads again, is drawn.
-const Pulse = 150 * time.Millisecond
+const Pulse = 250 * time.Millisecond
 
 // pulseMsg turns the frame of the dots that load again.
 type pulseMsg struct{}
