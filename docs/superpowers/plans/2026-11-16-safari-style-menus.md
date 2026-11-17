@@ -1,7 +1,7 @@
 # Menus in the style of macOS Implementation Plan
 
-**Status, 2026-11-16:** Tasks 1 to 4 are built (commits f0dc8061 and aa7ea9de, issues #610 to #612) and the whole-branch
-review's fixes follow; task 5, the gate and the pages, is in progress.
+**Status, 2026-11-16:** Built and reviewed: commits f0dc8061, aa7ea9de and 7bd5b825 (issues #610 to #612); the gate
+passes. Left for later: the app menu's kit section (#613), Workspaces (#614), and Install (#615).
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or
 > superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
