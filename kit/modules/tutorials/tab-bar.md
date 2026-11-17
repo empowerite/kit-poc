@@ -40,7 +40,7 @@ numbers off. kittui keeps the choice in its settings file.
 
 - **Maximize** `M`  the rows take the whole screen. **Restore** `M` undoes it.
 - **Refresh** `R`  read the stage again
-- **Watch** `W`  read it again whenever it changes
+- **Watch** `W`  read it again whenever it changes; the line reads **Watching** with a ✔ while it does
 - **Open Page** `O`  open the selected [rows](kittui:tutorials/rows) on the forge, or the row under the cursor
 - **Select All** `⌃A`
 - **Show More** `>` and **Show Less** `<`  open or close a level of the rows

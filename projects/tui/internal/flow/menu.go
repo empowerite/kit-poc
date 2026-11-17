@@ -79,8 +79,8 @@ func (m Model) appKey(k tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 }
 
 // chose does what a choice from the app's menu asks: refresh all runs every stage kittui draws again, reading the
-// forge afresh; watch all watches every stage, and stop watching all stops them, as watch.go says; a screen asks kittui to show it in the picture's place, which stays as it is; and quit ends the
-// screen.
+// forge afresh; watch all watches every stage that can be, or, once all are, stops them, as watch.go says; a screen
+// asks kittui to show it in the picture's place, which stays as it is; and quit ends the screen.
 func (m *Model) chose(c shell.Choice) tea.Cmd {
 	switch {
 	case c.Quit:

@@ -51,30 +51,29 @@ const (
 	Manage Screen = "workspaces"
 )
 
-// The glyphs beside the app's menu's items: the welcome, the help, the tutorials; the flow's compass, and each other
-// app's; the settings, and goodbye. A repository is one book, as a workspace, 📚, is many.
+// The glyphs beside the app's menu's screens: the welcome, the help, the tutorials; the flow's compass, and each other
+// app's. A repository is one book, as a workspace, 📚, is many.
 const (
-	Home      = "🏠"
-	Asking    = "❓"
-	Learn     = "🎓"
-	Compass   = "🧭"
-	Ticket    = "🎫"
-	Shuffle   = "🔀"
-	Book      = "📘"
-	Truck     = "🚚"
-	Busts     = "👥"
-	Sealed    = "🔏"
-	Toolbox   = "🧰"
-	Puzzle    = "🧩"
-	Configure = "🔧"
-	Leave     = "👋"
+	Home    = "🏠"
+	Asking  = "❓"
+	Learn   = "🎓"
+	Compass = "🧭"
+	Ticket  = "🎫"
+	Shuffle = "🔀"
+	Book    = "📘"
+	Truck   = "🚚"
+	Busts   = "👥"
+	Sealed  = "🔏"
+	Toolbox = "🧰"
+	Puzzle  = "🧩"
 )
 
 // Item is one line of a menu: a glyph, which may be none; the name it is chosen by; and the keys that do the same with
 // the menu closed, as the keys bar names keys, none when no key does: the menu shows them at its right, dim, where the
 // keys bar would have to name one key apiece, a letter in upper case, R as ⌃A, as a macOS menu draws it, though the
 // press is the letter alone. A line with no name is the rule between groups of items. Here marks the line for where
-// the menu is, as the app's menu marks the screen it is on: it is drawn bold, as one more sign of where you are.
+// the menu is, as the app's menu marks the screen it is on: it is drawn bold, as one more sign of where you are. Check
+// makes the line a toggle, its state in the gutter, and Opens a line that opens a submenu, which shows a > at its right.
 type Item struct {
 	Glyph, Name, Keys string
 	Here              bool
@@ -415,12 +414,13 @@ func Shortcut(items []Item, enabled func(int) bool, press string) int {
 	return -1
 }
 
-// Box gives a menu's lines, a rounded box in the menu's color around its items, each after the room for a glyph, the
-// one under the keyboard, at, inverse, the ones not enabled dim, and the one Here bold, under the keyboard too; a dim
-// rule between groups, a cell short of either side; and the screen column its left edge is drawn at. The box hangs from its glyph, mark, drawn at the column
-// glyph: two cells before it, or the screen's first, so the glyph starts at the top edge's third cell; when the box
-// would run past room that way, the column that puts the glyph two cells before the right corner instead, or nearer
-// when room ends there; and against room's right when no glyph is drawn, glyph -1.
+// Box gives a menu's lines, a rounded box in the menu's color around its items, each after the gutter for a toggle's
+// mark where any line is one, and its glyph where it has one; the one under the keyboard, at, inverse, the ones not
+// enabled dim, and the one Here bold, under the keyboard too; a dim rule between groups, a cell short of either side;
+// and the screen column its left edge is drawn at. The box hangs from its glyph, mark, drawn at the column glyph: two
+// cells before it, or the screen's first, so the glyph starts at the top edge's third cell; when the box would run
+// past room that way, the column that puts the glyph two cells before the right corner instead, or nearer when room
+// ends there; and against room's right when no glyph is drawn, glyph -1.
 func Box(items []Item, enabled func(int) bool, at int, mark string, glyph, room int) (lines []string, left int) {
 	lines, left, _ = BoxIn(items, enabled, at, mark, glyph, room, len(items)+2)
 	return lines, left
@@ -601,14 +601,15 @@ func Splice(line, box string, left int) string {
 // the line, counted from the first under its top edge. The submenu's top edge is on that line, and its left edge on
 // the parent's right one; where that runs past the room, so wide, its right edge is on the parent's left one instead,
 // and where it would run past the screen's height, it is moved up to end on the last line; neither moves it off the
-// screen's left.
-func SubBox(items []Item, enabled func(int) bool, at int, parent Placed, row, room, height int) Placed {
-	lines, _ := Box(items, enabled, at, "", -1, room)
+// screen's left. A submenu taller than the screen shows the lines around the one under the keyboard, as BoxIn does,
+// and the first it shows is the second value.
+func SubBox(items []Item, enabled func(int) bool, at int, parent Placed, row, room, height int) (Placed, int) {
+	lines, _, first := BoxIn(items, enabled, at, "", -1, room, max(3, height))
 	width := ansi.StringWidth(lines[0])
 	left := parent.Left + ansi.StringWidth(parent.Lines[0]) - 1
 	if left+width > room {
 		left = parent.Left - width + 1
 	}
 	top := min(parent.Top+1+row, height-len(lines))
-	return Placed{Lines: lines, Top: max(0, top), Left: max(0, left)}
+	return Placed{Lines: lines, Top: max(0, top), Left: max(0, left)}, first
 }

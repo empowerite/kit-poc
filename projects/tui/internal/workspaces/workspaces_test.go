@@ -150,7 +150,8 @@ func TestNewTypesANameAndItsRepositoriesAndKitMakesTheGroup(t *testing.T) {
 func TestRenameIsDoneByPlainClicksAndFollowsTheGroup(t *testing.T) {
 	m, record := opened(t, listJSON)
 	m, _ = drive(m, left(2, 0))
-	x, y := lineAt(t, m, Folder+" "+Workspace)
+	x, y := lineAt(t, m, "│ "+Workspace)
+	x += 2 // the name, after the edge and a cell
 	m, _ = drive(m, left(x, y))
 	x, y = lineAt(t, m, Rename)
 	m, _ = drive(m, left(x, y))
@@ -574,12 +575,13 @@ func TestWorkspaceDropsTheGroupsMenuDownFromItsLine(t *testing.T) {
 			t.Errorf("the app's menu lists %q:\n%s", name, view(m))
 		}
 	}
-	x, y := lineAt(t, m, Folder+" "+Workspace)
+	x, y := lineAt(t, m, "│ "+Workspace)
+	x += 2 // the name, after the edge and a cell
 	m, _ = drive(m, left(x, y))
 	if !m.group.Open || !m.appMenu.Open {
 		t.Fatalf("Workspace… opened group %v, app %v", m.group.Open, m.appMenu.Open)
 	}
-	// its top edge is drawn on Workspace…'s line, its 📂 where that line's was, its first line under it
+	// its top edge is drawn on Workspace…'s line, its 📂 over that line's name, its first line under it
 	if gx, gy := lineAt(t, m, Folder); gx != x || gy != y {
 		t.Errorf("the group's menu hangs at %d,%d, Workspace… at %d,%d:\n%s", gx, gy, x, y, view(m))
 	}

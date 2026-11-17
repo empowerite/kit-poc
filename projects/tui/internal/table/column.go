@@ -16,14 +16,13 @@ import (
 
 // The words of the card's lines that came from the column menu, and the glyphs the header and the legend draw for
 // a column's flattening: ×, a row crossed with its values, a row a pair, as a cross product is, and ÷, the rows
-// divided back into one; and a sweep, which a menu line that clears draws.
+// divided back into one.
 const (
 	Unsorted = "Unsorted"
 	BySize   = " by size"
 	GroupIt  = "Group"
 	ShowIt   = "Show"
 
-	Sweep        = "🧹"
 	FlattenGlyph = "×"
 	GatherGlyph  = "÷"
 )

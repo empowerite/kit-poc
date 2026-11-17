@@ -25,8 +25,8 @@ Left to right:
   [Repositories](kittui:repositories), 🚚 [Delivery](kittui:delivery), 👥 [People](kittui:people), 🔏
   [Trust](kittui:trust), 🧰 [Platform](kittui:platform), 🧩 [Packages](kittui:packages)
 - **This screen's own items**, when it has any
-- 🔧 **Settings…**  kittui's settings
-- 👋 **Quit**  `⌃Q`
+- **Settings…**  kittui's settings
+- **Quit**  `⌃Q`
 
 The screen you are on is dim. Each screen keeps its place when you leave it.
 

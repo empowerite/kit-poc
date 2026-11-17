@@ -19,7 +19,7 @@ const packagesVerb = "packages"
 // packagesStage is kit packages' stage, as kittui knows it.
 const packagesStage = packagesVerb + "/packages"
 
-// The glyphs beside the Packages app's actions: a package added, one removed, and the active set made the selection.
+// The glyphs the Packages app's dialogs draw beside a package: added, and removed.
 const (
 	Plus  = "➕"
 	Minus = "➖"

@@ -21,10 +21,11 @@ import (
 // Presets ends the preset line, after the name of the view the table is set as, and a click on it drops the presets
 // down. FieldsButton, after its glyph, Fields, stands before the selector, and opens the columns dialog. The presets'
 // menu's items are SaveIt, after its glyph, Save, SaveAs, and ManageIt, which opens the presets dialog, whose RenameIt
-// and DeleteIt stand after Renamed and Deleted; Save, Renamed, and Deleted start what each did says. SavingAsWord and RenamingWord stand, dim, before the name typed for
-// Save As… and Rename…. Checked is the glyph of a dialog's line that is on, as the Packages app's active set. The view the table is set as has
-// the gutter's ✔. Starred stands at the right of a view the person
-// starred, Unstarred at the right of the others, and Starring starts what starring one says.
+// and DeleteIt stand after Renamed and Deleted; Save, Renamed, and Deleted start what each did says. SavingAsWord and
+// RenamingWord stand, dim, before the name typed for Save As… and Rename…. Checked is the glyph of a dialog's line that
+// is on, as the Packages app's active set; the view the table is set as has the gutter's ✔ in the menu. Starred stands
+// at the right of a view the person starred, Unstarred at the right of the others, and Starring starts what starring
+// one says.
 const (
 	Starred      = "★"
 	Unstarred    = "☆"

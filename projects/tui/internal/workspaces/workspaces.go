@@ -286,7 +286,7 @@ func (m Model) actions() []shell.Item {
 		{Glyph: Write, Name: New, Keys: "N"},
 		{Glyph: Go, Name: SwitchTo, Keys: "⏎"},
 		star,
-		{Glyph: Folder, Name: Workspace},
+		{Name: Workspace},
 	}
 }
 
@@ -327,12 +327,13 @@ func (m Model) menu() shell.Menu {
 func (m Model) groupEnabled(k int) bool { return !slices.Contains(m.dim(), m.groupActions()[k].Name) }
 
 // groupBox gives the group's menu's lines and the column its left edge is drawn at, and the screen line its top edge
-// is drawn on: Workspace…'s line in the app's menu, its 📂 where that line's is, so it drops down from the line.
+// is drawn on: Workspace…'s line in the app's menu, its 📂 over that line's name, so it drops down from the line.
 func (m Model) groupBox() (lines []string, left, top int) {
 	items := m.menu().Items()
 	at := slices.IndexFunc(items, func(i shell.Item) bool { return i.Name == Workspace })
 	_, appLeft := shell.Box(items, func(int) bool { return true }, -1, shell.App, shell.At, m.width)
-	lines, left = shell.Box(m.groupActions(), m.groupEnabled, m.group.At, Folder, appLeft+2, m.width)
+	lines, left = shell.Box(m.groupActions(), m.groupEnabled, m.group.At, Folder, appLeft+shell.NameCol(items, at),
+		m.width)
 	return lines, left, shell.Top + 1 + at
 }
 

@@ -4,6 +4,7 @@ package shell
 
 import (
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -110,7 +111,7 @@ func TestAClickOnAnOpensLineOpensItAndOnTheParentWhileOpenClosesTheSubmenu(t *te
 	if chosen != nil || !slices.Equal(d.Path, []int{1}) || d.At != 0 {
 		t.Fatalf("a click on More: chosen %v, path %v, at %d", chosen, d.Path, d.At)
 	}
-	sub := SubBox(subItem, Every, d.At, rootBox, 1, 80, 24)
+	sub, _ := SubBox(subItem, Every, d.At, rootBox, 1, 80, 24)
 	levels = append(levels, Level{Items: subItem, Enabled: Every, Box: sub})
 	// a click on the parent's other line closes the submenu and chooses that line
 	if got, chosen := d.ClickAt(left+2, 1, levels, subs); !slices.Equal(chosen, []int{0}) || got.Open {
@@ -133,19 +134,19 @@ func TestASubmenuOpensToTheLeftWhereItWouldRunPastTheRoomAndUpWhereItWouldRunPas
 	box, _ := Box(root, rootOn, 0, "", -1, 80)
 	parent := Placed{Lines: box, Top: 3, Left: 10}
 	width := ansi.StringWidth(box[0])
-	roomy := SubBox(subItem, Every, 0, parent, 1, 80, 24)
+	roomy, _ := SubBox(subItem, Every, 0, parent, 1, 80, 24)
 	if roomy.Left != 10+width-1 || roomy.Top != 3+1+1 {
 		t.Errorf("room to the right: left %d top %d", roomy.Left, roomy.Top)
 	}
-	cramped := SubBox(subItem, Every, 0, parent, 1, 10+width+3, 24)
+	cramped, _ := SubBox(subItem, Every, 0, parent, 1, 10+width+3, 24)
 	if cw := ansi.StringWidth(cramped.Lines[0]); cramped.Left != 10-cw+1 {
 		t.Errorf("no room to the right: left %d", cramped.Left)
 	}
-	low := SubBox(subItem, Every, 0, parent, 1, 80, 7)
+	low, _ := SubBox(subItem, Every, 0, parent, 1, 80, 7)
 	if low.Top+len(low.Lines) != 7 {
 		t.Errorf("no room below: top %d of %d lines in 7", low.Top, len(low.Lines))
 	}
-	flush := SubBox(subItem, Every, 0, Placed{Lines: box, Top: 0, Left: 0}, 0, 4, 24)
+	flush, _ := SubBox(subItem, Every, 0, Placed{Lines: box, Top: 0, Left: 0}, 0, 4, 24)
 	if flush.Left != 0 {
 		t.Errorf("no room either side: left %d", flush.Left)
 	}
@@ -170,5 +171,58 @@ func TestKeyStaysTheOneLevelFormAndIgnoresOpens(t *testing.T) {
 	d, at = Dropdown{Open: true, At: 1}.Key(arrowRight(), root, rootOn)
 	if at != -1 || !d.Open || len(d.Path) != 0 {
 		t.Errorf("→ with no submenus to give: at %d, path %v", at, d.Path)
+	}
+}
+
+func TestOpenedAndAClickOffTheBoxesClearThePathOfAMenuClosedByItsOwner(t *testing.T) {
+	if d := (Dropdown{Open: true, Path: []int{1}, At: 1}).Opened(root, rootOn); len(d.Path) != 0 || d.At != 0 {
+		t.Errorf("reopened: path %v, at %d", d.Path, d.At)
+	}
+	if d, chosen := (Dropdown{Open: true, Path: []int{1}}).ClickIn(70, 20, 0, 0, 10, 0, 3, root, rootOn); d.Open ||
+		len(d.Path) != 0 || chosen != -1 {
+		t.Errorf("a click off the box: open %v, path %v", d.Open, d.Path)
+	}
+}
+
+func TestALineThatOpensASubmenuIsNeverChosenItself(t *testing.T) {
+	if d, at := (Dropdown{Open: true, At: 1}).Key(key("enter"), root, rootOn); at != -1 || !d.Open {
+		t.Errorf("enter on More with no submenus given: %d, open %v", at, d.Open)
+	}
+	box, left := Box(root, rootOn, 0, "", -1, 80)
+	if d, at := (Dropdown{Open: true}).ClickIn(left+2, 2, 0, left, ansi.StringWidth(box[0]), 0, 3, root, rootOn); at != -1 ||
+		!d.Open {
+		t.Errorf("a click on More with no submenus given: %d, open %v", at, d.Open)
+	}
+}
+
+func TestAMenusOwnCloseKeyClosesEveryLevelWhereEscClosesOne(t *testing.T) {
+	d, _ := Dropdown{}.Opened(root, rootOn).KeyIn(key("down"), root, rootOn, subs)
+	d, _ = d.KeyIn(arrowRight(), root, rootOn, subs)
+	if got, _ := d.KeyIn(key("="), root, rootOn, subs, "="); got.Open || len(got.Path) != 0 {
+		t.Errorf("= with a submenu open: open %v, path %v", got.Open, got.Path)
+	}
+}
+
+func TestAClickWithMoreLevelsThanThePathHoldsDoesNotPanic(t *testing.T) {
+	box, left := Box(root, rootOn, 0, "", -1, 80)
+	rootBox := Placed{Lines: box, Top: 0, Left: left}
+	sub, _ := SubBox(subItem, Every, 0, rootBox, 1, 80, 24)
+	levels := []Level{{Items: root, Enabled: rootOn, Box: rootBox}, {Items: subItem, Enabled: Every, Box: sub}}
+	// the levels are the owner's to keep in step with the path; given more, the click is still taken, as a line of the
+	// level it falls on
+	if _, chosen := (Dropdown{Open: true}).ClickAt(sub.Left+2, sub.Top+1, levels, subs); chosen == nil {
+		t.Error("a click on a submenu the path does not name was not taken")
+	}
+}
+
+func TestASubmenuTallerThanTheScreenScrollsToTheKeyboard(t *testing.T) {
+	tall := make([]Item, 12)
+	for k := range tall {
+		tall[k].Name = "Line " + strconv.Itoa(k)
+	}
+	box, _ := Box(root, rootOn, 0, "", -1, 80)
+	sub, first := SubBox(tall, Every, 9, Placed{Lines: box, Top: 0, Left: 0}, 1, 80, 8)
+	if len(sub.Lines) > 8 || sub.Top < 0 || first <= 0 || !strings.Contains(ansi.Strip(strings.Join(sub.Lines, "\n")), "Line 9") {
+		t.Errorf("a tall submenu: %d lines, top %d, first %d", len(sub.Lines), sub.Top, first)
 	}
 }

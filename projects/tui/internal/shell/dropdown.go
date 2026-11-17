@@ -60,7 +60,7 @@ func (d Dropdown) closed() Dropdown {
 
 // Opened gives the dropdown open, its first line that acts under the keyboard.
 func (d Dropdown) Opened(items []Item, enabled func(int) bool) Dropdown {
-	d.Open, d.At = true, Move(items, enabled, -1, 1)
+	d.Open, d.At, d.Path = true, Move(items, enabled, -1, 1), nil
 	return d
 }
 
@@ -97,8 +97,10 @@ func (d Dropdown) KeyIn(k tea.KeyPressMsg, items []Item, enabled func(int) bool,
 		if len(d.Path) > 0 {
 			d = d.closed()
 		}
-	case key == "esc" || slices.Contains(closes, key):
+	case key == "esc":
 		d = d.closed()
+	case slices.Contains(closes, key):
+		d.Open, d.Path = false, nil
 	case Shortcut(here, on, key) >= 0:
 		return d.chosen(Shortcut(here, on, key), here, on)
 	default:
@@ -107,10 +109,10 @@ func (d Dropdown) KeyIn(k tea.KeyPressMsg, items []Item, enabled func(int) bool,
 	return d, nil
 }
 
-// chosen gives the dropdown closed and the path of the line k of the deepest open menu, when it acts and opens no
-// submenu; else the dropdown as it was, and none.
+// chosen gives the dropdown closed and the path of the line k of the deepest open menu, when it acts; a line that
+// opens a submenu never acts itself; else the dropdown as it was, and none.
 func (d Dropdown) chosen(k int, here []Item, on func(int) bool) (Dropdown, []int) {
-	if k < 0 || k >= len(here) || !on(k) {
+	if k < 0 || k >= len(here) || !on(k) || here[k].Opens {
 		return d, nil
 	}
 	path := append(slices.Clone(d.Path), k)
@@ -141,7 +143,7 @@ func (d Dropdown) ClickAt(x, y int, levels []Level, subs Subs) (Dropdown, []int)
 		if line < 0 || k >= len(l.Items) || !l.Enabled(k) {
 			return d, nil
 		}
-		d.Path = slices.Clone(d.Path[:i])
+		d.Path = slices.Clone(d.Path[:min(i, len(d.Path))])
 		d.At = k
 		if opened, ok := d.opens(levels[0].Items, levels[0].Enabled, subs); ok {
 			return opened, nil
@@ -168,13 +170,13 @@ func (d Dropdown) ClickIn(x, y, top, left, width, first, shown int, items []Item
 	if x > left && x < left+width-1 && k >= 0 && k < shown {
 		return d.choose(first+k, items, enabled)
 	}
-	d.Open = false
+	d.Open, d.Path = false, nil
 	return d, -1
 }
 
 // choose gives the dropdown closed and the line k, when it acts; else the dropdown as it was, and -1.
 func (d Dropdown) choose(k int, items []Item, enabled func(int) bool) (Dropdown, int) {
-	if k < 0 || k >= len(items) || !enabled(k) {
+	if k < 0 || k >= len(items) || !enabled(k) || items[k].Opens {
 		return d, -1
 	}
 	d.Open = false

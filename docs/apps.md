@@ -1087,7 +1087,7 @@ active in the app, the preset the tab is set as, those active on the tab, and th
 layer wins, field by field. A list, the groups, the order of the columns, or the sort keys, is replaced whole by a
 narrower layer that gives one.
 
-- The presets menu lists them under "everywhere" and "in" the app's name, a ✅ on each that is active. A click makes
+- The presets menu lists them under "everywhere" and "in" the app's name, a ✔ before each that is active. A click makes
   one active, or no longer, and every tab follows. What the person changed by hand stays.
 - A preset names fields by their meaning. A constraint that a tab cannot use, because it has no such field or cannot
   sort, group, or filter by it, is never dropped in silence. The control line shows it dim.
