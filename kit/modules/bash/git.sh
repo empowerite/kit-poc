@@ -524,6 +524,18 @@ git:pushes-to() {
   return 1
 }
 
+# git:agent-trailer <message file> ends the message in the file with the trailer Agent: <the bot's login> under a bot,
+# KIT_BOT_LOGIN set, and leaves it as it is otherwise. The trailer is there once, and never at the subject: it joins
+# the message's last trailer block, or a block of its own after the body, whatever the message's own --- or # lines
+# hold. It says so, and returns 1, where git cannot add it.
+git:agent-trailer() {
+  [[ -n "${KIT_BOT_LOGIN:-}" ]] || return 0
+  git interpret-trailers --in-place --no-divider --if-exists addIfDifferent --trailer "Agent: ${KIT_BOT_LOGIN}" "$1" \
+    && return 0
+  error "git could not add the Agent: ${KIT_BOT_LOGIN} trailer to the message; nothing is committed"
+  return 1
+}
+
 # git:commit <path> <what> <argument>… runs git commit with the arguments in the checkout at <path>, its standard
 # output shown as git writes it and its errors once git ends, and returns git's status. When the commit is not made
 # and --gpg-sign is among the arguments, it says why, naming the commit as <what>: refused as one git could not sign

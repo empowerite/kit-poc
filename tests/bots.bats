@@ -60,7 +60,7 @@ github-routes() {
   [[ "$1" == github.com ]] || api=https://$1/api/v3
   fixture app.json <<<"{\"slug\":\"$3\",\"owner\":{\"login\":\"empowerite\"},\"permissions\":{},
     \"html_url\":\"https://$1/apps/$3\"}"
-  fixture inst.json <<<'{"id":99,"permissions":{},"repository_selection":"selected","html_url":"https://github.com/settings/installations/99"}'
+  fixture inst.json <<<'{"id":99,"permissions":{"metadata":"read","contents":"write","issues":"write","pull_requests":"write","checks":"read","statuses":"read","actions":"read"},"repository_selection":"selected","html_url":"https://github.com/settings/installations/99"}'
   fixture token.json <<<'{"token":"ghs_abc","expires_at":"2026-11-12T10:00:00Z"}'
   fixture none.json <<<''
   curl-route "*${api}/app" 0 200 app.json
@@ -202,6 +202,16 @@ YAML
   run --separate-stderr kit bots --add=kit-bot --app=1 --key=keychain:jig-app
   [ "$status" -eq 2 ]
   [[ "$stderr" == *'keychain:<service>/<account>'* ]]
+}
+
+@test "--add from a keychain item of a store that cannot be read says so, exit 1, and stores nothing" {
+  mkdir -p "${FAKE_DIR}/secrets"
+  cp "${pem}" "${FAKE_DIR}/secrets/jig-app@1"
+  FAKE_SECRETS_FAIL_READ=1 run --separate-stderr kit bots --add=kit-bot --app=1 --key=keychain:jig-app/1
+  [ "$status" -eq 1 ]
+  [[ "$stderr" == *'the keychain could not be read for jig-app 1'* ]]
+  [[ "$stderr" != *'holds no item'* ]]
+  [ ! -e "${bots_file}" ]
 }
 
 @test "--add takes a PKCS#8 key with CRLF line ends, and keeps it with LF" {
@@ -552,6 +562,27 @@ YAML
   [ "$(jq -c '{reached, page}' <<<"$output")" = '{"reached":false,"page":"https://github.com/settings/installations/99"}' ]
 }
 
+@test "--check where the installation does not reach names the repository owner's installation, else the page to install" {
+  one-bot work
+  : > "${FAKE_DIR}/curl.routes"
+  fixture none.json <<<'{"message":"Not Found"}'
+  curl-route "*api.github.com/app" 0 200 app.json
+  curl-route "*/repos/empowerite/kit/installation" 22 404 none.json
+  fixture list.json <<<'[{"id":5,"account":{"login":"someone"},"repository_selection":"all","html_url":"https://github.com/settings/installations/5"},{"id":99,"account":{"login":"empowerite"},"repository_selection":"selected","html_url":"https://github.com/organizations/empowerite/settings/installations/99"}]'
+  curl-route '*/app/installations?per_page*' 0 200 list.json
+  run --separate-stderr kit bots --check --json
+  [ "$status" -eq 1 ]
+  [ "$(jq -c '{reached, installation: .installation.id, page}' <<<"$output")" = '{"reached":false,"installation":99,"page":"https://github.com/organizations/empowerite/settings/installations/99"}' ]
+  # an App installed on other accounts alone names its page to install it on this repository's owner
+  fixture list.json <<<'[{"id":5,"account":{"login":"someone"},"repository_selection":"all","html_url":"https://github.com/settings/installations/5"}]'
+  run --separate-stderr kit bots --check --json
+  [ "$status" -eq 1 ]
+  [ "$(jq -c '{reached, page}' <<<"$output")" = '{"reached":false,"page":"https://github.com/apps/kit-bot/installations/new"}' ]
+  run --separate-stderr kit bots --check
+  [ "$status" -eq 1 ]
+  [[ "$output" == *'does not reach empowerite/kit; install the App on empowerite at https://github.com/apps/kit-bot/installations/new'* ]]
+}
+
 @test "--check outside a repository judges the App's permissions and says it judged no repository" {
   one-bot work
   fixture app.json <<<'{"slug":"kit-bot","owner":{"login":"empowerite"},"permissions":{"metadata":"read","contents":"write","issues":"write","pull_requests":"write","checks":"read","statuses":"read","actions":"read"},"html_url":"https://github.com/apps/kit-bot"}'
@@ -627,6 +658,30 @@ YAML
   [ "$output" = ghs_abc ]
 }
 
+@test "token asks for exactly what the bot's jobs need, at no more than the installation holds, and none it lacks" {
+  one-bot review
+  run --separate-stderr kit bots token
+  [ "$status" -eq 0 ]
+  # review needs pull_requests to write, and contents and checks to read: the installation's contents: write is more
+  tr '\n' ' ' < "${FAKE_DIR}/curl.calls" | grep --quiet -F -- \
+    '--data {"repositories":["kit"],"permissions":{"checks":"read","contents":"read","metadata":"read","pull_requests":"write"}} '
+  # an installation that holds pull_requests to read alone, and no checks, gives a token what it holds of them
+  fixture inst.json <<<'{"id":99,"permissions":{"metadata":"read","contents":"read","pull_requests":"read"},"repository_selection":"selected","html_url":"https://github.com/settings/installations/99"}'
+  : > "${FAKE_DIR}/curl.calls"
+  run --separate-stderr kit bots token
+  [ "$status" -eq 0 ]
+  tr '\n' ' ' < "${FAKE_DIR}/curl.calls" | grep --quiet -F -- \
+    '--data {"repositories":["kit"],"permissions":{"contents":"read","metadata":"read","pull_requests":"read"}} '
+  # an installation that holds none of them mints nothing, and names kit bots --check
+  fixture inst.json <<<'{"id":99,"permissions":{},"repository_selection":"selected","html_url":"https://github.com/settings/installations/99"}'
+  : > "${FAKE_DIR}/curl.calls"
+  run --separate-stderr kit bots token
+  [ "$status" -eq 1 ]
+  [ -z "$output" ]
+  [[ "$stderr" == *'holds none of the permissions'*'kit bots --check'* ]]
+  ! called '--request POST'
+}
+
 @test "token outside a repository refuses, exit 1" {
   one-bot work
   mkdir "${BATS_TEST_TMPDIR}/outside"
@@ -663,13 +718,16 @@ sent() { tr '\n' ' ' < "${FAKE_DIR}/curl.calls" | grep --only-matching -- "$1" |
 # last-sent prints the request of the last curl call.
 last-sent() { tr '\n' ' ' < "${FAKE_DIR}/curl.calls" | grep --only-matching -- '--request [A-Z]*' | tail -n 1; }
 
-# run-gh makes the gh run's shim execs: it records its arguments and the GH_TOKEN it was given, and answers a login.
+# run-gh makes the gh run's shim execs: it records its arguments and the GH_TOKEN it was given in gh.calls, and the
+# GITHUB_TOKEN and GITHUB_ENTERPRISE_TOKEN in gh.github, and answers a login.
 run-gh() {
   rm -f "${FAKE_DIR}/bin/gh"
   cat > "${FAKE_DIR}/bin/gh" <<'GH'
 #!/usr/bin/env bash
 printf '%s GH_TOKEN=%s GH_ENTERPRISE_TOKEN=%s GH_HOST=%s\n' "$*" "${GH_TOKEN-}" "${GH_ENTERPRISE_TOKEN-}" "${GH_HOST-}" \
   >> "${FAKE_DIR}/gh.calls"
+printf '%s GITHUB_TOKEN=%s GITHUB_ENTERPRISE_TOKEN=%s\n' "$*" "${GITHUB_TOKEN-unset}" "${GITHUB_ENTERPRISE_TOKEN-unset}" \
+  >> "${FAKE_DIR}/gh.github"
 [[ "$*" == 'api user'* ]] && echo octocat
 exit 0
 GH
@@ -844,7 +902,8 @@ COMMAND
     kit bots run bash -c 'git config user.name; echo "${GIT_CONFIG_COUNT}"; git config --get-all credential.https://github.com.helper | wc -l'
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = Someone ]
-  [ "${lines[1]}" = 3 ]
+  # the caller's one, the helper's two, and git@github.com: and ssh://git@github.com/ to https
+  [ "${lines[1]}" = 5 ]
   [ "${lines[2]//[[:space:]]/}" = 2 ]
 }
 
@@ -971,6 +1030,15 @@ signal-run() {
   [ "${signalled_status}" -eq 130 ]
   [ "$(last-sent)" = '--request DELETE' ]
   [ -z "$(ls -A "${TMPDIR}")" ]
+}
+
+@test "a TERM or HUP that comes before run's command has started is kept, and the command gets it once it has" {
+  run --separate-stderr kit-bash 'child="" signalled=0 pending=(); bots:run-forward TERM 15; echo "${signalled} ${pending[*]}"
+    sleep 30 & child=$!; bots:run-forward HUP 1; status=0; wait "${child}" || status=$?; echo "${signalled} ${status} ${#pending[@]}"'
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = '15 TERM' ]
+  # once the command is there, the signal goes to it, and is not kept again
+  [ "${lines[1]}" = '1 129 1' ]
 }
 
 @test "run warns where the revoke fails, still removes the directory, and passes the status through" {
@@ -1106,10 +1174,20 @@ YAML
   fixture token.json <<<"{\"token\":\"ghs_abc\",\"expires_at\":\"$(jq --null-input --raw-output 'now + 3600 | floor | todate')\"}"
   export TMPDIR="${BATS_TEST_TMPDIR}/runtime" KIT_BOT_FOR=someone
   mkdir -p "${TMPDIR}"
-  run --separate-stderr kit bots run bash -c 'echo "${GH_TOKEN} ${GH_ENTERPRISE_TOKEN} ${GH_HOST}"; env -u GH_TOKEN -u GH_ENTERPRISE_TOKEN -u GH_HOST gh api user'
+  run --separate-stderr env GITHUB_TOKEN=person GITHUB_ENTERPRISE_TOKEN=person kit bots run bash -c 'echo "${GH_TOKEN} ${GH_ENTERPRISE_TOKEN} ${GH_HOST} ${GITHUB_TOKEN} ${GITHUB_ENTERPRISE_TOKEN}"; env -u GH_TOKEN -u GH_ENTERPRISE_TOKEN -u GH_HOST -u GITHUB_TOKEN -u GITHUB_ENTERPRISE_TOKEN gh api user'
   [ "$status" -eq 0 ]
-  [ "${lines[0]}" = 'ghs_abc ghs_abc ghe.example.com' ]
+  [ "${lines[0]}" = 'ghs_abc ghs_abc ghe.example.com ghs_abc ghs_abc' ]
   [ "$(tail -n 1 "${FAKE_DIR}/gh.calls")" = 'api user GH_TOKEN=ghs_abc GH_ENTERPRISE_TOKEN=ghs_abc GH_HOST=ghe.example.com' ]
+  [ "$(tail -n 1 "${FAKE_DIR}/gh.github")" = 'api user GITHUB_TOKEN=ghs_abc GITHUB_ENTERPRISE_TOKEN=ghs_abc' ]
+}
+
+@test "run gives GITHUB_TOKEN the bot's token, never the person's, and on github.com no GITHUB_ENTERPRISE_TOKEN" {
+  run-setup
+  export KIT_BOT_FOR=someone
+  run --separate-stderr env GITHUB_TOKEN=person GITHUB_ENTERPRISE_TOKEN=person kit bots run bash -c 'echo "${GITHUB_TOKEN} [${GITHUB_ENTERPRISE_TOKEN-unset}]"; GITHUB_TOKEN=x GITHUB_ENTERPRISE_TOKEN=y gh api user'
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = 'ghs_abc [unset]' ]
+  [ "$(tail -n 1 "${FAKE_DIR}/gh.github")" = 'api user GITHUB_TOKEN=ghs_abc GITHUB_ENTERPRISE_TOKEN=unset' ]
 }
 
 @test "two renewals at once mint one token, both callers get it, and every token minted is revoked" {
@@ -1418,6 +1496,94 @@ COMMAND
   [ "${lines[1]}" = 'revoked during the run: 1' ]
   # and the first token, at the end; the printed one is not revoked twice
   [ "$(sent '--request DELETE')" -eq 2 ]
+}
+
+# fake-remote-https makes an exec path of git's own with a git-remote-https that notes the URL git would push to and
+# the credential git gives it for that URL, and pushes nothing, and sets exec_path to it.
+fake-remote-https() {
+  local tool
+  exec_path=${BATS_TEST_TMPDIR}/exec-path
+  mkdir -p "${exec_path}"
+  for tool in "$(git --exec-path)"/*
+  do
+    ln -sf "${tool}" "${exec_path}/"
+  done
+  rm -f "${exec_path}/git-remote-https"
+  cat > "${exec_path}/git-remote-https" <<'HELPER'
+#!/usr/bin/env bash
+printf '%s\n' "$2" >> "${FAKE_DIR}/remote.urls"
+url=${2#https://}
+printf 'protocol=https\nhost=%s\npath=%s\n\n' "${url%%/*}" "${url#*/}" | git credential fill >> "${FAKE_DIR}/remote.creds"
+exit 1
+HELPER
+  chmod +x "${exec_path}/git-remote-https"
+}
+
+@test "under run, a push to an ssh remote goes over https through the helper, as the bot" {
+  run-setup
+  export KIT_BOT_FOR=someone
+  fake-remote-https
+  git remote set-url origin git@github.com:empowerite/kit.git
+  git remote add fork ssh://git@github.com/someone/kit.git
+  git remote add elsewhere git@example.com:someone/kit.git
+  run --separate-stderr kit bots run bash -c "git remote get-url --push elsewhere; GIT_EXEC_PATH='${exec_path}' git push origin HEAD:refs/heads/x; GIT_EXEC_PATH='${exec_path}' git push fork HEAD:refs/heads/x; true"
+  [ "$status" -eq 0 ]
+  [ "$output" = git@example.com:someone/kit.git ]
+  [ "$(cat "${FAKE_DIR}/remote.urls")" = "$(printf '%s\n' https://github.com/empowerite/kit.git https://github.com/someone/kit.git)" ]
+  [ "$(grep --count --line-regexp 'password=ghs_abc' "${FAKE_DIR}/remote.creds")" -eq 2 ]
+}
+
+@test "a bot's host is the one an ssh alias stands for, and github.com for ssh.github.com, from --add to the push" {
+  run-gh
+  export TMPDIR="${BATS_TEST_TMPDIR}/runtime" KIT_BOT_FOR=someone
+  mkdir -p "${TMPDIR}"
+  printf 'forge: github\n' > kit.yml
+  fake-tools ssh
+  fixture ssh-work.txt <<<$'user git\nhostname github.com\nport 22'
+  route ssh '-G -- github.com-work' ssh-work.txt
+  github-routes github.com 12345 kit-bot
+  fixture token.json <<<"{\"token\":\"ghs_abc\",\"expires_at\":\"$(jq --null-input --raw-output 'now + 3600 | floor | todate')\"}"
+  fake-remote-https
+  for url in git@github.com-work:empowerite/kit.git git@ssh.github.com:empowerite/kit.git \
+    ssh://git@ssh.github.com:443/empowerite/kit.git
+  do
+    git remote set-url origin "${url}"
+    rm -f "${bots_file}" "${FAKE_DIR}/remote.urls" "${FAKE_DIR}/remote.creds"
+    : > "${FAKE_DIR}/curl.calls"
+    run --separate-stderr kit bots --add=kit-bot --app=12345 --key="${pem}"
+    [ "$status" -eq 0 ] || { echo "${url}: ${stderr}"; false; }
+    [ "$(yq '.bots[0].host' "${bots_file}")" = github.com ]
+    [ "$(stored kit-bot github.com/12345)" = "$(cat "${pem}")" ]
+    called 'https://api.github.com/app '
+    run --separate-stderr kit bots run bash -c "echo \"\${GH_HOST}\"; GIT_EXEC_PATH='${exec_path}' git push origin HEAD:refs/heads/x; gh api user >/dev/null; true"
+    [ "$status" -eq 0 ] || { echo "${url}: ${stderr}"; false; }
+    [ "$output" = github.com ]
+    [ "$(cat "${FAKE_DIR}/remote.urls")" = https://github.com/empowerite/kit.git ]
+    grep --quiet --line-regexp 'password=ghs_abc' "${FAKE_DIR}/remote.creds"
+    [ "$(tail -n 1 "${FAKE_DIR}/gh.calls")" = 'api user GH_TOKEN=ghs_abc GH_ENTERPRISE_TOKEN= GH_HOST=github.com' ]
+  done
+}
+
+@test "under run, a toolchain's gh comes after the session's, so kit tools run and kit gate keep the bot's renewing gh" {
+  run-setup
+  export KIT_BOT_FOR=someone
+  fake-tools mise
+  route mise '--version' '!0'
+  touch mise.toml
+  mkdir -p "${BATS_TEST_TMPDIR}/toolchain"
+  printf '#!/usr/bin/env bash\necho "the toolchain gh" >> "${FAKE_DIR}/toolchain.calls"\n' > "${BATS_TEST_TMPDIR}/toolchain/gh"
+  chmod +x "${BATS_TEST_TMPDIR}/toolchain/gh"
+  fixture paths.txt <<<"${BATS_TEST_TMPDIR}/toolchain"
+  route mise 'bin-paths' paths.txt
+  # without a bot, the toolchain's gh is first
+  run --separate-stderr kit tools run bash -c 'command -v gh'
+  [ "$output" = "${BATS_TEST_TMPDIR}/toolchain/gh" ]
+  run --separate-stderr kit bots run kit tools run bash -c 'gh api user >/dev/null; printf "%s\n" "${PATH}" | tr : "\n" | head -n 2'
+  [ "$status" -eq 0 ]
+  [ ! -e "${FAKE_DIR}/toolchain.calls" ]
+  [ "$(tail -n 1 "${FAKE_DIR}/gh.calls")" = 'api user GH_TOKEN=ghs_abc GH_ENTERPRISE_TOKEN= GH_HOST=github.com' ]
+  [[ "${lines[0]}" == "${TMPDIR}"*/bin ]]
+  [ "${lines[1]}" = "${BATS_TEST_TMPDIR}/toolchain" ]
 }
 
 # under-bot-gh is a gh that answers `api user` with octocat, as a token of its own would not, the issue 7 with no one

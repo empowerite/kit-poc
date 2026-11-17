@@ -199,7 +199,7 @@ URLS
 @test "a 404 that is not the installation's is said as GitHub's, and does not blame the key" {
   fixture missing.json <<<'{"message":"Not Found"}'
   curl-route '*/app/installations/9/access_tokens' 22 404 missing.json
-  run --separate-stderr call bot-token 1 "${pem}" 9 kit
+  run --separate-stderr call bot-token 1 "${pem}" 9 kit '{"metadata":"read"}'
   [ "$status" -eq 1 ]
   [ "$stderr" = "❌ GitHub refused POST /app/installations/9/access_tokens, HTTP 404: Not Found" ]
 }
@@ -293,18 +293,31 @@ URLS
   [[ "$stderr" == *"check the App's ID and key (the answer of /app/installations could not be read)"* ]]
 }
 
-@test "forge:bot-token asks for the one repository and prints the token and its expiry" {
+@test "forge:bot-token asks for the one repository with the permissions named, and prints the token and its expiry" {
   fixture token.json <<<'{"token":"ghs_abc","expires_at":"2026-11-12T10:00:00Z","permissions":{}}'
   curl-route '*/app/installations/99/access_tokens' 0 201 token.json
-  run call bot-token 1 "${pem}" 99 empowerite/kit
+  run call bot-token 1 "${pem}" 99 empowerite/kit '{"metadata":"read","issues":"write"}'
   [ "$status" -eq 0 ]
   [ "$output" = '{"token":"ghs_abc","expires_at":"2026-11-12T10:00:00Z"}' ]
   grep --quiet -- '--request POST' "${FAKE_DIR}/curl.calls"
-  grep --quiet -F '"repositories":["kit"]' "${FAKE_DIR}/curl.calls"
+  tr '\n' ' ' < "${FAKE_DIR}/curl.calls" \
+    | grep --quiet -F -- '--data {"repositories":["kit"],"permissions":{"issues":"write","metadata":"read"}} '
+}
+
+@test "forge:bot-token refuses permissions that are no object of levels, so no token holds what was not asked" {
+  for permissions in '' '{}' '[]' 'x' '{"issues":"all"}' '{"issues":1}'
+  do
+    run --separate-stderr call bot-token 1 "${pem}" 99 kit "${permissions}"
+    [ "$status" -eq 1 ] || { echo "${permissions}: ${status}"; false; }
+    [ "$stderr" = "❌ '${permissions}' is not the permissions of a token: a JSON object of read, write, or admin" ]
+  done
+  run --separate-stderr call bot-token 1 "${pem}" 99 kit
+  [ "$status" -eq 1 ]
+  [ ! -e "${FAKE_DIR}/curl.calls" ]
 }
 
 @test "forge:bot-token refuses an empty repository, so no token outside one is minted by mistake" {
-  run --separate-stderr call bot-token 1 "${pem}" 99 ''
+  run --separate-stderr call bot-token 1 "${pem}" 99 '' '{"metadata":"read"}'
   [ "$status" -eq 1 ]
   [ -z "$output" ]
   [[ "$stderr" == *"is not the name of a repository"* ]]
@@ -329,7 +342,7 @@ URLS
   run --separate-stderr call bot-app 12x "${pem}"
   [ "$status" -eq 1 ]
   [ "$stderr" = "❌ '12x' is not the ID of a GitHub App: it is a number" ]
-  run --separate-stderr call bot-token 1 "${pem}" '9/../x' kit
+  run --separate-stderr call bot-token 1 "${pem}" '9/../x' kit '{"metadata":"read"}'
   [ "$stderr" = "❌ '9/../x' is not the ID of an installation: it is a number" ]
   for repo in 'a/b?x' 'a/b#x' 'a/../b' 'a/b/c' 'ab' '/b' 'a/' 'a/.' './b' '-a/b' 'a/-b' '../b'
   do
@@ -339,13 +352,13 @@ URLS
   done
   for repo in 'a?x' '..' '.' '-a' 'a#'
   do
-    run --separate-stderr call bot-token 1 "${pem}" 9 "${repo}"
+    run --separate-stderr call bot-token 1 "${pem}" 9 "${repo}" '{"metadata":"read"}'
     [ "$status" -eq 1 ]
     [ "$stderr" = "❌ '${repo}' is not the name of a repository" ]
   done
   for repo in 'a/b/c' '-a/b' 'a/.' './b' 'a?/b'
   do
-    run --separate-stderr call bot-token 1 "${pem}" 9 "${repo}"
+    run --separate-stderr call bot-token 1 "${pem}" 9 "${repo}" '{"metadata":"read"}'
     [ "$status" -eq 1 ]
     [ "$stderr" = "❌ '${repo}' is not a repository: it is owner/name" ]
   done
@@ -396,9 +409,11 @@ URLS
 @test "a repository whose name starts with a dot, as .github does, is narrowed to by its name, with or without its owner" {
   fixture token.json <<<'{"token":"t","expires_at":"2026-11-12T10:00:00Z"}'
   curl-route '*/app/installations/9/access_tokens' 0 201 token.json
-  run call bot-token 1 "${pem}" 9 empowerite/.github
+  run call bot-token 1 "${pem}" 9 empowerite/.github '{"metadata":"read"}'
   [ "$status" -eq 0 ]
   grep --quiet -F '"repositories":[".github"]' "${FAKE_DIR}/curl.calls"
-  run call bot-token 1 "${pem}" 9 .github
+  : > "${FAKE_DIR}/curl.calls"
+  run call bot-token 1 "${pem}" 9 .github '{"metadata":"read"}'
   [ "$status" -eq 0 ]
+  grep --quiet -F '"repositories":[".github"]' "${FAKE_DIR}/curl.calls"
 }

@@ -27,19 +27,21 @@
 # --remove forgets a bot and deletes its key from the store; the App stays on the forge.
 #
 # --check compares the App's permissions with its jobs: what a job lacks, and what no job needs. It says whether the
-# App's installation reaches this repository, and where not, the installation's page to add it on. The JSON is {name,
-# installation, page, repository, reached, lacks, extra}. Outside a repository it judges the App's permissions alone,
-# reached null. It exits 1 where the installation does not reach this repository, where the App is installed nowhere,
-# and where a job lacks a permission, since that job would fail when the bot acts; a permission no job needs is advice,
-# and exits 0.
+# App's installation reaches this repository, and where not, the page of the installation on the repository's owner
+# to add it on, else the App's page to install it there. The JSON is {name, installation, page, repository, reached,
+# lacks, extra}. Outside a repository it judges the App's permissions alone, reached null. It exits 1 where the
+# installation does not reach this repository, where the App is installed nowhere, and where a job lacks a permission,
+# since that job would fail when the bot acts; a permission no job needs is advice, and exits 0.
 #
 # token prints an installation token narrowed to this repository, and only the token, for a pipe; with --json, the
-# object {token, expires_at}. It is good for an hour, and kit does not revoke it; it refuses outside a repository.
+# object {token, expires_at}. The token holds only the permissions the bot's jobs need, at most at the level the
+# installation holds each. It is good for an hour, and kit does not revoke it; it refuses outside a repository.
 #
-# run runs the command as the bot, for as long as it runs, and exits with its status. The command has GH_TOKEN, a fresh
-# installation token narrowed to this repository; a gh on PATH that mints a new token when the old is within ten
-# minutes of its hour, so a session that runs all afternoon keeps working; and git's credential helper for the forge's
-# host answering with the same token, so git push pushes as the bot. KIT_BOT is the bot's name, KIT_BOT_LOGIN its login,
+# run runs the command as the bot, for as long as it runs, and exits with its status. The command has GH_TOKEN and
+# GITHUB_TOKEN, a fresh token as token mints it; a gh on PATH that mints a new token when the old is within ten minutes
+# of its hour, so a session that runs all afternoon keeps working, and that kit tools run and kit gate keep first; and
+# git's credential helper for the forge's host answering with the same token, with the host's ssh URLs rewritten to
+# https, so git push pushes as the bot whatever the remote's URL. KIT_BOT is the bot's name, KIT_BOT_LOGIN its login,
 # <name>[bot], and KIT_BOT_FOR the person's login, which a run inside a run keeps. The tokens live in a directory of the
 # run's own, readable by you alone, and are revoked and the directory removed when the command ends, or kit bots is
 # terminated or hung up, the status then being 128 and the signal's number. A token that could not be revoked is a

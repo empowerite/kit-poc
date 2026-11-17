@@ -136,8 +136,10 @@ forge/github:bot-revoke() {
   forge/github:app-api "$1" DELETE /installation/token >/dev/null
 }
 
-# forge/github:bot-token <app> <pem> <installation> <repo> prints {token, expires_at}: a token of the installation
-# narrowed to the one repository, <repo> being its name, with or without its owner.
+# forge/github:bot-token <app> <pem> <installation> <repo> <permissions> prints {token, expires_at}: a token of the
+# installation narrowed to the one repository, <repo> being its name, with or without its owner, and holding only the
+# <permissions>, a JSON object of permission and level, as {"issues":"write"}. GitHub refuses a permission the
+# installation lacks, and a token asked for none would hold every one the installation has.
 forge/github:bot-token() {
   local jwt answer body
   forge/github:app-ok app "$1" && forge/github:app-ok installation "$3" || return 1
@@ -147,8 +149,10 @@ forge/github:bot-token() {
   else
     forge/github:app-ok name "$4" || return 1
   fi
+  forge/github:app-ok permissions "${5:-}" || return 1
   jwt=$(forge/github:jwt "$1" "$2") || return 1
-  body=$(jq --null-input --compact-output --arg repo "${4##*/}" '{repositories: [$repo]}')
+  body=$(jq --null-input --compact-output --arg repo "${4##*/}" --argjson permissions "$5" \
+    '{repositories: [$repo], permissions: ($permissions | to_entries | sort_by(.key) | from_entries)}')
   answer=$(forge/github:app-api "${jwt}" POST "/app/installations/$3/access_tokens" "${body}") || return 1
   forge/github:app-fold 'the installation token' "${answer}" --compact-output '{token, expires_at}'
 }
@@ -916,10 +920,23 @@ forge/github:repo-url() {
 }
 
 # forge/github:require fails when gh is missing or not authenticated. It makes a real API call, because
-# `gh auth status` passes with a revoked token.
+# `gh auth status` passes with a revoked token. Under kit bots run, KIT_BOT_LOGIN set, gh holds the bot's
+# installation token, which GitHub refuses GET /user, as it is no user's: the call is then a read of the repository
+# the token is narrowed to.
 forge/github:require() {
+  local said forge_github_place
   guard:require tool:gh || return 1
-  forge/github:me >/dev/null
+  if [[ -z "${KIT_BOT_LOGIN:-}" ]]
+  then
+    forge/github:me >/dev/null
+    return
+  fi
+  forge_github_place=$(forge/github:place) || return 1
+  file:temp said gh || return 1
+  forge/github:gh api 'repos/{owner}/{repo}' --jq .full_name >/dev/null 2>"${said}" && return 0
+  forge/github:limited 'the repository' "$(<"${said}")" \
+    || error "run: kit bots --check (the repository could not be read as ${KIT_BOT_LOGIN})"
+  return 1
 }
 
 # forge/github:rulesets prints one document per control on the default branch, as the seam's header says: the
@@ -1663,7 +1680,8 @@ forge/github:app-fold() { forge:fold "check the App's ID and key" "$@"; }
 
 # forge/github:app-ok <kind> <value> succeeds when <value> may go into the URL of a call of the App as a <kind>: app or
 # installation, an ID of digits; repo, owner/name; name, the name alone. A part of a name is never . or .. and never
-# starts with -, as GitHub's own names never do. Anything else says so and fails, before any request is made.
+# starts with -, as GitHub's own names never do. permissions, which goes in a body, is a JSON object of one or more
+# permissions, each read, write, or admin. Anything else says so and fails, before any request is made.
 forge/github:app-ok() {
   local kind=$1 value=$2 part='[A-Za-z0-9_.][A-Za-z0-9_.-]*'
   case "${kind}" in
@@ -1671,9 +1689,14 @@ forge/github:app-ok() {
     (repo) [[ "${value}" =~ ^${part}/${part}$ && "${value}" != *..* && "${value}" != ./* && "${value}" != */. ]] \
       && return 0 ;;
     (name) [[ "${value}" =~ ^${part}$ && "${value}" != *..* && "${value}" != . ]] && return 0 ;;
+    (permissions)
+      jq --exit-status 'type == "object" and length > 0 and all(.[]; IN("read", "write", "admin"))' \
+        <<<"${value}" >/dev/null 2>&1 && return 0
+      ;;
   esac
   case "${kind}" in
     (repo) error "'${value}' is not a repository: it is owner/name" ;;
+    (permissions) error "'${value}' is not the permissions of a token: a JSON object of read, write, or admin" ;;
     (name) error "'${value}' is not the name of a repository" ;;
     (app) error "'${value}' is not the ID of a GitHub App: it is a number" ;;
     (*) error "'${value}' is not the ID of an installation: it is a number" ;;

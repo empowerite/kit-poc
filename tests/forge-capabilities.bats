@@ -152,7 +152,7 @@ added+='"check-runs","swimlanes","bot-accounts","merge-closing"'
     git remote set-url origin "${remote}"
     for c in bot-app bot-installation bot-installations bot-proof bot-token bot-repositories bot-revoke
     do
-      run --separate-stderr call "${c}" 1 /nonexistent.pem x y
+      run --separate-stderr call "${c}" 1 /nonexistent.pem x y '{"metadata":"read"}'
       [ "$status" -eq 3 ]
       [ -z "$output" ]
       [ -z "$stderr" ]

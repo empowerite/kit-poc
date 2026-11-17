@@ -545,15 +545,19 @@ issue:hydrate() {
 # branch has no commits beyond the default branch on <remote>, the push remote, because a forge cannot open a pull
 # request with nothing to compare. --only keeps the commit empty, so work already staged in a reused worktree stays in
 # the index. Its subject is issue:start-subject's, kept whatever commit.cleanup says, and with
-# policy.commit_reference trailer its message ends in a Refs: <reference> trailer. With require_signing true, the
-# commit is signed, and refused when git cannot sign it; a commit that fails for another reason, as when a hook
-# refuses it, is said to have failed.
+# policy.commit_reference trailer its message ends in a Refs: <reference> trailer. Under a bot, it ends in the Agent
+# trailer too, as git:agent-trailer adds it to every commit kit makes. With require_signing true, the commit is
+# signed, and refused when git cannot sign it; a commit that fails for another reason, as when a hook refuses it, is
+# said to have failed.
 issue:start-commit() {
-  local wt=$1 default_branch=$2 ref=$3 title=$4 remote=$5 subject
-  local -a sign=() trailer=()
+  local wt=$1 default_branch=$2 ref=$3 title=$4 remote=$5 subject message
+  local -a sign=()
   [[ -z "$(git -C "${wt}" rev-list "refs/remotes/${remote}/${default_branch}..HEAD" 2>/dev/null)" ]] || return 0
   subject=$(issue:start-subject "${ref}" "${title}") || return 1
-  [[ "${subject}" == "${ref} "* ]] || trailer=(--message "Refs: ${ref}")
+  file:temp message start-commit || return 1
+  printf '%s\n' "${subject}" > "${message}" || return 1
+  [[ "${subject}" == "${ref} "* ]] || printf '\nRefs: %s\n' "${ref}" >> "${message}" || return 1
+  (cd "${wt}" && git:agent-trailer "${message}") || return 1
   if [[ "$(settings:value require_signing)" == true ]]
   then
     guard:require signing-key || return 1
@@ -561,7 +565,7 @@ issue:start-commit() {
   fi
   step "Adding the start commit"
   git:commit "${wt}" "the start commit" --quiet --allow-empty --only --cleanup=whitespace "${sign[@]}" \
-    --message "${subject}" "${trailer[@]}" || return 1
+    --file "${message}" || return 1
 }
 
 # issue:start-subject <reference> <title> prints the start commit's subject, the first of these that

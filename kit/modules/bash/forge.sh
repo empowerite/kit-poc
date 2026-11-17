@@ -198,8 +198,9 @@
 #                                 html_url}; returns 1 with no output where it has none (since 6)
 #   bot-installations <app> <pem> one JSON object per installation of the App: {id, account, repository_selection,
 #                                 html_url}, account the login that has it (since 6)
-#   bot-token <app> <pem> <installation> <repo>
-#                                 {token, expires_at} of a token narrowed to the one repository (since 6)
+#   bot-token <app> <pem> <installation> <repo> <permissions>
+#                                 {token, expires_at} of a token narrowed to the one repository, holding only the
+#                                 <permissions>, a JSON object of permission and level: {"issues": "write"} (since 6)
 #   bot-proof <app> <pem> <installation>
 #                                 {token, expires_at} of a token narrowed to no repository, holding metadata: read
 #                                 alone, for a proof of the App's key that is revoked at once (since 6)

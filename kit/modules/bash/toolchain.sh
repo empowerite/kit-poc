@@ -452,8 +452,11 @@ toolchain:path() {
 #     provider that is active is already inside its container, so the command runs there as is
 #   - otherwise, with toolchain:path first on PATH: the provider's directories, then the dependencies'
 #   - ambient, with the dependencies' directories first
+#
+# Under kit bots run, KIT_BOT set, the run's bin directory, toolchain:bot-bin's, stays first: its gh renews the bot's
+# token, and a gh the toolchain has would run with the token kit bots run started with, which lasts an hour.
 toolchain:run() {
-  local chosen dirs
+  local chosen dirs bin
   chosen=$(toolchain:chosen project) || return 1
   if [[ "${chosen}" != ambient ]]
   then
@@ -465,7 +468,24 @@ toolchain:run() {
     fi
   fi
   dirs=$(toolchain:path | paste -s -d ':' -) || return 1
+  bin=$(toolchain:bot-bin)
+  [[ -z "${bin}" ]] || dirs=${bin}${dirs:+:${dirs}}
   PATH="${dirs:+${dirs}:}${PATH}" "$@"
+}
+
+# toolchain:bot-bin prints, under kit bots run, KIT_BOT set, the first directory on PATH that is a run's bin directory,
+# which holds the gh and the credential helper of the run's session beside its refresh, or nothing.
+toolchain:bot-bin() {
+  local dir IFS=:
+  [[ -n "${KIT_BOT:-}" ]] || return 0
+  for dir in ${PATH}
+  do
+    if [[ "${dir}" == */bin && -x "${dir}/gh" && -x "${dir}/git-credential-kit-bot" && -f "${dir%/bin}/refresh" ]]
+    then
+      printf '%s\n' "${dir}"
+      return 0
+    fi
+  done
 }
 
 # ----------------------------------------------------------------------------------------------------------------------

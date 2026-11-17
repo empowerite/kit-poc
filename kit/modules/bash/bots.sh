@@ -48,8 +48,19 @@ bots:json() {
 }
 
 # bots:primary-host prints the host of the primary remote, or nothing outside a repository or for a remote on this
-# machine. bots:host prints it, or github.com where there is none.
-bots:primary-host() { forge:host "$(forge:primary 2>/dev/null)" 2>/dev/null || true; }
+# machine. The host is the one the forge's provider reads from the remote's URL, as forge:page-urls has it, so it is
+# the host of the forge's API: for GitHub, the host an ssh Host alias stands for, and github.com for ssh.github.com.
+# Where the provider reads no repository from the URL, it is the host the URL names. bots:host prints it, or
+# github.com where there is none.
+bots:primary-host() {
+  local primary host pages
+  primary=$(forge:primary 2>/dev/null) || return 0
+  host=$(forge:host "${primary}" 2>/dev/null) || true  # a remote that cannot be read names no host
+  [[ -n "${host}" ]] || return 0
+  pages=$(forge:page-urls "${primary}")
+  [[ "${pages}" == null ]] || host=$(forge:url-host "$(jq --raw-output .repository <<<"${pages}")")
+  printf '%s\n' "${host}"
+}
 bots:host() {
   local host
   host=$(bots:primary-host)
@@ -228,9 +239,9 @@ bots:text() {
 
 # bots:read-key <source> <file> writes the PEM that <source> names to <file>, with LF line ends: <source> is a PEM
 # file, or keychain:<service>/<account>, an item another tool stored. It says what is wrong, and returns 2, for a
-# source that names nothing.
+# source that names nothing, and 1 where the store cannot be read, as a locked keychain cannot.
 bots:read-key() {
-  local source=$1 rest service account
+  local source=$1 rest service account value status=0
   case "${source}" in
     (keychain:*)
       rest=${source#keychain:}
@@ -241,11 +252,18 @@ bots:read-key() {
         error "'${source}' is no keychain item; write keychain:<service>/<account>"
         return 2
       fi
-      if ! secrets:foreign "${service}" "${account}" | tr -d '\r' > "$2" || [[ ! -s "$2" ]]
+      value=$(secrets:foreign "${service}" "${account}") || status=$?
+      if (( status == 2 ))
+      then
+        error "the key in ${service}/${account} could not be read, so nothing was stored"
+        return 1
+      fi
+      if (( status != 0 )) || [[ -z "${value}" ]]
       then
         error "the secret store holds no item ${service}/${account}; name a PEM file, or an item that is there"
         return 2
       fi
+      printf '%s\n' "${value}" | tr -d '\r' > "$2"
       ;;
     (*)
       if [[ ! -f "${source}" || ! -r "${source}" ]]
@@ -369,7 +387,7 @@ bots:prove() {
   id=$(jq --raw-output .id <<<"${installation}")
   if [[ -n "${reached}" ]]
   then
-    token=$(bots:forge token "${app}" "${pem}" "${id}" "${reached}") || return 1
+    token=$(bots:forge token "${app}" "${pem}" "${id}" "${reached}" '{"metadata":"read"}') || return 1
   else
     token=$(bots:forge proof "${app}" "${pem}" "${id}") || return 1
   fi
@@ -379,8 +397,10 @@ bots:prove() {
 # bots:check <bot-json> prints {name, installation, page, repository, reached, lacks, extra} in one line: the bot's
 # App against its jobs. reached is true where the App's installation reaches this repository, false where it does not,
 # and null outside a repository, which judges none. The permissions judged are the installation's where it reaches the
-# repository, else the App's own, and installation is the one reaching it, else the App's first, or null with none.
-# page is the installation's settings page, else the App's page to install it. lacks maps each job to the permissions
+# repository, else the App's own, and installation is the one reaching it, else the one on the account that owns the
+# repository, else the App's first, or null with none. page is that installation's settings page, else the App's page
+# to install it: where the repository is not reached and its owner has no installation, the install page, as another
+# account's installation cannot be given the repository. lacks maps each job to the permissions
 # it needs that are not held, as "<permission>: <level>"; extra lists each permission held beyond what every job needs,
 # metadata aside, sorted by permission name, a write held where read is needed being "<permission>: write". It
 # returns 1, saying why, where the key or a call fails. With <pem-file>, the key bots:key wrote there is the key, read
@@ -415,7 +435,11 @@ bots:check() {
   fi
   if (( status == 0 )) && [[ "${reached}" != true ]]
   then
-    installations=$(bots:forge installations "${app}" "${pem}") && installation=${installations%%$'\n'*} || status=$?
+    installations=$(bots:forge installations "${app}" "${pem}") || status=$?
+    # the installation on the account that owns this repository, else the App's first
+    [[ -z "${installations}" ]] || installation=$(jq --slurp --compact-output --arg owner "${repo%%/*}" \
+      '(map(select((.account // "" | ascii_downcase) == ($owner | ascii_downcase))) + .) | first' \
+      <<<"${installations}") || status=1
   fi
   [[ "${own}" != true ]] || rm -f "${pem}"
   (( status == 0 )) || return "${status}"
@@ -433,7 +457,10 @@ bots:check() {
       | from_entries) as $all
     | {name: $bot.name,
        installation: ($installation | if . then {id, repository_selection, html_url} else null end),
-       page: ($installation.html_url // "\($html)/installations/new"),
+       page: (if $reached == false
+           and ($installation.account // "" | ascii_downcase) != ($repo | split("/")[0] | ascii_downcase)
+         then "\($html)/installations/new"
+         else $installation.html_url // "\($html)/installations/new" end),
        repository: ($repo | if . == "" then null else . end),
        reached: $reached,
        lacks: ($needs | to_entries
@@ -450,6 +477,9 @@ bots:check-text() {
   jq --raw-output '
     "\(.name): " + (
       if .reached == true then "its installation reaches \(.repository)"
+      elif .reached == false and (.page | endswith("/installations/new"))
+      then "its installation does not reach \(.repository); install the App on \(.repository | split("/")[0])" +
+        " at \(.page)"
       elif .reached == false then "its installation does not reach \(.repository); add the repository on \(.page)"
       elif .installation == null then "the App is installed nowhere; install it at \(.page)"
       else "no repository here, so its permissions are judged alone" end),
@@ -458,11 +488,28 @@ bots:check-text() {
     (if (.lacks | length) == 0 and (.extra | length) == 0 then "its permissions match its jobs" else empty end)' <<<"$1"
 }
 
-# bots:token <bot-json> prints {token, expires_at}, an installation token narrowed to this repository, and revokes
-# nothing: the caller has it to use. It returns 1, saying what to do, outside a repository, and where the
-# installation does not reach this repository, which names kit bots --check.
+# bots:permissions <bot-json> <installation-json> prints, as one JSON object, the permissions a token of the bot asks
+# for: each one its jobs need, bots:jobs-need's, at the level the installation holds where that is lower, and none
+# the installation lacks, which GitHub would refuse. The object is empty where the installation holds none of them.
+bots:permissions() {
+  local need
+  local -a jobs
+  list:read jobs jq --raw-output '.jobs[]' <<<"$1" || return 1
+  need=$(bots:jobs-need "${jobs[@]}") || return 1
+  # shellcheck disable=SC2016  # $need and $held are jq's
+  jq --null-input --compact-output --sort-keys --argjson need "${need}" \
+    --argjson held "$(jq --compact-output '.permissions // {}' <<<"$2")" '
+    def rank: if type == "string" then {read: 1, write: 2, admin: 3}[.] // 0 else 0 end;
+    $need | with_entries(($held[.key] // null) as $has | select(($has | rank) > 0)
+      | if ($has | rank) < (.value | rank) then .value = $has else . end)'
+}
+
+# bots:token <bot-json> prints {token, expires_at}, an installation token narrowed to this repository and holding only
+# what bots:permissions prints, and revokes nothing: the caller has it to use. It returns 1, saying what to do,
+# outside a repository, where the installation does not reach this repository, and where it holds none of the
+# permissions the bot's jobs need, each of which names kit bots --check.
 bots:token() {
-  local pem app repo installation='' status=0
+  local pem app repo installation='' permissions status=0
   repo=$(bots:repository)
   if [[ -z "${repo}" ]]
   then
@@ -478,10 +525,53 @@ bots:token() {
     error "$(jq --raw-output .name <<<"$1")'s installation does not reach ${repo}; run: kit bots --check"
     status=1
   fi
+  if (( status == 0 ))
+  then
+    permissions=$(bots:permissions "$1" "${installation}") || status=1
+  fi
+  if (( status == 0 )) && [[ "${permissions}" == '{}' ]]
+  then
+    error "$(jq --raw-output .name <<<"$1")'s installation holds none of the permissions its jobs need; run: kit" \
+      "bots --check"
+    status=1
+  fi
   (( status != 0 )) || bots:forge token "${app}" "${pem}" "$(jq --raw-output .id <<<"${installation}")" "${repo}" \
-    || status=$?
+    "${permissions}" || status=$?
   rm -f "${pem}"
   return "${status}"
+}
+
+# bots:rewrites <host> prints the rules under which git reaches the forge's host over https, where run's credential
+# helper answers as the bot, so a push to an ssh remote is the bot's too: "<https URL>\t<prefix>" a line, a rule
+# url.<https URL>.insteadOf <prefix>. git@<host>: and ssh://git@<host>/ go to https://<host>/. So does each remote of
+# this checkout that the forge's provider reads as a repository on <host>, though its URL names another host, as an ssh
+# Host alias or GitHub's ssh.github.com does: its URL goes to the repository's https URL.
+bots:rewrites() {
+  local host=$1 remote url pages repository
+  local -a remotes
+  list:read remotes git remote || return 1
+  printf 'https://%s/\t%s\n' "${host}" "git@${host}:" "${host}" "ssh://git@${host}/"
+  for remote in "${remotes[@]}"
+  do
+    url=$(git remote get-url --end-of-options "${remote}" 2>/dev/null) || continue
+    [[ "${url}" != https://* && "${url}" != "git@${host}:"* && "${url}" != "ssh://git@${host}/"* ]] || continue
+    pages=$(forge:page-urls "${remote}")
+    [[ "${pages}" != null ]] || continue
+    repository=$(jq --raw-output .repository <<<"${pages}")
+    [[ "$(forge:url-host "${repository}")" == "${host}" ]] || continue
+    printf '%s.git\t%s\n' "${repository}" "${url}"
+  done
+}
+
+# bots:run-forward <signal> <number> is bots:run's trap for TERM and HUP: it notes the signal's number in bots:run's
+# signalled, and sends the signal on to the command, or, where the command has not started yet, notes it in bots:run's
+# pending, which bots:run sends once the command has started. So the command gets each signal once.
+bots:run-forward() {
+  signalled=$2
+  if [[ -n "${child}" ]]
+  then kill -s "$1" "${child}" 2>/dev/null || true  # the command may have ended already
+  else pending+=("$1")
+  fi
 }
 
 # bots:run-script <file> <session> prints a script of the session, mode 700: a bash shebang, the session directory as
@@ -542,9 +632,12 @@ bots:run-end() {
 # bots:run <bot-json> <command>… runs the command as the bot, and returns its status. The command has:
 #
 #   - GH_TOKEN, KIT_BOT, KIT_BOT_LOGIN, and KIT_BOT_FOR;
-#   - GH_HOST the forge's, with GH_ENTERPRISE_TOKEN where it is not github.com, and none where it is;
+#   - GITHUB_TOKEN the token too, whatever the person's was, as tools other than gh read it;
+#   - GH_HOST the forge's, with GH_ENTERPRISE_TOKEN and GITHUB_ENTERPRISE_TOKEN the token where it is not github.com,
+#     and neither where it is;
 #   - a gh on PATH that mints a new token within ten minutes of the old one's end;
-#   - git's credential helper for the forge's host, answering with the token.
+#   - git's credential helper for the forge's host, answering with the token, and the rules bots:rewrites prints, so
+#     git reaches the host's ssh remotes over https, where the helper answers.
 #
 # The tokens live in a session directory, mode 700, which file:scratch makes under TMPDIR and sweeps. It records the
 # checkout the run started in, where the shim and the helper mint, so a token stays narrowed to that repository
@@ -558,8 +651,9 @@ bots:run-end() {
 # had, and runs nothing then.
 # shellcheck disable=SC2154  # kit_root is set by modules/bash/1st.sh
 bots:run() {
-  local bot=$1 name host person start session count real quoted umask_was status=0 child='' signalled=0
-  local sq="'"
+  local bot=$1 name host person start session count real quoted umask_was status=0 child='' signalled=0 signal index
+  local rewrite sq="'"
+  local -a pending=() rewrites=()
   shift
   name=$(jq --raw-output .name <<<"${bot}")
   host=$(jq --raw-output .host <<<"${bot}")
@@ -682,10 +776,10 @@ then
   exit 1
 fi
 host=$(<"${session}/host")
-export GH_TOKEN=${token} GH_HOST=${host}
+export GH_TOKEN=${token} GITHUB_TOKEN=${token} GH_HOST=${host}
 if [[ "${host}" == github.com ]]
-then unset GH_ENTERPRISE_TOKEN
-else export GH_ENTERPRISE_TOKEN=${token}
+then unset GH_ENTERPRISE_TOKEN GITHUB_ENTERPRISE_TOKEN
+else export GH_ENTERPRISE_TOKEN=${token} GITHUB_ENTERPRISE_TOKEN=${token}
 fi
 exec "${real}" "$@"
 BODY
@@ -710,34 +804,48 @@ fi
 printf 'username=x-access-token\npassword=%s\n' "${token}"
 BODY
   umask "${umask_was}"
+  list:read rewrites bots:rewrites "${host}" || return 1
   count=${GIT_CONFIG_COUNT:-0}
   quoted=${session//"${sq}"/"${sq}\\${sq}${sq}"}
   # a TERM or a HUP is forwarded, and the run ends when the command has, with 128 and its number: until now the default
-  # action ends the run, and the exit sweep revokes. The terminal sends an interrupt to the whole group, the command's
-  # with it, so it is not forwarded and the command's own status stands: the trap only keeps run alive to revoke.
+  # action ends the run, and the exit sweep revokes. One that comes before the command has started is sent once it has.
+  # The terminal sends an interrupt to the whole group, the command's with it, so it is not forwarded and the command's
+  # own status stands: the trap only keeps run alive to revoke.
   trap ':' INT
-  trap 'signalled=15; [[ -z "${child}" ]] || kill -TERM "${child}" 2>/dev/null' TERM
-  trap 'signalled=1; [[ -z "${child}" ]] || kill -HUP "${child}" 2>/dev/null' HUP
+  trap 'bots:run-forward TERM 15' TERM
+  trap 'bots:run-forward HUP 1' HUP
   (
     trap - INT TERM HUP
     PATH="${session}/bin:${PATH}"
     GH_TOKEN=$(jq --raw-output .token "${session}/token.json")
-    GIT_CONFIG_COUNT=$(( count + 2 ))
     printf -v "GIT_CONFIG_KEY_${count}" '%s' "credential.https://${host}.helper"
     printf -v "GIT_CONFIG_VALUE_${count}" '%s' ''
     printf -v "GIT_CONFIG_KEY_$(( count + 1 ))" '%s' "credential.https://${host}.helper"
     printf -v "GIT_CONFIG_VALUE_$(( count + 1 ))" '%s' "!${sq}${quoted}/bin/git-credential-kit-bot${sq}"
-    export PATH GH_TOKEN GIT_CONFIG_COUNT "GIT_CONFIG_KEY_${count}" "GIT_CONFIG_VALUE_${count}" \
-      "GIT_CONFIG_KEY_$(( count + 1 ))" "GIT_CONFIG_VALUE_$(( count + 1 ))"
-    export GH_HOST=${host}
+    export "GIT_CONFIG_KEY_${count}" "GIT_CONFIG_VALUE_${count}" "GIT_CONFIG_KEY_$(( count + 1 ))" \
+      "GIT_CONFIG_VALUE_$(( count + 1 ))"
+    index=$(( count + 2 ))
+    for rewrite in "${rewrites[@]}"
+    do
+      printf -v "GIT_CONFIG_KEY_${index}" '%s' "url.${rewrite%%$'\t'*}.insteadOf"
+      printf -v "GIT_CONFIG_VALUE_${index}" '%s' "${rewrite#*$'\t'}"
+      export "GIT_CONFIG_KEY_${index}" "GIT_CONFIG_VALUE_${index}"
+      index=$(( index + 1 ))
+    done
+    GIT_CONFIG_COUNT=${index}
+    export PATH GH_TOKEN GIT_CONFIG_COUNT GITHUB_TOKEN=${GH_TOKEN} GH_HOST=${host}
     if [[ "${host}" == github.com ]]
-    then unset GH_ENTERPRISE_TOKEN
-    else export GH_ENTERPRISE_TOKEN=${GH_TOKEN}
+    then unset GH_ENTERPRISE_TOKEN GITHUB_ENTERPRISE_TOKEN
+    else export GH_ENTERPRISE_TOKEN=${GH_TOKEN} GITHUB_ENTERPRISE_TOKEN=${GH_TOKEN}
     fi
     export KIT_BOT=${name} KIT_BOT_LOGIN="${name}[bot]" KIT_BOT_FOR=${person}
     exec "$@"
   ) <&0 &
   child=$!
+  for signal in "${pending[@]}"
+  do
+    kill -s "${signal}" "${child}" 2>/dev/null || true  # the command may have ended already
+  done
   while :
   do
     status=0

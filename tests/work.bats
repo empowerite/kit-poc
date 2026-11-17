@@ -58,7 +58,21 @@ desk-world() {
   [ -f worktrees/7-fix-the-thing/.kit/.gitignore ]
   [ -z "$(git -C worktrees/7-fix-the-thing status --porcelain)" ]
   [ "$(git -C worktrees/7-fix-the-thing log --format=%s -1)" = "#7 start: Fix the thing" ]
+  # with no bot, the start commit names no agent
+  [ -z "$(git -C worktrees/7-fix-the-thing log --format='%(trailers:key=Agent)' -1)" ]
   run ! git -C worktrees/7-fix-the-thing ls-files --error-unmatch .kit/1st.md
+}
+
+@test "under a bot, kit work reads the repository, not the login GitHub refuses a bot, assigns the person, and the start commit names the agent" {
+  desk-world
+  fixture repo-rest.json <<<'{"full_name": "empowerite/example"}'
+  route 'api repos/{owner}/{repo} *' repo-rest.json
+  run env KIT_BOT=kit-bot KIT_BOT_LOGIN='kit-bot[bot]' KIT_BOT_FOR=ada GH_TOKEN=ghs_abc "${kit_checkout}/bin/kit" work 7
+  [ "$status" -eq 0 ]
+  grep --quiet --line-regexp 'issue edit 7 --add-assignee ada' "${FAKE_DIR}/gh.calls"
+  run -1 grep --quiet 'kit-bot' "${FAKE_DIR}/gh.calls"
+  [ "$(git -C worktrees/7-fix-the-thing log --format=%s -1)" = "#7 start: Fix the thing" ]
+  [ "$(git -C worktrees/7-fix-the-thing log --format='%(trailers:key=Agent,valueonly)' -1)" = 'kit-bot[bot]' ]
 }
 
 @test "kit work writes a closing line for the primary issue in the change's body, so no forge is left to guess it" {

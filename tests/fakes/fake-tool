@@ -17,6 +17,9 @@
 # call, empty where it names none. A world that sets FAKE_GH_REPO, its primary's <host>/<owner>/<name>, has every gh
 # call held to it: a call that names another repository, another host, or none is one gh would answer from a
 # repository of its own choosing, so its arguments' first line is appended to ${FAKE_DIR}/gh.unnamed, and it fails.
+#
+# As GitHub does, gh refuses `api user` with a GitHub App's installation token, a GH_TOKEN that starts ghs_: such a
+# token is no user's, and GET /user answers it 403, whatever the routes say.
 
 set -o errexit -o nounset -o pipefail
 tool=${0##*/}
@@ -31,6 +34,11 @@ then
     echo "gh: called for '${GH_REPO:-}' on '${GH_HOST:-}', not ${FAKE_GH_REPO}: $(head -n 1 <<<"$*")" >&2
     exit 1
   fi
+fi
+if [[ "${tool}" == gh && "${GH_TOKEN:-}" == ghs_* && "$*" == 'api user'* ]]
+then
+  echo 'gh: Resource not accessible by integration (HTTP 403)' >&2
+  exit 1
 fi
 filter=''
 forced=false
