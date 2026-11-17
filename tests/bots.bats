@@ -1595,7 +1595,20 @@ HELPER
   route mise 'bin-paths' paths.txt
   run --separate-stderr kit bots run bash -c 'PATH="$1:${PATH}" kit tools run bash -c "command -v gh"' x "${BATS_TEST_TMPDIR}/glob/*/bin"
   [ "$status" -eq 0 ]
-  [[ "$output" == "${TMPDIR}"*/bin/gh ]]
+  [[ "$output" == "${TMPDIR}"/kit.*/bin/gh ]]
+  [[ "$output" != "${BATS_TEST_TMPDIR}/glob/"* ]]
+}
+
+@test "under run, a remote URL with no path after its host adds no rewrite, so no ssh:// URL is rewritten for it" {
+  run-setup
+  export KIT_BOT_FOR=someone
+  printf 'forge: github\n' > kit.yml
+  git remote add bare ssh://git@github.com
+  git remote add bare2 ssh://git@github.com-work
+  run --separate-stderr kit bots run bash -c 'env | grep "^GIT_CONFIG_VALUE_" | sed "s/^[^=]*=//"; git ls-remote --get-url ssh://git@example.com/a/b'
+  [ "$status" -eq 0 ]
+  [ "${lines[-1]}" = ssh://git@example.com/a/b ]
+  ! printf '%s\n' "${lines[@]}" | grep --line-regexp --extended-regexp 'ssh:|ssh:/|ssh://|ssh://git@|git@github.com-work:'
 }
 
 @test "under run, a toolchain's gh comes after the session's, so kit tools run and kit gate keep the bot's renewing gh" {

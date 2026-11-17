@@ -568,8 +568,8 @@ bots:rewrites() {
       prefixes+=("${BASH_REMATCH[0]}")
       # without a port, the scp form of the same host names the same repositories
       [[ "${url%%://*}" != ssh || "${BASH_REMATCH[1]}" == *:* ]] || prefixes+=("${BASH_REMATCH[1]}:")
-    else
-      prefixes+=("${url%%:*}:" "ssh://${url%%:*}/")
+    elif [[ "${url}" =~ ^[^/:]+:. && "${url}" != *://* ]]
+    then prefixes+=("${url%%:*}:" "ssh://${url%%:*}/")
     fi
     for prefix in "${prefixes[@]}"
     do
