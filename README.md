@@ -158,8 +158,8 @@ inside WSL.
 
 Check it with `kit version` and `kit help`.
 
-With Homebrew, which carries stable releases only: `brew trust empowerite/tap`, then
-`brew install empowerite/tap/kit`. Other ways to install, such as mise or a download with `gh`, are in
+With Homebrew, which carries stable releases only: `brew trust empowerite/tap-poc`, then
+`brew install empowerite/tap-poc/kit`. Other ways to install, such as mise or a download with `gh`, are in
 [docs/install.md](docs/install.md). That page also lists what kit needs on the machine, which the download does not
 bring (bash 4.4 or later, git, `jq`, `yq`, and the linters), how kit picks which release to run, and how
 and how `kit trust --clone` works.

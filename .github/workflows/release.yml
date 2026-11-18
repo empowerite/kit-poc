@@ -14,11 +14,11 @@
 #   bin/release fetch     downloads the release just published as any machine does, through the loader, checks it
 #                         against the digest published beside it, and runs kit version in it. A release that no
 #                         machine can fetch fails the run here, where a pre-release finds it before the release.
-#   bin/release tap       writes a release, not a pre-release, into the Homebrew tap, empowerite/homebrew-tap, as a
-#                         pull request it merges. It runs last, so no release a machine cannot fetch reaches the tap.
-#                         The workflow's own token cannot write to another repository, so a GitHub App installed on
-#                         the tap gives the step a token for the run: the variable HOMEBREW_TAP_APP_CLIENT_ID and the
-#                         secret HOMEBREW_TAP_APP_PRIVATE_KEY, the app's contents and pull requests write.
+#   bin/release tap       writes a release, not a pre-release, into the Homebrew tap, empowerite/homebrew-tap-poc,
+#                         as a pull request it merges. It runs last, so no release a machine cannot fetch reaches the
+#                         tap. The workflow's own token cannot write to another repository, so a GitHub App installed
+#                         on the tap gives the step a token for the run: the variable HOMEBREW_TAP_APP_CLIENT_ID and
+#                         the secret HOMEBREW_TAP_APP_PRIVATE_KEY, the app's contents and pull requests write.
 #
 # GitHub does not let a published release change, so a version is tagged once and never again. A release is
 # published here and nowhere else: bin/release publish refuses a release tag anywhere but on the runner, so a
@@ -83,7 +83,7 @@ jobs:
           client-id: ${{ vars.HOMEBREW_TAP_APP_CLIENT_ID }}
           private-key: ${{ secrets.HOMEBREW_TAP_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
-          repositories: homebrew-tap
+          repositories: homebrew-tap-poc
           permission-contents: write
           permission-pull-requests: write
 

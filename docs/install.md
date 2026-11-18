@@ -56,11 +56,11 @@ until you remove it.
 
 ### Homebrew
 
-On macOS or Linux, from the [empowerite tap](https://github.com/empowerite/homebrew-tap):
+On macOS or Linux, from the [empowerite tap](https://github.com/empowerite/homebrew-tap-poc):
 
 ```sh
-brew trust empowerite/tap
-brew install empowerite/tap/kit
+brew trust empowerite/tap-poc
+brew install empowerite/tap-poc/kit
 ```
 
 Until you trust the tap, Homebrew refuses to load any of its formulae, so `brew trust` comes first. Homebrew carries

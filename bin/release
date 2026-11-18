@@ -28,7 +28,7 @@
 #                             after publish, so a release no machine can fetch fails the run that published it.
 #   formula <tag> <sha256>    prints the Homebrew formula, Formula/kit.rb, for the release, from
 #                             projects/homebrew/formula.rb.in, with the digest of the tarball.
-#   tap <tag>                 writes that formula into the tap, empowerite/homebrew-tap, as a pull request that it
+#   tap <tag>                 writes that formula into the tap, empowerite/homebrew-tap-poc, as a pull request that it
 #                             merges: the digest is the one published beside the release, so what Homebrew checks is
 #                             what the loader checks. KIT_TAP names another tap. It runs after fetch, so a release no
 #                             machine can fetch never reaches the tap. GH_TOKEN must be one that can push to the tap,
@@ -242,7 +242,7 @@ case "${verb}" in
       refuse-tag "a release reaches the tap from the release workflow, not from a desk"
     fi
     guard:require tool:gh tool:git
-    tap=${KIT_TAP:-empowerite/homebrew-tap}
+    tap=${KIT_TAP:-empowerite/homebrew-tap-poc}
     name=kit
     work=$(mktemp -d)
     # shellcheck disable=SC2064  # expanded now on purpose: the path is fixed from here on

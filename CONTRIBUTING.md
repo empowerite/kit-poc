@@ -179,7 +179,7 @@ The release workflow runs four commands:
 3. `bin/release fetch` downloads the published release as any machine does, through the loader, checks it against
    that digest, and runs `kit version` in it. A release that cannot be fetched fails the run.
 4. `bin/release tap` writes a release, never a pre-release, into the Homebrew tap,
-   [empowerite/homebrew-tap](https://github.com/empowerite/homebrew-tap), as `Formula/kit.rb` from
+   [empowerite/homebrew-tap-poc](https://github.com/empowerite/homebrew-tap-poc), as `Formula/kit.rb` from
    `projects/homebrew/formula.rb.in`. It opens a pull request on the tap and squash-merges it, so GitHub signs the
    commit that lands, as the tap's rules require. The workflow's own token cannot write to another repository, so a
    GitHub App installed on the tap, with contents and pull requests write, gives the step a token for the run. The

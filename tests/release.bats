@@ -151,13 +151,13 @@ tap-world() {
 
 @test "tap writes the formula with the digest published beside the release, and merges the pull request that carries it" {
   tap-world
-  run env GITHUB_ACTIONS=true KIT_TAP=empowerite/homebrew-tap "${repo_bin}/release" tap release/9.9.9
+  run env GITHUB_ACTIONS=true KIT_TAP=empowerite/homebrew-tap-poc "${repo_bin}/release" tap release/9.9.9
   [ "$status" -eq 0 ]
   [[ "$output" == *"holds kit 9.9.9"* ]]
   git -C tap.git show kit-9.9.9:Formula/kit.rb | grep -q "sha256 \"${FAKE_DIGEST}\""
   git -C tap.git show kit-9.9.9:Formula/kit.rb | grep -q 'class Kit < Formula'
-  grep -q '^pr create --repo empowerite/homebrew-tap --base main --head kit-9.9.9 ' "${fakes}/gh.calls"
-  grep -q '^pr merge kit-9.9.9 --repo empowerite/homebrew-tap --squash --delete-branch$' "${fakes}/gh.calls"
+  grep -q '^pr create --repo empowerite/homebrew-tap-poc --base main --head kit-9.9.9 ' "${fakes}/gh.calls"
+  grep -q '^pr merge kit-9.9.9 --repo empowerite/homebrew-tap-poc --squash --delete-branch$' "${fakes}/gh.calls"
 }
 
 @test "tap writes nothing when the tap already holds the formula" {
