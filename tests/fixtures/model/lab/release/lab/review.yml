@@ -1,0 +1,8 @@
+# A pair with Worktree, and derived relations to Commit and to the stub Ghost.
+entity: Review
+layer: logical
+means: a review of a worktree's change
+relations:
+  worktree: {to: Worktree, inverse: Worktree.reviews}
+  commit: {to: Commit, derived: the commit reviewed}
+  ghost: {to: Ghost, arity: option, derived: who haunts it}

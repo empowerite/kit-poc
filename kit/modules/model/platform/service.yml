@@ -1,0 +1,13 @@
+# A stub: named so that an organization can belong to a service; its fields, its capabilities, and its bindings are not
+# modelled.
+entity: Service
+stub: true
+means: >-
+  One system kit talks to, such as github.com, a self-hosted GitLab, or an Azure DevOps organization, which holds its
+  projects.
+relations:
+  organizations:
+    to: Organization
+    arity: many
+    inverse: Organization.service
+    means: The organizations this service holds that kit knows of, from the remotes of the checkouts on this machine.

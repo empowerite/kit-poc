@@ -1,0 +1,59 @@
+# One directory block of an untracked cache: counts of its untracked names and its subdirectory blocks, its name, and
+# its untracked names, then, grouped by type after every block, three EWAH bitmaps and the stat data and ids of the
+# directories whose third bit is set.
+entity: GitUntrackedDir
+layer: native
+tool: git
+means: One directory as the untracked cache holds it, with the untracked files and directories in it.
+fields:
+  name:
+    type: Bytes
+    source: stored
+    status: unused
+    means: The directory's name within its parent's, empty for the top directory.
+  untracked:
+    type: Bytes
+    arity: many
+    ordered: true
+    source: stored
+    status: unused
+    means: The names of the untracked files and directories in it, in the order git writes them.
+  valid:
+    type: Bool
+    source: stored
+    status: unused
+    means: Whether the block's untracked names are valid, from the first bitmap.
+  check-only:
+    type: Bool
+    source: stored
+    status: unused
+    means: Whether git only checked that the directory holds an untracked file, from the second bitmap.
+  stat:
+    type: Bytes
+    arity: option
+    source: stored
+    status: unused
+    means: The directory's stat data, as an index entry's, when the third bitmap marks its stat data and id valid.
+  exclude-id:
+    type: Hash
+    arity: option
+    source: stored
+    status: unused
+    means: The id of the directory's exclude file, such as .gitignore, when the third bitmap marks it valid.
+relations:
+  cache:
+    to: GitUntrackedCache
+    arity: option
+    inverse: GitUntrackedCache.root
+    means: The untracked cache whose first block this is, none for a subdirectory's block.
+  subdirs:
+    to: GitUntrackedDir
+    arity: many
+    ordered: true
+    inverse: GitUntrackedDir.parent
+    means: The blocks of its subdirectories, in the order git writes them.
+  parent:
+    to: GitUntrackedDir
+    arity: option
+    inverse: GitUntrackedDir.subdirs
+    means: The block of the directory that holds this one, none for the top directory.

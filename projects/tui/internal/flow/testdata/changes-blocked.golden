@@ -1,0 +1,36 @@
+  = kit flow · - empowerite/kit                                      🔎 /search
+  ➀╶───────────────╴➋╶────────────────╮➂╶───────────────╮➃╶──────────────────╮➄╶
+    🎫 issues  7    │ 🔀 changes  3 : │  🏭 builds  4   │  🛬 incoming  7    │ ▹
+  ──────────────────╯                 ╰─────────────────╰────────────────────╰──
+  Changes — Open pull requests, and what stands between each and its merge
+
+  ▾ source · organization · repository 3                 📇 Fields  Default ▼
+    ·────────·──────────────·───────────
+  ▾ github · empowerite · kit 3
+
+    ▸ change  title         author  state  age  checks  thread  labels  branch
+      ·───────·─────────────·───────·──────·────·───────·───────×·──────·──────
+    ▸ 🔀 #2   The first r…  jeffr…  🏁      8d  ✅              kin…  1-the-…
+    ▾ 🔀 #3   A spike on    ada     🔨     90m  🏃      💬 2            3-a-
+              the settings                              unreso          spike
+              file, with a                              lved
+              long title
+              that runs
+              past the
+              width
+         🔨 draft
+         🚦 queued: a check is still running; 0 of 2 passed
+         💬 comments:open: a review thread is unresolved; 2 threads
+         closes no issue
+  □ ▾ 🔀 #4   Lint every    bob     🔥     25h  ❌                      4-lint-
+              module                                                    every- 
+                                                                        module 
+         🔥 failing:gate: a check failed; lint, 1 of 2 passed                  
+         #8          🛫 in flight    2d  🎫 Lint the modules                   
+         #9  👤 bob  🛫 in flight  100s  🎫 Lint the bins                      
+
+
+
+
+
+ = menu - workspace / search ? legend ⌃Q quit │ … │ esc tabs ↑↓ move ⏎ menu ␣·⇧…

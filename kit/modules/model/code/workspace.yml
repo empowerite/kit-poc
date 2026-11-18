@@ -1,0 +1,101 @@
+# A workspace is what kit looks at. A group is kit's own: kit keeps it in workspaces.yml under XDG_CONFIG_HOME, and
+# the last group used and the repositories opened by their folder in kit/workspaces/ under XDG_CACHE_HOME, so a
+# workspace's fields are stored by kit or derived from what it stores, over no native entity. A repository is a
+# workspace of its own as well, with one member, named by the repository.
+# see: docs/workspaces.md
+entity: Workspace
+layer: logical
+means: What kit looks at, one repository or a named group of repositories that move together.
+fields:
+  name:
+    type: Text
+    source: stored
+    status: held
+    read-by: workspaces workspaces.*.name
+    means: >-
+      A group's name, a key of the workspace file's workspaces, or a repository's host and path for a workspace of
+      one repository. The listing of kit workspaces --json holds the groups only, and the --show and --current forms
+      print the name of a workspace of one repository.
+  kind:
+    type: {enum: [group, repository]}
+    source: derived
+    from: whether the name is a group's name in the workspace file, else a repository's host and path or URL
+    status: held
+    read-by: workspaces --show kind
+    means: Whether the workspace is a group or one repository.
+  repos:
+    type: Text
+    arity: many
+    ordered: true
+    source: stored
+    status: unused
+    means: >-
+      The entries of a group's repos, in the workspace file's order, each a member, a git URL, or a pattern of
+      members, which kit reads only to find the members.
+  exclude:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: The entries of a group's exclude, members kit takes back out, which kit reads only to find the members.
+  member-names:
+    type: Text
+    arity: many
+    ordered: true
+    source: derived
+    from: the repos entries, each spelled as a member, once, in the file's order, without those exclude names
+    status: held
+    read-by: workspaces workspaces.*.repos
+    means: The group's members by their host and path, the names the members relation stands for.
+  member-count:
+    type: Int
+    source: derived
+    from: the number of member-names
+    status: held
+    read-by: workspaces workspaces.*.members
+    means: How many members the group has.
+  favorite:
+    type: Bool
+    source: derived
+    from: whether the workspace file's favorites list names the workspace
+    status: held
+    read-by: workspaces workspaces.*.favorite
+    means: Whether the workspace is among the favorites, which kit keeps at hand in the workspace menu.
+  last-used:
+    type: Bool
+    source: stored
+    status: unused
+    means: >-
+      Whether the workspace is the last group used, which kit keeps in kit/workspaces/last under XDG_CACHE_HOME and
+      starts on outside a repository. Kit prints no key for it, only start-reason last.
+  start-reason:
+    type: {enum: [given, repository, last]}
+    arity: option
+    source: derived
+    from: >-
+      the workspace kit workspaces --current settles on: one given by --workspace=, the repository kit runs in, or
+      the last group used
+    status: held
+    read-by: workspaces --current why
+    means: >-
+      Why kit starts on this workspace where it runs, none for a workspace kit does not start on. When kit starts on
+      no workspace, the --current form prints why as none, or as given for --workspace=none, beside kind none.
+  recent-desks:
+    type: Path
+    arity: many
+    ordered: true
+    source: stored
+    status: held
+    read-by: workspaces --current recent.*.checkout
+    means: >-
+      For a workspace of one repository, the desks kit keeps among the recent, one for each clone of the repository
+      opened by its folder, newest first, as kit stores them in kit/workspaces/recent under XDG_CACHE_HOME, the ten
+      opened last of every repository, and prints those whose working tree is there.
+relations:
+  members:
+    to: Repository
+    arity: many
+    inverse: Repository.workspaces
+    means: >-
+      The repositories the workspace holds: a group's members, none for a group whose entries all are excluded, and
+      one for a workspace of one repository.

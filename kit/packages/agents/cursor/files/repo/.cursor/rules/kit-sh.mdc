@@ -1,0 +1,7 @@
+---
+description: The kit's rule for POSIX shell: #!/bin/sh scripts, written only where bash cannot be counted on
+globs:
+alwaysApply: false
+---
+Before you change a file this rule is attached to, run `kit context <path>` and read every file it prints, among
+them @.kit/rules/sh.md.

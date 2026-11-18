@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# fake-tool - stands in for a forge's command-line tool in the conformance suite (test helper)
+# ----------------------------------------------------------------------------------------------------------------------
+# Linked as gh or glab on PATH. Every call is appended to ${FAKE_DIR}/<tool>.calls. The response is the first line
+# of ${FAKE_DIR}/<tool>.routes whose glob matches the arguments joined by spaces: "<glob>\t<file>", the file's
+# contents printed, or "<glob>\t!<status>" to fail with that status, or "<glob>\t!<status> <file>" to fail with it
+# after printing the file on stderr, as a tool says why it failed, or "<glob>\t!<status> ><file>" to fail with it after
+# printing the file on stdout, as gh prints a 304's headers with --include and still exits 1. A gh call carrying --jq
+# has the filter applied to the response, as gh does, so the provider's own filter is what is tested. An unrouted
+# call fails.
+#
+# As gh does, the fake colors an unfiltered response when CLICOLOR_FORCE is set to other than 0 or GH_FORCE_TTY is set:
+# it wraps the response in a color and its reset. A provider that lets a desk's forcing reach its tool is caught by
+# the JSON it then cannot parse.
+#
+# The repository a gh call names, in GH_HOST and GH_REPO, is appended to ${FAKE_DIR}/gh.named, "<host>\t<repo>" a
+# call, empty where it names none. A world that sets FAKE_GH_REPO, its primary's <host>/<owner>/<name>, has every gh
+# call held to it: a call that names another repository, another host, or none is one gh would answer from a
+# repository of its own choosing, so its arguments' first line is appended to ${FAKE_DIR}/gh.unnamed, and it fails.
+#
+# As GitHub does, gh refuses `api user` with a GitHub App's installation token, a GH_TOKEN that starts ghs_: such a
+# token is no user's, and GET /user answers it 403, whatever the routes say.
+
+set -o errexit -o nounset -o pipefail
+tool=${0##*/}
+printf '%s\n' "$*" >> "${FAKE_DIR}/${tool}.calls"
+if [[ "${tool}" == gh ]]
+then
+  printf '%s\t%s\n' "${GH_HOST:-}" "${GH_REPO:-}" >> "${FAKE_DIR}/gh.named"
+  if [[ -n "${FAKE_GH_REPO:-}" ]] \
+    && [[ "${GH_REPO:-}" != "${FAKE_GH_REPO}" || "${GH_HOST:-}" != "${FAKE_GH_REPO%%/*}" ]]
+  then
+    head -n 1 <<<"$*" >> "${FAKE_DIR}/gh.unnamed"
+    echo "gh: called for '${GH_REPO:-}' on '${GH_HOST:-}', not ${FAKE_GH_REPO}: $(head -n 1 <<<"$*")" >&2
+    exit 1
+  fi
+fi
+if [[ "${tool}" == gh && "${GH_TOKEN:-}" == ghs_* && "$*" == 'api user'* ]]
+then
+  echo 'gh: Resource not accessible by integration (HTTP 403)' >&2
+  exit 1
+fi
+filter=''
+forced=false
+[[ ( -n "${CLICOLOR_FORCE:-}" && "${CLICOLOR_FORCE}" != 0 ) || -n "${GH_FORCE_TTY:-}" ]] && forced=true
+args=("$@")
+for (( i = 0; i < ${#args[@]}; i++ ))
+do
+  [[ "${args[i]}" == --jq ]] && filter=${args[i + 1]}
+done
+while IFS=$'\t' read -r glob response
+do
+  # shellcheck disable=SC2053  # the route is a glob on purpose
+  [[ -n "${glob}" && "$*" == ${glob} ]] || continue
+  if [[ "${response}" == '!'* ]]
+  then
+    response=${response#!}
+    case "${response}" in
+      (*' >'*) cat "${FAKE_DIR}/${response#* >}" ;;
+      (*' '*) cat "${FAKE_DIR}/${response#* }" >&2 ;;
+    esac
+    exit "${response%% *}"
+  fi
+  if [[ -n "${filter}" ]]
+  then
+    jq --raw-output "${filter}" "${FAKE_DIR}/${response}"
+  elif [[ "${forced}" == true ]]
+  then
+    printf '\x1b[1;37m' && cat "${FAKE_DIR}/${response}" && printf '\x1b[m'
+  else
+    cat "${FAKE_DIR}/${response}"
+  fi
+  exit 0
+done < "${FAKE_DIR}/${tool}.routes"
+echo "${tool}: unrouted call: $*" >&2
+exit 1
+
+# ----------------------------------------------------------------------------------------------------------------------

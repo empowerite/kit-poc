@@ -1,0 +1,51 @@
+# A blob object: content alone. Its name, its mode, and whether it is a symlink are the tree entry's, never the blob's.
+entity: GitBlob
+layer: native
+tool: git
+means: The bytes of one file or one symlink's target, stored under the hash of those bytes.
+fields:
+  id:
+    type: Hash
+    source: derived
+    from: the hash of "blob <size>", a NUL byte, and the content, in the repository's object format, SHA-1 or SHA-256
+    status: held
+    read-by: facts tree.*.blob
+    means: >-
+      The object's name, which kit facts gives for each path of the tree, except that for a gitlink path the same key
+      holds the submodule's commit id.
+  size:
+    type: Int
+    source: derived
+    from: the length of the content in bytes, as git cat-file -s prints it
+    status: held
+    read-by: facts tree.*.size
+    means: The content's length in bytes, which kit facts gives for each path of the tree and as 0 for a gitlink path.
+  content:
+    type: Bytes
+    source: stored
+    status: held
+    read-by: facts tree.*.text
+    means: >-
+      The bytes git stores, which kit facts gives as text, decoded as UTF-8 by jq, for a file of at most 65536 bytes
+      with no NUL whose path kit.yml names under facts.read.
+relations:
+  named-by:
+    to: GitTreeEntry
+    arity: many
+    derived: the tree entries whose target is Blob(this) or Symlink(this)
+    means: The tree entries that name this blob, as a file or as a symlink.
+  tagged-by:
+    to: GitTag
+    arity: many
+    derived: the annotated tags whose target is Blob(this)
+    means: The annotated tags whose object header names this blob.
+  referenced-by:
+    to: GitRef
+    arity: many
+    derived: the refs whose target is Blob(this)
+    means: The refs that name this blob, such as a lightweight tag.
+  staged-by:
+    to: GitIndexEntry
+    arity: many
+    derived: the index entries whose target is Blob(this) or Symlink(this)
+    means: The index entries that stage this blob, as a file or as a symlink.

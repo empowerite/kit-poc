@@ -1,0 +1,7 @@
+# A stub: the state of a cherry-pick or a revert of several commits, named so the model counts it as a gap; its files
+# are not modelled.
+entity: GitSequencerState
+stub: true
+means: >-
+  sequencer/ of a worktree's git directory: the commits a git cherry-pick or git revert of several commits has left
+  to apply, which --continue reads.

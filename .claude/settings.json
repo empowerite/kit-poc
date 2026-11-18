@@ -1,0 +1,65 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "kit context --claude || printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"kit: no rule was read for this file, because kit did not answer. Put kit on PATH, or run kit context <path>.\"}}'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "codegraph prompt-hook"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "mcp__codegraph__*"
+    ],
+    "deny": [
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git rebase *)",
+      "Bash(git worktree add *)",
+      "Bash(git checkout -b *)",
+      "Bash(git switch -c *)",
+      "Bash(git worktree remove *)",
+      "Bash(git branch -D *)",
+      "Bash(git checkout main *)",
+      "Bash(git switch main *)",
+      "Bash(git reset --hard *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(gh pr merge *)",
+      "Bash(glab mr merge *)",
+      "Bash(az repos pr update *)",
+      "Bash(git merge *)",
+      "Bash(git restore *)",
+      "Bash(git clean *)",
+      "Bash(git stash *)",
+      "Bash(git checkout -B *)",
+      "Bash(git switch -C *)",
+      "Bash(git switch --create *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git -C * commit *)",
+      "Bash(git -C * push *)",
+      "Bash(git -C * rebase *)",
+      "Bash(git -C * merge *)",
+      "Bash(git -C * reset --hard *)",
+      "Bash(git -C * worktree add *)",
+      "Bash(git -C * worktree remove *)",
+      "Bash(kit trust *)"
+    ]
+  }
+}

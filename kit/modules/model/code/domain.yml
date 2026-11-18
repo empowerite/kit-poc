@@ -1,0 +1,21 @@
+# The Code domain of the model: kit's own entities over git's, which the Git, Git repository, and Git configuration
+# domains hold, and over the forge's change, which the Forge domain holds. The layout puts a repository under its
+# organization and its workspaces, so their lines reach its top edge, its remotes, clones, and changes under it, and a
+# clone's branches, worktrees, commits, and tags under those, with a worktree's head at the bottom, beside the unborn
+# branch it may hold.
+name: Code
+intro: The repositories, clones, worktrees, branches, commits, tags, and changes kit works with, over git and the forge.
+layout:
+  Organization: {row: 0, col: 0}
+  Workspace: {row: 0, col: 2}
+  Repository: {row: 1, col: 1}
+  Remote: {row: 2, col: 0}
+  Checkout: {row: 2, col: 1}
+  Change: {row: 2, col: 2}
+  Review: {row: 2, col: 3}
+  Branch: {row: 3, col: 0}
+  Worktree: {row: 3, col: 1}
+  Commit: {row: 3, col: 2}
+  Tag: {row: 3, col: 3}
+  UnbornBranch: {row: 4, col: 0}
+  Head: {row: 4, col: 1}

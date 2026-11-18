@@ -1,0 +1,6 @@
+# A stub: what git rerere records, named so the model counts it as a gap; its entries are not modelled.
+entity: GitRerereCache
+stub: true
+means: >-
+  rr-cache/ of the common directory, each conflict git rerere recorded and how it was resolved, and MERGE_RR of a
+  worktree's git directory, the conflicts of the merge under way.

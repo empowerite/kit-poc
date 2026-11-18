@@ -1,0 +1,109 @@
+# One setting, as git config --list --show-scope --show-origin prints it: its scope, where it came from, and
+# key=value. git reads the scopes in order, system, global, local, worktree, then command, and within a file from the
+# top, so for a key that takes one value the last entry wins. An entry of an included file has the scope of the file
+# that includes it. The views of a worktree, its remotes, branch settings, and identity, are what git config
+# answers when run in that worktree. A local entry is part of the views of every worktree of its repository, a
+# worktree entry only of its own worktree's, and a system or global entry of every worktree of every repository
+# that reads it. A command entry, from git -c, is part of no stored view, because it lasts one command.
+entity: GitConfigEntry
+layer: native
+tool: git
+means: One key and its value in a configuration file or on a command line, with its scope and where it came from.
+fields:
+  scope:
+    type: {enum: [system, global, local, worktree, command]}
+    source: stored
+    status: unused
+    means: >-
+      Which configuration it belongs to: the system's, the user's ~/.gitconfig or XDG file, the repository's config,
+      a worktree's config.worktree, or the command's own, which also holds a file that --file or --blob names.
+  origin:
+    type: {enum: [file, blob, standard input, command line]}
+    source: stored
+    status: unused
+    means: The kind of place git read it from, as --show-origin prints before the colon.
+  file:
+    type: Path
+    arity: option
+    source: stored
+    status: unused
+    means: The file that holds it, an included file for an entry under an include or includeIf section.
+  blob:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The blob that holds it, as --blob names it, such as HEAD:.gitmodules.
+  key:
+    type: Text
+    source: stored
+    status: unused
+    means: >-
+      The key, as section.subsection.name, which git prints with the section and the name in lower case and the
+      subsection as written.
+  section:
+    type: Text
+    source: derived
+    from: the key up to its first dot
+    status: unused
+    means: The section, as remote, which git matches without regard to case.
+  subsection:
+    type: Text
+    arity: option
+    source: derived
+    from: the key between its first and its last dot
+    status: unused
+    means: The subsection, as origin in remote.origin.url, which git matches by case.
+  name:
+    type: Text
+    source: derived
+    from: the key after its last dot
+    status: unused
+    means: The variable's name, as url, which git matches without regard to case.
+  value:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The value as written, none for a key written with no equals sign, which git reads as true.
+relations:
+  dir:
+    to: GitDir
+    arity: option
+    inverse: GitDir.config
+    means: >-
+      The repository whose own config file, or a file it includes, holds this entry, none for an entry of the
+      system, global, worktree, or command scope.
+  worktree-dir:
+    to: GitWorktreeDir
+    arity: option
+    inverse: GitWorktreeDir.config
+    means: The worktree's git directory whose config.worktree holds this entry, for an entry of the worktree scope.
+  remotes:
+    to: GitRemoteConfig
+    arity: many
+    inverse: GitRemoteConfig.entries
+    means: >-
+      The remotes, one a worktree, of each worktree's git config answer this entry is part of and whose
+      remote.<name> section holds it.
+  branches:
+    to: GitBranchConfig
+    arity: many
+    inverse: GitBranchConfig.entries
+    means: >-
+      The branch settings, one a worktree, of each worktree's git config answer this entry is part of and whose
+      branch.<name> section holds it.
+  users:
+    to: GitUserConfig
+    arity: many
+    inverse: GitUserConfig.entries
+    means: >-
+      The identity and signing settings, one a worktree, of each worktree's git config answer this entry is part
+      of, for an entry of one of their keys.
+  submodules:
+    to: GitSubmodule
+    arity: many
+    inverse: GitSubmodule.entries
+    means: >-
+      The submodules whose repository's .gitmodules or configuration this entry is part of and whose
+      submodule.<name> section holds it.

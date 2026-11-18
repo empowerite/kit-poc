@@ -1,0 +1,89 @@
+# A remote is a checkout's: kit reads the remote.<name> settings of the checkout's main worktree, so two clones of one
+# repository have a remote each. The primary remote is the one kit reads issues and changes from, origin unless the
+# primary setting in kit.yml names another.
+entity: Remote
+layer: logical
+over: [GitRemoteConfig]
+means: A named URL a checkout fetches from and pushes to, with the forge it is on.
+fields:
+  name:
+    type: Text
+    source: derived
+    from: GitRemoteConfig.name
+    status: held
+    read-by: workspace remotes remote
+    means: The remote's name, as origin.
+  url:
+    type: Text
+    arity: option
+    source: derived
+    from: GitRemoteConfig.fetch-url
+    status: held
+    read-by: workspace remotes url
+    means: The URL a fetch reads from, none for a remote with no URL.
+  push-url:
+    type: Text
+    arity: option
+    source: derived
+    from: GitRemoteConfig.push-url
+    status: held
+    read-by: workspace remotes push
+    means: The URL a push goes to, none when it is the fetch URL.
+  forge:
+    type: {enum: [github, gitlab, ado]}
+    arity: option
+    source: derived
+    from: GitRemoteConfig.fetch-url
+    status: held
+    read-by: workspace remotes forge
+    means: >-
+      The forge the remote is on, from the forge and forges settings of kit.yml, else the URL's host, else the
+      runner's server or a forge tool's login, none when nothing names one.
+  default-branch:
+    type: Text
+    arity: option
+    source: derived
+    from: GitRemoteConfig.default-branch
+    status: held
+    read-by: workspace remotes default
+    means: The name of the remote's default branch, none while no fetch has recorded the remote's HEAD.
+  branch-count:
+    type: Int
+    source: derived
+    from: GitRef.remote
+    status: held
+    read-by: workspace remotes branches
+    means: How many remote-tracking branches the checkout holds for the remote, its HEAD not counted.
+  primary:
+    type: Bool
+    source: derived
+    from: the primary setting in kit.yml, else origin
+    status: held
+    read-by: workspace remotes primary
+    means: Whether this is the primary remote, which kit prints as "primary" or null.
+  reference:
+    type: Text
+    arity: option
+    source: derived
+    from: the repository's name and the remote's name
+    status: planned
+    means: >-
+      The remote's reference, its repository's reference and its name, none where the remote has no repository,
+      because its URL names no host.
+relations:
+  checkout:
+    to: Checkout
+    inverse: Checkout.remotes
+    means: The checkout whose configuration defines the remote.
+  repository:
+    to: Repository
+    arity: option
+    inverse: Repository.remotes
+    means: >-
+      The repository the remote's URL names, none for a URL that names no host, such as a path on this machine, or
+      a path of one segment.
+  branches:
+    to: Branch
+    arity: many
+    inverse: Branch.remote
+    means: The remote-tracking branches the checkout holds for the remote, as the last fetch left them.

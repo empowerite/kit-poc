@@ -1,0 +1,296 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1451 1623" width="1451" height="1623" role="img" aria-labelledby="title desc">
+  <title id="title">Code</title>
+  <desc id="desc">Entities of the Code domain: Branch, Change, Checkout, Commit, Head, Organization, Remote, Repository, Review, Tag, UnbornBranch, Workspace, and Worktree.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+    text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; fill: #0f172a; }
+    .title { font-size: 24px; font-weight: 700; }
+    .intro { font-size: 13.5px; fill: #475569; }
+    .h { font-size: 15px; font-weight: 700; }
+    .w { font-size: 12.5px; fill: #1e293b; }
+    .ho { font-size: 12px; fill: #475569; }
+    .p { font-size: 12px; }
+    .m { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11.5px; fill: #334155; }
+    .f { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; fill: #334155; }
+    .lbl { font-size: 11.5px; fill: #475569; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
+    .far { fill: #94a3b8; }
+    .edge { stroke: #475569; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .both { marker-start: url(#arrow); }
+    .dash { stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+  <rect x="0.5" y="0.5" width="1450" height="1622" rx="14" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="32" y="22" width="6" height="28" rx="3" fill="#15803d"/>
+  <text class="title" x="50" y="45" style="fill:#14532d">Code</text>
+  <text class="intro" x="32" y="72">The repositories, clones, worktrees, branches, commits, tags, and changes kit works with, over git and the forge.</text>
+  <g transform="translate(1188.6,30)"><circle cx="5" cy="0" r="4.5" fill="#16a34a"/><text class="ho" x="16" y="3.5" style="font-size:11.5px">held by kit</text><circle cx="112" cy="0" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/><text class="ho" x="123" y="3.5" style="font-size:11.5px">not held yet</text></g>
+  <path class="edge both" d="M 200.6 980 L 200.6 886 L 767.6 886 L 767.6 852"/>
+  <path class="edge both" d="M 133.1 980 L 133.1 892 L 451.8 892 L 451.8 852"/>
+  <path class="edge both" d="M 268 1082.3 L 282 1082.3 L 282 1154.7 L 268 1154.7"/>
+  <path class="edge both" d="M 65.7 980 L 65.7 898 L 99.4 898 L 99.4 852"/>
+  <path class="edge both" d="M 234.3 980 L 234.3 904 L 806.9 904 L 806.9 852"/>
+  <path class="edge both" d="M 173.6 1227 L 173.6 1273 L 775.4 1273 L 775.4 1227"/>
+  <path class="edge dash" d="M 79.2 1227 L 79.2 1279 L 467.6 1279 L 467.6 1227"/>
+  <path class="edge both" d="M 846.2 852 L 846.2 910 L 885.6 910 L 885.6 980"/>
+  <path class="edge" d="M 964.2 768.5 L 988.2 768.5"/>
+  <path class="edge both" d="M 846.2 655 L 846.2 621 L 617 621 L 617 587"/>
+  <path class="edge both" d="M 924.9 852 L 924.9 916 L 1340 916 L 1340 852"/>
+  <path class="edge dash" d="M 499 852 L 499 922 L 522.6 922 L 522.6 980"/>
+  <path class="edge dash" d="M 546.2 852 L 546.2 928 L 569.8 928 L 569.8 980"/>
+  <path class="edge both" d="M 475.4 852 L 475.4 934 L 166.9 934 L 166.9 852"/>
+  <path class="edge both" d="M 522.6 655 L 522.6 627 L 569.8 627 L 569.8 587"/>
+  <path class="edge both" d="M 640.6 852 L 640.6 940 L 1261.3 940 L 1261.3 980"/>
+  <path class="edge both" d="M 593.4 852 L 593.4 946 L 617 946 L 617 980"/>
+  <path class="edge dash" d="M 822.6 1227 L 822.6 1285 L 220.8 1285 L 220.8 1227"/>
+  <path class="edge both" d="M 964.2 1082.3 L 978.2 1082.3 L 978.2 1154.7 L 964.2 1154.7"/>
+  <path class="edge both" d="M 917 1227 L 917 1291 L 1300.6 1291 L 1300.6 1227"/>
+  <path class="edge dash" d="M 869.8 1227 L 869.8 1297 L 624.9 1297 L 624.9 1227"/>
+  <path class="edge both" d="M 546.2 1331 L 546.2 1303 L 585.6 1303 L 585.6 1227"/>
+  <path class="edge both" d="M 268 183.3 L 282 183.3 L 282 233.5 L 268 233.5"/>
+  <path class="edge both" d="M 150 334 L 150 359 L 506.9 359 L 506.9 390"/>
+  <path class="edge" d="M 268 283.8 L 292 283.8"/>
+  <path class="edge both" d="M 150 655 L 150 633 L 475.4 633 L 475.4 587"/>
+  <path class="edge both" d="M 585.6 390 L 585.6 365 L 846.2 365 L 846.2 334"/>
+  <path class="edge dash" d="M 126.4 1331 L 126.4 1309 L 506.9 1309 L 506.9 1227"/>
+  <rect x="32" y="980" width="236" height="247" rx="9" fill="#ffffff"/>
+  <path d="M 32 1010 V 989 A 9 9 0 0 1 41 980 H 259 A 9 9 0 0 1 268 989 V 1010 Z" fill="#dcfce7"/>
+  <line x1="32" y1="1010" x2="268" y2="1010" stroke="#15803d" stroke-opacity=".35"/>
+  <text class="h" x="44" y="1000.5" style="fill:#14532d">Branch</text>
+  <text class="w" x="44" y="1034">A named line of commits in a</text>
+  <text class="w" x="44" y="1051">checkout, local or on a remote, with</text>
+  <text class="w" x="44" y="1068">its upstream.</text>
+  <text class="ho" x="44" y="1090">logical</text>
+  <text class="ho" x="44" y="1106">over: GitRef, GitBranchConfig</text>
+  <text class="ho" x="44" y="1128">6 held, 1 planned, 0 unused</text>
+  <line x1="44" y1="1193" x2="256" y2="1193" stroke="#e2e8f0"/>
+  <circle cx="51" cy="1203.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="62" y="1207">kit workspace</text>
+  <rect x="32" y="980" width="236" height="247" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+  <rect x="728.2" y="655" width="236" height="197" rx="9" fill="#ffffff"/>
+  <path d="M 728.2 685 V 664 A 9 9 0 0 1 737.2 655 H 955.2 A 9 9 0 0 1 964.2 664 V 685 Z" fill="#dcfce7"/>
+  <line x1="728.2" y1="685" x2="964.2" y2="685" stroke="#15803d" stroke-opacity=".35"/>
+  <text class="h" x="740.2" y="675.5" style="fill:#14532d">Change</text>
+  <text class="w" x="740.2" y="709">A proposal to merge a branch into</text>
+  <text class="w" x="740.2" y="726">another on a forge, with its reviews</text>
+  <text class="w" x="740.2" y="743">and its checks.</text>
+  <text class="ho" x="740.2" y="765">logical</text>
+  <text class="ho" x="740.2" y="781">over: ForgeChange</text>
+  <text class="ho" x="740.2" y="803">21 held, 1 planned, 0 unused</text>
+  <line x1="740.2" y1="818" x2="952.2" y2="818" stroke="#e2e8f0"/>
+  <circle cx="747.2" cy="828.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="758.2" y="832">kit changes, kit flow</text>
+  <rect x="728.2" y="655" width="236" height="197" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+  <rect x="428.2" y="655" width="236" height="197" rx="9" fill="#ffffff"/>
+  <path d="M 428.2 685 V 664 A 9 9 0 0 1 437.2 655 H 655.2 A 9 9 0 0 1 664.2 664 V 685 Z" fill="#dcfce7"/>
+  <line x1="428.2" y1="685" x2="664.2" y2="685" stroke="#15803d" stroke-opacity=".35"/>
+  <text class="h" x="440.2" y="675.5" style="fill:#14532d">Checkout</text>
+  <text class="w" x="440.2" y="709">A clone of a repository on this</text>
+  <text class="w" x="440.2" y="726">machine, whose main worktree is</text>
+  <text class="w" x="440.2" y="743">the desk.</text>
+  <text class="ho" x="440.2" y="765">logical</text>
+  <text class="ho" x="440.2" y="781">over: GitDir</text>
+  <text class="ho" x="440.2" y="803">1 held, 0 planned, 1 unused</text>
+  <line x1="440.2" y1="818" x2="652.2" y2="818" stroke="#e2e8f0"/>
+  <circle cx="447.2" cy="828.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="458.2" y="832">kit workspace</text>
+  <rect x="428.2" y="655" width="236" height="197" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+  <rect x="728.2" y="980" width="236" height="247" rx="9" fill="#ffffff"/>
+  <path d="M 728.2 1010 V 989 A 9 9 0 0 1 737.2 980 H 955.2 A 9 9 0 0 1 964.2 989 V 1010 Z" fill="#dcfce7"/>
+  <line x1="728.2" y1="1010" x2="964.2" y2="1010" stroke="#15803d" stroke-opacity=".35"/>
+  <text class="h" x="740.2" y="1000.5" style="fill:#14532d">Commit</text>
+  <text class="w" x="740.2" y="1034">A snapshot of a repository&apos;s files,</text>
+  <text class="w" x="740.2" y="1051">with its message, its author, and its</text>
+  <text class="w" x="740.2" y="1068">parents, named by its id.</text>
+  <text class="ho" x="740.2" y="1090">logical</text>
+  <text class="ho" x="740.2" y="1106">over: GitCommit</text>
+  <text class="ho" x="740.2" y="1128">7 held, 2 planned, 0 unused</text>
+  <line x1="740.2" y1="1193" x2="952.2" y2="1193" stroke="#e2e8f0"/>
+  <circle cx="747.2" cy="1203.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="758.2" y="1207">kit workspace</text>
+  <rect x="728.2" y="980" width="236" height="247" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+  <rect x="428.2" y="1331" width="236" height="260" rx="9" fill="#ffffff"/>
+  <path d="M 428.2 1361 V 1340 A 9 9 0 0 1 437.2 1331 H 655.2 A 9 9 0 0 1 664.2 1340 V 1361 Z" fill="#dcfce7"/>
+  <line x1="428.2" y1="1361" x2="664.2" y2="1361" stroke="#15803d" stroke-opacity=".35"/>
+  <text class="h" x="440.2" y="1351.5" style="fill:#14532d">Head</text>
+  <text class="w" x="440.2" y="1385">What a worktree is on, a branch, a</text>
+  <text class="w" x="440.2" y="1402">commit with no branch, or the name</text>
+  <text class="w" x="440.2" y="1419">of a branch that has no commit yet,</text>
+  <text class="w" x="440.2" y="1436">which kit prints as the worktree&apos;s</text>
+  <text class="w" x="440.2" y="1453">branch, detached, and head-id.</text>
+  <text class="ho" x="440.2" y="1475">logical</text>
+  <text class="ho" x="440.2" y="1491">over: GitHead</text>
+  <text class="m" x="440.2" y="1512">Detached(commit: Commit)</text>
+  <text class="m" x="440.2" y="1527">OnBranch(branch: Branch)</text>
+  <text class="m" x="440.2" y="1542">Unborn(ref: UnbornBranch)</text>
+  <line x1="440.2" y1="1557" x2="652.2" y2="1557" stroke="#e2e8f0"/>
+  <circle cx="447.2" cy="1567.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="458.2" y="1571">not held yet</text>
+  <rect x="428.2" y="1331" width="236" height="260" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+  <rect x="32" y="103" width="236" height="231" rx="9" fill="#ffffff"/>
+  <path d="M 32 133 V 112 A 9 9 0 0 1 41 103 H 259 A 9 9 0 0 1 268 112 V 133 Z" fill="#dcfce7"/>
+  <line x1="32" y1="133" x2="268" y2="133" stroke="#15803d" stroke-opacity=".35"/>
+  <text class="h" x="44" y="123.5" style="fill:#14532d">Organization</text>
+  <text class="w" x="44" y="157">The owner a service keeps</text>
+  <text class="w" x="44" y="174">repositories under: a GitHub user</text>
+  <text class="w" x="44" y="191">or organization, a GitLab group,</text>
+  <text class="w" x="44" y="208">which may nest in another, or an</text>
+  <text class="w" x="44" y="225">Azure DevOps project.</text>
+  <text class="ho" x="44" y="247">logical</text>
+  <text class="ho" x="44" y="263">over: GitRemoteConfig</text>
+  <text class="ho" x="44" y="285">1 held, 1 planned, 0 unused</text>
+  <line x1="44" y1="300" x2="256" y2="300" stroke="#e2e8f0"/>
+  <circle cx="51" cy="310.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="62" y="314">kit workspace</text>
+  <rect x="32" y="103" width="236" height="231" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+  <rect x="32" y="655" width="236" height="197" rx="9" fill="#ffffff"/>
+  <path d="M 32 685 V 664 A 9 9 0 0 1 41 655 H 259 A 9 9 0 0 1 268 664 V 685 Z" fill="#dcfce7"/>
+  <line x1="32" y1="685" x2="268" y2="685" stroke="#15803d" stroke-opacity=".35"/>
+  <text class="h" x="44" y="675.5" style="fill:#14532d">Remote</text>
+  <text class="w" x="44" y="709">A named URL a checkout fetches</text>
+  <text class="w" x="44" y="726">from and pushes to, with the forge it</text>
+  <text class="w" x="44" y="743">is on.</text>
+  <text class="ho" x="44" y="765">logical</text>
+  <text class="ho" x="44" y="781">over: GitRemoteConfig</text>
+  <text class="ho" x="44" y="803">7 held, 1 planned, 0 unused</text>
+  <line x1="44" y1="818" x2="256" y2="818" stroke="#e2e8f0"/>
+  <circle cx="51" cy="828.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="62" y="832">kit workspace</text>
+  <rect x="32" y="655" width="236" height="197" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+  <rect x="428.2" y="390" width="236" height="197" rx="9" fill="#ffffff"/>
+  <path d="M 428.2 420 V 399 A 9 9 0 0 1 437.2 390 H 655.2 A 9 9 0 0 1 664.2 399 V 420 Z" fill="#dcfce7"/>
+  <line x1="428.2" y1="420" x2="664.2" y2="420" stroke="#15803d" stroke-opacity=".35"/>
+  <text class="h" x="440.2" y="410.5" style="fill:#14532d">Repository</text>
+  <text class="w" x="440.2" y="444">A repository on a forge or another</text>
+  <text class="w" x="440.2" y="461">host, named by its host and its path,</text>
+  <text class="w" x="440.2" y="478">such as github.com/example/repo.</text>
+  <text class="ho" x="440.2" y="500">logical</text>
+  <text class="ho" x="440.2" y="516">over: GitRemoteConfig</text>
+  <text class="ho" x="440.2" y="538">7 held, 0 planned, 1 unused</text>
+  <line x1="440.2" y1="553" x2="652.2" y2="553" stroke="#e2e8f0"/>
+  <circle cx="447.2" cy="563.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="458.2" y="567">kit workspace</text>
+  <rect x="428.2" y="390" width="236" height="197" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+  <rect x="1182.6" y="655" width="236" height="197" rx="9" fill="#ffffff"/>
+  <path d="M 1182.6 685 V 664 A 9 9 0 0 1 1191.6 655 H 1409.6 A 9 9 0 0 1 1418.6 664 V 685 Z" fill="#dcfce7"/>
+  <line x1="1182.6" y1="685" x2="1418.6" y2="685" stroke="#15803d" stroke-opacity=".35"/>
+  <text class="h" x="1194.6" y="675.5" style="fill:#14532d">Review</text>
+  <text class="w" x="1194.6" y="709">One reviewer&apos;s request, approval,</text>
+  <text class="w" x="1194.6" y="726">request for changes, or comment</text>
+  <text class="w" x="1194.6" y="743">on a change.</text>
+  <text class="ho" x="1194.6" y="765">logical</text>
+  <text class="ho" x="1194.6" y="781">over: ForgeChange</text>
+  <text class="ho" x="1194.6" y="803">3 held, 1 planned, 0 unused</text>
+  <line x1="1194.6" y1="818" x2="1406.6" y2="818" stroke="#e2e8f0"/>
+  <circle cx="1201.6" cy="828.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="1212.6" y="832">kit changes</text>
+  <rect x="1182.6" y="655" width="236" height="197" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+  <rect x="1182.6" y="980" width="236" height="247" rx="9" fill="#ffffff"/>
+  <path d="M 1182.6 1010 V 989 A 9 9 0 0 1 1191.6 980 H 1409.6 A 9 9 0 0 1 1418.6 989 V 1010 Z" fill="#dcfce7"/>
+  <line x1="1182.6" y1="1010" x2="1418.6" y2="1010" stroke="#15803d" stroke-opacity=".35"/>
+  <text class="h" x="1194.6" y="1000.5" style="fill:#14532d">Tag</text>
+  <text class="w" x="1194.6" y="1034">A name for one commit as a rule,</text>
+  <text class="w" x="1194.6" y="1051">annotated with a tagger and a</text>
+  <text class="w" x="1194.6" y="1068">message, or lightweight.</text>
+  <text class="ho" x="1194.6" y="1090">logical</text>
+  <text class="ho" x="1194.6" y="1106">over: GitRef, GitTag</text>
+  <text class="ho" x="1194.6" y="1128">5 held, 1 planned, 0 unused</text>
+  <line x1="1194.6" y1="1193" x2="1406.6" y2="1193" stroke="#e2e8f0"/>
+  <circle cx="1201.6" cy="1203.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="1212.6" y="1207">kit workspace</text>
+  <rect x="1182.6" y="980" width="236" height="247" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+  <rect x="32" y="1331" width="236" height="260" rx="9" fill="#ffffff"/>
+  <path d="M 32 1361 V 1340 A 9 9 0 0 1 41 1331 H 259 A 9 9 0 0 1 268 1340 V 1361 Z" fill="#dcfce7"/>
+  <line x1="32" y1="1361" x2="268" y2="1361" stroke="#15803d" stroke-opacity=".35"/>
+  <text class="h" x="44" y="1351.5" style="fill:#14532d">UnbornBranch</text>
+  <text class="w" x="44" y="1385">A branch name a worktree&apos;s HEAD</text>
+  <text class="w" x="44" y="1402">holds that no branch has yet, which</text>
+  <text class="w" x="44" y="1419">the next commit there makes.</text>
+  <text class="ho" x="44" y="1441">logical</text>
+  <text class="ho" x="44" y="1457">over: GitUnbornRef</text>
+  <text class="ho" x="44" y="1479">1 held, 0 planned, 0 unused</text>
+  <line x1="44" y1="1557" x2="256" y2="1557" stroke="#e2e8f0"/>
+  <circle cx="51" cy="1567.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="62" y="1571">kit workspace</text>
+  <rect x="32" y="1331" width="236" height="260" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+  <rect x="728.2" y="103" width="236" height="231" rx="9" fill="#ffffff"/>
+  <path d="M 728.2 133 V 112 A 9 9 0 0 1 737.2 103 H 955.2 A 9 9 0 0 1 964.2 112 V 133 Z" fill="#dcfce7"/>
+  <line x1="728.2" y1="133" x2="964.2" y2="133" stroke="#15803d" stroke-opacity=".35"/>
+  <text class="h" x="740.2" y="123.5" style="fill:#14532d">Workspace</text>
+  <text class="w" x="740.2" y="157">What kit looks at, one repository or</text>
+  <text class="w" x="740.2" y="174">a named group of repositories that</text>
+  <text class="w" x="740.2" y="191">move together.</text>
+  <text class="ho" x="740.2" y="213">logical</text>
+  <text class="ho" x="740.2" y="235">7 held, 0 planned, 3 unused</text>
+  <line x1="740.2" y1="300" x2="952.2" y2="300" stroke="#e2e8f0"/>
+  <circle cx="747.2" cy="310.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="758.2" y="314">kit workspaces</text>
+  <rect x="728.2" y="103" width="236" height="231" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+  <rect x="428.2" y="980" width="236" height="247" rx="9" fill="#ffffff"/>
+  <path d="M 428.2 1010 V 989 A 9 9 0 0 1 437.2 980 H 655.2 A 9 9 0 0 1 664.2 989 V 1010 Z" fill="#dcfce7"/>
+  <line x1="428.2" y1="1010" x2="664.2" y2="1010" stroke="#15803d" stroke-opacity=".35"/>
+  <text class="h" x="440.2" y="1000.5" style="fill:#14532d">Worktree</text>
+  <text class="w" x="440.2" y="1034">A working directory of a checkout,</text>
+  <text class="w" x="440.2" y="1051">with its own HEAD and index, the</text>
+  <text class="w" x="440.2" y="1068">desk or a linked one, or for a bare</text>
+  <text class="w" x="440.2" y="1085">clone its git directory, with a HEAD</text>
+  <text class="w" x="440.2" y="1102">and no files.</text>
+  <text class="ho" x="440.2" y="1124">logical</text>
+  <text class="ho" x="440.2" y="1140">over: GitWorktreeDir,</text>
+  <text class="ho" x="440.2" y="1156">GitWorktreeAdmin</text>
+  <text class="ho" x="440.2" y="1178">10 held, 0 planned, 0 unused</text>
+  <line x1="440.2" y1="1193" x2="652.2" y2="1193" stroke="#e2e8f0"/>
+  <circle cx="447.2" cy="1203.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="458.2" y="1207">kit workspace</text>
+  <rect x="428.2" y="980" width="236" height="247" rx="9" fill="none" stroke="#15803d" stroke-width="1.5"/>
+  <text class="lbl" xml:space="preserve" x="205.6" y="975">branches  0..*</text>
+  <text class="lbl" xml:space="preserve" x="762.6" y="865" text-anchor="end">changes  0..*</text>
+  <text class="lbl" xml:space="preserve" x="133.1" y="963" text-anchor="middle">branches  0..*</text>
+  <text class="lbl" xml:space="preserve" x="446.8" y="865" text-anchor="end">checkout  1</text>
+  <text class="lbl" xml:space="preserve" x="288" y="1086.3">upstream  0..1</text>
+  <text class="lbl" xml:space="preserve" x="288" y="1158.7">downstream  0..*</text>
+  <text class="lbl" xml:space="preserve" x="65.7" y="951" text-anchor="middle">branches  0..*</text>
+  <text class="lbl" xml:space="preserve" x="94.4" y="865" text-anchor="end">remote  0..1</text>
+  <text class="lbl" xml:space="preserve" x="239.3" y="963">bases  0..*</text>
+  <text class="lbl" xml:space="preserve" x="801.9" y="900" text-anchor="end">targeted-by  0..*</text>
+  <text class="lbl" xml:space="preserve" x="168.6" y="1240" text-anchor="end">tipped-by  0..*</text>
+  <text class="lbl" xml:space="preserve" x="780.4" y="1240">tip  1</text>
+  <text class="lbl" xml:space="preserve" x="462.6" y="1252" text-anchor="end">worktree  0..1  derived</text>
+  <text class="lbl" xml:space="preserve" x="851.2" y="865">changes  0..*</text>
+  <text class="lbl" xml:space="preserve" x="890.6" y="975">commits  0..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="994.2" y="772.5">forge-change  1  <tspan class="far">ForgeChange</tspan></text>
+  <text class="lbl" xml:space="preserve" x="851.2" y="650">changes  0..*</text>
+  <text class="lbl" xml:space="preserve" x="622" y="600">repository  1</text>
+  <text class="lbl" xml:space="preserve" x="929.9" y="865">change  1</text>
+  <text class="lbl" xml:space="preserve" x="1345" y="865">reviews  0..*</text>
+  <text class="lbl" xml:space="preserve" x="517.6" y="975" text-anchor="end">linked  0..*  derived</text>
+  <text class="lbl" xml:space="preserve" x="569.8" y="963" text-anchor="middle">main  1  derived</text>
+  <text class="lbl" xml:space="preserve" x="446.4" y="877" text-anchor="end">checkout  1</text>
+  <text class="lbl" xml:space="preserve" x="171.9" y="865">remotes  0..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="527.6" y="650">checkouts  0..*</text>
+  <text class="lbl" xml:space="preserve" x="564.8" y="600" text-anchor="end">repository  0..1</text>
+  <text class="lbl" xml:space="preserve" x="645.6" y="877">checkout  1</text>
+  <text class="lbl" xml:space="preserve" x="1266.3" y="975">tags  0..*</text>
+  <text class="lbl" xml:space="preserve" x="593.4" y="877" text-anchor="middle">checkout  1</text>
+  <text class="lbl" xml:space="preserve" x="622" y="975">worktrees  1..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="225.8" y="1240">branches  0..*  derived</text>
+  <text class="lbl" xml:space="preserve" x="984.2" y="1086.3">parents  0..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="984.2" y="1158.7">children  0..*</text>
+  <text class="lbl" xml:space="preserve" x="922" y="1240">commit  0..1</text>
+  <text class="lbl" xml:space="preserve" x="1305.6" y="1240">tags  0..*</text>
+  <text class="lbl" xml:space="preserve" x="629.9" y="1240">worktrees  0..*  derived</text>
+  <text class="lbl" xml:space="preserve" x="551.2" y="1326">head  1</text>
+  <text class="lbl" xml:space="preserve" x="580.6" y="1240" text-anchor="end">worktree  1</text>
+  <text class="lbl" xml:space="preserve" x="288" y="187.3">parent  0..1</text>
+  <text class="lbl" xml:space="preserve" x="288" y="237.5">children  0..*</text>
+  <text class="lbl" xml:space="preserve" x="155" y="347">organization  1</text>
+  <text class="lbl" xml:space="preserve" x="501.9" y="385" text-anchor="end">repositories  0..*</text>
+  <text class="lbl" xml:space="preserve" x="298" y="287.8">service  1  <tspan class="far">Service</tspan></text>
+  <text class="lbl" xml:space="preserve" x="155" y="650">remotes  0..*</text>
+  <text class="lbl" xml:space="preserve" x="470.4" y="600" text-anchor="end">repository  0..1</text>
+  <text class="lbl" xml:space="preserve" x="590.6" y="385">members  0..*</text>
+  <text class="lbl" xml:space="preserve" x="851.2" y="347">workspaces  1..*</text>
+  <text class="lbl" xml:space="preserve" x="501.9" y="1240" text-anchor="end">worktrees  1..*  derived</text>
+</svg>

@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# kit-issues - lists the repository's open issues, and the forge's milestones and iterations (kit verb: workflow)
+# ----------------------------------------------------------------------------------------------------------------------
+# Usage:
+#   kit issues [--text | --json | --jq]
+#   kit issues --stages
+#   kit issues --marks
+#   kit issues milestones [--text | --json | --jq]
+#   kit issues iterations [--text | --json | --jq]
+#   kit issues issues [--text | --json | --jq]
+#   kit issues backlog [--text | --json | --jq]
+#   kit issues underway [--text | --json | --jq]
+#
+# Lists the open issues of the repository and the planning the forge keeps, the tabs of Issues in kittui. It changes
+# nothing. Its stages, in order:
+#
+#   milestones → iterations
+#
+# The first tab, issues, is kit flow's stage: kit issues issues prints what kit flow issues prints, and kit issues backlog
+# and kit issues underway print the issues of that status, as the tab's Backlog and Underway presets show them. kit issues
+# with no tab prints its stages, not the issues.
+#
+# On a terminal, kit issues opens Issues in kittui, and kit issues <stage> opens it on that tab, maximized. Without a
+# terminal, or with --text, it prints text. With --json or --jq, it prints JSON: the stages where no tab is named, and the
+# tab named alone.
+#
+# kit --workspace=<workspace> issues draws each stage across a workspace's members with checkouts, as kit workspace does.
+# Without it, the workspace is the repository here, and outside one, the last group used, as kit workspaces --current
+# says.
+#
+# With --json, a stage prints {contract, rows, errors}. The fields of each stage are in docs/apps.md.
+#
+# Legend
+#
+# Each stage lists the glyphs it draws in kittui, one per line. A glyph can show under more than one stage.
+#
+# kit:generate legend `k=$(command -v kit); jq -nr -L "${k%/bin/kit}/modules/jq" 'import "glyphs" as g; g::legend_for("issues")'`
+#   📚  workspace: a group, in the workspace menu that drops down from - in kittui's title
+#
+# milestones:
+#
+#   ⛳  milestone: a goal the forge gathers issues under, with its due day
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# iterations:
+#
+#   📅  iteration: a span of days the forge plans work in
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# kit:end legend
+#
+# Arguments:
+#   --text              prints the stages as text, even on a terminal
+#   --json              the stages as one JSON object: contract, stages, then each stage's document under its name,
+#                       null for one that could not be read
+#   --jq                the same JSON, formatted by jq for a person
+#   --stages            prints the stages, one per line, in order, the same over any workspace
+#   --marks             prints a mark per stage, as one JSON object, which changes when what the stage draws does; null
+#                       for a stage with none, as iterations
+#   milestones          each milestone of the repository, open and closed, by number
+#   iterations          each iteration, by start
+#   issues              every open issue, in the backlog or underway, as kit flow issues prints it; on a terminal it
+#                       opens in kittui
+#   backlog             the open issues in the backlog, the issues tab's Backlog preset; on a terminal it opens in
+#                       kittui on that preset
+#   underway            the open issues underway, the issues tab's Underway preset; on a terminal it opens in kittui
+#                       on that preset
+#
+# Exits 0 when the stages, or the tab named, are drawn, 1 when one could not be read, after what was, and 2 on a usage
+# error, or outside a repository's working tree with no workspace.
+#
+# see: modules/bash/apps.sh, modules/bash/apps/issues.sh, modules/jq/apps.jq, docs/apps.md
+
+set -o errexit -o nounset -o pipefail
+# shellcheck source=modules/bash/1st.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
+kit:enter
+use apps
+workspaces:misplaced issues "$@" || exit $?
+guard:arguments issues "$@" || exit $?
+apps:main issues "$@"
+
+# ----------------------------------------------------------------------------------------------------------------------

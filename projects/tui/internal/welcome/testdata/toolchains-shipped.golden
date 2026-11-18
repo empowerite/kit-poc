@@ -1,0 +1,24 @@
+  = kit welcome                                                      🔎 /search
+  ➀╶──────────────────╴➋╶───────────────────╮➂╶──────────────╮➃╶───────────────╮
+    👋 introduction    │ 🧰 toolchains  3 : │  🔧 setup  2   │  🎨 customize   ▹
+  ─────────────────────╯                    ╰────────────────╰─────────────────╰
+   Toolchains — the tools kit runs on, and what installs them
+
+   ✅ bash 5.2 runs kit
+   ❌ jq is not installed
+      brew install jq
+   ❌ several tool managers are usable for the project: mise, brew; choose one
+      kit toolchains use mise
+      or: kit toolchains use brew
+   ❌ brew is installed but not on PATH
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+      add it to your shell profile to keep it
+
+   kit runs on four tools: bash, git, jq, and yq. This step checks each one.
+   Then it checks the machine's package manager, such as brew or apt, which
+   installs them.
+
+   When a check fails, the line under it gives the command that fixes it, or
+   says where to read more. Run the command yourself, or have kit run it and
+↓⁹
+ = menu / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ checks 1-5 jump : tab menu

@@ -1,0 +1,7 @@
+---
+description: The kit's rule for bash: executed scripts, sourced files, and bash inside a justfile or a workflow
+globs: **/*.sh,**/*.bash
+alwaysApply: false
+---
+Before you change a file this rule is attached to, run `kit context <path>` and read every file it prints, among
+them @.kit/rules/bash.md.

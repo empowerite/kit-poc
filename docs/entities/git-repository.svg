@@ -1,0 +1,431 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2298 1426" width="2298" height="1426" role="img" aria-labelledby="title desc">
+  <title id="title">Git repository</title>
+  <desc id="desc">Entities of the Git repository domain: GitBisectState, GitBundle, GitCacheTree, GitCommitGraph, GitDir, GitHead, GitIndex, GitIndexEntry, GitIndexEntryBlock, GitMultiPackIndex, GitPack, GitPackIndex, GitRebaseState, GitRef, GitReflogEntry, GitRerereCache, GitResolveUndo, GitRootRef, GitSequencerState, GitSubmodule, GitUnbornRef, GitUntrackedCache, GitUntrackedDir, GitWorktreeAdmin, and GitWorktreeDir.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+    text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; fill: #0f172a; }
+    .title { font-size: 24px; font-weight: 700; }
+    .intro { font-size: 13.5px; fill: #475569; }
+    .h { font-size: 15px; font-weight: 700; }
+    .w { font-size: 12.5px; fill: #1e293b; }
+    .ho { font-size: 12px; fill: #475569; }
+    .p { font-size: 12px; }
+    .m { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11.5px; fill: #334155; }
+    .f { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; fill: #334155; }
+    .lbl { font-size: 11.5px; fill: #475569; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
+    .far { fill: #94a3b8; }
+    .edge { stroke: #475569; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .both { marker-start: url(#arrow); }
+    .dash { stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+  <rect x="0.5" y="0.5" width="2297" height="1425" rx="14" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="32" y="22" width="6" height="28" rx="3" fill="#047857"/>
+  <text class="title" x="50" y="45" style="fill:#064e3b">Git repository</text>
+  <text class="intro" x="32" y="72">The refs, index, and directories git keeps around its objects. Kit reads them and defines none of them.</text>
+  <g transform="translate(2035.2,30)"><circle cx="5" cy="0" r="4.5" fill="#16a34a"/><text class="ho" x="16" y="3.5" style="font-size:11.5px">held by kit</text><circle cx="112" cy="0" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/><text class="ho" x="123" y="3.5" style="font-size:11.5px">not held yet</text></g>
+  <path class="edge both" d="M 520.4 313 L 520.4 335 L 599 335 L 599 405"/>
+  <path class="edge both" d="M 677.7 193 L 691.7 193 L 691.7 253 L 677.7 253"/>
+  <path class="edge" d="M 1542.5 863 L 1566.5 863"/>
+  <path class="edge both" d="M 1385.2 947 L 1385.2 969 L 942.8 969 L 942.8 947"/>
+  <path class="edge both" d="M 1437.6 749 L 1437.6 649 L 1836.3 649 L 1836.3 603"/>
+  <path class="edge both" d="M 1463.9 947 L 1463.9 975 L 1021.4 975 L 1021.4 947"/>
+  <path class="edge both" d="M 1385.2 749 L 1385.2 655 L 1411.4 655 L 1411.4 603"/>
+  <path class="edge both" d="M 1400.9 313 L 1400.9 341 L 1448.1 341 L 1448.1 405"/>
+  <path class="edge both" d="M 644 603 L 644 661 L 1332.8 661 L 1332.8 603"/>
+  <path class="edge both" d="M 542.8 603 L 542.8 667 L 576.5 667 L 576.5 749"/>
+  <path class="edge both" d="M 610.3 603 L 610.3 673 L 846.1 673 L 846.1 981 L 559.7 981 L 559.7 1003"/>
+  <path class="edge both" d="M 475.4 603 L 475.4 679 L 110.7 679 L 110.7 749"/>
+  <path class="edge both" d="M 677.7 491 L 691.7 491 L 691.7 547 L 677.7 547"/>
+  <path class="edge both" d="M 509.1 603 L 509.1 685 L 189.3 685 L 189.3 603"/>
+  <path class="edge" d="M 677.7 863 L 701.7 863"/>
+  <path class="edge dash" d="M 1870.1 603 L 1870.1 691 L 1463.9 691 L 1463.9 603"/>
+  <path class="edge" d="M 2038.6 507 L 2062.6 507"/>
+  <path class="edge both" d="M 1944.2 405 L 1944.2 347 L 1991.4 347 L 1991.4 313"/>
+  <path class="edge both" d="M 1971.2 603 L 1971.2 697 L 2004.9 697 L 2004.9 749"/>
+  <path class="edge" d="M 2038.6 531 L 2062.6 531"/>
+  <path class="edge both" d="M 2038.6 459 L 2052.6 459 L 2052.6 483 L 2038.6 483"/>
+  <path class="edge" d="M 2038.6 555 L 2062.6 555"/>
+  <path class="edge" d="M 2038.6 579 L 2062.6 579"/>
+  <path class="edge both" d="M 1903.8 603 L 1903.8 703 L 1490.1 703 L 1490.1 603"/>
+  <path class="edge both" d="M 1937.5 749 L 1937.5 709 L 1516.3 709 L 1516.3 603"/>
+  <path class="edge both" d="M 942.8 313 L 942.8 353 L 1353.7 353 L 1353.7 405"/>
+  <path class="edge dash" d="M 1021.4 313 L 1021.4 359 L 1849.8 359 L 1849.8 405"/>
+  <path class="edge" d="M 1100.1 835 L 1124.1 835"/>
+  <path class="edge" d="M 1100.1 891 L 1124.1 891"/>
+  <path class="edge dash" d="M 1897 313 L 1897 365 L 1495.3 365 L 1495.3 405"/>
+  <path class="edge both" d="M 110.7 405 L 110.7 371 L 189.3 371 L 189.3 313"/>
+  <path class="edge both" d="M 268 193 L 282 193 L 282 253 L 268 253"/>
+  <path class="edge both" d="M 982.1 603 L 982.1 715 L 1359 715 L 1359 603"/>
+  <path class="edge" d="M 1542.5 468.6 L 1566.5 468.6"/>
+  <path class="edge" d="M 1542.5 502.2 L 1566.5 502.2"/>
+  <path class="edge" d="M 1542.5 535.8 L 1566.5 535.8"/>
+  <path class="edge" d="M 1542.5 569.4 L 1566.5 569.4"/>
+  <rect x="1802.6" y="1223" width="236" height="171" rx="9" fill="#ffffff"/>
+  <path d="M 1802.6 1253 V 1232 A 9 9 0 0 1 1811.6 1223 H 2029.6 A 9 9 0 0 1 2038.6 1232 V 1253 Z" fill="#f1f5f9"/>
+  <line x1="1802.6" y1="1253" x2="2038.6" y2="1253" stroke="#94a3b8" stroke-opacity=".35"/>
+  <text class="h" x="1814.6" y="1243.5" style="fill:#334155">GitBisectState</text>
+  <text class="w" x="1814.6" y="1277">A git bisect under way in a</text>
+  <text class="w" x="1814.6" y="1294">worktree: the BISECT_ files of its</text>
+  <text class="w" x="1814.6" y="1311">git directory, as BISECT_LOG and</text>
+  <text class="w" x="1814.6" y="1328">BISECT_TERMS, and the good and</text>
+  <text class="w" x="1814.6" y="1345">bad commits under refs/bisect/.</text>
+  <rect x="1802.6" y="1223" width="236" height="171" rx="9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <rect x="441.7" y="1223" width="236" height="171" rx="9" fill="#ffffff"/>
+  <path d="M 441.7 1253 V 1232 A 9 9 0 0 1 450.7 1223 H 668.7 A 9 9 0 0 1 677.7 1232 V 1253 Z" fill="#f1f5f9"/>
+  <line x1="441.7" y1="1253" x2="677.7" y2="1253" stroke="#94a3b8" stroke-opacity=".35"/>
+  <text class="h" x="453.7" y="1243.5" style="fill:#334155">GitBundle</text>
+  <text class="w" x="453.7" y="1277">A file git bundle create writes: the</text>
+  <text class="w" x="453.7" y="1294">refs it carries and a pack of the</text>
+  <text class="w" x="453.7" y="1311">objects they need, which git clone</text>
+  <text class="w" x="453.7" y="1328">and git fetch read in place of a</text>
+  <text class="w" x="453.7" y="1345">remote.</text>
+  <rect x="441.7" y="1223" width="236" height="171" rx="9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <rect x="441.7" y="103" width="236" height="210" rx="9" fill="#ffffff"/>
+  <path d="M 441.7 133 V 112 A 9 9 0 0 1 450.7 103 H 668.7 A 9 9 0 0 1 677.7 112 V 133 Z" fill="#d1fae5"/>
+  <line x1="441.7" y1="133" x2="677.7" y2="133" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="453.7" y="123.5" style="fill:#064e3b">GitCacheTree</text>
+  <text class="w" x="453.7" y="157">A directory of the index whose tree</text>
+  <text class="w" x="453.7" y="174">git already knows, so that writing a</text>
+  <text class="w" x="453.7" y="191">commit&apos;s tree skips it.</text>
+  <text class="ho" x="453.7" y="213">native: git</text>
+  <text class="ho" x="453.7" y="235">0 held, 0 planned, 4 unused</text>
+  <line x1="453.7" y1="279" x2="665.7" y2="279" stroke="#e2e8f0"/>
+  <circle cx="460.7" cy="289.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="471.7" y="293">not held yet</text>
+  <rect x="441.7" y="103" width="236" height="210" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="32" y="1223" width="236" height="171" rx="9" fill="#ffffff"/>
+  <path d="M 32 1253 V 1232 A 9 9 0 0 1 41 1223 H 259 A 9 9 0 0 1 268 1232 V 1253 Z" fill="#f1f5f9"/>
+  <line x1="32" y1="1253" x2="268" y2="1253" stroke="#94a3b8" stroke-opacity=".35"/>
+  <text class="h" x="44" y="1243.5" style="fill:#334155">GitCommitGraph</text>
+  <text class="w" x="44" y="1277">The commit graph,</text>
+  <text class="w" x="44" y="1294">objects/info/commit-graph or the</text>
+  <text class="w" x="44" y="1311">chain under</text>
+  <text class="w" x="44" y="1328">objects/info/commit-graphs/, which</text>
+  <text class="w" x="44" y="1345">holds each commit&apos;s parents, tree,</text>
+  <text class="w" x="44" y="1362">and generation, so git walks history</text>
+  <text class="w" x="44" y="1379">without reading the commits.</text>
+  <rect x="32" y="1223" width="236" height="171" rx="9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <rect x="1306.5" y="749" width="236" height="198" rx="9" fill="#ffffff"/>
+  <path d="M 1306.5 779 V 758 A 9 9 0 0 1 1315.5 749 H 1533.5 A 9 9 0 0 1 1542.5 758 V 779 Z" fill="#d1fae5"/>
+  <line x1="1306.5" y1="779" x2="1542.5" y2="779" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="1318.5" y="769.5" style="fill:#064e3b">GitDir</text>
+  <text class="w" x="1318.5" y="803">A repository&apos;s git directory, which</text>
+  <text class="w" x="1318.5" y="820">holds its objects, refs,</text>
+  <text class="w" x="1318.5" y="837">configuration, hooks, and</text>
+  <text class="w" x="1318.5" y="854">worktrees.</text>
+  <text class="ho" x="1318.5" y="876">native: git</text>
+  <text class="ho" x="1318.5" y="898">1 held, 0 planned, 24 unused</text>
+  <line x1="1318.5" y1="913" x2="1530.5" y2="913" stroke="#e2e8f0"/>
+  <circle cx="1325.5" cy="923.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="1336.5" y="927">kit workspace</text>
+  <rect x="1306.5" y="749" width="236" height="198" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="1306.5" y="103" width="236" height="210" rx="9" fill="#ffffff"/>
+  <path d="M 1306.5 133 V 112 A 9 9 0 0 1 1315.5 103 H 1533.5 A 9 9 0 0 1 1542.5 112 V 133 Z" fill="#d1fae5"/>
+  <line x1="1306.5" y1="133" x2="1542.5" y2="133" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="1318.5" y="123.5" style="fill:#064e3b">GitHead</text>
+  <text class="w" x="1318.5" y="157">What a worktree has checked out, a</text>
+  <text class="w" x="1318.5" y="174">ref by name, a commit by its id, or</text>
+  <text class="w" x="1318.5" y="191">a ref name that no ref has yet.</text>
+  <text class="ho" x="1318.5" y="213">native: git</text>
+  <text class="m" x="1318.5" y="234">Detached(commit: GitCommit)</text>
+  <text class="m" x="1318.5" y="249">Symbolic(ref: GitRef)</text>
+  <text class="m" x="1318.5" y="264">Unborn(ref: GitUnbornRef)</text>
+  <line x1="1318.5" y1="279" x2="1530.5" y2="279" stroke="#e2e8f0"/>
+  <circle cx="1325.5" cy="289.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="1336.5" y="293">not held yet</text>
+  <rect x="1306.5" y="103" width="236" height="210" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="441.7" y="405" width="236" height="198" rx="9" fill="#ffffff"/>
+  <path d="M 441.7 435 V 414 A 9 9 0 0 1 450.7 405 H 668.7 A 9 9 0 0 1 677.7 414 V 435 Z" fill="#d1fae5"/>
+  <line x1="441.7" y1="435" x2="677.7" y2="435" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="453.7" y="425.5" style="fill:#064e3b">GitIndex</text>
+  <text class="w" x="453.7" y="459">The staging area of one worktree,</text>
+  <text class="w" x="453.7" y="476">the paths of the next commit, each</text>
+  <text class="w" x="453.7" y="493">with its object and stat data.</text>
+  <text class="ho" x="453.7" y="515">native: git</text>
+  <text class="ho" x="453.7" y="537">0 held, 0 planned, 14 unused</text>
+  <line x1="453.7" y1="569" x2="665.7" y2="569" stroke="#e2e8f0"/>
+  <circle cx="460.7" cy="579.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="471.7" y="583">not held yet</text>
+  <rect x="441.7" y="405" width="236" height="198" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="441.7" y="749" width="236" height="198" rx="9" fill="#ffffff"/>
+  <path d="M 441.7 779 V 758 A 9 9 0 0 1 450.7 749 H 668.7 A 9 9 0 0 1 677.7 758 V 779 Z" fill="#d1fae5"/>
+  <line x1="441.7" y1="779" x2="677.7" y2="779" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="453.7" y="769.5" style="fill:#064e3b">GitIndexEntry</text>
+  <text class="w" x="453.7" y="803">One path of the index at one stage,</text>
+  <text class="w" x="453.7" y="820">with its mode, its object, and what</text>
+  <text class="w" x="453.7" y="837">the file system said of the file.</text>
+  <text class="ho" x="453.7" y="859">native: git</text>
+  <text class="ho" x="453.7" y="881">0 held, 0 planned, 15 unused</text>
+  <line x1="453.7" y1="913" x2="665.7" y2="913" stroke="#e2e8f0"/>
+  <circle cx="460.7" cy="923.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="471.7" y="927">not held yet</text>
+  <rect x="441.7" y="749" width="236" height="198" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="441.7" y="1003" width="236" height="164" rx="9" fill="#ffffff"/>
+  <path d="M 441.7 1033 V 1012 A 9 9 0 0 1 450.7 1003 H 668.7 A 9 9 0 0 1 677.7 1012 V 1033 Z" fill="#d1fae5"/>
+  <line x1="441.7" y1="1033" x2="677.7" y2="1033" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="453.7" y="1023.5" style="fill:#064e3b">GitIndexEntryBlock</text>
+  <text class="w" x="453.7" y="1057">A run of consecutive index entries</text>
+  <text class="w" x="453.7" y="1074">that one thread can read on its own.</text>
+  <text class="ho" x="453.7" y="1096">native: git</text>
+  <text class="ho" x="453.7" y="1118">0 held, 0 planned, 2 unused</text>
+  <line x1="453.7" y1="1133" x2="665.7" y2="1133" stroke="#e2e8f0"/>
+  <circle cx="460.7" cy="1143.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="471.7" y="1147">not held yet</text>
+  <rect x="441.7" y="1003" width="236" height="164" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="1802.6" y="1003" width="236" height="164" rx="9" fill="#ffffff"/>
+  <path d="M 1802.6 1033 V 1012 A 9 9 0 0 1 1811.6 1003 H 2029.6 A 9 9 0 0 1 2038.6 1012 V 1033 Z" fill="#f1f5f9"/>
+  <line x1="1802.6" y1="1033" x2="2038.6" y2="1033" stroke="#94a3b8" stroke-opacity=".35"/>
+  <text class="h" x="1814.6" y="1023.5" style="fill:#334155">GitMultiPackIndex</text>
+  <text class="w" x="1814.6" y="1057">The multi-pack index,</text>
+  <text class="w" x="1814.6" y="1074">objects/pack/multi-pack-index, one</text>
+  <text class="w" x="1814.6" y="1091">index over many packs, which git</text>
+  <text class="w" x="1814.6" y="1108">multi-pack-index write and git</text>
+  <text class="w" x="1814.6" y="1125">repack --write-midx make.</text>
+  <rect x="1802.6" y="1003" width="236" height="164" rx="9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <rect x="864.1" y="1003" width="236" height="164" rx="9" fill="#ffffff"/>
+  <path d="M 864.1 1033 V 1012 A 9 9 0 0 1 873.1 1003 H 1091.1 A 9 9 0 0 1 1100.1 1012 V 1033 Z" fill="#f1f5f9"/>
+  <line x1="864.1" y1="1033" x2="1100.1" y2="1033" stroke="#94a3b8" stroke-opacity=".35"/>
+  <text class="h" x="876.1" y="1023.5" style="fill:#334155">GitPack</text>
+  <text class="w" x="876.1" y="1057">A pack,</text>
+  <text class="w" x="876.1" y="1074">objects/pack/pack-&lt;id&gt;.pack: many</text>
+  <text class="w" x="876.1" y="1091">objects in one file, each whole or as</text>
+  <text class="w" x="876.1" y="1108">a delta against another, which git</text>
+  <text class="w" x="876.1" y="1125">fetch, git gc, and git repack write.</text>
+  <rect x="864.1" y="1003" width="236" height="164" rx="9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <rect x="1306.5" y="1003" width="236" height="164" rx="9" fill="#ffffff"/>
+  <path d="M 1306.5 1033 V 1012 A 9 9 0 0 1 1315.5 1003 H 1533.5 A 9 9 0 0 1 1542.5 1012 V 1033 Z" fill="#f1f5f9"/>
+  <line x1="1306.5" y1="1033" x2="1542.5" y2="1033" stroke="#94a3b8" stroke-opacity=".35"/>
+  <text class="h" x="1318.5" y="1023.5" style="fill:#334155">GitPackIndex</text>
+  <text class="w" x="1318.5" y="1057">The index of a pack,</text>
+  <text class="w" x="1318.5" y="1074">objects/pack/pack-&lt;id&gt;.idx beside it,</text>
+  <text class="w" x="1318.5" y="1091">which finds an object&apos;s offset in the</text>
+  <text class="w" x="1318.5" y="1108">pack by the object id.</text>
+  <rect x="1306.5" y="1003" width="236" height="164" rx="9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <rect x="864.1" y="1223" width="236" height="171" rx="9" fill="#ffffff"/>
+  <path d="M 864.1 1253 V 1232 A 9 9 0 0 1 873.1 1223 H 1091.1 A 9 9 0 0 1 1100.1 1232 V 1253 Z" fill="#f1f5f9"/>
+  <line x1="864.1" y1="1253" x2="1100.1" y2="1253" stroke="#94a3b8" stroke-opacity=".35"/>
+  <text class="h" x="876.1" y="1243.5" style="fill:#334155">GitRebaseState</text>
+  <text class="w" x="876.1" y="1277">A rebase under way in a worktree:</text>
+  <text class="w" x="876.1" y="1294">rebase-merge/ of its git directory,</text>
+  <text class="w" x="876.1" y="1311">or rebase-apply/ for git am and the</text>
+  <text class="w" x="876.1" y="1328">apply backend, which git rebase</text>
+  <text class="w" x="876.1" y="1345">--continue, --skip, and --abort read.</text>
+  <rect x="864.1" y="1223" width="236" height="171" rx="9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <rect x="1802.6" y="405" width="236" height="198" rx="9" fill="#ffffff"/>
+  <path d="M 1802.6 435 V 414 A 9 9 0 0 1 1811.6 405 H 2029.6 A 9 9 0 0 1 2038.6 414 V 435 Z" fill="#d1fae5"/>
+  <line x1="1802.6" y1="435" x2="2038.6" y2="435" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="1814.6" y="425.5" style="fill:#064e3b">GitRef</text>
+  <text class="w" x="1814.6" y="459">A name under refs/ that points at an</text>
+  <text class="w" x="1814.6" y="476">object, such as a branch, a</text>
+  <text class="w" x="1814.6" y="493">remote-tracking branch, a tag, or</text>
+  <text class="w" x="1814.6" y="510">the stash.</text>
+  <text class="ho" x="1814.6" y="532">native: git</text>
+  <text class="ho" x="1814.6" y="554">4 held, 0 planned, 4 unused</text>
+  <line x1="1814.6" y1="569" x2="2026.6" y2="569" stroke="#e2e8f0"/>
+  <circle cx="1821.6" cy="579.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="1832.6" y="583">kit workspace</text>
+  <rect x="1802.6" y="405" width="236" height="198" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="1802.6" y="749" width="236" height="198" rx="9" fill="#ffffff"/>
+  <path d="M 1802.6 779 V 758 A 9 9 0 0 1 1811.6 749 H 2029.6 A 9 9 0 0 1 2038.6 758 V 779 Z" fill="#d1fae5"/>
+  <line x1="1802.6" y1="779" x2="2038.6" y2="779" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="1814.6" y="769.5" style="fill:#064e3b">GitReflogEntry</text>
+  <text class="w" x="1814.6" y="803">One change to a ref or to a HEAD,</text>
+  <text class="w" x="1814.6" y="820">with the id before and after, who</text>
+  <text class="w" x="1814.6" y="837">made it, when, and why.</text>
+  <text class="ho" x="1814.6" y="859">native: git</text>
+  <text class="ho" x="1814.6" y="881">0 held, 0 planned, 7 unused</text>
+  <line x1="1814.6" y1="913" x2="2026.6" y2="913" stroke="#e2e8f0"/>
+  <circle cx="1821.6" cy="923.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="1832.6" y="927">not held yet</text>
+  <rect x="1802.6" y="749" width="236" height="198" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="32" y="1003" width="236" height="164" rx="9" fill="#ffffff"/>
+  <path d="M 32 1033 V 1012 A 9 9 0 0 1 41 1003 H 259 A 9 9 0 0 1 268 1012 V 1033 Z" fill="#f1f5f9"/>
+  <line x1="32" y1="1033" x2="268" y2="1033" stroke="#94a3b8" stroke-opacity=".35"/>
+  <text class="h" x="44" y="1023.5" style="fill:#334155">GitRerereCache</text>
+  <text class="w" x="44" y="1057">rr-cache/ of the common directory,</text>
+  <text class="w" x="44" y="1074">each conflict git rerere recorded</text>
+  <text class="w" x="44" y="1091">and how it was resolved, and</text>
+  <text class="w" x="44" y="1108">MERGE_RR of a worktree&apos;s git</text>
+  <text class="w" x="44" y="1125">directory, the conflicts of the merge</text>
+  <text class="w" x="44" y="1142">under way.</text>
+  <rect x="32" y="1003" width="236" height="164" rx="9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <rect x="32" y="749" width="236" height="198" rx="9" fill="#ffffff"/>
+  <path d="M 32 779 V 758 A 9 9 0 0 1 41 749 H 259 A 9 9 0 0 1 268 758 V 779 Z" fill="#d1fae5"/>
+  <line x1="32" y1="779" x2="268" y2="779" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="44" y="769.5" style="fill:#064e3b">GitResolveUndo</text>
+  <text class="w" x="44" y="803">The stages of a resolved conflict,</text>
+  <text class="w" x="44" y="820">which git checkout -m or git restore</text>
+  <text class="w" x="44" y="837">-m brings back.</text>
+  <text class="ho" x="44" y="859">native: git</text>
+  <text class="ho" x="44" y="881">0 held, 0 planned, 7 unused</text>
+  <line x1="44" y1="913" x2="256" y2="913" stroke="#e2e8f0"/>
+  <circle cx="51" cy="923.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="62" y="927">not held yet</text>
+  <rect x="32" y="749" width="236" height="198" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="864.1" y="103" width="236" height="210" rx="9" fill="#ffffff"/>
+  <path d="M 864.1 133 V 112 A 9 9 0 0 1 873.1 103 H 1091.1 A 9 9 0 0 1 1100.1 112 V 133 Z" fill="#d1fae5"/>
+  <line x1="864.1" y1="133" x2="1100.1" y2="133" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="876.1" y="123.5" style="fill:#064e3b">GitRootRef</text>
+  <text class="w" x="876.1" y="157">A ref a command writes beside a</text>
+  <text class="w" x="876.1" y="174">worktree&apos;s HEAD to remember a</text>
+  <text class="w" x="876.1" y="191">state, such as ORIG_HEAD,</text>
+  <text class="w" x="876.1" y="208">MERGE_HEAD, or FETCH_HEAD.</text>
+  <text class="ho" x="876.1" y="230">native: git</text>
+  <text class="ho" x="876.1" y="252">0 held, 0 planned, 3 unused</text>
+  <line x1="876.1" y1="279" x2="1088.1" y2="279" stroke="#e2e8f0"/>
+  <circle cx="883.1" cy="289.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="894.1" y="293">not held yet</text>
+  <rect x="864.1" y="103" width="236" height="210" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="1306.5" y="1223" width="236" height="171" rx="9" fill="#ffffff"/>
+  <path d="M 1306.5 1253 V 1232 A 9 9 0 0 1 1315.5 1223 H 1533.5 A 9 9 0 0 1 1542.5 1232 V 1253 Z" fill="#f1f5f9"/>
+  <line x1="1306.5" y1="1253" x2="1542.5" y2="1253" stroke="#94a3b8" stroke-opacity=".35"/>
+  <text class="h" x="1318.5" y="1243.5" style="fill:#334155">GitSequencerState</text>
+  <text class="w" x="1318.5" y="1277">sequencer/ of a worktree&apos;s git</text>
+  <text class="w" x="1318.5" y="1294">directory: the commits a git</text>
+  <text class="w" x="1318.5" y="1311">cherry-pick or git revert of several</text>
+  <text class="w" x="1318.5" y="1328">commits has left to apply, which</text>
+  <text class="w" x="1318.5" y="1345">--continue reads.</text>
+  <rect x="1306.5" y="1223" width="236" height="171" rx="9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <rect x="864.1" y="749" width="236" height="198" rx="9" fill="#ffffff"/>
+  <path d="M 864.1 779 V 758 A 9 9 0 0 1 873.1 749 H 1091.1 A 9 9 0 0 1 1100.1 758 V 779 Z" fill="#d1fae5"/>
+  <line x1="864.1" y1="779" x2="1100.1" y2="779" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="876.1" y="769.5" style="fill:#064e3b">GitSubmodule</text>
+  <text class="w" x="876.1" y="803">Another repository checked out at a</text>
+  <text class="w" x="876.1" y="820">path of this one, at the commit a</text>
+  <text class="w" x="876.1" y="837">gitlink in this one&apos;s tree names.</text>
+  <text class="ho" x="876.1" y="859">native: git</text>
+  <text class="ho" x="876.1" y="881">0 held, 0 planned, 11 unused</text>
+  <line x1="876.1" y1="913" x2="1088.1" y2="913" stroke="#e2e8f0"/>
+  <circle cx="883.1" cy="923.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="894.1" y="927">not held yet</text>
+  <rect x="864.1" y="749" width="236" height="198" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="1802.6" y="103" width="236" height="210" rx="9" fill="#ffffff"/>
+  <path d="M 1802.6 133 V 112 A 9 9 0 0 1 1811.6 103 H 2029.6 A 9 9 0 0 1 2038.6 112 V 133 Z" fill="#d1fae5"/>
+  <line x1="1802.6" y1="133" x2="2038.6" y2="133" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="1814.6" y="123.5" style="fill:#064e3b">GitUnbornRef</text>
+  <text class="w" x="1814.6" y="157">A ref name, as a rule under refs/,</text>
+  <text class="w" x="1814.6" y="174">that a HEAD or a symbolic ref</text>
+  <text class="w" x="1814.6" y="191">names and that no ref has.</text>
+  <text class="ho" x="1814.6" y="213">native: git</text>
+  <text class="ho" x="1814.6" y="235">1 held, 0 planned, 1 unused</text>
+  <line x1="1814.6" y1="279" x2="2026.6" y2="279" stroke="#e2e8f0"/>
+  <circle cx="1821.6" cy="289.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="1832.6" y="293">kit workspace</text>
+  <rect x="1802.6" y="103" width="236" height="210" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="32" y="405" width="236" height="198" rx="9" fill="#ffffff"/>
+  <path d="M 32 435 V 414 A 9 9 0 0 1 41 405 H 259 A 9 9 0 0 1 268 414 V 435 Z" fill="#d1fae5"/>
+  <line x1="32" y1="435" x2="268" y2="435" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="44" y="425.5" style="fill:#064e3b">GitUntrackedCache</text>
+  <text class="w" x="44" y="459">The untracked files git found, kept in</text>
+  <text class="w" x="44" y="476">the index so that git status rereads</text>
+  <text class="w" x="44" y="493">only the directories that differ.</text>
+  <text class="ho" x="44" y="515">native: git</text>
+  <text class="ho" x="44" y="537">0 held, 0 planned, 7 unused</text>
+  <line x1="44" y1="569" x2="256" y2="569" stroke="#e2e8f0"/>
+  <circle cx="51" cy="579.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="62" y="583">not held yet</text>
+  <rect x="32" y="405" width="236" height="198" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="32" y="103" width="236" height="210" rx="9" fill="#ffffff"/>
+  <path d="M 32 133 V 112 A 9 9 0 0 1 41 103 H 259 A 9 9 0 0 1 268 112 V 133 Z" fill="#d1fae5"/>
+  <line x1="32" y1="133" x2="268" y2="133" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="44" y="123.5" style="fill:#064e3b">GitUntrackedDir</text>
+  <text class="w" x="44" y="157">One directory as the untracked</text>
+  <text class="w" x="44" y="174">cache holds it, with the untracked</text>
+  <text class="w" x="44" y="191">files and directories in it.</text>
+  <text class="ho" x="44" y="213">native: git</text>
+  <text class="ho" x="44" y="235">0 held, 0 planned, 6 unused</text>
+  <line x1="44" y1="279" x2="256" y2="279" stroke="#e2e8f0"/>
+  <circle cx="51" cy="289.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="62" y="293">not held yet</text>
+  <rect x="32" y="103" width="236" height="210" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="864.1" y="405" width="236" height="198" rx="9" fill="#ffffff"/>
+  <path d="M 864.1 435 V 414 A 9 9 0 0 1 873.1 405 H 1091.1 A 9 9 0 0 1 1100.1 414 V 435 Z" fill="#d1fae5"/>
+  <line x1="864.1" y1="435" x2="1100.1" y2="435" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="876.1" y="425.5" style="fill:#064e3b">GitWorktreeAdmin</text>
+  <text class="w" x="876.1" y="459">What git keeps to find a linked</text>
+  <text class="w" x="876.1" y="476">worktree, to tell whether it still</text>
+  <text class="w" x="876.1" y="493">exists, and to keep it from being</text>
+  <text class="w" x="876.1" y="510">pruned.</text>
+  <text class="ho" x="876.1" y="532">native: git</text>
+  <text class="ho" x="876.1" y="554">2 held, 0 planned, 5 unused</text>
+  <line x1="876.1" y1="569" x2="1088.1" y2="569" stroke="#e2e8f0"/>
+  <circle cx="883.1" cy="579.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="894.1" y="583">kit workspace</text>
+  <rect x="864.1" y="405" width="236" height="198" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <rect x="1306.5" y="405" width="236" height="198" rx="9" fill="#ffffff"/>
+  <path d="M 1306.5 435 V 414 A 9 9 0 0 1 1315.5 405 H 1533.5 A 9 9 0 0 1 1542.5 414 V 435 Z" fill="#d1fae5"/>
+  <line x1="1306.5" y1="435" x2="1542.5" y2="435" stroke="#047857" stroke-opacity=".35"/>
+  <text class="h" x="1318.5" y="425.5" style="fill:#064e3b">GitWorktreeDir</text>
+  <text class="w" x="1318.5" y="459">The git directory of one worktree,</text>
+  <text class="w" x="1318.5" y="476">which holds what that worktree has</text>
+  <text class="w" x="1318.5" y="493">of its own, its HEAD and its index.</text>
+  <text class="ho" x="1318.5" y="515">native: git</text>
+  <text class="ho" x="1318.5" y="537">1 held, 0 planned, 7 unused</text>
+  <line x1="1318.5" y1="569" x2="1530.5" y2="569" stroke="#e2e8f0"/>
+  <circle cx="1325.5" cy="579.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="1336.5" y="583">kit workspace</text>
+  <rect x="1306.5" y="405" width="236" height="198" rx="9" fill="none" stroke="#047857" stroke-width="1.5"/>
+  <text class="lbl" xml:space="preserve" x="525.4" y="326">cache-tree  0..1</text>
+  <text class="lbl" xml:space="preserve" x="604" y="400">index  0..1</text>
+  <text class="lbl" xml:space="preserve" x="697.7" y="197">subtrees  0..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="697.7" y="257">parent  0..1</text>
+  <text class="lbl" xml:space="preserve" x="1572.5" y="867">config  0..* {ordered}  <tspan class="far">GitConfigEntry</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1390.2" y="960">git-dir  0..1</text>
+  <text class="lbl" xml:space="preserve" x="947.8" y="960">module  0..1</text>
+  <text class="lbl" xml:space="preserve" x="1442.6" y="744">dir  1</text>
+  <text class="lbl" xml:space="preserve" x="1831.3" y="616" text-anchor="end">refs  0..*</text>
+  <text class="lbl" xml:space="preserve" x="1468.9" y="960">superproject  1</text>
+  <text class="lbl" xml:space="preserve" x="1026.4" y="960">submodules  0..*</text>
+  <text class="lbl" xml:space="preserve" x="1380.2" y="744" text-anchor="end">common  1</text>
+  <text class="lbl" xml:space="preserve" x="1406.4" y="616" text-anchor="end">worktree-dirs  1..*</text>
+  <text class="lbl" xml:space="preserve" x="1405.9" y="326">head  1</text>
+  <text class="lbl" xml:space="preserve" x="1453.1" y="400">dir  1</text>
+  <text class="lbl" xml:space="preserve" x="649" y="616">index  0..1</text>
+  <text class="lbl" xml:space="preserve" x="1327.8" y="640" text-anchor="end">dir  0..1</text>
+  <text class="lbl" xml:space="preserve" x="547.8" y="616">index  1</text>
+  <text class="lbl" xml:space="preserve" x="581.5" y="744">entries  0..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="605.3" y="628" text-anchor="end">index  1</text>
+  <text class="lbl" xml:space="preserve" x="564.7" y="998">entry-blocks  0..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="470.4" y="616" text-anchor="end">index  1</text>
+  <text class="lbl" xml:space="preserve" x="115.7" y="744">resolve-undo  0..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="697.7" y="495">splits  0..*</text>
+  <text class="lbl" xml:space="preserve" x="697.7" y="551">shared  0..1</text>
+  <text class="lbl" xml:space="preserve" x="509.1" y="628" text-anchor="middle">index  1</text>
+  <text class="lbl" xml:space="preserve" x="194.3" y="616">untracked-cache  0..1</text>
+  <text class="lbl" xml:space="preserve" x="707.7" y="867">target  1  <tspan class="far">GitTreeTarget</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1498.9" y="616">checked-out-in  0..*  derived</text>
+  <text class="lbl" xml:space="preserve" x="2068.6" y="511">config  0..1  <tspan class="far">GitBranchConfig</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1949.2" y="400">symref-of  0..*</text>
+  <text class="lbl" xml:space="preserve" x="1996.4" y="326">dangling-symref  0..1</text>
+  <text class="lbl" xml:space="preserve" x="1976.2" y="616">ref  0..1</text>
+  <text class="lbl" xml:space="preserve" x="2009.9" y="744">reflog  0..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="2068.6" y="535">remote-config  0..1  <tspan class="far">GitRemoteConfig</tspan></text>
+  <text class="lbl" xml:space="preserve" x="2058.6" y="463">symref-of  0..*</text>
+  <text class="lbl" xml:space="preserve" x="2058.6" y="487">symref  0..1</text>
+  <text class="lbl" xml:space="preserve" x="2068.6" y="559">target  0..1  <tspan class="far">GitObject</tspan></text>
+  <text class="lbl" xml:space="preserve" x="2068.6" y="583">upstream-of  0..*  <tspan class="far">GitBranchConfig</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1908.8" y="616">refs  0..*</text>
+  <text class="lbl" xml:space="preserve" x="1525.1" y="628">worktree-dir  0..1</text>
+  <text class="lbl" xml:space="preserve" x="1932.5" y="744" text-anchor="end">head-log  0..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="1521.3" y="640">worktree-dir  0..1</text>
+  <text class="lbl" xml:space="preserve" x="937.8" y="326" text-anchor="end">root-refs  0..*</text>
+  <text class="lbl" xml:space="preserve" x="1358.7" y="400">dir  1</text>
+  <text class="lbl" xml:space="preserve" x="1844.8" y="400" text-anchor="end">symref  0..1  derived</text>
+  <text class="lbl" xml:space="preserve" x="1130.1" y="839">entries  1..*  <tspan class="far">GitConfigEntry</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1130.1" y="895">gitlinks  0..*  <tspan class="far">GitTreeEntry</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1500.3" y="400">checked-out-in  0..*  derived</text>
+  <text class="lbl" xml:space="preserve" x="115.7" y="400">cache  0..1</text>
+  <text class="lbl" xml:space="preserve" x="194.3" y="326">root  0..1</text>
+  <text class="lbl" xml:space="preserve" x="288" y="197">subdirs  0..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="288" y="257">parent  0..1</text>
+  <text class="lbl" xml:space="preserve" x="987.1" y="616">admin  0..1</text>
+  <text class="lbl" xml:space="preserve" x="1324" y="628" text-anchor="end">worktree-dir  1</text>
+  <text class="lbl" xml:space="preserve" x="1572.5" y="472.6">branch-configs  0..*  <tspan class="far">GitBranchConfig</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1572.5" y="506.2">config  0..* {ordered}  <tspan class="far">GitConfigEntry</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1572.5" y="539.8">remote-configs  0..*  <tspan class="far">GitRemoteConfig</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1572.5" y="573.4">user-config  1  <tspan class="far">GitUserConfig</tspan></text>
+</svg>

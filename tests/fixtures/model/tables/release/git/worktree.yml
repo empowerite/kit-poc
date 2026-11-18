@@ -1,0 +1,11 @@
+# An entity with held, planned, and derived fields, and relations, for the tables of kit model table.
+entity: Worktree
+layer: native
+tool: git
+means: a working tree
+fields:
+  path: {type: Path, status: held, read-by: "work path", means: where it is checked out}
+  branch: {type: Text, arity: option, status: planned, means: the branch | or none}
+  name: {type: Text, source: derived, from: the path, status: unused}
+relations:
+  head: {to: Branch, inverse: Branch.worktree}

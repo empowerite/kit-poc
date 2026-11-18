@@ -1,0 +1,609 @@
+// The screen drawn: the title, the steps' tab bar, the selected step's pane, and the keys bar on the last line. Widths
+// are terminal cells, so a two-cell glyph never pushes a line past the edge.
+package welcome
+
+import (
+	"cmp"
+	"slices"
+	"strconv"
+	"strings"
+
+	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
+
+	"github.com/empowerite/kit/projects/tui/internal/fix"
+	"github.com/empowerite/kit/projects/tui/internal/kit"
+	"github.com/empowerite/kit/projects/tui/internal/markdown"
+	"github.com/empowerite/kit/projects/tui/internal/pane"
+	"github.com/empowerite/kit/projects/tui/internal/shell"
+	"github.com/empowerite/kit/projects/tui/internal/style"
+	"github.com/empowerite/kit/projects/tui/internal/tabs"
+)
+
+// appLabel is the screen's name on the title line, after the app menu's =; a click on either drops the menu down.
+const appLabel = "kit welcome"
+
+// The glyphs the screen draws besides the tabs'.
+const (
+	Passed  = "✅" // a check that passed
+	Offered = "💡" // a check that passed and offers a fix all the same
+	Failed  = "❌" // a check that failed, and a refusal
+)
+
+// lead is what starts a pane's line, and focus what starts the line under the cursor.
+const (
+	lead  = "   "
+	focus = " " + style.Focus + " "
+)
+
+// under is what starts a line under a check's: as far in as the check's text.
+const under = lead + "   "
+
+// line is one line of the pane: the check it belongs to, or -1, and its text; and the block it scrolls across with, as
+// pane.Across keeps them, "" for a line that stays, its first lead cells staying as it does; and the links on it, each
+// where it stands on the line and where it leads.
+type line struct {
+	row   int
+	text  string
+	block string
+	lead  int
+	links []markdown.Link
+	// command is the command a command line's buttons copy and run, "" on any other line
+	command string
+}
+
+// blocksOf gives the blocks the lines stand in, each the lines that follow one another with its name.
+func blocksOf(lines []line) []pane.Block {
+	var out []pane.Block
+	for k, l := range lines {
+		if l.block == "" {
+			continue
+		}
+		wide := ansi.StringWidth(l.text) - l.lead
+		if n := len(out); n > 0 && out[n-1].ID == l.block && out[n-1].To == k {
+			out[n-1].To, out[n-1].Wide = k+1, max(out[n-1].Wide, wide)
+			continue
+		}
+		out = append(out, pane.Block{ID: l.block, From: k, To: k + 1, Lead: l.lead, Wide: wide})
+	}
+	return out
+}
+
+// texts gives the lines' texts, each block's whole.
+func texts(lines []line) []string {
+	out := make([]string, len(lines))
+	for k, l := range lines {
+		out[k] = l.text
+	}
+	return out
+}
+
+// slid gives the lines' texts, each block's scrolled across as far as it is.
+func (m Model) slid(lines []line) []string {
+	return m.across.Slid(texts(lines), blocksOf(lines), m.width-1)
+}
+
+// View draws the screen on the alternate screen, with the mouse on for the bar: the title, the bar, or, maximized, the
+// banner, and the pane; the selected step's table's layers over its pane, the tab's menu while it is open, and what
+// the table did, or why not, in place of the keys while it says it.
+func (m Model) View() tea.View {
+	lines := m.legend.Over(m.frame(), m.legendSpec())
+	if m.gridded() {
+		lines = m.sheet().Over(lines)
+	}
+	if m.tabMenu.Open {
+		box, left, _ := m.menuBoxIn()
+		lines = shell.Over(lines, box, m.menuTop(), left)
+	}
+	lines = m.recent.Overlay(append(lines, ""), m.recallAt(), m.width)
+	lines = m.appMenu.Overlay(lines, m.width)
+	return shell.View(lines, m.height, m.bottom())
+}
+
+// frame gives the screen's lines over its last, before the legend and the layers are drawn over them: the title, the
+// bar, or, maximized, the banner, and the pane.
+func (m Model) frame() []string {
+	lines := []string{m.menuBar().Line(m.width)}
+	if m.maximized {
+		lines = append(lines, m.banner())
+	} else {
+		lines = append(lines, strings.Split(m.bar().View(), "\n")...)
+	}
+	return append(lines, m.pane()...)
+}
+
+// bottom gives the screen's last line: the keys bar, or what the table did, or why not, or the link to open, in its
+// place.
+func (m Model) bottom() string {
+	bottom := m.keys().Line(m.width)
+	if notice := m.sheetNotice(); notice != "" {
+		bottom = notice
+	}
+	if notice := m.linkNotice(); notice != "" {
+		bottom = notice
+	}
+	return bottom
+}
+
+// bar gives the steps' tab bar, from the screen's second line: each step's glyph, name, and count, the count in red
+// when a check failed or kit refused them, the keyboard on it unless the pane has it, its view where it was left, and
+// the selected tab's :, which drops its menu down.
+func (m Model) bar() tabs.Bar {
+	b := tabs.Bar{Selected: m.step, Focused: !m.inPane, Scroll: m.barView, Width: m.width, Row: 1,
+		MenuOpen: m.tabMenu.Open}
+	for i, t := range m.tabs {
+		count := m.count(i)
+		b.Tabs = append(b.Tabs, tabs.Tab{Glyph: t.glyph, Name: t.name, Count: count})
+		b.Alert = append(b.Alert, count != "" && count != "…")
+	}
+	return b
+}
+
+// paneHeight gives the lines the pane has: the screen's, from the pane's top, less the keys under it. The gap over the
+// keys is the pane's last line, where a window says how many rows it hides below, so the rows have the line above it.
+func (m Model) paneHeight() int { return max(1, m.height-m.paneTop()-1) }
+
+// menuBar gives the menu bar, as internal/shell draws every screen's: the kit menu's = before kit welcome, and no
+// workspace menu, as the welcome is about no workspace; maximized, the selected tab, as the bar draws it but its number
+// in place of its glyph, its : last; and the search field.
+func (m Model) menuBar() shell.MenuBar {
+	b := shell.MenuBar{Screen: appLabel, Open: m.appMenu.Open, Crumb: m.appMenu.Crumb, Search: m.searchLine()}
+	if m.maximized {
+		b.On = m.bar().NumberedLabel()
+	}
+	return b
+}
+
+// keys gives the path to the keyboard, which the keys bar is drawn from: the screen; the steps' bar, whose down enters
+// the step's checks, its table, which the table's name names, or its page; and the pane while it has the keyboard, the
+// part of the step's table that has it, or the search, which takes every press while it has it. Where the step shows
+// none of its checks, as enters says, the bar names no down, and the search's Enter is named by the tabs it leads to.
+// An open menu takes every press, and is the path alone, as a layer of the step's table is.
+func (m Model) keys() shell.Path {
+	if m.appMenu.Open || m.recent.Open || m.tabMenu.Open {
+		return shell.Path{shell.MenuKeys()}
+	}
+	if m.gridded() {
+		if seg, layer := m.sheet().Keys(); layer {
+			return shell.Path{seg}
+		}
+	}
+	down := "page"
+	switch {
+	case m.gridded():
+		down = m.sheet().Name()
+	case !m.enters():
+		down = "" // the step shows none of its checks, so down on the bar has no row to enter
+	case m.hasRows():
+		down = "checks"
+	}
+	bar := m.bar().Keys(down)
+	if m.maximized {
+		// the bar is not there to move along
+		bar.Bindings = slices.DeleteFunc(bar.Bindings, func(b shell.Binding) bool { return b.Key == "⇥·⇧⇥" })
+	}
+	path := shell.Path{shell.ScreenKeys(shell.CrumbOf(m.appMenu.Crumb)...), bar}
+	switch {
+	case m.search().Focused:
+		search := shell.SearchKeys(cmp.Or(down, "tabs"), m.search().Query, m.recalls())
+		search.Owns = true
+		return append(path, search)
+	case m.inPane && m.gridded():
+		seg, _ := m.sheet().Keys()
+		return append(path, seg)
+	case m.inPane:
+		return append(path, m.paneKeys())
+	}
+	return path
+}
+
+// OnBar says whether the steps' bar has the keyboard: it is the last control on the path to the keyboard, which the
+// keys bar is drawn from, so no menu or layer of the step's table is open, and the keyboard is not in the search or
+// in the pane. kittui's root takes q there as ⌃Q, which quits.
+func (m Model) OnBar() bool { return len(m.keys()) == 2 }
+
+// paneKeys gives the segment of the pane while it has the keyboard: esc gives the bar the keyboard, named by the step
+// it has selected; up and down move between the rows, or scroll a page with none, a page at a time too, and home and
+// end to the first and the last, unnamed until a test shows the keys arrive in Terminal.app and iTerm; and on a
+// check with a fix, c copies it and r runs it, where kit runs it; on a terminal's failed finding, k keeps it.
+func (m Model) paneKeys() shell.Segment {
+	move := "move"
+	if !m.hasRows() {
+		move = "scroll"
+	}
+	s := shell.Segment{Takes: []string{"home", "end"}, Bindings: []shell.Binding{shell.Bind("esc", "tabs"),
+		shell.Bind("↑↓", move, "up", "down"), shell.Bind("⇞⇟", "page", "pgup", "pgdown")}}
+	if m.search().Query != "" {
+		s.Bindings = append(s.Bindings, shell.Bind("n·N", "match", "n", "N"))
+	}
+	if m.copies() {
+		s.Bindings = append(s.Bindings, fix.Bindings(m.runsHere())...)
+	}
+	if m.keeping() {
+		s.Bindings = append(s.Bindings, shell.Bind("k", keepName))
+	}
+	return s
+}
+
+// count gives the count of a step with checks: … while the checks first run, ! when kit refused them, else how many
+// of its checks failed, or nothing when none did. The pages have none.
+func (m Model) count(i int) string {
+	switch {
+	case !m.tabs[i].checked:
+		return ""
+	case m.checking.Loading:
+		return "…"
+	case m.refusal != "":
+		return "!"
+	}
+	n := 0
+	for _, k := range m.rows(i) {
+		if !m.checks[k].OK {
+			n++
+		}
+	}
+	if n == 0 {
+		return ""
+	}
+	return strconv.Itoa(n)
+}
+
+// pane gives the pane's lines, as many as it has: the selected step's from its offset on, or, on a step drawn as a
+// table, its lead and its table.
+func (m Model) pane() []string {
+	h := m.paneHeight()
+	if m.gridded() {
+		// the table fills the pane under the lead
+		return m.sheetPane()
+	}
+	out := pane.Lines(m.slid(m.lines()), m.offsets[m.step], h, "")
+	for k := range out {
+		out[k] = pane.Clip(out[k], m.width-1)
+	}
+	for len(out) < h {
+		out = append(out, "")
+	}
+	return out
+}
+
+// lines gives the selected step's lines: a step with checks has its page's title, its checks, and the rest of its page
+// under them; any other step has its page.
+func (m Model) lines() []line {
+	if m.hasRows() {
+		return m.footed(m.stepLines())
+	}
+	return m.pageText(m.step)
+}
+
+// pageLines gives a page's lines, as pageText does, their texts alone.
+func (m Model) pageLines(i int) []string {
+	var out []string
+	for _, l := range m.pageText(i) {
+		out = append(out, l.text)
+	}
+	return out
+}
+
+// pageText gives a page's lines: the page drawn to the width, what the search finds in it highlighted, each code
+// block and table whole, a block of the step's, a dim line while the pages are read, or the dim lines saying where the
+// page was looked for, the path broken across lines so all of it shows. The pane clips what a narrow screen cannot
+// hold, since a page keeps ten cells for its words.
+func (m Model) pageText(i int) []line {
+	var out []line
+	add := func(text string) { out = append(out, line{row: -1, text: text}) }
+	switch {
+	case m.tabs[i].missing != "":
+		add(lead + style.Off("no page at"))
+		path := ansi.Hardwrap(m.tabs[i].missing, max(m.width-len(lead)-1, 1), false)
+		for _, piece := range strings.Split(path, "\n") {
+			add(lead + style.Off(piece))
+		}
+		return out
+	case m.tabs[i].page == "":
+		add(lead + style.Off("reading…"))
+		return out
+	}
+	return m.drawn(i, m.tabs[i].page, "")
+}
+
+// drawn gives a part of the step i's page as lines: its markdown drawn to the width, what the step's search finds in
+// it highlighted, each link where it stands, and each code block and table whole, a block of the step's, named under
+// the part.
+func (m Model) drawn(i int, md, part string) []line {
+	var out []line
+	query := m.searches[m.tabs[i].id].Query
+	lines, blocks, links := wide(md, m.width-len(lead)-1)
+	for _, l := range lines {
+		out = append(out, line{row: -1, text: strings.TrimRight(lead+shell.Found(l, query), " ")})
+	}
+	for _, l := range links {
+		l.Col += len(lead)
+		out[l.Line].links = append(out[l.Line].links, l)
+	}
+	for _, b := range blocks {
+		for k := b.From; k < b.To; k++ {
+			out[k].block, out[k].lead = m.tabs[i].id+"/"+part+b.ID, len(lead)
+		}
+	}
+	return out
+}
+
+// split gives a page's markdown in two: up to its title, a `# ` heading that is its first line of text, after any
+// comments, and the rest. A page that starts with anything else has no title, and is all rest.
+func split(md string) (title, rest string) {
+	at, comment := 0, false
+	for _, raw := range strings.SplitAfter(md, "\n") {
+		text := strings.TrimSpace(raw)
+		at += len(raw)
+		switch {
+		case comment || strings.HasPrefix(text, "<!--"):
+			comment = !strings.Contains(text, "-->")
+		case text == "":
+		case pageTitle.MatchString(text):
+			return md[:at], md[at:]
+		default:
+			return "", md
+		}
+	}
+	return "", md
+}
+
+// splitCommand gives a page's rest, after its title, in two: its command, the code span that is its first paragraph
+// alone, as the step's checks are what that command prints; and the rest of the page. A page that does not start so has
+// no command, and is all rest.
+func splitCommand(rest string) (command, others string) {
+	at := 0
+	for _, raw := range strings.SplitAfter(rest, "\n") {
+		text := strings.TrimSpace(raw)
+		at += len(raw)
+		if text == "" {
+			continue
+		}
+		found := commandLine.FindStringSubmatch(text)
+		next := strings.TrimSpace(strings.SplitN(rest[at:], "\n", 2)[0])
+		if found == nil || next != "" {
+			return "", rest
+		}
+		return found[1], rest[at:]
+	}
+	return "", rest
+}
+
+// stepCommand gives the command the selected step's page starts with, under its title: the command that gives the
+// step's checks. "" where the page has none.
+func (m Model) stepCommand() string {
+	_, rest := split(m.tabs[m.step].page)
+	command, _ := splitCommand(rest)
+	return command
+}
+
+// commandKey is what m.copied holds while the step's command says copied, a key no check has.
+const commandKey = "\x00command"
+
+// commandLines gives the step's command, drawn as a page draws a code span, with its buttons at its right: ⧉, and ▶️
+// where it runs here; and, dim under it, what the buttons are for, and that kit has already run it once, which is where
+// the checks under it come from. They say kit is running it while the first answer is out.
+func (m Model) commandLines(command string) []line {
+	w := m.width - 1
+	drawn := render("`"+command+"`", w-len(lead)-ansi.StringWidth(fix.Buttons(true, false)))
+	text := fix.After(lead+drawn[0], w, fix.Runs(command), m.copied == commandKey)
+	out := []line{{row: -1, text: text, command: command}}
+	said := "kit ran it once, as this screen opened; the checks below are what it found."
+	if m.checking.Running() && len(m.checks) == 0 {
+		said = "kit is running it now; the checks below are what it finds."
+	}
+	said += " " + fix.CopyName + " copies it, to run in your own shell"
+	if fix.Runs(command) {
+		said += ", and " + fix.RunName + " runs it again here"
+	}
+	for _, l := range wrapWords(strings.Fields(said+"."), w-len(lead), "", "") {
+		out = append(out, line{row: -1, text: lead + style.Off(l)})
+	}
+	return append(out, line{row: -1})
+}
+
+// stepFoot gives the lines a step with checks has under its checks: the rest of its page, after its title and its
+// command.
+func (m Model) stepFoot() []line {
+	_, rest := split(m.tabs[m.step].page)
+	_, rest = splitCommand(rest)
+	return m.drawn(m.step, rest, "")
+}
+
+// footed gives a step's lines with its foot under them, a blank line between; a page that is its title alone adds
+// nothing.
+func (m Model) footed(out []line) []line {
+	foot := m.stepFoot()
+	if len(foot) > 0 && len(out) > 0 && out[len(out)-1].text != "" {
+		out = append(out, line{row: -1})
+	}
+	return append(out, foot...)
+}
+
+// stepLines gives the lines of a step with checks, over its foot: its page's title, kit's refusal, its checks, and
+// each failed one's fix and where to read more under it, as the toolchains check's other choices.
+func (m Model) stepLines() []line {
+	w := m.width - 1
+	out := m.stepHead()
+	add := func(row int, text string) { out = append(out, line{row: row, text: pane.Clip(text, w)}) }
+	query := m.search().Query
+	rows := m.rows(m.step)
+	if len(rows) == 0 {
+		switch {
+		case m.checking.Running():
+			m.addChecking(add)
+		case query != "":
+			add(-1, lead+style.Off("no check matches the search"))
+		}
+		return out
+	}
+	for _, i := range rows {
+		out = append(out, m.checkLines(i)...)
+	}
+	return append(out, m.stepTail(rows)...)
+}
+
+// stepHead gives the lines a step with checks starts with: its page's title, what the search finds in it highlighted,
+// and kit's refusal. A page with no title starts with its checks.
+func (m Model) stepHead() []line {
+	w := m.width - 1
+	var out []line
+	add := func(row int, text string) { out = append(out, line{row: row, text: pane.Clip(text, w)}) }
+	title, _ := split(m.tabs[m.step].page)
+	if head := m.drawn(m.step, title, "title/"); len(head) > 0 {
+		out = append(out, head...)
+		add(-1, "")
+	}
+	if command := m.stepCommand(); command != "" {
+		out = append(out, m.commandLines(command)...)
+	}
+	if m.refusal != "" {
+		for _, l := range wrapWords(strings.Fields(Failed+" "+m.refusal), w-len(lead), "", "") {
+			add(-1, lead+style.Refusal(l))
+		}
+		add(-1, "")
+	}
+	return out
+}
+
+// addChecking adds the lines that say the checks run: checking…, then, dim under it, the check kit is on, as kit says
+// it starts it.
+func (m Model) addChecking(add func(row int, text string)) {
+	add(-1, lead+style.Off("checking…"))
+	if m.running != "" {
+		add(-1, lead+"  "+style.Off(m.running))
+	}
+}
+
+// stepTail gives the lines a step with checks ends with, after its rows: checking… while the checks run again.
+func (m Model) stepTail(rows []int) []line {
+	w := m.width - 1
+	var out []line
+	add := func(row int, text string) { out = append(out, line{row: row, text: pane.Clip(text, w)}) }
+	if m.checking.Running() {
+		add(-1, "")
+		m.addChecking(add)
+	}
+	return out
+}
+
+// checkLines gives a check's lines: ✅, 💡 for an offer, or ❌, and its line, the cursor's row drawn as chosen with its
+// buttons, as rowButtons draws them; under it, each of its findings, a line each; under a failed check or an offer, its
+// fix, dim; under a failed check, where to read more; and the note its fix left.
+func (m Model) checkLines(i int) []line {
+	c, w, key := m.checks[i], m.width-1, m.checks[i].Key()
+	focused := m.inPane && i == m.cursor
+	start, text, glyph := lead, c.Line, Passed
+	if focused {
+		start, text = focus, style.Chosen(c.Line)
+	}
+	if !c.OK {
+		glyph = Failed
+	} else if c.Offer() {
+		glyph = Offered
+	}
+	// the check's own sentence is wrapped under its glyph, so all of it is read; the lines of the row are the row's
+	first := start + glyph + " "
+	pad := strings.Repeat(" ", ansi.StringWidth(first))
+	parts := pane.Wrap(text, w-ansi.StringWidth(first))
+	if len(parts) == 0 {
+		parts = []string{""}
+	}
+	var out []line
+	for k, l := range parts {
+		prefix := pad
+		if k == 0 {
+			prefix = first
+		}
+		out = append(out, line{row: i, text: pane.Clip(prefix+l, w)})
+	}
+	if end := m.rowButtons(c, key); focused && end != "" {
+		last := &out[len(out)-1]
+		last.text = pane.Clip(last.text, w-ansi.StringWidth(end)) + end
+	}
+	// the lines under the row, whole, are a block that scrolls across, its lead staying
+	add := func(text string) {
+		out = append(out, line{row: i, text: under + text, block: "check/" + key, lead: len(under)})
+	}
+	for _, f := range c.Findings {
+		add(f)
+	}
+	if c.Fix != "" {
+		shown := c.Fix
+		if c.Interactive {
+			shown += " · it needs you at the keyboard"
+		}
+		add(style.Off(shown))
+	}
+	if !c.OK && c.More != "" {
+		add(style.Off(c.More))
+	}
+	if n, ok := m.notes[key]; ok {
+		draw := style.Warn
+		if n.refusal {
+			draw = style.Refusal
+		}
+		add(draw(n.text))
+	}
+	return out
+}
+
+// rowButtons gives the buttons the cursor's row ends with: a check with a fix, its pair, as fix.Buttons draws it, ⧉, or
+// copied once c copied it, and ▶️ where kit runs it, never on a terminal's finding; then keep, on a terminal's failed
+// finding, which keeps it. None where the check offers neither.
+func (m Model) rowButtons(c kit.Check, key string) string {
+	var end string
+	if c.Fix != "" {
+		end = fix.Buttons(c.Runs && !terminalFinding(c), m.copied == key)
+	}
+	if !c.OK && terminalFinding(c) {
+		if end == "" {
+			end = " "
+		}
+		end += " " + style.Tint(" "+keepName+" ")
+	}
+	return end
+}
+
+// fit keeps the pane's offset within its lines, and in a step with rows scrolls so the row under the cursor shows,
+// whole when it fits.
+func (m *Model) fit() {
+	if m.gridded() {
+		// a step's table keeps its own window
+		return
+	}
+	if !m.hasRows() {
+		m.scroll(0)
+		return
+	}
+	lines, h := m.lines(), m.paneHeight()
+	o := &m.offsets[m.step]
+	*o, _, _, _ = pane.Window(len(lines), h, *o)
+	if !m.inPane {
+		return
+	}
+	first, last := -1, -1
+	for k, l := range lines {
+		if l.row == m.cursor {
+			if first < 0 {
+				first = k
+			}
+			last = k
+		}
+	}
+	if first < 0 {
+		return
+	}
+	// a … line takes the place of a line at either edge, so the window is asked rather than counted
+	for {
+		start, end, _, _ := pane.Window(len(lines), h, *o)
+		switch {
+		case first < start:
+			*o = first
+		case last >= end && first > start:
+			*o++
+		default:
+			return
+		}
+	}
+}

@@ -1,0 +1,14 @@
+# A domain whose card S has twelve ends on its right side: four loops and four stubs, for the height of a row.
+name: St
+intro: Stress.
+layout:
+  P0: {row: 0, col: 0}
+  P1: {row: 1, col: 0}
+  P2: {row: 2, col: 0}
+  P3: {row: 3, col: 0}
+  P4: {row: 4, col: 0}
+  P5: {row: 5, col: 0}
+  P6: {row: 6, col: 0}
+  P7: {row: 7, col: 0}
+  P8: {row: 8, col: 0}
+  S: {row: 0, col: 1}

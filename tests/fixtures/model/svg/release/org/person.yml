@@ -1,0 +1,12 @@
+# A relation that is its own inverse, and two derived relations, one to itself and one into a sum.
+entity: Person
+layer: logical
+means: a person
+fields:
+  email: {type: Text, status: planned}
+relations:
+  org: {to: Org, inverse: Org.members}
+  boss: {to: Org, arity: option, inverse: Org.staff}
+  friends: {to: Person, arity: many, inverse: Person.friends}
+  mentor: {to: Person, arity: option, derived: the lead of the person's team}
+  team: {to: Team, derived: the team the person's org gives}

@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# kit-people - lists who has access to the repository, its teams, and the bots that acted (kit verb: workflow)
+# ----------------------------------------------------------------------------------------------------------------------
+# Usage:
+#   kit people [--text | --json | --jq]
+#   kit people --stages
+#   kit people --marks
+#   kit people people [--text | --json | --jq]
+#   kit people teams [--text | --json | --jq]
+#   kit people agents [--text | --json | --jq]
+#
+# Lists who works on the repository, as the forge says: who has access, its teams, and the bots that acted. It is a stage
+# for each of People's tabs in kittui, and it changes nothing. The stages, in order:
+#
+#   people → teams → agents
+#
+# On a terminal, kit people opens People in kittui, and kit people <stage> opens it on that tab, maximized. Without a
+# terminal, or with --text, it prints the stages as text. With --json or --jq, it prints them as JSON.
+#
+# kit --workspace=<workspace> people draws each stage across a workspace's members with checkouts, as kit workspace does.
+# Without it, the workspace is the repository here, and outside one, the last group used, as kit workspaces --current
+# says.
+#
+# With --json, a stage prints {contract, rows, errors}. The fields of each stage are in docs/apps.md.
+#
+# Legend
+#
+# Each stage lists the glyphs it draws in kittui, one per line. A glyph can show under more than one stage.
+#
+# kit:generate legend `k=$(command -v kit); jq -nr -L "${k%/bin/kit}/modules/jq" 'import "glyphs" as g; g::legend_for("people")'`
+#   📚  workspace: a group, in the workspace menu that drops down from - in kittui's title
+#
+# people:
+#
+#   🧑  person: one with access to the repository, and their role
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# teams:
+#
+#   👪  team: a team with access to the repository, and its members
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# agents:
+#
+#   🤖  agent: a bot that acts on the repository, what it did, and when last
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# kit:end legend
+#
+# Arguments:
+#   --text              prints the stages as text, even on a terminal
+#   --json              the stages as one JSON object: contract, stages, then each stage's document under its name,
+#                       null for one that could not be read
+#   --jq                the same JSON, formatted by jq for a person
+#   --stages            prints the stages, one per line, in order, the same over any workspace
+#   --marks             prints a mark per stage, as one JSON object: null for each, as each is read again only on
+#                       Refresh
+#   people              who has access to the repository, people and bots, each with a role
+#   teams               the teams with access, 20 at most, each with its members, 100 at most
+#   agents              the bots that acted in the repository's newest commits, changes, and reviews
+#
+# Exits 0 when the stages are drawn, 1 when a stage could not be read, after what was, and 2 on a usage error, or outside a
+# repository's working tree with no workspace.
+#
+# see: modules/bash/apps.sh, modules/bash/apps/people.sh, modules/jq/apps.jq, docs/apps.md
+
+set -o errexit -o nounset -o pipefail
+# shellcheck source=modules/bash/1st.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
+kit:enter
+use apps
+workspaces:misplaced people "$@" || exit $?
+guard:arguments people "$@" || exit $?
+apps:main people "$@"
+
+# ----------------------------------------------------------------------------------------------------------------------

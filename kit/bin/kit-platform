@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# kit-platform - lists the services, toolchains, tools, and settings kit runs with (kit verb: installation)
+# ----------------------------------------------------------------------------------------------------------------------
+# Usage:
+#   kit platform [--text | --json | --jq]
+#   kit platform --stages
+#   kit platform --marks
+#   kit platform services [--text | --json | --jq]
+#   kit platform toolchains [--text | --json | --jq]
+#   kit platform tools [--text | --json | --jq]
+#   kit platform settings [--text | --json | --jq]
+#
+# Lists what kit runs with here, a stage for each of Platform's tabs in kittui. It changes nothing, and asks the forge
+# only whether its tool is signed in. The stages, in order:
+#
+#   services → toolchains → tools → settings
+#
+# On a terminal, kit platform opens Platform in kittui, and kit platform <stage> opens it on that tab, maximized. Without a
+# terminal, or with --text, it prints the stages as text. With --json or --jq, it prints them as JSON.
+#
+# kit --workspace=<workspace> platform draws each stage across a workspace's members with checkouts, as kit workspace
+# does. Without it, the workspace is the repository here, and outside one, the last group used, as kit workspaces
+# --current says.
+#
+# With --json, a stage prints {contract, rows, errors}. The fields of each stage are in docs/apps.md.
+#
+# Legend
+#
+# Each stage lists the glyphs it draws in kittui, one per line. A glyph can show under more than one stage.
+#
+# kit:generate legend `k=$(command -v kit); jq -nr -L "${k%/bin/kit}/modules/jq" 'import "glyphs" as g; g::legend_for("platform")'`
+#   📚  workspace: a group, in the workspace menu that drops down from - in kittui's title
+#
+# services:
+#
+#   🔌  service: a capability kit uses, and what answers it
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# toolchains:
+#
+#   🧰  toolchain: what installs the tools, the system's or the project's
+#   ✅  usable here: its tool is installed here, and for the project, its file is too
+#   ⚡  inside now: the run is already inside it
+#   📌  kit uses it: the one kit uses for its role
+#   ➕  adds the rest: brew, installing the Brewfile's tools the chosen toolchain does not pin
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# tools:
+#
+#   🔩  tool: a tool kit pins, and the version installed
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# settings:
+#
+#   🔧  setting: a key of kit.yml, its value set there or its default
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# kit:end legend
+#
+# Arguments:
+#   --text              prints the stages as text, even on a terminal
+#   --json              the stages as one JSON object: contract, stages, then each stage's document under its name,
+#                       null for one that could not be read
+#   --jq                the same JSON, formatted by jq for a person
+#   --stages            prints the stages, one per line, in order, the same over any workspace
+#   --marks             prints a mark per stage, as one JSON object, which changes when what the stage draws does
+#   services            each capability kit fills and the service that answers it: hosting, review, ci, and releases;
+#                       tracking; the project's tool manager; each dependency provider; and the policy engine
+#   toolchains          each toolchain kit can use, one row for each role it fills, as kit toolchains lists them
+#   tools               each tool the chosen toolchain and the dependency providers pin, as kit tools lists them
+#   settings            each key the settings schema names: the value kit.yml sets, or the schema's default
+#
+# Exits 0 when the stages are drawn, 1 when a stage could not be read, as tools where kit tools refuses, and 2 on a usage
+# error, or outside a repository's working tree with no workspace. What was read is still drawn, and the line names what
+# was not.
+#
+# see: modules/bash/apps.sh, modules/bash/apps/platform.sh, modules/jq/apps.jq, docs/apps.md
+
+set -o errexit -o nounset -o pipefail
+# shellcheck source=modules/bash/1st.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
+kit:enter
+use apps
+workspaces:misplaced platform "$@" || exit $?
+guard:arguments platform "$@" || exit $?
+apps:main platform "$@"
+
+# ----------------------------------------------------------------------------------------------------------------------

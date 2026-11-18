@@ -1,0 +1,103 @@
+# A submodule: a submodule.<name> section of the superproject's .gitmodules, a file in its tree, and the same section
+# of its config, which git submodule init writes and which wins over .gitmodules. The superproject's tree holds a
+# gitlink at the submodule's path. The submodule's own git directory is, as a rule, the superproject's
+# modules/<name>/.
+entity: GitSubmodule
+layer: native
+tool: git
+means: Another repository checked out at a path of this one, at the commit a gitlink in this one's tree names.
+fields:
+  name:
+    type: Text
+    source: stored
+    status: unused
+    means: The subsection of submodule.<name>, the submodule's path unless git submodule add --name gave another.
+  path:
+    type: Path
+    source: stored
+    status: unused
+    means: The value of submodule.<name>.path, where the submodule is checked out, with no / at its end.
+  url:
+    type: Text
+    source: stored
+    status: unused
+    means: >-
+      The value of submodule.<name>.url in .gitmodules, a URL or a path starting ./ or ../ from the superproject's
+      origin.
+  configured-url:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      The value of submodule.<name>.url in the config, which git submodule init resolves and copies from .gitmodules.
+  active:
+    type: Bool
+    arity: option
+    source: stored
+    status: unused
+    means: The value of submodule.<name>.active in the config, which wins over submodule.active's pathspecs.
+  branch:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      The branch of the submodule git submodule update --remote follows, . for the superproject's own branch's name.
+  update:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      How git submodule update updates it: checkout, rebase, merge, or none, and in the config also ! and a
+      command.
+  ignore:
+    type: {enum: [all, dirty, untracked, none]}
+    arity: option
+    source: stored
+    status: unused
+    means: What changes in the submodule git status and git diff leave out, none when unset.
+  fetch-recurse-submodules:
+    type: {enum: ["true", "false", on-demand]}
+    arity: option
+    source: stored
+    status: unused
+    means: Whether a fetch of the superproject fetches the submodule always, never, or when the gitlink changes.
+  shallow:
+    type: Bool
+    arity: option
+    source: stored
+    status: unused
+    means: Whether a clone of the submodule is shallow, a history of depth 1.
+  gitdir:
+    type: Path
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      The value of submodule.<name>.gitdir, its git directory, which git reads only with
+      extensions.submodulePathConfig.
+relations:
+  entries:
+    to: GitConfigEntry
+    arity: some
+    inverse: GitConfigEntry.submodules
+    means: The entries of the submodule.<name> section in the superproject's .gitmodules and in its configuration.
+  gitlinks:
+    to: GitTreeEntry
+    arity: many
+    inverse: GitTreeEntry.submodule
+    means: The gitlink entries, of mode 160000, at the submodule's path in the superproject's trees.
+  superproject:
+    to: GitDir
+    inverse: GitDir.submodules
+    means: The git directory of the repository that holds the submodule.
+  git-dir:
+    to: GitDir
+    arity: option
+    inverse: GitDir.module
+    means: >-
+      The submodule's own git directory: modules/<name>/ of the superproject's, or a .git directory inside the
+      submodule's checkout, as a repository cloned there has until git submodule absorbgitdirs moves it, and none
+      while the submodule is not cloned.

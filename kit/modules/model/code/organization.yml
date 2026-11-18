@@ -1,0 +1,55 @@
+# An organization is the owner part of a repository's name. The service holds it: github.com or a GitHub server, a
+# GitLab server, or an Azure DevOps organization, which is a service of its own and holds projects. So a GitHub owner,
+# a GitLab group, and an Azure DevOps project are each an organization, and only a GitLab group has a parent. The name
+# kit holds is the URL's path without its last segment, split the same way on every forge, and kit computes no parent.
+entity: Organization
+layer: logical
+over: [GitRemoteConfig]
+means: >-
+  The owner a service keeps repositories under: a GitHub user or organization, a GitLab group, which may nest in
+  another, or an Azure DevOps project.
+fields:
+  name:
+    type: Text
+    source: derived
+    from: GitRemoteConfig.fetch-url
+    status: held
+    read-by: workspace repos organization
+    means: >-
+      The path of the primary remote's URL after the host, without its last segment, as example for
+      github.com/example/repo and group/sub for a GitLab subgroup, which every row of every stage prints as
+      organization. On Azure DevOps that split gives org/proj/_git for `https://dev.azure.com/org/proj/_git/repo` and
+      v3/org/proj for `git@ssh.dev.azure.com:v3/org/proj/repo`, two names for one project, which the Azure DevOps
+      provider's own place splits into the organization and the project.
+  kind:
+    type: {enum: [user, organization, group, project]}
+    source: derived
+    from: the service's answer for the owner, a GitHub user or organization, a GitLab group, or an Azure DevOps project
+    status: planned
+    means: >-
+      What the service calls this owner: user or organization on GitHub, group on GitLab, and project on Azure
+      DevOps.
+relations:
+  repositories:
+    to: Repository
+    arity: many
+    inverse: Repository.organization
+    means: The repositories kit knows of under this organization, which may be none, as for a parent group.
+  parent:
+    to: Organization
+    arity: option
+    inverse: Organization.children
+    means: >-
+      The GitLab group this group is under, none for a top-level group, a GitHub owner, and an Azure DevOps project.
+  children:
+    to: Organization
+    arity: many
+    inverse: Organization.parent
+    means: The GitLab groups directly under this group.
+  service:
+    to: Service
+    inverse: Service.organizations
+    means: >-
+      The service whose host the URL names. On Azure DevOps it is the Azure DevOps organization the URL names: the
+      segment after dev.azure.com/ in an https URL, the segment after v3/ in an ssh.dev.azure.com URL, and the first
+      label of the host in an <org>.visualstudio.com URL.

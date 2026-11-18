@@ -1,0 +1,13 @@
+# Two pairs on itself, two relations that are their own inverse, two pairs with T, and one with U.
+entity: R
+layer: logical
+means: right card
+relations:
+  leftwardneighbours: {to: R, arity: many, inverse: R.rightwardneighbours}
+  rightwardneighbours: {to: R, arity: many, inverse: R.leftwardneighbours}
+  same: {to: R, arity: option, inverse: R.same}
+  alike: {to: R, arity: many, inverse: R.alike}
+  t3: {to: T, arity: many, inverse: T.backfromthethirdline}
+  t4: {to: T, arity: many, inverse: T.backfromthefourthline}
+  t5: {to: T, derived: x}
+  u2: {to: U, arity: many, inverse: U.backtorightcard}

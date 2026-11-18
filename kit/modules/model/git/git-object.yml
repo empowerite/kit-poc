@@ -1,0 +1,22 @@
+# What an object id names in git's object store: one of the four kinds of object, and nothing else.
+entity: GitObject
+layer: native
+tool: git
+sum: true
+means: An object git stores under its id, which is a blob, a tree, a commit, or an annotated tag.
+variants:
+  Blob: {blob: GitBlob}
+  Tree: {tree: GitTree}
+  Commit: {commit: GitCommit}
+  Tag: {tag: GitTag}
+relations:
+  tagged-by:
+    to: GitTag
+    arity: many
+    inverse: GitTag.target
+    means: The annotated tags whose object header names this object.
+  referenced-by:
+    to: GitRef
+    arity: many
+    inverse: GitRef.target
+    means: The refs whose target is this object.

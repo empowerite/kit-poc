@@ -1,0 +1,6 @@
+# The other side of Worktree.head.
+entity: Branch
+layer: native
+tool: git
+relations:
+  worktree: {to: Worktree, inverse: Worktree.head}

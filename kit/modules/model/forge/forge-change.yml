@@ -1,0 +1,12 @@
+# A stub: named so that kit's Change can stand over it; its fields are not modelled. Kit reads it through its forge
+# seam, modules/bash/forge.sh, which folds every forge's answer into one document.
+entity: ForgeChange
+stub: true
+means: >-
+  A change as the forge stores it: a pull request on GitHub and Azure DevOps, or a merge request on GitLab, with its
+  reviews, its runs, and the issues it closes.
+relations:
+  change:
+    to: Change
+    inverse: Change.forge-change
+    means: Kit's change over this record.

@@ -1,0 +1,114 @@
+# A repository is named by its host and its whole path, which a remote's URL or a workspace's member gives, so a
+# checkout whose remotes name no host has no repository. The name is the repository's reference.
+# see: docs/workspaces.md
+entity: Repository
+layer: logical
+over: [GitRemoteConfig]
+means: A repository on a forge or another host, named by its host and its path, such as github.com/example/repo.
+fields:
+  name:
+    type: Text
+    source: derived
+    from: GitRemoteConfig.fetch-url
+    status: held
+    read-by: workspace repos repository
+    means: >-
+      The host and the path, the host in lower case and on GitHub and GitLab the path too, which is the
+      repository's reference. A row of repos for a checkout that has no repository prints the checkout's folder
+      in its place. On Azure DevOps the name keeps the URL's whole path, so one repository has two names,
+      dev.azure.com/org/proj/_git/repo for its https URL and ssh.dev.azure.com/v3/org/proj/repo for its ssh URL.
+  host:
+    type: Text
+    source: derived
+    from: GitRemoteConfig.fetch-url
+    status: held
+    read-by: workspace repos host
+    means: The host part of the name, as github.com.
+  path:
+    type: Text
+    source: derived
+    from: GitRemoteConfig.fetch-url
+    status: held
+    read-by: workspace repos path
+    means: The path part of the name, as example/repo, which is the organization's name, a slash, and the short name.
+  short-name:
+    type: Text
+    source: derived
+    from: GitRemoteConfig.fetch-url
+    status: held
+    read-by: workspace remotes repository
+    means: >-
+      The last segment of the path, as repo, which every row of every stage prints as repository, except a row of
+      repos, which prints the name.
+  forge:
+    type: {enum: [github, gitlab, ado]}
+    arity: option
+    source: derived
+    from: >-
+      the forge of the primary remote of the repository's desk, as modules/bash/forge.sh names it from kit.yml and
+      the URL's host, else github for github.com and gitlab for gitlab.com
+    status: held
+    read-by: workspace repos forge
+    means: The forge the repository is on, none for a host no setting and no forge tool names.
+  desk:
+    type: Path
+    arity: option
+    source: derived
+    from: GitDir.checkout
+    status: held
+    read-by: workspace repos checkout
+    means: >-
+      The first of its checkouts on this machine, which is the one kit reads the repository from, none for a
+      repository that is not cloned.
+  by:
+    type: {enum: [fixed, given, here]}
+    source: derived
+    from: >-
+      how the workspace kit reads names the repository: a group's member, a repository given by
+      --workspace=, or the repository kit runs in
+    status: held
+    read-by: workspace repos by
+    means: >-
+      Why kit reads this repository: fixed for a member of a group, given for a repository named, and here for the
+      one kit runs in.
+  default-branch:
+    type: Text
+    arity: option
+    source: derived
+    from: GitRemoteConfig.default-branch
+    status: unused
+    means: >-
+      The branch the forge opens changes against unless told otherwise, the default branch of the desk's primary
+      remote, none while no fetch has recorded it. Kit reads it to count what a worktree is ahead and behind, and
+      prints it only as that remote's default.
+relations:
+  organization:
+    to: Organization
+    inverse: Organization.repositories
+    means: The owner its path names, the path without its last segment.
+  remotes:
+    to: Remote
+    arity: many
+    inverse: Remote.repository
+    means: >-
+      The remotes on this machine whose URL names the repository, in each of its checkouts, none for a member that
+      is not cloned.
+  checkouts:
+    to: Checkout
+    arity: many
+    inverse: Checkout.repository
+    means: >-
+      Its clones on this machine under the workspace file's roots, each belonging to it by its primary remote, none
+      for a repository that is not cloned.
+  workspaces:
+    to: Workspace
+    arity: some
+    inverse: Workspace.members
+    means: >-
+      The workspaces that hold this repository as a member: the workspace of one repository, which the repository
+      itself names, and each group it is a member of.
+  changes:
+    to: Change
+    arity: many
+    inverse: Change.repository
+    means: The changes open on it or merged into it, as the forge reports them.

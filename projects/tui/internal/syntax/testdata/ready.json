@@ -1,0 +1,59 @@
+{
+  "verb": "ready",
+  "purpose": "marks a draft pull request ready for review",
+  "usage": [
+    "kit ready [<number>] [--report=<text> | --report-file=<path>]"
+  ],
+  "syntax": [
+    [
+      {
+        "kind": "group",
+        "optional": true,
+        "alternatives": [
+          [
+            {
+              "kind": "operand",
+              "name": "number",
+              "repeat": false
+            }
+          ]
+        ],
+        "repeat": false
+      },
+      {
+        "kind": "group",
+        "optional": true,
+        "alternatives": [
+          [
+            {
+              "kind": "option",
+              "name": "report",
+              "value": "text",
+              "repeat": false
+            }
+          ],
+          [
+            {
+              "kind": "option",
+              "name": "report-file",
+              "value": "path",
+              "repeat": false
+            }
+          ]
+        ],
+        "repeat": false
+      }
+    ]
+  ],
+  "arguments": {
+    "<number>": {
+      "description": "the pull request to mark; default: this checkout's, which on a CI runner is the one the run builds, as the CI system or the forge names it, and else the open one on the branch checked out"
+    },
+    "--report": {
+      "description": "the report, which kit ready writes into the pull request's body before it marks it"
+    },
+    "--report-file": {
+      "description": "a file that holds the report, relative to the current directory"
+    }
+  }
+}

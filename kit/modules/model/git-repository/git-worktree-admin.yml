@@ -1,0 +1,63 @@
+# The files of worktrees/<id>/ that only a linked worktree has, which git worktree add writes and git worktree prune
+# reads: gitdir, the path back to the worktree's .git file, commondir, the path to the common directory, and locked.
+# The rest of the directory is the worktree's git directory, GitWorktreeDir, as the main worktree's is.
+entity: GitWorktreeAdmin
+layer: native
+tool: git
+means: What git keeps to find a linked worktree, to tell whether it still exists, and to keep it from being pruned.
+fields:
+  id:
+    type: Text
+    source: stored
+    status: unused
+    means: The directory's name under worktrees/, the worktree's folder name with a number added where it is taken.
+  gitdir:
+    type: Path
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      The content of gitdir, the path of the worktree's .git file, absolute or, with worktree.useRelativePaths,
+      relative, which kit reads only to confirm a worktree's trust name, none when the file does not exist, which
+      git worktree prune gives as its reason.
+  commondir:
+    type: Path
+    source: stored
+    status: unused
+    means: >-
+      The content of commondir, the common git directory's path relative to this directory, usually ../.., which kit
+      reads only to confirm a worktree's trust name.
+  locked:
+    type: Bool
+    source: derived
+    from: whether the file locked exists
+    status: held
+    read-by: workspace worktrees locked
+    means: >-
+      Whether git worktree lock has kept the worktree from being pruned, moved, or removed, which kit prints as
+      "locked" or null.
+  lock-reason:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The content of locked, why the worktree is locked, none when the file is empty or absent.
+  prunable:
+    type: Bool
+    source: derived
+    from: whether the worktree is unlocked and gitdir names no file, as git worktree list --porcelain prints prunable
+    status: held
+    read-by: workspace worktrees prunable
+    means: Whether git worktree prune would remove the directory, which kit prints as "prunable" or null.
+  prune-reason:
+    type: Text
+    arity: option
+    source: derived
+    from: what git worktree list --porcelain prints after prunable
+    status: unused
+    means: Why the directory can be pruned, as "gitdir file points to non-existent location".
+relations:
+  worktree-dir:
+    to: GitWorktreeDir
+    inverse: GitWorktreeDir.admin
+    means: The linked worktree's git directory, worktrees/<id>/, of which these are files.

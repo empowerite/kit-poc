@@ -1,0 +1,7 @@
+---
+description: The kit's rule for ignore lists: every .gitignore
+globs: .gitignore,**/.gitignore
+alwaysApply: false
+---
+Before you change a file this rule is attached to, run `kit context <path>` and read every file it prints, among
+them @.kit/rules/gitignore.md.

@@ -1,0 +1,8 @@
+ kit settle - settles the issues a closed pull request names
+
+   <number>  the pull request to settle; default: this checkout's, which on a CI runner is the one
+             the run builds, as the CI system or the forge names it, and else the open one on the
+             branch checked out
+
+
+ kit settle

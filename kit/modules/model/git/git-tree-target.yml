@@ -1,0 +1,24 @@
+# What a tree entry names. The entry's mode, not the object, tells a symlink from a file and a gitlink from a tree.
+entity: GitTreeTarget
+layer: native
+tool: git
+sum: true
+means: >-
+  What a tree entry names: a blob, a tree, a symlink, which is a blob of mode 120000, or a gitlink, a submodule's
+  commit that need not be in this repository.
+variants:
+  Blob: {blob: GitBlob}
+  Tree: {tree: GitTree}
+  Symlink: {blob: GitBlob}
+  Gitlink: {commit: GitCommit}
+relations:
+  named-by:
+    to: GitTreeEntry
+    arity: many
+    inverse: GitTreeEntry.target
+    means: The tree entries that name this object.
+  staged-by:
+    to: GitIndexEntry
+    arity: many
+    inverse: GitIndexEntry.target
+    means: The index entries that stage this object.

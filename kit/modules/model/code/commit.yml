@@ -1,0 +1,111 @@
+# A commit is named by its id, so it is one commit in every checkout that holds it. Kit's commits stage prints the
+# commits a local branch holds and the primary remote's default branch does not, the newest first.
+entity: Commit
+layer: logical
+over: [GitCommit]
+means: A snapshot of a repository's files, with its message, its author, and its parents, named by its id.
+fields:
+  id:
+    type: Hash
+    source: derived
+    from: GitCommit.id
+    status: held
+    read-by: workspace commits key
+    means: The commit's full id, which is its row's key.
+  short-id:
+    type: Hash
+    source: derived
+    from: GitCommit.id
+    status: held
+    read-by: workspace commits commit
+    means: The id as git log %h abbreviates it.
+  subject:
+    type: Text
+    source: derived
+    from: GitMessage.subject
+    status: held
+    read-by: workspace commits subject
+    means: The title of the commit's message.
+  author:
+    type: Text
+    source: derived
+    from: GitSignature.name
+    status: held
+    read-by: workspace commits author
+    means: The name of who wrote the change.
+  age:
+    type: Int
+    source: derived
+    from: GitSignature.time
+    status: held
+    read-by: workspace commits age
+    means: How many seconds ago the commit was made, by its committer's time.
+  issue:
+    type: Text
+    arity: option
+    source: derived
+    from: GitMessage.subject
+    status: held
+    read-by: workspace commits issue
+    means: The #<number> the subject starts with, as #7, none for a subject that starts with none.
+  pushed:
+    type: {enum: [pushed, local]}
+    source: derived
+    from: >-
+      whether git rev-list --max-count=1000 --branches --not --remotes, the commits local branches hold that no
+      remote-tracking branch reaches, leaves the commit out
+    status: held
+    read-by: workspace commits pushed
+    means: >-
+      Whether a remote-tracking branch reaches the commit, pushed, or none does, local. Kit reads at most 1000
+      commits that no remote has, so a local commit past those prints as pushed.
+  signature:
+    type: {enum: [good, bad, untrusted, expired, expired-key, revoked, uncheckable]}
+    arity: option
+    source: derived
+    from: GitObjectSignature.status
+    status: planned
+    means: What checking the commit's signature finds, as git log %G? says it, none for a commit with no signature.
+  reference:
+    type: Text
+    source: derived
+    from: the repository's name, @, and the full id
+    status: planned
+    means: The commit's reference, as github.com/example/repo@<id>.
+relations:
+  parents:
+    to: Commit
+    arity: many
+    ordered: true
+    inverse: Commit.children
+    means: The commits this one follows, none for a root commit and two or more for a merge, the first merged into.
+  children:
+    to: Commit
+    arity: many
+    inverse: Commit.parents
+    means: The commits that name this one as a parent, among the commits this machine holds.
+  tipped-by:
+    to: Branch
+    arity: many
+    inverse: Branch.tip
+    means: The branches whose tip this commit is, none for a commit inside a branch or on no branch.
+  branches:
+    to: Branch
+    arity: many
+    derived: the local branches whose tip is this commit or reaches it through parents
+    means: The local branches that hold the commit, which the commits stage prints as branches.
+  tags:
+    to: Tag
+    arity: many
+    inverse: Tag.commit
+    means: The tags that point at this commit, an annotated tag through its tag object.
+  worktrees:
+    to: Worktree
+    arity: many
+    derived: the worktrees whose HEAD resolves to this commit, on a branch whose tip it is or detached on it
+    means: The worktrees whose HEAD this commit is, which the commits stage prints as worktrees.
+  changes:
+    to: Change
+    arity: many
+    inverse: Change.commits
+    means: The changes that hold this commit.

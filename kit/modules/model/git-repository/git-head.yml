@@ -1,0 +1,18 @@
+# The HEAD file of a worktree's git directory: "ref: <name>" for a symbolic HEAD, or an object id for a detached one.
+# HEAD may name a ref that does not exist yet, an unborn branch, as in a repository with no commit. Each worktree has
+# its own, in its GitWorktreeDir: the main worktree's is the common directory's HEAD, a linked worktree's is
+# worktrees/<id>/HEAD.
+entity: GitHead
+layer: native
+tool: git
+sum: true
+means: What a worktree has checked out, a ref by name, a commit by its id, or a ref name that no ref has yet.
+variants:
+  Symbolic: {ref: GitRef}
+  Detached: {commit: GitCommit}
+  Unborn: {ref: GitUnbornRef}
+relations:
+  dir:
+    to: GitWorktreeDir
+    inverse: GitWorktreeDir.head
+    means: The worktree's git directory this HEAD file is in.

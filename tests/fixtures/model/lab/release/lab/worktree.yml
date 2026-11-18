@@ -1,0 +1,12 @@
+# Pairs with Repo, Lease, and Review, and a derived relation into the sum Head.
+entity: Worktree
+layer: native
+tool: git
+means: a checkout of the repository in a folder
+fields:
+  path: {type: Path, status: held, read-by: "work path"}
+relations:
+  repo: {to: Repo, inverse: Repo.worktrees}
+  head: {to: Head, derived: what HEAD names}
+  lease: {to: Lease, arity: option, inverse: Lease.worktree}
+  reviews: {to: Review, arity: many, inverse: Review.worktree}

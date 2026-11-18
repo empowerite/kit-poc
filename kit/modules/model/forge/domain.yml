@@ -1,0 +1,4 @@
+# The Forge domain of the model: what a forge itself stores, apart from kit's entities over it, which the Code domain
+# holds. It holds the forge's own change, as a stub.
+name: Forge
+intro: What a forge such as GitHub, GitLab, or Azure DevOps stores. Kit reads it and defines none of it.

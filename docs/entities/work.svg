@@ -1,0 +1,163 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1009" width="1200" height="1009" role="img" aria-labelledby="title desc">
+  <title id="title">Work</title>
+  <desc id="desc">Entities of the Work domain: Tracker, Issue, Mapping, Iteration, Milestone, Board, and Label, the work fields an issue carries, and the four places a mapping can find a value.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+    text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; fill: #0f172a; }
+    .title { font-size: 24px; font-weight: 700; }
+    .intro { font-size: 13.5px; fill: #475569; }
+    .h { font-size: 15px; font-weight: 700; }
+    .w { font-size: 12.5px; fill: #1e293b; }
+    .k { font-size: 11px; font-weight: 700; fill: #64748b; letter-spacing: .06em; }
+    .ho { font-size: 12px; fill: #475569; }
+    .m { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11.5px; fill: #334155; }
+    .f { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; fill: #334155; }
+    .lbl { font-size: 11.5px; fill: #475569; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
+    .sec { font-size: 12px; font-weight: 700; fill: #475569; letter-spacing: .07em; }
+    .edge { stroke: #475569; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .dash { stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+  <rect x="0.5" y="0.5" width="1199" height="1008" rx="14" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="32" y="22" width="6" height="28" rx="3" fill="#6d28d9"/>
+  <text class="title" x="50" y="45" style="fill:#4c1d95">Work</text>
+  <text class="intro" x="32" y="72">What is planned and tracked. kit reads and writes issues through a fixed set of work fields; each tracker holds some of them natively, and a mapping declares where it holds the</text>
+  <text class="intro" x="32" y="91">rest.</text>
+  <g transform="translate(898,30)"><circle cx="5" cy="0" r="4.5" fill="#16a34a"/><text class="ho" x="16" y="3.5" style="font-size:11.5px">in kit today</text><circle cx="112" cy="0" r="4" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/><text class="ho" x="123" y="3.5" style="font-size:11.5px">not modelled yet</text></g>
+  <rect x="18.0" y="315.0" width="1164.0" height="163.0" rx="12" fill="#faf5ff" stroke="#e2e8f0"/>
+  <text class="sec" x="34.0" y="339.0">HELD BY THE TRACKER, SET ON AN ISSUE</text>
+  <rect x="32.0" y="494.0" width="1136.0" height="202.0" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="sec" x="48.0" y="518.0">THE WORK FIELDS</text>
+  <rect x="32.0" y="712.0" width="1136.0" height="137.0" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="sec" x="48.0" y="736.0">A MAPPING SAYS, PER TRACKER AND PER FIELD, WHERE THE VALUE LIVES</text>
+  <rect x="32.0" y="865.0" width="1136.0" height="112.0" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="sec" x="48.0" y="889.0">RULES</text>
+<clipPath id="c1"><rect x="32.0" y="122.0" width="236.0" height="137.0" rx="9"/></clipPath>
+<rect x="32.0" y="122.0" width="236.0" height="137.0" rx="9" fill="#ffffff"/>
+<rect x="32.0" y="122.0" width="236.0" height="30" fill="#ede9fe" clip-path="url(#c1)"/>
+<line x1="32.0" y1="152.0" x2="268.0" y2="152.0" stroke="#6d28d9" stroke-opacity=".35"/>
+<text class="h" x="44.0" y="142.5" style="fill:#4c1d95">Tracker</text>
+<text class="w" x="44.0" y="176.0">a service filling the tracking</text>
+<text class="w" x="44.0" y="193.0">capability: GitHub, GitLab, Azure</text>
+<text class="w" x="44.0" y="210.0">Boards, Jira, Linear</text>
+<line x1="44.0" y1="225.0" x2="256.0" y2="225.0" stroke="#e2e8f0"/>
+<circle cx="51.0" cy="235.5" r="4.5" fill="#16a34a"/>
+<text class="f" x="62.0" y="239.0">tracker.sh seam</text>
+<rect x="32.0" y="122.0" width="236.0" height="137.0" rx="9" fill="none" stroke="#6d28d9" stroke-width="1.5"/>
+<clipPath id="c2"><rect x="332.0" y="122.0" width="236.0" height="137.0" rx="9"/></clipPath>
+<rect x="332.0" y="122.0" width="236.0" height="137.0" rx="9" fill="#ffffff"/>
+<rect x="332.0" y="122.0" width="236.0" height="30" fill="#ede9fe" clip-path="url(#c2)"/>
+<line x1="332.0" y1="152.0" x2="568.0" y2="152.0" stroke="#6d28d9" stroke-opacity=".35"/>
+<text class="h" x="344.0" y="142.5" style="fill:#4c1d95">Issue</text>
+<text class="w" x="344.0" y="176.0">one item in a tracker, named by a</text>
+<text class="w" x="344.0" y="193.0">reference whose prefix picks the</text>
+<text class="w" x="344.0" y="210.0">tracker</text>
+<text class="m" x="344.0" y="232.0"><tspan class="k" style="font-family:inherit">REF</tspan>  #7, AB#4521</text>
+<rect x="332.0" y="122.0" width="236.0" height="137.0" rx="9" fill="none" stroke="#6d28d9" stroke-width="1.5"/>
+<clipPath id="c3"><rect x="632.0" y="122.0" width="536.0" height="137.0" rx="9"/></clipPath>
+<rect x="632.0" y="122.0" width="536.0" height="137.0" rx="9" fill="#ffffff"/>
+<rect x="632.0" y="122.0" width="536.0" height="30" fill="#ede9fe" clip-path="url(#c3)"/>
+<line x1="632.0" y1="152.0" x2="1168.0" y2="152.0" stroke="#6d28d9" stroke-opacity=".35"/>
+<text class="h" x="644.0" y="142.5" style="fill:#4c1d95">Mapping</text>
+<text class="w" x="644.0" y="176.0">per tracker and per field, where a value lives, so a column named Iteration shows the</text>
+<text class="w" x="644.0" y="193.0">same thing on every tracker</text>
+<text class="ho" x="644.0" y="214.0"><tspan class="k">HOLDS</tspan>  native, field, label, or milestone; a cadence for an emulated iteration</text>
+<rect x="632.0" y="122.0" width="536.0" height="137.0" rx="9" fill="none" stroke="#6d28d9" stroke-width="1.5"/>
+<clipPath id="c4"><rect x="32.0" y="359.0" width="236.0" height="103.0" rx="9"/></clipPath>
+<rect x="32.0" y="359.0" width="236.0" height="103.0" rx="9" fill="#ffffff"/>
+<rect x="32.0" y="359.0" width="236.0" height="30" fill="#ede9fe" clip-path="url(#c4)"/>
+<line x1="32.0" y1="389.0" x2="268.0" y2="389.0" stroke="#6d28d9" stroke-opacity=".35"/>
+<text class="h" x="44.0" y="379.5" style="fill:#4c1d95">Iteration</text>
+<text class="w" x="44.0" y="413.0">the sprint or cycle an issue is</text>
+<text class="w" x="44.0" y="430.0">planned in; an entity of the tracker</text>
+<text class="w" x="44.0" y="447.0">that holds it</text>
+<rect x="32.0" y="359.0" width="236.0" height="103.0" rx="9" fill="none" stroke="#6d28d9" stroke-width="1.5"/>
+<clipPath id="c5"><rect x="332.0" y="359.0" width="236.0" height="103.0" rx="9"/></clipPath>
+<rect x="332.0" y="359.0" width="236.0" height="103.0" rx="9" fill="#ffffff"/>
+<rect x="332.0" y="359.0" width="236.0" height="30" fill="#ede9fe" clip-path="url(#c5)"/>
+<line x1="332.0" y1="389.0" x2="568.0" y2="389.0" stroke="#6d28d9" stroke-opacity=".35"/>
+<text class="h" x="344.0" y="379.5" style="fill:#4c1d95">Milestone</text>
+<text class="w" x="344.0" y="413.0">the release or deadline an issue</text>
+<text class="w" x="344.0" y="430.0">targets</text>
+<rect x="332.0" y="359.0" width="236.0" height="103.0" rx="9" fill="none" stroke="#6d28d9" stroke-width="1.5"/>
+<clipPath id="c6"><rect x="632.0" y="359.0" width="236.0" height="103.0" rx="9"/></clipPath>
+<rect x="632.0" y="359.0" width="236.0" height="103.0" rx="9" fill="#ffffff"/>
+<rect x="632.0" y="359.0" width="236.0" height="30" fill="#ede9fe" clip-path="url(#c6)"/>
+<line x1="632.0" y1="389.0" x2="868.0" y2="389.0" stroke="#6d28d9" stroke-opacity=".35"/>
+<text class="h" x="644.0" y="379.5" style="fill:#4c1d95">Board</text>
+<text class="w" x="644.0" y="413.0">the board or project an issue is on,</text>
+<text class="w" x="644.0" y="430.0">and its column</text>
+<rect x="632.0" y="359.0" width="236.0" height="103.0" rx="9" fill="none" stroke="#6d28d9" stroke-width="1.5"/>
+<clipPath id="c7"><rect x="932.0" y="359.0" width="236.0" height="103.0" rx="9"/></clipPath>
+<rect x="932.0" y="359.0" width="236.0" height="103.0" rx="9" fill="#ffffff"/>
+<rect x="932.0" y="359.0" width="236.0" height="30" fill="#ede9fe" clip-path="url(#c7)"/>
+<line x1="932.0" y1="389.0" x2="1168.0" y2="389.0" stroke="#6d28d9" stroke-opacity=".35"/>
+<text class="h" x="944.0" y="379.5" style="fill:#4c1d95">Label</text>
+<text class="w" x="944.0" y="413.0">a free tag; the forge's own, and it</text>
+<text class="w" x="944.0" y="430.0">belongs to a subject</text>
+<rect x="932.0" y="359.0" width="236.0" height="103.0" rx="9" fill="none" stroke="#6d28d9" stroke-width="1.5"/>
+  <rect x="48.0" y="532.0" width="211.2" height="68.0" rx="8" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="h" style="font-size:13px;fill:#4c1d95" x="58.0" y="551.0">type</text>
+  <text class="ho" style="font-size:11.5px" x="58.0" y="567.0">bug, feature, task, epic</text>
+  <rect x="271.2" y="532.0" width="211.2" height="68.0" rx="8" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="h" style="font-size:13px;fill:#4c1d95" x="281.2" y="551.0">state</text>
+  <text class="ho" style="font-size:11.5px" x="281.2" y="567.0">open, in progress, closed, and the</text>
+  <text class="ho" style="font-size:11.5px" x="281.2" y="582.0">reason</text>
+  <rect x="494.4" y="532.0" width="211.2" height="68.0" rx="8" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="h" style="font-size:13px;fill:#4c1d95" x="504.4" y="551.0">assignees</text>
+  <text class="ho" style="font-size:11.5px" x="504.4" y="567.0">the accounts responsible</text>
+  <rect x="717.6" y="532.0" width="211.2" height="68.0" rx="8" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="h" style="font-size:13px;fill:#4c1d95" x="727.6" y="551.0">parent</text>
+  <text class="ho" style="font-size:11.5px" x="727.6" y="567.0">the issue it is part of</text>
+  <rect x="940.8" y="532.0" width="211.2" height="68.0" rx="8" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="h" style="font-size:13px;fill:#4c1d95" x="950.8" y="551.0">iteration</text>
+  <text class="ho" style="font-size:11.5px" x="950.8" y="567.0">the sprint or cycle it is planned in</text>
+  <rect x="48.0" y="612.0" width="211.2" height="68.0" rx="8" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="h" style="font-size:13px;fill:#4c1d95" x="58.0" y="631.0">milestone</text>
+  <text class="ho" style="font-size:11.5px" x="58.0" y="647.0">the release or deadline it targets</text>
+  <rect x="271.2" y="612.0" width="211.2" height="68.0" rx="8" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="h" style="font-size:13px;fill:#4c1d95" x="281.2" y="631.0">priority</text>
+  <text class="ho" style="font-size:11.5px" x="281.2" y="647.0">how urgent it is</text>
+  <rect x="494.4" y="612.0" width="211.2" height="68.0" rx="8" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="h" style="font-size:13px;fill:#4c1d95" x="504.4" y="631.0">estimate</text>
+  <text class="ho" style="font-size:11.5px" x="504.4" y="647.0">how big it is</text>
+  <rect x="717.6" y="612.0" width="211.2" height="68.0" rx="8" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="h" style="font-size:13px;fill:#4c1d95" x="727.6" y="631.0">labels</text>
+  <text class="ho" style="font-size:11.5px" x="727.6" y="647.0">free tags</text>
+  <rect x="940.8" y="612.0" width="211.2" height="68.0" rx="8" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="h" style="font-size:13px;fill:#4c1d95" x="950.8" y="631.0">board</text>
+  <text class="ho" style="font-size:11.5px" x="950.8" y="647.0">the board or project it is on, and its</text>
+  <text class="ho" style="font-size:11.5px" x="950.8" y="662.0">column</text>
+  <rect x="48.0" y="750.0" width="267.0" height="83.0" rx="8" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="h" style="font-size:13px;fill:#4c1d95" x="58.0" y="769.0">native</text>
+  <text class="ho" style="font-size:11.5px" x="58.0" y="785.0">the tracker's own field, the default wherever</text>
+  <text class="ho" style="font-size:11.5px" x="58.0" y="800.0">one exists</text>
+  <rect x="327.0" y="750.0" width="267.0" height="83.0" rx="8" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="h" style="font-size:13px;fill:#4c1d95" x="337.0" y="769.0">field</text>
+  <text class="ho" style="font-size:11.5px" x="337.0" y="785.0">a custom field, such as a GitHub Projects</text>
+  <text class="ho" style="font-size:11.5px" x="337.0" y="800.0">field, named with its project</text>
+  <rect x="606.0" y="750.0" width="267.0" height="83.0" rx="8" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="h" style="font-size:13px;fill:#4c1d95" x="616.0" y="769.0">label</text>
+  <text class="ho" style="font-size:11.5px" x="616.0" y="785.0">a label with a pattern, sprint/{name} or</text>
+  <text class="ho" style="font-size:11.5px" x="616.0" y="800.0">P{value}, the value read from the label's</text>
+  <text class="ho" style="font-size:11.5px" x="616.0" y="815.0">name</text>
+  <rect x="885.0" y="750.0" width="267.0" height="83.0" rx="8" fill="#fff" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="h" style="font-size:13px;fill:#4c1d95" x="895.0" y="769.0">milestone</text>
+  <text class="ho" style="font-size:11.5px" x="895.0" y="785.0">the tracker's milestone stands for the field,</text>
+  <text class="ho" style="font-size:11.5px" x="895.0" y="800.0">as when a team runs sprints as milestones</text>
+  <circle cx="54" cy="909.0" r="2.2" fill="#6d28d9"/>
+  <text class="w" x="66" y="913.0">A value that breaks the mapping is a finding, never a guess: two iteration labels, a priority outside its values, a label for an iteration the cadence does not produce.</text>
+  <circle cx="54" cy="931.0" r="2.2" fill="#6d28d9"/>
+  <text class="w" x="66" y="935.0">An emulated iteration has a name and no dates, so its mapping declares a cadence: the first iteration's start, its length, and its name pattern.</text>
+  <circle cx="54" cy="953.0" r="2.2" fill="#6d28d9"/>
+  <text class="w" x="66" y="957.0">Mappings are shared settings: everyone who reads the tracker must read it the same way.</text>
+  <path class="edge" d="M 268.0 137.0 H 332.0"/>
+  <text class="lbl" text-anchor="middle" x="300.0" y="130.0">holds</text>
+  <path class="edge" d="M 632.0 137.0 H 568.0"/>
+  <text class="lbl" text-anchor="middle" x="600.0" y="130.0">maps</text>
+  <path class="edge" d="M 450.0 259.0 L 450.0 315.0"/>
+  <text class="lbl" text-anchor="start" x="458.0" y="299.0">set on</text>
+</svg>

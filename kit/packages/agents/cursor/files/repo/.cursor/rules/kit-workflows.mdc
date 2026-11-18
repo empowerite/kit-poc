@@ -1,0 +1,7 @@
+---
+description: The kit's rule for GitHub Actions workflows
+globs: .github/workflows/*.yml,.github/workflows/*.yaml
+alwaysApply: false
+---
+Before you change a file this rule is attached to, run `kit context <path>` and read every file it prints, among
+them @.kit/rules/workflows.md.

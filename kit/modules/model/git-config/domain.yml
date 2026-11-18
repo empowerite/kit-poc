@@ -1,0 +1,10 @@
+# The Git configuration domain of the model: the settings git reads, as entries and as the views of a remote, a branch,
+# and an identity over them. The git directories and refs they name are the Git repository domain's.
+name: Git configuration
+intro: The configuration git reads in a worktree, its entries and the remote, branch, and identity settings in them.
+layout:
+  GitConfigEntry: {row: 0, col: 1}
+  GitRefspec: {row: 0, col: 2}
+  GitUserConfig: {row: 1, col: 0}
+  GitBranchConfig: {row: 1, col: 1}
+  GitRemoteConfig: {row: 1, col: 2}

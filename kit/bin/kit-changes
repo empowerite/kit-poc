@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+# kit-changes - lists the open changes, their reviews and checks, and the changes merged last (kit verb: workflow)
+# ----------------------------------------------------------------------------------------------------------------------
+# Usage:
+#   kit changes [--text | --json | --jq]
+#   kit changes --stages
+#   kit changes --marks
+#   kit changes reviews [--text | --json | --jq] [--fresh]
+#   kit changes checks [--text | --json | --jq] [--fresh]
+#   kit changes merged [--text | --json | --jq]
+#   kit changes changes [--text | --json | --jq]
+#
+# Lists what the forge says of the repository's changes, the tabs of Changes in kittui. It changes nothing. The tab
+# changes, every open change, is kit flow's stage: kit changes changes prints what kit flow changes prints. The other
+# tabs are the stages the forge answers here, in order:
+#
+#   reviews → checks → merged
+#
+# kit changes with no tab prints its stages, not the open changes. reviews and checks read the open changes as kit flow
+# changes does, from one read of the forge a minute, and afresh with --fresh.
+#
+# On a terminal, kit changes opens Changes in kittui, and kit changes <stage> opens it on that tab, maximized. Without a
+# terminal, or with --text, it prints text. With --json or --jq, it prints JSON: the stages where no tab is named, and the
+# tab named alone.
+#
+# kit --workspace=<workspace> changes draws each stage across a workspace's members with checkouts, as kit workspace does.
+# Without it, the workspace is the repository here, and outside one, the last group used, as kit workspaces --current
+# says.
+#
+# With --json, a stage prints {contract, rows, errors}. The fields of each stage are in docs/apps.md.
+#
+# Legend
+#
+# Each stage lists the glyphs it draws in kittui, one per line. A glyph can show under more than one stage.
+#
+# kit:generate legend `k=$(command -v kit); jq -nr -L "${k%/bin/kit}/modules/jq" 'import "glyphs" as g; g::legend_for("changes")'`
+#   📚  workspace: a group, in the workspace menu that drops down from - in kittui's title
+#
+# reviews:
+#
+#   🧐  review: a reviewer's answer on an open pull request, or a request for one
+#   🔀  pull request: a merge request, on GitLab
+#   💬  unresolved threads: review threads, with how many
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# checks:
+#
+#   🩺  check: the latest run of a check on an open pull request
+#   🔀  pull request: a merge request, on GitLab
+#   ✅  passed: every check, or a build
+#   🏃  running: checks or a build still running or queued
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# merged:
+#
+#   🤝  merged: a pull request merged into its base, and who merged it
+#   🔀  pull request: a merge request, on GitLab
+#   👤  assignees or author: an issue's assignees, a pull request's author, or who pushed last when not the author
+#   🌿  branch or worktree: a linked worktree, a branch on a remote, or the branch a pull request is on
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# kit:end legend
+#
+# Arguments:
+#   --text              prints the stages as text, even on a terminal
+#   --json              the stages as one JSON object: contract, stages, then each stage's document under its name,
+#                       null for one that could not be read
+#   --jq                the same JSON, formatted by jq for a person
+#   --stages            prints the stages, one per line, in order, the same over any workspace
+#   --marks             prints a mark per stage, as one JSON object, which changes when what the stage draws does
+#   --fresh             reviews and checks read the open changes afresh, not the snapshot of the last minute
+#   reviews             each open change's reviewers: those it asks, and those who reviewed it, by login
+#   checks              each open change's checks: the latest run of each on its head commit
+#   merged              the changes merged last, 50 at most, merged last first
+#   changes             every open change, as kit flow changes prints it; on a terminal it opens in kittui
+#
+# Exits 0 when the stages, or the tab named, are drawn, 1 when one could not be read, after what was, and 2 on a usage
+# error, or outside a repository's working tree with no workspace.
+#
+# see: modules/bash/apps.sh, modules/bash/apps/changes.sh, modules/jq/apps.jq, docs/apps.md
+
+set -o errexit -o nounset -o pipefail
+# shellcheck source=modules/bash/1st.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
+kit:enter
+use apps
+workspaces:misplaced changes "$@" || exit $?
+guard:arguments changes "$@" || exit $?
+apps:main changes "$@"
+
+# ----------------------------------------------------------------------------------------------------------------------

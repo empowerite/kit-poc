@@ -1,0 +1,50 @@
+# A tree object: one directory's listing. git sorts its entries by name, a subtree's name as if it ended in a slash.
+entity: GitTree
+layer: native
+tool: git
+means: One directory of a snapshot, as a sorted list of entries.
+fields:
+  id:
+    type: Hash
+    source: derived
+    from: the hash of "tree <size>", a NUL byte, and the entries, in the repository's object format, SHA-1 or SHA-256
+    status: unused
+    means: The object's name.
+  size:
+    type: Int
+    source: derived
+    from: the length of the stored entries in bytes, as git cat-file -s prints it
+    status: unused
+    means: The length of the tree object's content in bytes.
+relations:
+  entries:
+    to: GitTreeEntry
+    arity: many
+    ordered: true
+    inverse: GitTreeEntry.tree
+    means: The entries of this directory, sorted bytewise by name, a subtree's name sorting as if followed by a slash.
+  commits:
+    to: GitCommit
+    arity: many
+    inverse: GitCommit.tree
+    means: The commits whose snapshot is this tree.
+  named-by:
+    to: GitTreeEntry
+    arity: many
+    derived: the tree entries whose target is Tree(this)
+    means: The entries of other trees that name this tree as a subdirectory.
+  tagged-by:
+    to: GitTag
+    arity: many
+    derived: the annotated tags whose target is Tree(this)
+    means: The annotated tags whose object header names this tree.
+  referenced-by:
+    to: GitRef
+    arity: many
+    derived: the refs whose target is Tree(this)
+    means: The refs that name this tree.
+  staged-by:
+    to: GitIndexEntry
+    arity: many
+    derived: the index entries whose target is Tree(this), the sparse directories of a sparse index
+    means: The sparse directory entries that stage this tree.

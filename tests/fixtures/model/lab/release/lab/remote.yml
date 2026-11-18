@@ -1,0 +1,7 @@
+# A pair with Repo.
+entity: Remote
+layer: native
+tool: git
+means: where the repository is pushed
+relations:
+  repo: {to: Repo, inverse: Repo.remotes}

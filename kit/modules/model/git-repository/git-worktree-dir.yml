@@ -1,0 +1,138 @@
+# A worktree's own git directory, $GIT_DIR, apart from the common directory, $GIT_COMMON_DIR, that every worktree of
+# the repository shares. For the main worktree the two are one directory. For a linked worktree it is worktrees/<id>/
+# under the common directory, whose commondir file names the common directory back. It holds the worktree's HEAD,
+# logs/HEAD, index, root refs such as ORIG_HEAD and FETCH_HEAD, its own refs under refs/bisect/, refs/worktree/, and
+# refs/rewritten/, config.worktree, and info/sparse-checkout, and also the files commands keep while they run:
+# COMMIT_EDITMSG, MERGE_MSG, and MERGE_MODE are fields here, and the stubs GitRebaseState (rebase-merge/,
+# rebase-apply/), GitSequencerState (sequencer/), GitBisectState (BISECT_*), and GitRerereCache (MERGE_RR) name the
+# rest, unmodelled. A bare repository has one, the common directory, which holds a HEAD and no working tree. A linked
+# worktree, a submodule's checkout, and a main worktree of --separate-git-dir have a .git file at the top of the
+# working tree that names this directory.
+entity: GitWorktreeDir
+layer: native
+tool: git
+means: The git directory of one worktree, which holds what that worktree has of its own, its HEAD and its index.
+fields:
+  path:
+    type: Path
+    source: derived
+    from: git rev-parse --absolute-git-dir, run in the worktree
+    status: unused
+    means: Where the directory is, the common directory for the main worktree and worktrees/<id>/ for a linked one.
+  main:
+    type: Bool
+    source: derived
+    from: whether the directory is the common directory
+    status: unused
+    means: Whether this is the main worktree's git directory, which a bare repository's is too.
+  worktree-path:
+    type: Path
+    arity: option
+    source: derived
+    from: >-
+      the worktree line of git worktree list --porcelain: the directory that holds the .git file gitdir names for a
+      linked worktree, the directory that holds the .git directory for the main worktree, and the git directory
+      itself for a bare repository or a main worktree whose .git is a file, as --separate-git-dir makes
+    status: held
+    read-by: workspace worktrees path
+    means: >-
+      Where git says the worktree is, the top of its working tree or, for a bare repository and a main worktree
+      whose .git is a file, the git directory itself, and none only for a worktrees/<id>/ that git worktree list
+      does not list, as when its gitdir file does not exist.
+  dotgit:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      The content of the .git file at the top of the working tree, gitdir: and this directory's path, which kit reads
+      only to find a worktree's trust name, none where .git is this directory itself or there is no working tree.
+  sparse-checkout:
+    type: Text
+    arity: many
+    ordered: true
+    source: stored
+    status: unused
+    means: The lines of info/sparse-checkout, the patterns of this worktree's sparse checkout, in order.
+  commit-message-draft:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      The content of COMMIT_EDITMSG, the message git commit gives the editor, which stays after the commit, none
+      before the worktree's first commit.
+  merge-message:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The content of MERGE_MSG, the message git merge proposes while a merge is under way, none otherwise.
+  merge-mode:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      The content of MERGE_MODE, the options git merge records for the commit that ends a merge, such as no-ff,
+      none while no merge is under way.
+relations:
+  common:
+    to: GitDir
+    inverse: GitDir.worktree-dirs
+    means: >-
+      The common git directory of the repository this worktree belongs to, which is this directory for the main one.
+  admin:
+    to: GitWorktreeAdmin
+    arity: option
+    inverse: GitWorktreeAdmin.worktree-dir
+    means: For a linked worktree, the files only a linked worktree has, none for the main worktree.
+  head:
+    to: GitHead
+    inverse: GitHead.dir
+    means: The HEAD file, what the worktree has checked out.
+  head-log:
+    to: GitReflogEntry
+    arity: many
+    ordered: true
+    inverse: GitReflogEntry.worktree-dir
+    means: The lines of logs/HEAD, oldest first, each a change to the worktree's HEAD.
+  index:
+    to: GitIndex
+    arity: option
+    inverse: GitIndex.dir
+    means: >-
+      The index file, none in a bare repository and while the worktree has no index file, as with git worktree add
+      --no-checkout.
+  root-refs:
+    to: GitRootRef
+    arity: many
+    inverse: GitRootRef.dir
+    means: The refs beside HEAD, such as ORIG_HEAD, MERGE_HEAD, and FETCH_HEAD.
+  refs:
+    to: GitRef
+    arity: many
+    inverse: GitRef.worktree-dir
+    means: The worktree's own refs, under refs/bisect/, refs/worktree/, and refs/rewritten/ of this directory.
+  config:
+    to: GitConfigEntry
+    arity: many
+    ordered: true
+    inverse: GitConfigEntry.worktree-dir
+    means: >-
+      The entries of config.worktree, the worktree scope, which git reads after the local config while
+      extensions.worktreeConfig is true.
+  remote-configs:
+    to: GitRemoteConfig
+    arity: many
+    inverse: GitRemoteConfig.worktree-dir
+    means: The remotes git config defines when run in this worktree.
+  branch-configs:
+    to: GitBranchConfig
+    arity: many
+    inverse: GitBranchConfig.worktree-dir
+    means: The branch.<name> settings git config gives when run in this worktree, one a branch.
+  user-config:
+    to: GitUserConfig
+    inverse: GitUserConfig.worktree-dir
+    means: Who git writes as the author and committer when run in this worktree, and how it signs.

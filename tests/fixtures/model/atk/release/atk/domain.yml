@@ -1,0 +1,8 @@
+# A domain whose labels no place keeps clear: crowded right sides on two adjacent cards, and long labels over a crowded top edge.
+name: Atk
+intro: Two adjacent cards with eight right-side ends each, and a crowded top edge.
+layout:
+  L: {row: 0, col: 0}
+  R: {row: 0, col: 1}
+  T: {row: 1, col: 0}
+  U: {row: 1, col: 1}

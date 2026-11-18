@@ -1,0 +1,106 @@
+# A worktree is a working directory of a checkout with its own HEAD and index: the main worktree, the desk, or one
+# git worktree add made. A bare clone's main worktree is its git directory, which has a HEAD and no files, and which
+# git worktree list lists first and kit prints as a row of kind desk. Kit reads each one's status in it, and what
+# git worktree list --porcelain says of it.
+entity: Worktree
+layer: logical
+over: [GitWorktreeDir, GitWorktreeAdmin]
+means: >-
+  A working directory of a checkout, with its own HEAD and index, the desk or a linked one, or for a bare clone its
+  git directory, with a HEAD and no files.
+fields:
+  kind:
+    type: {enum: [desk, linked]}
+    source: derived
+    from: GitWorktreeDir.main
+    status: held
+    read-by: workspace worktrees kind
+    means: Whether the worktree is the checkout's main one, the desk, or a linked one.
+  path:
+    type: Path
+    source: derived
+    from: GitWorktreeDir.worktree-path
+    status: held
+    read-by: workspace worktrees path
+    means: The folder of the worktree, a bare clone's git directory for its main one, which is also its row's key.
+  branch:
+    type: Text
+    arity: option
+    source: derived
+    from: GitRef.branch
+    status: held
+    read-by: workspace worktrees branch
+    means: >-
+      The name of the branch its HEAD names, an unborn one's from UnbornBranch.name, none when its HEAD is
+      detached and for a bare clone's main worktree, whose branch git worktree list --porcelain does not print.
+  detached:
+    type: Bool
+    source: derived
+    from: whether git worktree list --porcelain prints detached for the worktree, its GitHead being Detached
+    status: held
+    read-by: workspace worktrees detached
+    means: Whether its HEAD names a commit in place of a branch, which kit prints as "detached" or null.
+  head-id:
+    type: Hash
+    arity: option
+    source: derived
+    from: GitCommit.id
+    status: held
+    read-by: workspace worktrees head
+    means: >-
+      The first eight digits of the HEAD line git worktree list --porcelain prints, the id of the commit its HEAD
+      resolves to, and 00000000 on an unborn branch, where git prints an id of zeros. None for a worktree with no
+      HEAD line: a bare clone's main worktree, whose HEAD git worktree list --porcelain does not print.
+  base:
+    type: Int
+    arity: many
+    ordered: true
+    source: derived
+    from: >-
+      git rev-list --left-right --count of the primary remote's default branch and HEAD, run in the worktree
+    status: held
+    read-by: workspace worktrees base
+    means: >-
+      A pair, [ahead, behind]: how many commits HEAD is ahead of the primary remote's default branch, then how many
+      behind it, none while no fetch has recorded that branch.
+  changed:
+    type: Int
+    arity: option
+    source: derived
+    from: the changed and unmerged lines of git status --porcelain=v2, run in the worktree
+    status: held
+    read-by: workspace worktrees changes
+    means: How many paths are changed, staged or not, none where git status cannot run there.
+  untracked:
+    type: Int
+    arity: option
+    source: derived
+    from: the untracked lines of git status --porcelain=v2, run in the worktree
+    status: held
+    read-by: workspace worktrees untracked
+    means: How many paths are untracked, none where git status cannot run there.
+  locked:
+    type: Bool
+    source: derived
+    from: GitWorktreeAdmin.locked
+    status: held
+    read-by: workspace worktrees locked
+    means: >-
+      Whether git worktree lock keeps it from being pruned, moved, or removed, which kit prints as "locked" or
+      null.
+  prunable:
+    type: Bool
+    source: derived
+    from: GitWorktreeAdmin.prunable
+    status: held
+    read-by: workspace worktrees prunable
+    means: Whether git worktree prune would remove it, which kit prints as "prunable" or null.
+relations:
+  checkout:
+    to: Checkout
+    inverse: Checkout.worktrees
+    means: The checkout the worktree belongs to.
+  head:
+    to: Head
+    inverse: Head.worktree
+    means: What the worktree has checked out, a branch, a commit, or a branch that has no commit yet.

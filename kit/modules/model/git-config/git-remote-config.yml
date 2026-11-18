@@ -1,0 +1,216 @@
+# A remote: the remote.<name>.* keys of every scope, read together. A key that takes one value is the last entry's
+# value, and one that takes many is every entry's in order, an empty value clearing those before it. A boolean is as
+# git config --type=bool reads it. A file under the legacy remotes/ or branches/ directory of the git directory also
+# defines a remote, with no entries.
+entity: GitRemoteConfig
+layer: native
+tool: git
+means: A named repository this one fetches from and pushes to, with its URLs, its refspecs, and how to fetch.
+fields:
+  name:
+    type: Text
+    source: stored
+    status: held
+    read-by: workspace remotes remote
+    means: The subsection of remote.<name>, as origin.
+  urls:
+    type: Text
+    arity: many
+    ordered: true
+    source: stored
+    status: unused
+    means: The values of remote.<name>.url, as written, the first fetched from and all pushed to when no pushurl is set.
+  fetch-url:
+    type: Text
+    arity: option
+    source: derived
+    from: the first url, rewritten by the longest url.<base>.insteadOf that starts it, as git remote get-url prints it
+    status: held
+    read-by: workspace remotes url
+    means: The URL a fetch reads from.
+  push-urls:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: The values of remote.<name>.pushurl, as written, each of which a push goes to in place of the urls.
+  push-url:
+    type: Text
+    arity: option
+    source: derived
+    from: >-
+      the first pushurl, else the first url rewritten by url.<base>.pushInsteadOf or insteadOf, as git remote
+      get-url --push prints it
+    status: held
+    read-by: workspace remotes push
+    means: The first URL a push goes to, which kit prints only when it differs from the fetch URL.
+  default-branch:
+    type: Text
+    arity: option
+    source: derived
+    from: >-
+      the ref the symbolic ref refs/remotes/<name>/HEAD names, after refs/remotes/<name>/, as git symbolic-ref prints
+      it
+    status: held
+    read-by: workspace remotes default
+    means: >-
+      The remote's default branch, as the symbolic ref that git clone and git remote set-head write records it, none
+      while refs/remotes/<name>/HEAD does not exist.
+  proxy:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The proxy for an HTTP, HTTPS, or FTP URL, an empty value turning proxying off.
+  proxy-auth-method:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: How to authenticate to that proxy, as http.proxyAuthMethod takes it.
+  mirror:
+    type: Bool
+    arity: option
+    source: stored
+    status: unused
+    means: Whether a push to the remote acts as git push --mirror.
+  skip-default-update:
+    type: Bool
+    arity: option
+    source: stored
+    status: unused
+    means: A deprecated synonym of skip-fetch-all, the last of the two set winning.
+  skip-fetch-all:
+    type: Bool
+    arity: option
+    source: stored
+    status: unused
+    means: Whether git fetch --all, git remote update, and the prefetch of git maintenance leave the remote out.
+  receive-pack:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The program a push runs on the remote's side, as git push --receive-pack names it.
+  upload-pack:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The program a fetch runs on the remote's side, as git fetch-pack --upload-pack names it.
+  tag-opt:
+    type: {enum: [--no-tags, --tags]}
+    arity: option
+    source: stored
+    status: unused
+    means: Whether a fetch follows no tags, or fetches every tag, in place of the tags that point into what it fetches.
+  vcs:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The version control system the remote is, which git reaches through the git-remote-<vcs> helper.
+  prune:
+    type: Bool
+    arity: option
+    source: stored
+    status: unused
+    means: Whether a fetch removes the remote-tracking branches whose branch the remote no longer has.
+  prune-tags:
+    type: Bool
+    arity: option
+    source: stored
+    status: unused
+    means: Whether a fetch that prunes also removes the local tags the remote no longer has.
+  promisor:
+    type: Bool
+    arity: option
+    source: stored
+    status: unused
+    means: Whether git fetches the objects a partial clone left out from this remote.
+  advertised-as:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The name a server advertised the remote under, when git configured it as a promisor remote from that advice.
+  partial-clone-filter:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The object filter a fetch from this promisor remote applies, as --filter takes it.
+  server-options:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: The server options a fetch sends, as --server-option takes them, an empty value clearing those before it.
+  negotiation-restrict:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: The refs or patterns whose commits alone a fetch advertises as haves, as --negotiation-restrict takes them.
+  negotiation-include:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: The refs, ids, or patterns whose commits a fetch always advertises as haves.
+  follow-remote-head:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      What a fetch does when the remote's HEAD differs from refs/remotes/<name>/HEAD: create, always, warn, never,
+      or warn-if-not-<branch>, as fetch.followRemoteHEAD takes it.
+  other-keys:
+    type: Text
+    arity: many
+    ordered: true
+    source: stored
+    status: unused
+    means: Each key of the section git does not document, as name=value in order, such as one a tool records.
+relations:
+  worktree-dir:
+    to: GitWorktreeDir
+    inverse: GitWorktreeDir.remote-configs
+    means: >-
+      The worktree this remote is git config's answer in, from the entries of every scope that apply there: system,
+      global, local, and worktree, with what their includes bring.
+  entries:
+    to: GitConfigEntry
+    arity: many
+    inverse: GitConfigEntry.remotes
+    means: >-
+      The entries of the worktree's git config answer whose key is in the remote.<name> section, from every scope
+      that applies to that worktree: system, global, local, and worktree, with what its includes bring.
+  fetch:
+    to: GitRefspec
+    arity: many
+    ordered: true
+    inverse: GitRefspec.fetch-of
+    means: The refspecs of remote.<name>.fetch, in order, which a fetch with no refspec of its own uses.
+  push:
+    to: GitRefspec
+    arity: many
+    ordered: true
+    inverse: GitRefspec.push-of
+    means: The refspecs of remote.<name>.push, in order, which a push with no refspec of its own uses.
+  tracking-refs:
+    to: GitRef
+    arity: many
+    inverse: GitRef.remote-config
+    means: The remote-tracking branches under refs/remotes/<name>/.
+  upstream-of:
+    to: GitBranchConfig
+    arity: many
+    inverse: GitBranchConfig.upstream-remote
+    means: The branches whose branch.<branch>.remote names this remote.
+  pushed-by:
+    to: GitBranchConfig
+    arity: many
+    inverse: GitBranchConfig.push-to
+    means: The branches whose branch.<branch>.pushRemote names this remote.

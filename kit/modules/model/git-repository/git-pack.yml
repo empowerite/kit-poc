@@ -1,0 +1,7 @@
+# A stub: a pack file of the object database, named so the model counts it as a gap; its header, its entries, and its
+# deltas are not modelled.
+entity: GitPack
+stub: true
+means: >-
+  A pack, objects/pack/pack-<id>.pack: many objects in one file, each whole or as a delta against another, which git
+  fetch, git gc, and git repack write.

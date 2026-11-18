@@ -1,0 +1,4 @@
+# Another domain's entity, which a stub of L goes to.
+entity: Y
+layer: logical
+means: y

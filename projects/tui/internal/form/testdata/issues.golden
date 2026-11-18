@@ -1,0 +1,22 @@
+ kit issues - lists the repository's open issues, and the forge's milestones and iterations
+
+   one of
+   *kit issues*  lists the repository's open issues, and the forge's milestones and iterations
+
+     --text   --json   --jq
+                           prints the stages as text, even on a terminal
+
+   --stages    prints the stages, one per line, in order, the same over any workspace
+   --marks     prints a mark per stage, as one JSON object, which changes when what the stage draws
+               does; null for a stage with none, as iterations
+   milestones  each milestone of the repository, open and closed, by number
+   iterations  each iteration, by start
+   issues      every open issue, in the backlog or underway, as kit flow issues prints it; on a
+               terminal it opens in kittui
+   backlog     the open issues in the backlog, the issues tab's Backlog preset; on a terminal it
+               opens in kittui on that preset
+   underway    the open issues underway, the issues tab's Underway preset; on a terminal it opens in
+               kittui on that preset
+
+
+ kit issues

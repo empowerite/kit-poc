@@ -1,0 +1,8 @@
+# Pairs with Worktree and Agent.
+entity: Lease
+layer: logical
+over: [Worktree, Agent]
+means: a claim on a worktree by an agent
+relations:
+  worktree: {to: Worktree, inverse: Worktree.lease}
+  holder: {to: Agent, inverse: Agent.leases}

@@ -1,0 +1,8 @@
+# Entity B of the column.
+entity: B
+layer: logical
+means: entity B
+relations:
+  h: {to: H, derived: x}
+  g: {to: G, derived: x}
+  f: {to: F, derived: x}

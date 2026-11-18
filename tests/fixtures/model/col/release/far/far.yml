@@ -1,0 +1,4 @@
+# Another domain's entity, which C.out goes to.
+entity: Far
+layer: logical
+means: far away

@@ -1,0 +1,12 @@
+# A pair on one entity, and pairs with Repo and Commit.
+entity: Branch
+layer: native
+tool: git
+means: a named line of commits
+fields:
+  name: {type: Text, status: planned}
+relations:
+  repo: {to: Repo, inverse: Repo.branches}
+  upstream: {to: Branch, arity: option, inverse: Branch.downstream}
+  downstream: {to: Branch, arity: many, inverse: Branch.upstream}
+  tip: {to: Commit, inverse: Commit.branches}

@@ -1,0 +1,46 @@
+# The free text of a commit or a tag, after the blank line that ends the headers. A tag's message stops where the
+# signature it carries in its body begins.
+entity: GitMessage
+layer: native
+tool: git
+means: What a commit or a tag says in words, with its subject, its body, and its trailers.
+fields:
+  text:
+    type: Bytes
+    source: stored
+    status: unused
+    means: >-
+      The message as stored, UTF-8 unless a commit's encoding header names another, which kit reads only to parse
+      trailers.
+  subject:
+    type: Text
+    source: derived
+    from: the first paragraph of the text, its lines joined by spaces, as git log %s prints it
+    status: held
+    read-by: workspace commits subject
+    means: The title of the message.
+  body:
+    type: Text
+    source: derived
+    from: the text after the first paragraph, as git log %b prints it
+    status: unused
+    means: The rest of the message, trailers included.
+relations:
+  commit:
+    to: GitCommit
+    arity: option
+    inverse: GitCommit.message
+    means: The commit this message belongs to.
+  tag:
+    to: GitTag
+    arity: option
+    inverse: GitTag.message
+    means: The annotated tag this message belongs to.
+  trailers:
+    to: GitTrailer
+    arity: many
+    ordered: true
+    inverse: GitTrailer.message
+    means: >-
+      The trailers of the message's last paragraph, in the order they appear, when that paragraph is all trailers, or
+      holds at least one trailer git adds or a trailer.<key> setting names and is at least 25% trailers.

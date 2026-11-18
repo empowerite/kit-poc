@@ -1,0 +1,9 @@
+# The card under L, whose top edge takes four lines with long labels.
+entity: T
+layer: logical
+means: target card
+relations:
+  backfromthefirstline: {to: L, inverse: L.t1}
+  backfromthesecondline: {to: L, inverse: L.t2}
+  backfromthethirdline: {to: R, inverse: R.t3}
+  backfromthefourthline: {to: R, inverse: R.t4}

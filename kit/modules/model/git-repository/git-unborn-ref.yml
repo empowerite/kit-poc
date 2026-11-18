@@ -1,0 +1,33 @@
+# A ref name that a symbolic ref holds and no ref has: HEAD's unborn branch, which the next commit creates, or the
+# name a dangling symbolic ref holds, as refs/remotes/origin/HEAD does when its branch is pruned. git keeps HEAD's
+# name under refs/, and writes any name a symbolic ref under refs/ is given.
+entity: GitUnbornRef
+layer: native
+tool: git
+means: A ref name, as a rule under refs/, that a HEAD or a symbolic ref names and that no ref has.
+fields:
+  name:
+    type: Text
+    source: stored
+    status: unused
+    means: The full name the HEAD or the symbolic ref holds, as refs/heads/main.
+  short-name:
+    type: Text
+    source: derived
+    from: the name after refs/heads/, as git worktree list --porcelain gives it on its branch line, else after refs/
+    status: held
+    read-by: workspace worktrees branch
+    means: >-
+      The branch's name, which kit prints as a worktree's branch, for an unborn branch as for a branch that exists,
+      whose name GitRef holds.
+relations:
+  checked-out-in:
+    to: GitWorktreeDir
+    arity: many
+    derived: the worktrees' git directories whose HEAD is Unborn(this)
+    means: The worktrees whose HEAD names this ref name.
+  symref-of:
+    to: GitRef
+    arity: many
+    inverse: GitRef.dangling-symref
+    means: The dangling symbolic refs that hold this name.

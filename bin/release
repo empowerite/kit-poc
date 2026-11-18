@@ -1,0 +1,327 @@
+#!/usr/bin/env bash
+# release - verifies a release tag, packs kit/ as a release, publishes it, fetches it back, and retires pre-releases
+# ----------------------------------------------------------------------------------------------------------------------
+# bin/release verify <tag> | pack <tag> [<directory>] | publish <tag> | fetch <tag> | formula <tag> <sha256> | tap <tag> | retire [<branch>]
+#
+# Releases the kit itself, so it is this repository's command, not one of the kit's verbs: no repository that
+# installs the kit has a release of the kit to make. The release workflows and the root checkout (the desk) run the
+# same subcommands.
+#
+#   verify <tag>              checks the tag. A release tag is release/<major>.<minor>.<patch>, on the default
+#                             branch. A pre-release tag adds -<suffix>, and may be on any commit, the default
+#                             branch included. Any other tag is refused, with the reason.
+#   pack <tag> [<directory>]  writes kit-<version>.tar.gz and its .sha256 to <directory> (default: the current
+#                             directory), from what the tag's commit holds, never the disk's files; a tag the
+#                             repository lacks is refused. The tarball holds one directory, kit-<version>/, with bin/,
+#                             modules/, packages/, a version file, and libexec/, which holds kit-call, the call the
+#                             loader runs, and kittui, the binary kit tui runs, built from projects/tui/ with go for
+#                             linux and darwin on amd64 and arm64. The .sha256 holds the tarball's sha256; where none
+#                             comes back, pack leaves neither file.
+#   publish <tag>             packs, then creates a GitHub release with both files, for a tag that already exists:
+#                             gh would otherwise make one at the default branch's head. Its notes give the download lines
+#                             of docs/install.md, By download, for this version, and then the mise pin. A tag with a
+#                             suffix is marked pre-release. Only a runner publishes a release, from the release workflow that a
+#                             pushed tag starts. A desk may publish a pre-release.
+#   fetch <tag>               fetches the published release as any machine does: the loader, bin/kit, downloads it
+#                             into a cache of its own, checks it against the digest published beside it, and runs
+#                             kit version in it, which must print the tag's version. The release workflow runs it
+#                             after publish, so a release no machine can fetch fails the run that published it.
+#   formula <tag> <sha256>    prints the Homebrew formula, Formula/kit.rb, for the release, from
+#                             projects/homebrew/formula.rb.in, with the digest of the tarball.
+#   tap <tag>                 writes that formula into the tap, empowerite/homebrew-tap-poc, as a pull request that it
+#                             merges: the digest is the one published beside the release, so what Homebrew checks is
+#                             what the loader checks. KIT_TAP names another tap. It runs after fetch, so a release no
+#                             machine can fetch never reaches the tap. GH_TOKEN must be one that can push to the tap,
+#                             which the workflow's own token cannot. A release is written from the runner alone, as
+#                             publish is; a desk may write a pre-release.
+#   retire [<branch>]         deletes every pre-release whose commit no remaining branch reaches. It runs after
+#                             <branch> is deleted. Default: the branch in the runner's delete event. A pre-release
+#                             tagged on the default branch, or merged into it by a merge commit, stays reachable,
+#                             so it is kept. A squash merge leaves it unreachable, so it is deleted. A list gh
+#                             cannot give fails the run and retires nothing; a list as long as the 1000 gh is asked for is
+#                             said to be cut short.
+#
+# A release is permanent. Only a pre-release is ever retired.
+#
+# see: .github/workflows/release.yml, .github/workflows/retire-pre-releases.yml
+
+set -o errexit -o nounset -o pipefail
+self=$(readlink -f "${BASH_SOURCE[0]}")
+# shellcheck source=SCRIPTDIR/../kit/modules/bash/1st.sh
+source "$(dirname "${self}")/../kit/modules/bash/1st.sh"
+kit:enter
+use git release releases
+
+usage() {
+  echo "usage: bin/release verify <tag> | pack <tag> [<directory>] | publish <tag> | fetch <tag> | formula <tag> <sha256> | tap <tag> | retire [<branch>]" >&2
+}
+
+# build-kittui <version> <directory> <source> builds kittui, the binary kit tui runs, from <source>/projects/tui/ for the four platforms
+# the lock covers, static and stripped with the version written in, each as <directory>/kittui-<goos>-<goarch>. The
+# release carries them in libexec/, so whatever installs the kit installs kittui at the same version;
+# modules/bash/tui.sh picks the one for the machine.
+build-kittui() {
+  local version=$1 into=$2 source=$3 platform goos goarch
+  for platform in linux/amd64 linux/arm64 darwin/arm64 darwin/amd64
+  do
+    IFS=/ read -r goos goarch <<<"${platform}"
+    (
+      cd "${source}/projects/tui" &&
+        GOOS=${goos} GOARCH=${goarch} CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${version}" \
+          -o "${into}/kittui-${goos}-${goarch}" ./cmd/kittui
+    ) || return 1
+  done
+}
+
+# download-lines <version> prints the lines docs/install.md gives under By download, the first sh block there, with its
+# version set to <version>: the lines the notes of a release give, so the page is their one source. It fails, naming
+# the page, when it finds no block.
+download-lines() {
+  local page="${kit_root}/../docs/install.md" lines
+  lines=$(awk -v version="$1" '
+    $0 == "### By download" { under = 1; next }
+    under && /^```sh$/ { inside = 1; next }
+    inside && /^```$/ { exit }
+    inside { sub(/^version=.*/, "version=" version); print }
+  ' "${page}") || return 1
+  [[ -n "${lines}" ]] || { error "${page} has no download lines under By download"; return 1; }
+  printf '%s\n' "${lines}"
+}
+
+# formula <version> <sha256> prints the Homebrew formula for a release: Formula/kit.rb.
+formula() {
+  local text
+  text=$(<"${kit_root}/../projects/homebrew/formula.rb.in") || return 1
+  text=${text//'{{version}}'/$1}
+  text=${text//'{{sha256}}'/$2}
+  printf '%s\n' "${text}"
+}
+
+# refuse-tag <message> prints the message as an error and to the step summary, then exits 1.
+refuse-tag() {
+  error "$1"
+  summary "### ❌ $1"
+  exit 1
+}
+
+# tag-version <tag> prints the tag's version, the part after release/. It refuses a tag that is not a release tag.
+tag-version() {
+  local version=${1#release/}
+  if [[ "$1" != release/* ]] || ! releases:valid "${version}"
+  then
+    refuse-tag "$1 is not a release tag: release/<major>.<minor>.<patch>, with -<suffix> for a pre-release"
+  fi
+  printf '%s\n' "${version}"
+}
+
+verb=${1:-}
+case "${verb}" in
+  (--help | '') usage; exit 0 ;;
+  (verify | pack | publish | fetch | formula | tap | retire) ;;
+  (*) usage; exit 2
+esac
+shift
+
+case "${verb}" in
+  (verify)
+    (( $# == 1 )) || { usage; exit 2; }
+    tag=$1
+    version=$(tag-version "${tag}")
+    default_branch=$(git:default-branch)
+    on_default=false
+    git merge-base --is-ancestor "${tag}" "origin/${default_branch}" 2>/dev/null && on_default=true
+    if [[ "${version}" != *-* && "${on_default}" == false ]]
+    then
+      refuse-tag "${tag} is not on ${default_branch}; a release is tagged there, a pre-release has a suffix"
+    fi
+    kind=release
+    [[ "${version}" == *-* ]] && kind=pre-release
+    ok "${tag} is a ${kind} tag (on ${default_branch}: ${on_default})"
+    summary "✅ ${tag} is a ${kind} tag (on ${default_branch}: ${on_default})."
+    ;;
+  (pack)
+    (( $# >= 1 && $# <= 2 )) || { usage; exit 2; }
+    tag=$1
+    version=$(tag-version "${tag}")
+    into=${2:-.}
+    staging=$(mktemp -d)
+    # shellcheck disable=SC2064  # expanded now on purpose: the path is fixed from here on
+    trap "rm -rf '${staging}'" EXIT
+    guard:require tool:go
+    # A release is its tag: what the tag's commit holds, whatever the disk has since, so an edit not committed and a
+    # file git does not track never ship.
+    top=$(git -C "${kit_root}" rev-parse --show-toplevel)
+    if ! git -C "${top}" rev-parse --verify --quiet "refs/tags/${tag}^{commit}" >/dev/null
+    then
+      refuse-tag "${tag} is not a tag in this repository; tag the commit to release first"
+    fi
+    mkdir -p "${into}" "${staging}/kit-${version}" "${staging}/source"
+    git -C "${top}" archive --format=tar "refs/tags/${tag}" kit projects/tui | tar --extract --directory "${staging}/source"
+    cp -R "${staging}/source/kit/bin" "${staging}/source/kit/libexec" "${staging}/source/kit/modules" \
+      "${staging}/source/kit/packages" "${staging}/kit-${version}/"
+    if ! build-kittui "${version}" "${staging}/kit-${version}/libexec" "${staging}/source"
+    then
+      error "kittui could not be built for kit ${version}; see above"
+      exit 1
+    fi
+    printf '%s\n' "${version}" > "${staging}/kit-${version}/version"
+    tar --create --gzip --file "${into}/kit-${version}.tar.gz" --directory "${staging}" "kit-${version}"
+    # A .sha256 without the digest is a release no machine can fetch, so the digest is held to its shape first.
+    digest=$(file:digest "${into}/kit-${version}.tar.gz") || digest=''
+    if [[ ! "${digest}" =~ ^[0-9a-f]{64}$ ]]
+    then
+      rm -f "${into}/kit-${version}.tar.gz" "${into}/kit-${version}.tar.gz.sha256"
+      error "kit-${version}.tar.gz has no sha256 digest; nothing is packed"
+      exit 1
+    fi
+    printf '%s  kit-%s.tar.gz\n' "${digest}" "${version}" > "${into}/kit-${version}.tar.gz.sha256"
+    ok "packed kit ${version}: ${into}/kit-${version}.tar.gz and its .sha256"
+    ;;
+  (publish)
+    (( $# == 1 )) || { usage; exit 2; }
+    tag=$1
+    version=$(tag-version "${tag}")
+    if [[ "${version}" != *-* && -z "${GITHUB_ACTIONS:-}" ]]
+    then
+      refuse-tag "a release is published by the release workflow, not from a desk; push the tag: git push origin ${tag}"
+    fi
+    guard:require tool:gh
+    into=$(mktemp -d)
+    # shellcheck disable=SC2064  # expanded now on purpose: the path is fixed from here on
+    trap "rm -rf '${into}'" EXIT
+    run "${self}" pack "${tag}" "${into}"
+    pin=$(printf '"github:empowerite/kit-poc" = { version = "%s", version_prefix = "release/" }' "${version}")
+    lines=$(download-lines "${version}") || exit 1
+    notes=$(printf 'Install it by download, with the digest checked before anything is unpacked:\n\n'
+      printf '    %s\n' "${lines//$'\n'/$'\n'    }"
+      printf '\nOr add it to your own ~/.config/mise/config.toml:\n\n    [tools]\n    %s\n\n' "${pin}"
+      printf 'Then, in the repository: kit install\n')
+    flags=()
+    [[ "${version}" == *-* ]] && flags+=(--prerelease)
+    gh release create "${tag}" "${into}/kit-${version}.tar.gz" "${into}/kit-${version}.tar.gz.sha256" \
+      --verify-tag --title "kit ${version}" --notes "${notes}" "${flags[@]}"
+    ok "released kit ${version}"
+    summary "✅ Released kit ${version}."
+    ;;
+  (fetch)
+    (( $# == 1 )) || { usage; exit 2; }
+    tag=$1
+    version=$(tag-version "${tag}")
+    cache=$(mktemp -d)
+    # shellcheck disable=SC2064  # expanded now on purpose: the path is fixed from here on
+    trap "rm -rf '${cache}'" EXIT
+    # In the cache's own directory, which is in no clone, the loader chooses the release by KIT_VERSION alone.
+    fetched=$(cd "${cache}" && env -u KIT_VERSION_ROOT XDG_CACHE_HOME="${cache}" KIT_VERSION="${version}" \
+      "${kit_root}/bin/kit" version) || fetched=''
+    if [[ "${fetched}" != "${version}" ]]
+    then
+      refuse-tag "kit ${version} cannot be fetched from its release, so no machine can install it; see above"
+    fi
+    ok "kit ${version} fetches from its release, with the digest published beside it, and runs as ${version}"
+    summary "✅ kit ${version} fetches from its release, and runs as ${version}."
+    ;;
+  (formula)
+    (( $# == 2 )) || { usage; exit 2; }
+    version=$(tag-version "$1")
+    [[ "$2" =~ ^[0-9a-f]{64}$ ]] || refuse-tag "$2 is not a sha256 digest"
+    formula "${version}" "$2"
+    ;;
+  (tap)
+    (( $# == 1 )) || { usage; exit 2; }
+    tag=$1
+    version=$(tag-version "${tag}")
+    # Homebrew follows stable releases; a release candidate comes by download.
+    if [[ "${version}" == *-* ]]
+    then
+      ok "${tag} is a pre-release; the tap carries stable releases only"
+      summary "✅ ${tag} is a pre-release; the tap carries stable releases only."
+      exit 0
+    fi
+    if [[ -z "${GITHUB_ACTIONS:-}" ]]
+    then
+      refuse-tag "a release reaches the tap from the release workflow, not from a desk"
+    fi
+    guard:require tool:gh tool:git
+    tap=${KIT_TAP:-empowerite/homebrew-tap-poc}
+    name=kit
+    work=$(mktemp -d)
+    # shellcheck disable=SC2064  # expanded now on purpose: the path is fixed from here on
+    trap "rm -rf '${work}'" EXIT
+    # The digest is the one published beside the release, which the loader checks too, not one made again here.
+    gh release download "${tag}" --repo empowerite/kit-poc --pattern '*.sha256' --dir "${work}" \
+      || refuse-tag "${tag} has no published digest to write into the tap"
+    digest=$(cut -d' ' -f1 "${work}/kit-${version}.tar.gz.sha256")
+    [[ "${digest}" =~ ^[0-9a-f]{64}$ ]] || refuse-tag "the digest published beside ${tag} is not a sha256"
+    gh auth setup-git
+    gh repo clone "${tap}" "${work}/tap" -- --quiet
+    formula "${version}" "${digest}" > "${work}/${name}.rb"
+    mkdir -p "${work}/tap/Formula"
+    if cmp --silent "${work}/${name}.rb" "${work}/tap/Formula/${name}.rb" 2>/dev/null
+    then
+      ok "${tap} holds ${name} ${version} already"
+      summary "✅ ${tap} holds ${name} ${version} already."
+      exit 0
+    fi
+    branch="${name}-${version}"
+    cp "${work}/${name}.rb" "${work}/tap/Formula/${name}.rb"
+    git -C "${work}/tap" checkout --quiet -b "${branch}"
+    git -C "${work}/tap" add "Formula/${name}.rb"
+    git -C "${work}/tap" -c user.name=github-actions[bot] -c user.email=41898282+github-actions[bot]@users.noreply.github.com \
+      commit --quiet --message "${name} ${version}"
+    git -C "${work}/tap" push --quiet origin "${branch}"
+    # The pull request is squashed, so GitHub signs the commit that lands on main, which the tap's rules require.
+    (
+      cd "${work}/tap"
+      gh pr create --repo "${tap}" --base main --head "${branch}" --title "${name} ${version}" \
+        --body "Written by bin/release tap of empowerite/kit-poc for ${tag}."
+      gh pr merge "${branch}" --repo "${tap}" --squash --delete-branch
+    )
+    ok "${tap} holds ${name} ${version}"
+    summary "✅ ${tap} holds ${name} ${version}."
+    ;;
+  (retire)
+    (( $# <= 1 )) || { usage; exit 2; }
+    deleted=${1:-}
+    [[ -n "${deleted}" || -z "${GITHUB_EVENT_PATH:-}" ]] \
+      || deleted=$(jq --raw-output '.ref // empty' "${GITHUB_EVENT_PATH}")
+    guard:require tool:gh
+    limit=1000
+    git fetch --quiet --tags origin
+    # The list is read whole before it is judged: a gh that fails inside a process substitution would read as nothing
+    # to retire, and gh asked for a thousand says so when it was cut short.
+    if ! releases=$(gh release list --limit "${limit}" --json tagName,isPrerelease)
+    then
+      error "the releases could not be listed; see above. Nothing is retired"
+      exit 1
+    fi
+    if (( $(jq 'length' <<<"${releases}") >= limit ))
+    then
+      warn "the list holds ${limit} releases, the most gh is asked for; older pre-releases are not read"
+    fi
+    retired=0
+    while IFS= read -r tag
+    do
+      [[ -n "${tag}" ]] || continue
+      commit=$(git rev-parse --verify --quiet "${tag}^{commit}" || true)
+      if [[ -z "${commit}" ]]
+      then
+        warn "${tag} has no commit here; leaving it"
+        continue
+      fi
+      # The branches are read whole, and then looked at: a grep that ends at the first line leaves git writing into a
+      # closed pipe, and under pipefail that reads as no branch.
+      branches=$(git branch --remotes --contains "${commit}")
+      if [[ -n "$(grep --invert-match 'origin/HEAD' <<<"${branches}" || true)" ]]
+      then
+        step "keeping ${tag}: a branch still reaches ${commit:0:7}"
+        continue
+      fi
+      gh release delete "${tag}" --cleanup-tag --yes
+      step "retired ${tag}: no branch reaches ${commit:0:7}${deleted:+ since ${deleted} was deleted}"
+      retired=$(( retired + 1 ))
+    done <<<"$(jq --raw-output '.[] | select(.isPrerelease) | .tagName' <<<"${releases}")"
+    ok "retired ${retired} pre-release(s)"
+    summary "✅ Retired ${retired} pre-release(s)."
+esac
+
+# ----------------------------------------------------------------------------------------------------------------------

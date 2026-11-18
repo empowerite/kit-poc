@@ -1,0 +1,51 @@
+# One record of an index's REUC extension, resolve undo: a NUL-terminated path, three NUL-terminated octal modes for
+# stages 1 to 3, 0 for a stage that is missing, then the id of each stage that is present. git writes it when a
+# resolution replaces a conflict's higher stages with stage 0.
+entity: GitResolveUndo
+layer: native
+tool: git
+means: The stages of a resolved conflict, which git checkout -m or git restore -m brings back.
+fields:
+  path:
+    type: Bytes
+    source: stored
+    status: unused
+    means: The conflicted path, from the top of the worktree.
+  base-mode:
+    type: {enum: ["0", "100644", "100755", "120000", "160000"]}
+    source: stored
+    status: unused
+    means: The mode of stage 1, the common ancestor's, or 0 when it has none.
+  ours-mode:
+    type: {enum: ["0", "100644", "100755", "120000", "160000"]}
+    source: stored
+    status: unused
+    means: The mode of stage 2, ours, or 0 when it has none.
+  theirs-mode:
+    type: {enum: ["0", "100644", "100755", "120000", "160000"]}
+    source: stored
+    status: unused
+    means: The mode of stage 3, theirs, or 0 when it has none.
+  base:
+    type: Hash
+    arity: option
+    source: stored
+    status: unused
+    means: The id of stage 1's object.
+  ours:
+    type: Hash
+    arity: option
+    source: stored
+    status: unused
+    means: The id of stage 2's object.
+  theirs:
+    type: Hash
+    arity: option
+    source: stored
+    status: unused
+    means: The id of stage 3's object.
+relations:
+  index:
+    to: GitIndex
+    inverse: GitIndex.resolve-undo
+    means: The index whose REUC extension holds this record.

@@ -1,0 +1,110 @@
+# A commit object: its headers, one a line, then a blank line and the message. A header's value that runs over lines
+# continues each line after the first with a space, as gpgsig and mergetag do. Each member below names its header.
+entity: GitCommit
+layer: native
+tool: git
+means: A snapshot of the tree, with its parents, its author and committer, and the message that says why.
+fields:
+  id:
+    type: Hash
+    source: derived
+    from: the hash of "commit <size>", a NUL byte, and the content, in the repository's object format, SHA-1 or SHA-256
+    status: held
+    read-by: workspace commits key
+    means: The object's name.
+  size:
+    type: Int
+    source: derived
+    from: the length of the headers and the message in bytes, as git cat-file -s prints it
+    status: unused
+    means: The length of the commit object's content in bytes.
+  encoding:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The encoding header, the message's character encoding when it is not UTF-8, from i18n.commitEncoding.
+  extra-headers:
+    type: Text
+    arity: many
+    ordered: true
+    source: stored
+    status: unused
+    means: Each header git does not know, as its name, a space, and its value, which git keeps verbatim and in order.
+relations:
+  tree:
+    to: GitTree
+    inverse: GitTree.commits
+    means: The tree header, which names the snapshot's root directory.
+  parents:
+    to: GitCommit
+    arity: many
+    ordered: true
+    inverse: GitCommit.children
+    means: The parent headers, none for a root commit and two or more for a merge, the first the one merged into.
+  children:
+    to: GitCommit
+    arity: many
+    inverse: GitCommit.parents
+    means: The commits that name this commit as a parent, which git finds by walking from refs and never stores here.
+  author:
+    to: GitSignature
+    inverse: GitSignature.authored
+    means: The author header, which says who wrote the change and when.
+  committer:
+    to: GitSignature
+    inverse: GitSignature.committed
+    means: The committer header, which says who made this commit object and when.
+  signature:
+    to: GitObjectSignature
+    arity: option
+    inverse: GitObjectSignature.commit
+    means: >-
+      The signature over the commit in the repository's object format, in the gpgsig header of a SHA-1 repository and
+      the gpgsig-sha256 header of a SHA-256 one.
+  compat-signature:
+    to: GitObjectSignature
+    arity: option
+    inverse: GitObjectSignature.compat-commit
+    means: >-
+      The signature over the commit in the other object format, in the other of the two headers, which a repository
+      with extensions.compatObjectFormat writes.
+  mergetags:
+    to: GitTag
+    arity: many
+    ordered: true
+    inverse: GitTag.merged-by
+    means: >-
+      The mergetag headers, each the whole of a signed tag that this merge merged, embedded with its signature, whose
+      tag object need not be in this repository.
+  message:
+    to: GitMessage
+    inverse: GitMessage.commit
+    means: Everything after the blank line that ends the headers.
+  named-by:
+    to: GitTreeEntry
+    arity: many
+    derived: the tree entries whose target is Gitlink(this), which a superproject holds, usually in another repository
+    means: The gitlink entries that name this commit as a submodule's.
+  tagged-by:
+    to: GitTag
+    arity: many
+    derived: the annotated tags whose target is Commit(this)
+    means: The annotated tags whose object header names this commit.
+  referenced-by:
+    to: GitRef
+    arity: many
+    derived: the refs whose target is Commit(this)
+    means: The refs that name this commit, such as the branches whose tip it is.
+  staged-by:
+    to: GitIndexEntry
+    arity: many
+    derived: the index entries whose target is Gitlink(this), which a superproject's index holds
+    means: The gitlink entries that stage this commit as a submodule's.
+  detached-in:
+    to: GitWorktreeDir
+    arity: many
+    derived: the git directories of this repository's worktrees whose HEAD is Detached(this)
+    means: >-
+      The worktrees of the repository that holds this commit that have it checked out on a detached HEAD, and not
+      another repository's worktrees on a commit of the same id.

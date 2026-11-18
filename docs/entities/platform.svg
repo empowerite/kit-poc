@@ -1,0 +1,183 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 778" width="1280" height="778" role="img" aria-labelledby="title desc">
+  <title id="title">Platform</title>
+  <desc id="desc">Entities of the Platform domain: Service, Capability, Binding, and Provider, and which service fills which capability.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+    text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; fill: #0f172a; }
+    .title { font-size: 24px; font-weight: 700; }
+    .intro { font-size: 13.5px; fill: #475569; }
+    .h { font-size: 15px; font-weight: 700; }
+    .w { font-size: 12.5px; fill: #1e293b; }
+    .k { font-size: 11px; font-weight: 700; fill: #64748b; letter-spacing: .06em; }
+    .ho { font-size: 12px; fill: #475569; }
+    .m { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11.5px; fill: #334155; }
+    .f { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; fill: #334155; }
+    .lbl { font-size: 11.5px; fill: #475569; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
+    .sec { font-size: 12px; font-weight: 700; fill: #475569; letter-spacing: .07em; }
+    .edge { stroke: #475569; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .dash { stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+  <rect x="0.5" y="0.5" width="1279" height="776" rx="14" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="32" y="22" width="6" height="28" rx="3" fill="#0369a1"/>
+  <text class="title" x="50" y="45" style="fill:#0c4a6e">Platform</text>
+  <text class="intro" x="32" y="72">The platform, or the stack, is the set of services a repository's work runs on. A capability is a job a service does, and each capability is a seam; a binding says which service fills it for a</text>
+  <text class="intro" x="32" y="91">repository.</text>
+  <rect x="32.0" y="286.0" width="1216.0" height="331.5" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="sec" x="48.0" y="310.0">WHAT EACH SERVICE FILLS TODAY; UNDER EACH CAPABILITY, ITS SEAM IN KIT</text>
+  <rect x="32.0" y="633.5" width="1216.0" height="112.0" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="sec" x="48.0" y="657.5">RULES</text>
+<clipPath id="c1"><rect x="32.0" y="122.0" width="250.0" height="120.0" rx="9"/></clipPath>
+<rect x="32.0" y="122.0" width="250.0" height="120.0" rx="9" fill="#ffffff"/>
+<rect x="32.0" y="122.0" width="250.0" height="30" fill="#e0f2fe" clip-path="url(#c1)"/>
+<line x1="32.0" y1="152.0" x2="282.0" y2="152.0" stroke="#0369a1" stroke-opacity=".35"/>
+<text class="h" x="44.0" y="142.5" style="fill:#0c4a6e">Provider</text>
+<text class="w" x="44.0" y="176.0">kit's code, or an organization's</text>
+<text class="w" x="44.0" y="193.0">command, that speaks to one kind of</text>
+<text class="w" x="44.0" y="210.0">service</text>
+<rect x="32.0" y="122.0" width="250.0" height="120.0" rx="9" fill="none" stroke="#0369a1" stroke-width="1.5"/>
+<clipPath id="c2"><rect x="354.0" y="122.0" width="250.0" height="120.0" rx="9"/></clipPath>
+<rect x="354.0" y="122.0" width="250.0" height="120.0" rx="9" fill="#ffffff"/>
+<rect x="354.0" y="122.0" width="250.0" height="30" fill="#e0f2fe" clip-path="url(#c2)"/>
+<line x1="354.0" y1="152.0" x2="604.0" y2="152.0" stroke="#0369a1" stroke-opacity=".35"/>
+<text class="h" x="366.0" y="142.5" style="fill:#0c4a6e">Service</text>
+<text class="w" x="366.0" y="176.0">one system kit talks to: github.com, a</text>
+<text class="w" x="366.0" y="193.0">self-hosted GitLab, an Azure DevOps</text>
+<text class="w" x="366.0" y="210.0">organization, a Slack workspace, a</text>
+<text class="w" x="366.0" y="227.0">container registry</text>
+<rect x="354.0" y="122.0" width="250.0" height="120.0" rx="9" fill="none" stroke="#0369a1" stroke-width="1.5"/>
+<clipPath id="c3"><rect x="676.0" y="122.0" width="250.0" height="120.0" rx="9"/></clipPath>
+<rect x="676.0" y="122.0" width="250.0" height="120.0" rx="9" fill="#ffffff"/>
+<rect x="676.0" y="122.0" width="250.0" height="30" fill="#e0f2fe" clip-path="url(#c3)"/>
+<line x1="676.0" y1="152.0" x2="926.0" y2="152.0" stroke="#0369a1" stroke-opacity=".35"/>
+<text class="h" x="688.0" y="142.5" style="fill:#0c4a6e">Capability</text>
+<text class="w" x="688.0" y="176.0">a job a service does, and each</text>
+<text class="w" x="688.0" y="193.0">capability is a seam: hosting, review,</text>
+<text class="w" x="688.0" y="210.0">tracking, ci, cd, releases, artifacts,</text>
+<text class="w" x="688.0" y="227.0">evidence, identity, chat</text>
+<rect x="676.0" y="122.0" width="250.0" height="120.0" rx="9" fill="none" stroke="#0369a1" stroke-width="1.5"/>
+<clipPath id="c4"><rect x="998.0" y="122.0" width="250.0" height="120.0" rx="9"/></clipPath>
+<rect x="998.0" y="122.0" width="250.0" height="120.0" rx="9" fill="#ffffff"/>
+<rect x="998.0" y="122.0" width="250.0" height="30" fill="#e0f2fe" clip-path="url(#c4)"/>
+<line x1="998.0" y1="152.0" x2="1248.0" y2="152.0" stroke="#0369a1" stroke-opacity=".35"/>
+<text class="h" x="1010.0" y="142.5" style="fill:#0c4a6e">Binding</text>
+<text class="w" x="1010.0" y="176.0">which service fills a capability for a</text>
+<text class="w" x="1010.0" y="193.0">repository; inferred from the primary</text>
+<text class="w" x="1010.0" y="210.0">remote's host, overridden only where</text>
+<text class="w" x="1010.0" y="227.0">it differs</text>
+<rect x="998.0" y="122.0" width="250.0" height="120.0" rx="9" fill="none" stroke="#0369a1" stroke-width="1.5"/>
+  <rect x="174.0" y="326" width="102.0" height="42" rx="7" fill="#e0f2fe" stroke="#0369a1" stroke-width="1.2"/>
+  <text class="h" text-anchor="middle" style="font-size:12.5px;fill:#0c4a6e" x="225.0" y="343">hosting</text>
+  <text class="f" text-anchor="middle" style="font-size:10.5px" x="225.0" y="358">forge.sh</text>
+  <rect x="280.0" y="326" width="102.0" height="42" rx="7" fill="#e0f2fe" stroke="#0369a1" stroke-width="1.2"/>
+  <text class="h" text-anchor="middle" style="font-size:12.5px;fill:#0c4a6e" x="331.0" y="343">review</text>
+  <text class="f" text-anchor="middle" style="font-size:10.5px" x="331.0" y="358">forge.sh</text>
+  <rect x="386.0" y="326" width="102.0" height="42" rx="7" fill="#e0f2fe" stroke="#0369a1" stroke-width="1.2"/>
+  <text class="h" text-anchor="middle" style="font-size:12.5px;fill:#0c4a6e" x="437.0" y="343">tracking</text>
+  <text class="f" text-anchor="middle" style="font-size:10.5px" x="437.0" y="358">tracker.sh</text>
+  <rect x="492.0" y="326" width="102.0" height="42" rx="7" fill="#e0f2fe" stroke="#0369a1" stroke-width="1.2"/>
+  <text class="h" text-anchor="middle" style="font-size:12.5px;fill:#0c4a6e" x="543.0" y="343">ci</text>
+  <text class="f" text-anchor="middle" style="font-size:10.5px" x="543.0" y="358">forge.sh</text>
+  <rect x="598.0" y="326" width="102.0" height="42" rx="7" fill="#fff" stroke="#0369a1" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text class="h" text-anchor="middle" style="font-size:12.5px;fill:#0c4a6e" x="649.0" y="343">cd</text>
+  <text class="f" text-anchor="middle" style="font-size:10.5px" x="649.0" y="358">no seam yet</text>
+  <rect x="704.0" y="326" width="102.0" height="42" rx="7" fill="#e0f2fe" stroke="#0369a1" stroke-width="1.2"/>
+  <text class="h" text-anchor="middle" style="font-size:12.5px;fill:#0c4a6e" x="755.0" y="343">releases</text>
+  <text class="f" text-anchor="middle" style="font-size:10.5px" x="755.0" y="358">forge.sh</text>
+  <rect x="810.0" y="326" width="102.0" height="42" rx="7" fill="#fff" stroke="#0369a1" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text class="h" text-anchor="middle" style="font-size:12.5px;fill:#0c4a6e" x="861.0" y="343">artifacts</text>
+  <text class="f" text-anchor="middle" style="font-size:10.5px" x="861.0" y="358">no seam yet</text>
+  <rect x="916.0" y="326" width="102.0" height="42" rx="7" fill="#fff" stroke="#0369a1" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text class="h" text-anchor="middle" style="font-size:12.5px;fill:#0c4a6e" x="967.0" y="343">evidence</text>
+  <text class="f" text-anchor="middle" style="font-size:10.5px" x="967.0" y="358">no seam yet</text>
+  <rect x="1022.0" y="326" width="102.0" height="42" rx="7" fill="#fff" stroke="#0369a1" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text class="h" text-anchor="middle" style="font-size:12.5px;fill:#0c4a6e" x="1073.0" y="343">identity</text>
+  <text class="f" text-anchor="middle" style="font-size:10.5px" x="1073.0" y="358">no seam yet</text>
+  <rect x="1128.0" y="326" width="102.0" height="42" rx="7" fill="#fff" stroke="#0369a1" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text class="h" text-anchor="middle" style="font-size:12.5px;fill:#0c4a6e" x="1179.0" y="343">chat</text>
+  <text class="f" text-anchor="middle" style="font-size:10.5px" x="1179.0" y="358">no seam yet</text>
+  <line x1="48" y1="372.0" x2="1232.0" y2="372.0" stroke="#e2e8f0"/>
+  <text class="h" style="font-size:13px" x="52" y="398.0">GitHub</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="225.0" y="397.5">yes</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="331.0" y="397.5">yes</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="437.0" y="390.8">yes, with</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="437.0" y="404.2">Projects</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="543.0" y="397.5">Actions</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="649.0" y="397.5">environments</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="755.0" y="397.5">yes</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="861.0" y="390.8">Packages, GHCR,</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="861.0" y="404.2">assets</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="967.0" y="390.8">artifact</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="967.0" y="404.2">attestations</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="1073.0" y="397.5">orgs, teams</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="1179.0" y="397.5">comments</text>
+  <line x1="48" y1="415.0" x2="1232.0" y2="415.0" stroke="#e2e8f0"/>
+  <text class="h" style="font-size:13px" x="52" y="447.8">GitLab</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="225.0" y="447.2">yes</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="331.0" y="447.2">yes</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="437.0" y="440.5">yes, with</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="437.0" y="454.0">iterations</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="543.0" y="447.2">CI/CD</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="649.0" y="447.2">environments</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="755.0" y="447.2">yes</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="861.0" y="433.8">package and</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="861.0" y="447.2">container</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="861.0" y="460.8">registries</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="967.0" y="447.2">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="1073.0" y="447.2">groups</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="1179.0" y="447.2">comments</text>
+  <line x1="48" y1="471.5" x2="1232.0" y2="471.5" stroke="#e2e8f0"/>
+  <text class="h" style="font-size:13px" x="52" y="490.8">Azure DevOps</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="225.0" y="490.2">Repos</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="331.0" y="490.2">Repos</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="437.0" y="490.2">Boards</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="543.0" y="490.2">Pipelines</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="649.0" y="490.2">environments</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="755.0" y="490.2">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="861.0" y="490.2">Artifacts</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="967.0" y="490.2">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="1073.0" y="490.2">teams</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="1179.0" y="490.2">comments</text>
+  <line x1="48" y1="501.0" x2="1232.0" y2="501.0" stroke="#e2e8f0"/>
+  <text class="h" style="font-size:13px" x="52" y="527.0">Jira, Linear</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="225.0" y="526.5">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="331.0" y="526.5">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="437.0" y="519.8">yes, with sprints</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="437.0" y="533.2">or cycles</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="543.0" y="526.5">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="649.0" y="526.5">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="755.0" y="526.5">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="861.0" y="526.5">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="967.0" y="526.5">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="1073.0" y="526.5">users</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="1179.0" y="526.5">comments</text>
+  <line x1="48" y1="544.0" x2="1232.0" y2="544.0" stroke="#e2e8f0"/>
+  <text class="h" style="font-size:13px" x="52" y="563.2">Slack</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="225.0" y="562.8">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="331.0" y="562.8">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="437.0" y="562.8">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="543.0" y="562.8">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="649.0" y="562.8">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="755.0" y="562.8">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="861.0" y="562.8">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#94a3b8" x="967.0" y="562.8">–</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="1073.0" y="562.8">users</text>
+  <text class="ho" text-anchor="middle" style="font-size:11px;fill:#1e293b" x="1179.0" y="562.8">yes</text>
+  <line x1="48" y1="573.5" x2="1232.0" y2="573.5" stroke="#e2e8f0"/>
+  <text class="ho" x="48" y="593.5">The forge seam fills hosting, review, ci, and releases together. Planning folds into tracking: an iteration is a field of an issue and an entity of its tracker.</text>
+  <circle cx="54" cy="677.5" r="2.2" fill="#0369a1"/>
+  <text class="w" x="66" y="681.5">A capability bound to no service is absent, and a verb that needs it says which capability is missing.</text>
+  <circle cx="54" cy="699.5" r="2.2" fill="#0369a1"/>
+  <text class="w" x="66" y="703.5">Bindings are inferred first; the existing keys forge, forges, and trackers stay as the short form.</text>
+  <circle cx="54" cy="721.5" r="2.2" fill="#0369a1"/>
+  <text class="w" x="66" y="725.5">kit platform lists each capability, the service filling it, whether that was inferred or set, and whether the service's CLI is signed in.</text>
+  <path class="edge" d="M 282.0 137.0 H 354.0"/>
+  <text class="lbl" text-anchor="middle" x="318.0" y="130.0">speaks to</text>
+  <path class="edge" d="M 604.0 137.0 H 676.0"/>
+  <text class="lbl" text-anchor="middle" x="640.0" y="130.0">fills</text>
+  <path class="edge" d="M 998.0 137.0 H 926.0"/>
+  <text class="lbl" text-anchor="middle" x="962.0" y="130.0">chooses for</text>
+</svg>

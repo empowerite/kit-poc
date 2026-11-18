@@ -1,0 +1,6 @@
+# Another domain's entity, the other side of Repo.forge.
+entity: Forge
+layer: logical
+means: a code host
+relations:
+  repos: {to: Repo, arity: many, inverse: Repo.forge}

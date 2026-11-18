@@ -1,0 +1,30 @@
+  = kit welcome                                                                                              🔎 /search
+  ➀╶──────────────────╮➁╶───────────────────╴➌╶──────────────╮➃╶───────────────╮➄╶───────────╮
+    👋 introduction   │  🧰 toolchains  3    │ 🔧 setup  2 : │  🎨 customize   │  📖 terms   │
+  ────────────────────╰──────────────────────╯               ╰─────────────────╰─────────────╰──────────────────────────
+   Setup — this machine's logins and terminal
+
+ ▸ ❌ gh is not logged in to github.com   ⧉   ▶️ 
+      gh auth login --hostname github.com · it needs you at the keyboard
+   ❌ kit check finds 2 differences from the release
+      read: kit help check
+
+   Each line is a check. When one fails and kit knows the fix, copy it, or have kit run it and check again.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ = menu / search ? legend ⌃Q quit │ 1-5 jump : tab menu │ esc tabs ↑↓ move ⇞⇟ page c copy r run

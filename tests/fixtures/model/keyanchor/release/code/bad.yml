@@ -1,0 +1,4 @@
+# A file with an anchor on a key, which CUE does not read.
+entity: Commit
+fields:
+  &k hash: {type: Hash}

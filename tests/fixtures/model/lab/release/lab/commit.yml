@@ -1,0 +1,12 @@
+# A pair on one entity, a pair with Branch, and a derived relation to another domain.
+entity: Commit
+layer: native
+tool: git
+means: a snapshot
+fields:
+  sha: {type: Hash, status: held, read-by: "log sha"}
+relations:
+  branches: {to: Branch, arity: many, inverse: Branch.tip}
+  parents: {to: Commit, arity: many, ordered: true, inverse: Commit.children}
+  children: {to: Commit, arity: many, inverse: Commit.parents}
+  author: {to: Person, derived: the author line}

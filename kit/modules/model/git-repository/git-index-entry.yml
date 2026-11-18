@@ -1,0 +1,101 @@
+# One entry of an index file: the stat data of the file when it was staged, its mode, the id of its object, a 16-bit
+# flags field, the extended flags in version 3 and later, and the path. git compares the stat data with the file to
+# tell whether the file may differ from what is staged.
+entity: GitIndexEntry
+layer: native
+tool: git
+means: One path of the index at one stage, with its mode, its object, and what the file system said of the file.
+fields:
+  ctime:
+    type: Time
+    source: stored
+    status: unused
+    means: The last time the file's metadata changed, in seconds and nanoseconds, from stat(2).
+  mtime:
+    type: Time
+    source: stored
+    status: unused
+    means: The last time the file's data changed, in seconds and nanoseconds, from stat(2).
+  dev:
+    type: Int
+    source: stored
+    status: unused
+    means: The device of the file, from stat(2), as 32 bits.
+  ino:
+    type: Int
+    source: stored
+    status: unused
+    means: The inode of the file, from stat(2), as 32 bits.
+  mode:
+    type: {enum: ["100644", "100755", "120000", "160000", "40000"]}
+    source: stored
+    status: unused
+    means: >-
+      The entry's kind, which kit reads only to give a path's type and whether it is executable: 100644 a file,
+      100755 an executable, 120000 a symlink, 160000 a gitlink, and 40000 a sparse directory, which git ls-files
+      --stage prints padded as 040000.
+  uid:
+    type: Int
+    source: stored
+    status: unused
+    means: The owner of the file, from stat(2).
+  gid:
+    type: Int
+    source: stored
+    status: unused
+    means: The group of the file, from stat(2).
+  size:
+    type: Int
+    source: stored
+    status: unused
+    means: The file's size on disk, from stat(2), truncated to 32 bits.
+  assume-valid:
+    type: Bool
+    source: stored
+    status: unused
+    means: Whether git takes the file as unchanged without checking it, as git update-index --assume-unchanged sets.
+  extended:
+    type: Bool
+    source: stored
+    status: unused
+    means: Whether a second flags field follows, which only version 3 and later allow.
+  stage:
+    type: {enum: ["0", "1", "2", "3"]}
+    source: stored
+    status: unused
+    means: >-
+      The merge stage, which kit reads only to keep stage 0: 0 for a path with no conflict, and 1, 2, and 3 for the
+      common ancestor's, ours, and theirs in a conflict.
+  name-length:
+    type: Int
+    source: stored
+    status: unused
+    means: The length of the path in bytes, from the flags field, or 4095 for a path that long or longer.
+  skip-worktree:
+    type: Bool
+    source: stored
+    status: unused
+    means: Whether a sparse checkout leaves the path out of the worktree, from the extended flags.
+  intent-to-add:
+    type: Bool
+    source: stored
+    status: unused
+    means: Whether git add -N added the path with no content yet, from the extended flags, its object the empty blob.
+  path:
+    type: Bytes
+    source: stored
+    status: unused
+    means: >-
+      The path from the top of the worktree, with / between its parts, no NUL, and a / at the end only for a sparse
+      directory, which kit facts --moment=commit gives as a key of its tree.
+relations:
+  index:
+    to: GitIndex
+    inverse: GitIndex.entries
+    means: The index that holds this entry.
+  target:
+    to: GitTreeTarget
+    inverse: GitTreeTarget.staged-by
+    means: >-
+      The object the entry's id names, as its mode says: a blob, a symlink's blob, a gitlink's commit, which is the
+      submodule's and need not be in this repository, or a sparse directory's tree.

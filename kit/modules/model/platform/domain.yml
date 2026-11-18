@@ -1,0 +1,4 @@
+# The Platform domain of the model: the systems kit talks to. It holds the service that the Code domain's
+# organizations belong to, as a stub.
+name: Platform
+intro: The systems kit talks to, such as a forge, a tracker, or a chat service, each one a service.

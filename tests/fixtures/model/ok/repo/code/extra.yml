@@ -1,0 +1,4 @@
+# A repository's own entity, which follows the release's files.
+entity: Extra
+layer: logical
+over: [Commit]

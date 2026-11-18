@@ -1,0 +1,23 @@
+# An unborn branch is the branch name a worktree's HEAD holds before that branch has a commit, as in a repository with
+# no commit yet: git keeps the name, a GitUnbornRef, and the next commit on the worktree makes the branch. It is no
+# Branch, because a Branch has a tip.
+entity: UnbornBranch
+layer: logical
+over: [GitUnbornRef]
+means: A branch name a worktree's HEAD holds that no branch has yet, which the next commit there makes.
+fields:
+  name:
+    type: Text
+    source: derived
+    from: GitUnbornRef.short-name
+    status: held
+    read-by: workspace worktrees branch
+    means: The branch's name, as main, which kit prints as the worktree's branch.
+relations:
+  worktrees:
+    to: Worktree
+    arity: some
+    derived: the worktrees whose head is Unborn with this branch name
+    means: >-
+      The worktrees whose HEAD holds this name. Two worktrees can hold one unborn name, because git refuses a second
+      checkout of a branch only once the branch exists.

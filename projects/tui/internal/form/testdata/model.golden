@@ -1,0 +1,13 @@
+ kit model - checks the model of kit's entities
+
+   --release  a model directory that exists, read in place of the release's modules/model; given
+              once
+
+   one of required
+   check      checks the model
+   table      prints a table of one entity or one domain
+   page       prints the body of the page of one domain
+   svg        prints a diagram of one domain, or of every domain
+
+
+ kit model

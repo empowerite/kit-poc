@@ -1,0 +1,5 @@
+# A release entity of the code domain; tests/model.bats loads it first.
+entity: Commit
+layer: native
+tool: git
+means: a snapshot

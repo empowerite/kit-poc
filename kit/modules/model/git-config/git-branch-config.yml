@@ -1,0 +1,117 @@
+# A branch's settings: the branch.<name>.* keys of every scope, read together, which may name a branch that does not
+# exist. A key that takes one value is the last entry's value. remote and merge together name the upstream branch.
+entity: GitBranchConfig
+layer: native
+tool: git
+means: What git fetches, merges, rebases, and pushes for one local branch, and what the branch is for.
+fields:
+  name:
+    type: Text
+    source: stored
+    status: unused
+    means: The subsection of branch.<name>, the branch's name without refs/heads/.
+  remote:
+    type: Text
+    arity: option
+    source: stored
+    status: held
+    read-by: workspace branches remote
+    means: >-
+      The value of branch.<name>.remote, the remote's name, or . for this repository, which kit prints for a branch
+      whose upstream is gone.
+  push-remote:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The value of branch.<name>.pushRemote, a remote's name or a URL, which a push uses in place of remote.
+  merge:
+    type: Text
+    arity: many
+    source: stored
+    status: unused
+    means: >-
+      The values of branch.<name>.merge, each a ref on the remote, as refs/heads/main, more than one for an octopus
+      merge.
+  upstream:
+    type: Text
+    arity: option
+    source: derived
+    from: >-
+      the ref the remote's fetch refspecs map the first merge value to, short, as git status --porcelain=v2 --branch
+      prints it on its branch.upstream line
+    status: held
+    read-by: workspace worktrees upstream
+    means: The upstream branch, as origin/main, or the local branch's name when remote is .
+  merge-options:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: The options of a merge into the branch, as git merge takes them.
+  rebase:
+    type: {enum: ["true", "false", "yes", "no", "on", "off", "1", "0", merges, m, interactive, i]}
+    arity: option
+    source: stored
+    status: unused
+    means: >-
+      The value as written: a boolean spelling for whether git pull rebases the branch in place of merging, merges or
+      m to rebase keeping merge commits, and interactive or i to rebase interactively.
+  description:
+    type: Text
+    arity: option
+    source: stored
+    status: unused
+    means: What the branch is for, as git branch --edit-description writes it.
+  delete-merged:
+    type: Bool
+    arity: option
+    source: stored
+    status: unused
+    means: Whether git branch --delete-merged may delete the branch, true unless set to false.
+  other-keys:
+    type: Text
+    arity: many
+    ordered: true
+    source: stored
+    status: unused
+    means: >-
+      Each key of the section git does not document, as name=value in order, such as the merge base an editor or a
+      forge's command line records.
+relations:
+  worktree-dir:
+    to: GitWorktreeDir
+    inverse: GitWorktreeDir.branch-configs
+    means: >-
+      The worktree these settings are git config's answer in, from the entries of every scope that apply there:
+      system, global, local, and worktree, with what their includes bring.
+  entries:
+    to: GitConfigEntry
+    arity: some
+    inverse: GitConfigEntry.branches
+    means: >-
+      The entries of the worktree's git config answer whose key is in the branch.<name> section, from every scope
+      that applies to that worktree: system, global, local, and worktree, with what its includes bring.
+  ref:
+    to: GitRef
+    arity: option
+    inverse: GitRef.config
+    means: The branch refs/heads/<name>, none while no such branch exists.
+  upstream-remote:
+    to: GitRemoteConfig
+    arity: option
+    inverse: GitRemoteConfig.upstream-of
+    means: The remote that remote names, none when remote is unset, is ., or names no configured remote.
+  push-to:
+    to: GitRemoteConfig
+    arity: option
+    inverse: GitRemoteConfig.pushed-by
+    means: The remote that push-remote names, none when it is unset or a URL.
+  upstream-ref:
+    to: GitRef
+    arity: option
+    inverse: GitRef.upstream-of
+    means: >-
+      The ref that is the upstream: the remote-tracking branch the remote's fetch refspecs map merge to, or, when
+      remote is . (this repository), the local ref merge names, as git rev-parse <branch>@{u} resolves it, none when
+      no such ref exists.

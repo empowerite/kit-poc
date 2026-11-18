@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# kit-delivery - lists the forge's releases, builds, artifacts, environments, and deployments (kit verb: workflow)
+# ----------------------------------------------------------------------------------------------------------------------
+# Usage:
+#   kit delivery [--text | --json | --jq]
+#   kit delivery --stages
+#   kit delivery --marks
+#   kit delivery artifacts [--text | --json | --jq]
+#   kit delivery environments [--text | --json | --jq]
+#   kit delivery deployments [--text | --json | --jq]
+#   kit delivery releases [--text | --json | --jq]
+#   kit delivery builds [--text | --json | --jq]
+#
+# Lists what the forge says of the repository's delivery, the tabs of Delivery in kittui. It changes nothing. The tabs
+# releases and builds are kit flow's stages: kit delivery releases and kit delivery builds print what kit flow releases
+# and kit flow builds print. The other tabs are the stages the forge answers here, in order:
+#
+#   artifacts → environments → deployments
+#
+# kit delivery with no tab prints its stages, not the releases or the builds.
+#
+# On a terminal, kit delivery opens Delivery in kittui, and kit delivery <stage> opens it on that tab, maximized. Without
+# a terminal, or with --text, it prints text. With --json or --jq, it prints JSON: the stages where no tab is named, and
+# the tab named alone.
+#
+# kit --workspace=<workspace> delivery draws each stage across a workspace's members with checkouts, as kit workspace
+# does. Without it, the workspace is the repository here, and outside one, the last group used, as kit workspaces
+# --current says.
+#
+# With --json, a stage prints {contract, rows, errors}. The fields of each stage are in docs/apps.md.
+#
+# Legend
+#
+# Each stage lists the glyphs it draws in kittui, one per line. A glyph can show under more than one stage.
+#
+# kit:generate legend `k=$(command -v kit); jq -nr -L "${k%/bin/kit}/modules/jq" 'import "glyphs" as g; g::legend_for("delivery")'`
+#   📚  workspace: a group, in the workspace menu that drops down from - in kittui's title
+#
+# artifacts:
+#
+#   📀  artifact: a file a build kept, until it expires
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# environments:
+#
+#   🏢  environment: where a deployment goes, and the rules that guard it
+#   🌿  branch or worktree: a linked worktree, a branch on a remote, or the branch a pull request is on
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#
+# deployments:
+#
+#   🚀  deployment: a commit deployed to an environment, and by whom
+#   ✅  passed: every check, or a build
+#   🏃  running: checks or a build still running or queued
+#   🛑  cancelled or skipped: a build
+#   ❌  failed: a check, a build, or a fetch, or kit could not read the forge
+#   🔘  commit: its short hash
+#
+# kit:end legend
+#
+# Arguments:
+#   --text              prints the stages as text, even on a terminal
+#   --json              the stages as one JSON object: contract, stages, then each stage's document under its name,
+#                       null for one that could not be read
+#   --jq                the same JSON, formatted by jq for a person
+#   --stages            prints the stages, one per line, in order, the same over any workspace
+#   --marks             prints a mark per stage, as one JSON object, which changes when what the stage draws does
+#   artifacts           the artifacts the runs kept, the newest 100 at most
+#   environments        the deployment environments, each with what guards it
+#   deployments         the deployments, the newest 50 at most
+#   releases            the releases on the forge, as kit flow releases prints them; on a terminal it opens in kittui
+#   builds              the runs no change owns, as kit flow builds prints them; on a terminal it opens in kittui
+#
+# Exits 0 when the stages, or the tab named, are drawn, 1 when one could not be read, after what was, and 2 on a usage
+# error, or outside a repository's working tree with no workspace.
+#
+# see: modules/bash/apps.sh, modules/bash/apps/delivery.sh, modules/jq/apps.jq, docs/apps.md
+
+set -o errexit -o nounset -o pipefail
+# shellcheck source=modules/bash/1st.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
+kit:enter
+use apps
+workspaces:misplaced delivery "$@" || exit $?
+guard:arguments delivery "$@" || exit $?
+apps:main delivery "$@"
+
+# ----------------------------------------------------------------------------------------------------------------------

@@ -1,0 +1,6 @@
+# A derived relation down the column.
+entity: P2
+layer: logical
+means: entity P2
+relations:
+  to4: {to: P4, derived: x}

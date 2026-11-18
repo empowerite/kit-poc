@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+# kit-model - checks the model of kit's entities (kit verb: files)
+# ----------------------------------------------------------------------------------------------------------------------
+# Usage:
+#   kit model [--release=<dir>] (check | table (--entity=<name> | --domain=<name>) | page --domain=<name> | svg (--domain=<name> | --overview))
+#
+# The model is the entities kit works with, one YAML file each: the release's under modules/model/, and the
+# repository's under .kit/model/, as docs/model.md says. kit model check reads both and checks them: every relation has
+# its other side, every type is known, and an extension only narrows what it extends.
+#
+# It prints each finding on a line of its own, then, last, how many entities and how many stubs the model holds, as
+# model: 12 entities, 2 stubs. A file that cannot be read ends it with what the reader printed.
+#
+# table prints a markdown table of the model, for a page that holds it in a kit:generate region. --entity= gives the
+# entity's fields, Field | Type | Arity | Source | Status | Read by | Means, one row each; a sum gives its variants and
+# their fields, and a stub one line that says it is one. --domain= gives the relations of every entity of the domain,
+# Relation | To | Arity | Ordered | Inverse | Means. Arity is 1, 0..1, 0..*, or 1..*. A name the model does not hold
+# exits 2 and names the ones it does.
+#
+# page prints the markdown body of a domain's page, for a page that holds it in a kit:generate region: the domain's intro,
+# its diagram as <domain>.svg, its relations table, and a section for each entity, by name, with what it means, its layer,
+# and its fields. The page's own file holds the title. A domain the model does not hold exits 2 and names the ones it does.
+#
+# svg prints a diagram of the model as SVG, the same bytes for the same model under any locale. --domain= draws a card
+# for each entity of the domain, and a line for each pair of inverse relations, with the name and arity of each
+# relation at the end it goes to; a derived relation is dashed, and a relation to another domain's entity is a short
+# arrow with that entity's name. --overview draws a panel for each domain, with its entities. When a label of the domain
+# cannot be kept clear of the other lines and labels, it is still drawn, and a warning on stderr names its entity.
+#
+# Arguments:
+#   --release=<dir>    a model directory that exists, read in place of the release's modules/model; given once
+#   check              checks the model
+#   table              prints a table of one entity or one domain
+#   page               prints the body of the page of one domain
+#   svg                prints a diagram of one domain, or of every domain
+#   --entity=<name>    the entity whose fields the table lists
+#   --domain=<name>    the domain whose relations the table lists, whose page is printed, or whose entities the diagram draws
+#   --overview         draws a panel for each domain of the model
+#
+# Exits 0 when the model holds, or a table or a diagram is printed; 1 when the model has a finding, a file cannot be
+# read, or jq fails; and 2 on a usage error: an empty --release=, one given twice, or one that is not a directory; table
+# with neither --entity= nor --domain=, or both; page without --domain=, which names the domains the model holds; svg with
+# neither --domain= nor --overview, or both; and a name of an entity or a domain the model does not hold.
+#
+# see: modules/bash/model.sh, modules/jq/model.jq, modules/jq/modelsvg.jq, docs/model.md
+
+set -o errexit -o nounset -o pipefail
+# shellcheck source=modules/bash/1st.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../modules/bash/1st.sh"
+kit:enter
+use model file
+
+# model-jq <program> [<jq argument>…] runs a jq program over the built model, with the model modules imported. It
+# prints the program's output, and keeps what jq writes to stderr out of it. When jq fails, it prints nothing on stdout,
+# so a diagram redirected to a file never holds jq's message, writes jq's message to stderr, and returns 1, because
+# jq's own status, 3 or 5, is none of the verb's.
+model-jq() {
+  local program=$1 out
+  shift
+  # shellcheck disable=SC2154  # jq_errors is set by file:temp
+  if ! out=$(jq -L "${kit_root}/modules/jq" --raw-output "$@" \
+    'import "model" as model; import "modelsvg" as modelsvg; model::build | '"${program}" \
+    <<<"${loaded}" 2>"${jq_errors}")
+  then
+    cat "${jq_errors}" >&2
+    return 1
+  fi
+  printf '%s\n' "${out}"
+}
+
+# page alone, with no --domain=, is a refusal of the guard, which names no domain. Where the guard would not hand the
+# form to the terminal, which it does when stdin, stdout, and stderr are all terminals, the verb names the domains the
+# model holds, as it does for a domain it does not know. That is so only when the words are page and, at most, a
+# --release= that names a directory: every other form, and every other usage error, is the guard's, which is called as
+# any verb calls it.
+page_alone=false release_named=
+case "$#:${1:-}:${2:-}" in
+  (1:page:) page_alone=true ;;
+  (2:--release=*:page) page_alone=true release_named=${1#--release=} ;;
+  (*) ;;
+esac
+if [[ "${page_alone}" == true ]] && ! [[ -t 0 && -t 1 && -t 2 ]] && [[ -z "${release_named}" || -d "${release_named}" ]]
+then
+  file:temp jq_errors jq || exit 1
+  loaded=$(model:load ${release_named:+"${release_named}"}) || exit 1
+  domains=$(model-jq '([.domains | keys[]] + [.entities[].domain] | unique)[]') || exit 1
+  error "kit model page needs --domain; the domains are: $(paste -s -d, - <<<"${domains}" | sed 's/,/, /g');"\
+    "run: kit help model"
+  exit 2
+fi
+guard:arguments model "$@" || exit $?
+
+# shellcheck disable=SC2154  # syntax_options is set by guard:arguments
+release=${syntax_options[--release]:-}
+if [[ -n "${release}" && ! -d "${release}" ]]
+then
+  error "--release=${release} is not a directory; run: kit help model"
+  exit 2
+fi
+if [[ "${syntax_literals[0]}" == check ]]
+then
+  model:findings ${release:+"${release}"}
+  exit
+fi
+loaded=$(model:load ${release:+"${release}"}) || exit 1
+file:temp jq_errors jq || exit 1
+if [[ "${syntax_literals[0]}" == svg && -n "${syntax_options[--overview]+x}" ]]
+then
+  model-jq 'modelsvg::overview'
+  exit
+fi
+if [[ -n "${syntax_options[--entity]+x}" ]]
+then
+  kind=entity plural=entities name=${syntax_options[--entity]} known='[.entities | keys[]]'
+else
+  kind=domain plural=domains name=${syntax_options[--domain]}
+  known='([.domains | keys[]] + [.entities[].domain] | unique)'
+fi
+names=$(model-jq "${known}[]") || exit 1
+if ! grep --quiet --line-regexp --fixed-strings -- "${name}" <<<"${names}"
+then
+  known_list=$(paste -s -d, - <<<"${names}" | sed 's/,/, /g')
+  error "no ${kind} named ${name}; the ${plural} are: ${known_list}; run: kit help model"
+  exit 2
+fi
+if [[ "${syntax_literals[0]}" == page ]]
+then
+  model-jq "model::page(\$name)" --arg name "${name}"
+  exit
+fi
+if [[ "${syntax_literals[0]}" == table ]]
+then
+  # the function that prints the table of the named entity or domain
+  case "${kind}" in
+    (entity) call=model::fields ;;
+    (domain) call=model::relations
+  esac
+  model-jq "${call}(\$name)" --arg name "${name}"
+  exit
+fi
+# The diagram comes after a first line that names, as JSON, the entities whose labels could not all be kept clear; each
+# is a warning on stderr, and the status stays 0.
+drawn=$(model-jq "modelsvg::render(\$name) | (.crowded | tojson), .svg" --arg name "${name}") || exit 1
+printf '%s\n' "${drawn#*$'\n'}"
+while IFS= read -r entity
+do
+  warn "the labels of ${entity} could not all be kept clear of the other lines and labels in the diagram of ${name}:"\
+    "the ends on an edge of its card lie closer together than their labels are wide"
+done < <(jq --raw-output '.[]' <<<"${drawn%%$'\n'*}")
+
+# ----------------------------------------------------------------------------------------------------------------------

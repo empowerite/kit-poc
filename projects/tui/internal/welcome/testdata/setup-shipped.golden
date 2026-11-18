@@ -1,0 +1,24 @@
+  = kit welcome                                                      🔎 /search
+  ➀╶──────────────────╮➁╶───────────────────╴➌╶──────────────╮➃╶───────────────╮
+    👋 introduction   │  🧰 toolchains  3    │ 🔧 setup  2 : │  🎨 customize   ▹
+  ────────────────────╰──────────────────────╯               ╰─────────────────╰
+   Setup — this machine's logins and terminal
+
+   kit welcome --checks --machine   ⧉   ▶️ 
+   kit ran it once, as this screen opened; the checks below are what it found.
+   ⧉ copies it, to run in your own shell, and ▶️ runs it again here.
+
+   ❌ gh is not logged in to github.com
+      gh auth login --hostname github.com · it needs you at the keyboard
+   ❌ kit check finds 2 differences from the release
+      read: kit help check
+
+   This step checks what the work on this machine needs. It checks the
+   command-line tool of the code forge kit reaches, GitHub's gh, and your login
+   there. In a terminal, it also judges the terminal kit runs in, and names
+   each of its settings that makes kittui slower or worse.
+
+   When a check fails, the line under it gives the command that fixes it, or
+   says where to read more. Run the command yourself, or have kit run it and
+↓¹⁰
+ = menu / search ? legend ⌃Q quit │ ⇥·⇧⇥ tab ↓ checks 1-5 jump : tab menu

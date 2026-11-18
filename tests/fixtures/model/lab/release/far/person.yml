@@ -1,0 +1,4 @@
+# Another domain's entity, which Commit.author goes to.
+entity: Person
+layer: logical
+means: a human

@@ -1,0 +1,8 @@
+# A sum, which a derived relation goes to.
+entity: Head
+layer: logical
+sum: true
+means: what the worktree has checked out
+variants:
+  Attached: {branch: Branch}
+  Detached: {commit: Commit}

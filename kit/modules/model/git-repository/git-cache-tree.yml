@@ -1,0 +1,46 @@
+# One node of an index's TREE extension, the cache tree: a NUL-terminated path component, the ASCII count of entries
+# it covers, a space, the ASCII count of its subtrees, a newline, and the id of its tree. git writes the nodes
+# depth-first from the root, and a node whose count is -1 is invalid and has no id.
+entity: GitCacheTree
+layer: native
+tool: git
+means: A directory of the index whose tree git already knows, so that writing a commit's tree skips it.
+fields:
+  path:
+    type: Bytes
+    source: stored
+    status: unused
+    means: The directory's name within its parent's, empty for the root.
+  entry-count:
+    type: Int
+    source: stored
+    status: unused
+    means: The number of index entries under the directory, or -1 once a change under it has made the node invalid.
+  subtree-count:
+    type: Int
+    source: stored
+    status: unused
+    means: The number of direct subtrees, the nodes of the directory's own subdirectories, which follow this node.
+  id:
+    type: Hash
+    arity: option
+    source: stored
+    status: unused
+    means: The id of the tree that writing these entries gives, none for an invalid node.
+relations:
+  index:
+    to: GitIndex
+    arity: option
+    inverse: GitIndex.cache-tree
+    means: The index whose cache tree this node is the root of.
+  subtrees:
+    to: GitCacheTree
+    arity: many
+    ordered: true
+    inverse: GitCacheTree.parent
+    means: The nodes of the directory's subdirectories, in the order git writes them.
+  parent:
+    to: GitCacheTree
+    arity: option
+    inverse: GitCacheTree.subtrees
+    means: The node of the directory that holds this one, none for the root.

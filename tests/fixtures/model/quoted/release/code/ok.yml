@@ -1,0 +1,4 @@
+# A file whose key is the quoted string "<<", an ordinary key.
+entity: Commit
+means: x
+"<<": 2

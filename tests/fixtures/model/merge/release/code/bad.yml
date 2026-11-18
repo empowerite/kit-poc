@@ -1,0 +1,4 @@
+# A file with a merge key, which CUE does not read.
+entity: Commit
+fields:
+  <<: {name: {type: Text}}

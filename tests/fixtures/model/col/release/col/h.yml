@@ -1,0 +1,6 @@
+# Entity H of the column.
+entity: H
+layer: logical
+means: entity H
+relations:
+  a: {to: A, inverse: A.h}

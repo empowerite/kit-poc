@@ -1,0 +1,43 @@
+# What an author, committer, or tagger line holds: "<name> <<email>> <time> <offset>", as git writes it in an object.
+entity: GitSignature
+layer: native
+tool: git
+means: An identity and a moment, as one line of a commit or a tag.
+fields:
+  name:
+    type: Text
+    source: stored
+    status: held
+    read-by: workspace commits author
+    means: The name before the email, from user.name or the GIT_AUTHOR_NAME and GIT_COMMITTER_NAME variables.
+  email:
+    type: Text
+    source: stored
+    status: planned
+    means: The address between the angle brackets, which may be empty.
+  time:
+    type: Time
+    source: stored
+    status: unused
+    means: The moment, in seconds since the epoch, which kit reads only to compute an age.
+  offset:
+    type: Text
+    source: stored
+    status: unused
+    means: The time zone the moment was written in, as a sign and four digits, such as -0800.
+relations:
+  authored:
+    to: GitCommit
+    arity: option
+    inverse: GitCommit.author
+    means: The commit whose author line this is.
+  committed:
+    to: GitCommit
+    arity: option
+    inverse: GitCommit.committer
+    means: The commit whose committer line this is.
+  tagged:
+    to: GitTag
+    arity: option
+    inverse: GitTag.tagger
+    means: The tag whose tagger line this is.

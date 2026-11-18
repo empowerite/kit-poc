@@ -1,0 +1,22 @@
+ kit platform - lists the services, toolchains, tools, and settings kit runs with
+
+   one of
+   *kit platform*  lists the services, toolchains, tools, and settings kit runs with
+
+     --text   --json   --jq
+                           prints the stages as text, even on a terminal
+
+   --stages      prints the stages, one per line, in order, the same over any workspace
+   --marks       prints a mark per stage, as one JSON object, which changes when what the stage
+                 draws does
+   services      each capability kit fills and the service that answers it: hosting, review, ci, and
+                 releases; tracking; the project's tool manager; each dependency provider; and the
+                 policy engine
+   toolchains    each toolchain kit can use, one row for each role it fills, as kit toolchains lists
+                 them
+   tools         each tool the chosen toolchain and the dependency providers pin, as kit tools lists
+                 them
+   settings      each key the settings schema names: the value kit.yml sets, or the schema's default
+
+
+ kit platform

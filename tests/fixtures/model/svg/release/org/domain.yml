@@ -1,0 +1,5 @@
+# A domain for kit model svg: a hint for Team, and the rest by layering.
+name: Org
+intro: Who belongs to what, for the diagrams of kit model svg.
+layout:
+  Team: {row: 1, col: 1}

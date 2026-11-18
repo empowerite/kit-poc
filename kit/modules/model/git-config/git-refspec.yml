@@ -1,0 +1,55 @@
+# A refspec, as remote.<name>.fetch and remote.<name>.push hold it: an optional +, a source, a colon, and a
+# destination, either of which may hold one *, or a ^ and a source alone, which leaves out what it matches.
+entity: GitRefspec
+layer: native
+tool: git
+means: A rule that maps refs of one repository to refs of another, for a fetch or a push.
+fields:
+  text:
+    type: Text
+    source: stored
+    status: unused
+    means: The refspec as written, as +refs/heads/*:refs/remotes/origin/*.
+  force:
+    type: Bool
+    source: derived
+    from: whether the text starts with +
+    status: unused
+    means: Whether the update goes ahead when it is not a fast-forward.
+  negative:
+    type: Bool
+    source: derived
+    from: whether the text starts with ^
+    status: unused
+    means: Whether the refspec leaves out the refs its source matches.
+  source:
+    type: Text
+    arity: option
+    source: derived
+    from: the text after any + or ^ and before the colon
+    status: unused
+    means: The refs it matches on the side the update comes from, none for a push of :, the matching branches.
+  destination:
+    type: Text
+    arity: option
+    source: derived
+    from: the text after the colon
+    status: unused
+    means: The refs it writes on the side the update goes to, none when there is no colon.
+  pattern:
+    type: Bool
+    source: derived
+    from: whether the source holds a *
+    status: unused
+    means: Whether the refspec matches many refs, the * in the destination standing for what the source's * matched.
+relations:
+  fetch-of:
+    to: GitRemoteConfig
+    arity: option
+    inverse: GitRemoteConfig.fetch
+    means: The remote whose remote.<name>.fetch holds this refspec.
+  push-of:
+    to: GitRemoteConfig
+    arity: option
+    inverse: GitRemoteConfig.push
+    means: The remote whose remote.<name>.push holds this refspec.

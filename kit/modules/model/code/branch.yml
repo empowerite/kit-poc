@@ -1,0 +1,123 @@
+# A branch is a ref of a checkout: a local branch under refs/heads/, or a remote-tracking branch under
+# refs/remotes/<remote>/, which stands for the branch on the remote as the last fetch left it. A branch always has a
+# tip. A name HEAD holds before the first commit is an UnbornBranch, over a GitUnbornRef, and no Branch. Kit's
+# branches stage prints a row for each branch on a remote, with the local branches that pull from it, and a row for
+# each local branch with no branch on a remote.
+entity: Branch
+layer: logical
+over: [GitRef, GitBranchConfig]
+means: A named line of commits in a checkout, local or on a remote, with its upstream.
+fields:
+  name:
+    type: Text
+    source: derived
+    from: GitRef.branch
+    status: held
+    read-by: workspace branches branch
+    means: The branch's name, without refs/heads/ or the remote's name, as main.
+  kind:
+    type: {enum: [remote, gone, local]}
+    arity: option
+    source: derived
+    from: GitRef.kind
+    status: held
+    read-by: workspace branches kind
+    means: >-
+      Which row of branches prints the branch: remote for a branch on a remote, gone for a local branch whose
+      upstream is gone, and local for a local branch with no upstream on a remote. A local branch whose upstream
+      exists has none, because its upstream's row names it.
+  remote-name:
+    type: Text
+    arity: option
+    source: derived
+    from: GitRef.remote
+    status: held
+    read-by: workspace branches remote
+    means: >-
+      The name of the remote that has the branch, or for a gone branch the remote its configuration still names,
+      none for a local branch with no upstream on a remote.
+  default:
+    type: Bool
+    source: derived
+    from: GitRemoteConfig.default-branch
+    status: held
+    read-by: workspace branches default
+    means: Whether the branch is its remote's default branch, which kit prints as "default" or null.
+  upstream-name:
+    type: Text
+    arity: option
+    source: derived
+    from: GitBranchConfig.upstream
+    status: held
+    read-by: workspace worktrees upstream
+    means: >-
+      For a local branch, its upstream's short name, as origin/main, which the worktrees stage prints for the
+      branch a worktree is on.
+  track:
+    type: Int
+    arity: many
+    ordered: true
+    source: derived
+    from: what git for-each-ref %(upstream:track) prints for a local branch, as [ahead 3, behind 1]
+    status: held
+    read-by: workspace branches upstream
+    means: >-
+      For a local branch, a pair, [ahead, behind]: how many commits it is ahead of its upstream, then how many
+      behind it, none for a branch with no upstream or a gone one. The branches stage prints the first local
+      branch's on its upstream's row, and the worktrees stage prints it as track.
+  reference:
+    type: Text
+    arity: option
+    source: derived
+    from: the repository's name and the branch's name
+    status: planned
+    means: >-
+      The branch's reference, its repository's reference and its name, none where the branch's checkout has no
+      repository, because no remote of the checkout names a host.
+relations:
+  checkout:
+    to: Checkout
+    inverse: Checkout.branches
+    means: The checkout whose refs hold the branch.
+  remote:
+    to: Remote
+    arity: option
+    inverse: Remote.branches
+    means: For a remote-tracking branch, the remote it is a branch of, none for a local branch.
+  tip:
+    to: Commit
+    inverse: Commit.tipped-by
+    means: The newest commit of the branch, which its ref names.
+  upstream:
+    to: Branch
+    arity: option
+    inverse: Branch.downstream
+    means: >-
+      The branch a local branch pulls from and pushes to by default: a remote-tracking branch, or a local branch
+      when its remote is . (this repository), none when no upstream is set or the upstream is gone.
+  downstream:
+    to: Branch
+    arity: many
+    inverse: Branch.upstream
+    means: The local branches whose upstream this branch is, which the branches stage prints as local.
+  worktree:
+    to: Worktree
+    arity: option
+    derived: the worktree whose head is OnBranch with this branch
+    means: >-
+      The worktree that has this local branch checked out, at most one, because git refuses to check a branch out
+      in a second worktree unless forced, and none for a remote-tracking branch.
+  changes:
+    to: Change
+    arity: many
+    inverse: Change.branches
+    means: >-
+      The changes whose head branch this is: this branch is the remote-tracking branch of the head branch, or a
+      local branch whose upstream that remote-tracking branch is.
+  targeted-by:
+    to: Change
+    arity: many
+    inverse: Change.bases
+    means: >-
+      The changes that merge into this branch: this branch is the remote-tracking branch of their base branch, or a
+      local branch whose upstream that remote-tracking branch is.

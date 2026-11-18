@@ -1,0 +1,14 @@
+# Two pairs on itself, two relations that are their own inverse, stubs, and two pairs with T.
+entity: L
+layer: logical
+means: left card
+relations:
+  abovethelongline: {to: L, arity: many, ordered: true, inverse: L.belowthelongline}
+  belowthelongline: {to: L, arity: many, inverse: L.abovethelongline}
+  mirror: {to: L, arity: option, inverse: L.mirror}
+  echo: {to: L, arity: many, inverse: L.echo}
+  outa: {to: X, derived: x}
+  outb: {to: Y, derived: x}
+  t1: {to: T, arity: many, inverse: T.backfromthefirstline}
+  t2: {to: T, arity: many, inverse: T.backfromthesecondline}
+  u1: {to: U, derived: x}

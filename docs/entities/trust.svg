@@ -1,0 +1,180 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1192" width="1200" height="1192" role="img" aria-labelledby="title desc">
+  <title id="title">Trust</title>
+  <desc id="desc">Entities of the Trust domain: Policy, Rule, Control, Waiver, Approval, Evidence, Finding, and Evidence store, and why a check in CI makes evidence while a check anywhere else makes a finding.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+    text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; fill: #0f172a; }
+    .title { font-size: 24px; font-weight: 700; }
+    .intro { font-size: 13.5px; fill: #475569; }
+    .h { font-size: 15px; font-weight: 700; }
+    .w { font-size: 12.5px; fill: #1e293b; }
+    .k { font-size: 11px; font-weight: 700; fill: #64748b; letter-spacing: .06em; }
+    .ho { font-size: 12px; fill: #475569; }
+    .m { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11.5px; fill: #334155; }
+    .f { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; fill: #334155; }
+    .lbl { font-size: 11.5px; fill: #475569; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
+    .sec { font-size: 12px; font-weight: 700; fill: #475569; letter-spacing: .07em; }
+    .edge { stroke: #475569; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .dash { stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+  <rect x="0.5" y="0.5" width="1199" height="1191" rx="14" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="32" y="22" width="6" height="28" rx="3" fill="#0f766e"/>
+  <text class="title" x="50" y="45" style="fill:#134e4a">Trust</text>
+  <text class="intro" x="32" y="72">What shows the work can be trusted. Evidence is made only in CI, by a run whose identity the CI service vouches for, and it leaves the platform that made it. A desk runs the same</text>
+  <text class="intro" x="32" y="91">checks and gets findings.</text>
+  <rect x="32.0" y="728.0" width="1136.0" height="158.0" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="sec" x="48.0" y="752.0">WHERE A CHECK RUNS DECIDES WHAT IT MAKES</text>
+  <rect x="32.0" y="902.0" width="1136.0" height="130.0" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="sec" x="48.0" y="926.0">PROVENANCE: FROM AN ISSUE TO WHERE ITS CODE RUNS</text>
+  <rect x="32.0" y="1048.0" width="1136.0" height="112.0" rx="12" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text class="sec" x="48.0" y="1072.0">RULES</text>
+<clipPath id="c1"><rect x="32.0" y="122.0" width="227.0" height="158.0" rx="9"/></clipPath>
+<rect x="32.0" y="122.0" width="227.0" height="158.0" rx="9" fill="#ffffff"/>
+<rect x="32.0" y="122.0" width="227.0" height="30" fill="#ccfbf1" clip-path="url(#c1)"/>
+<line x1="32.0" y1="152.0" x2="259.0" y2="152.0" stroke="#0f766e" stroke-opacity=".35"/>
+<text class="h" x="44.0" y="142.5" style="fill:#134e4a">Policy</text>
+<text class="w" x="44.0" y="176.0">the patterns or Open Policy Agent</text>
+<text class="w" x="44.0" y="193.0">rules a change must meet</text>
+<text class="ho" x="44.0" y="214.0"><tspan class="k">HOLDS</tspan>  its engine, its rules, its</text>
+<text class="ho" x="44.0" y="230.0">version</text>
+<rect x="32.0" y="122.0" width="227.0" height="158.0" rx="9" fill="none" stroke="#0f766e" stroke-width="1.5"/>
+<clipPath id="c2"><rect x="335.0" y="122.0" width="227.0" height="158.0" rx="9"/></clipPath>
+<rect x="335.0" y="122.0" width="227.0" height="158.0" rx="9" fill="#ffffff"/>
+<rect x="335.0" y="122.0" width="227.0" height="30" fill="#ccfbf1" clip-path="url(#c2)"/>
+<line x1="335.0" y1="152.0" x2="562.0" y2="152.0" stroke="#0f766e" stroke-opacity=".35"/>
+<text class="h" x="347.0" y="142.5" style="fill:#134e4a">Rule</text>
+<text class="w" x="347.0" y="176.0">one requirement in a policy</text>
+<text class="ho" x="347.0" y="197.0"><tspan class="k">HOLDS</tspan>  an id, what it checks</text>
+<rect x="335.0" y="122.0" width="227.0" height="158.0" rx="9" fill="none" stroke="#0f766e" stroke-width="1.5"/>
+<clipPath id="c3"><rect x="638.0" y="122.0" width="227.0" height="158.0" rx="9"/></clipPath>
+<rect x="638.0" y="122.0" width="227.0" height="158.0" rx="9" fill="#ffffff"/>
+<rect x="638.0" y="122.0" width="227.0" height="30" fill="#ccfbf1" clip-path="url(#c3)"/>
+<line x1="638.0" y1="152.0" x2="865.0" y2="152.0" stroke="#0f766e" stroke-opacity=".35"/>
+<text class="h" x="650.0" y="142.5" style="fill:#134e4a">Control</text>
+<text class="w" x="650.0" y="176.0">an obligation from outside kit,</text>
+<text class="w" x="650.0" y="193.0">such as “every production change</text>
+<text class="w" x="650.0" y="210.0">is reviewed by someone other</text>
+<text class="w" x="650.0" y="227.0">than its author”</text>
+<text class="ho" x="650.0" y="248.0"><tspan class="k">HOLDS</tspan>  its id, its source standard,</text>
+<text class="ho" x="650.0" y="264.0">the kinds of evidence that satisfy it</text>
+<rect x="638.0" y="122.0" width="227.0" height="158.0" rx="9" fill="none" stroke="#0f766e" stroke-width="1.5"/>
+<clipPath id="c4"><rect x="941.0" y="122.0" width="227.0" height="158.0" rx="9"/></clipPath>
+<rect x="941.0" y="122.0" width="227.0" height="158.0" rx="9" fill="#ffffff"/>
+<rect x="941.0" y="122.0" width="227.0" height="30" fill="#ccfbf1" clip-path="url(#c4)"/>
+<line x1="941.0" y1="152.0" x2="1168.0" y2="152.0" stroke="#0f766e" stroke-opacity=".35"/>
+<text class="h" x="953.0" y="142.5" style="fill:#134e4a">Waiver</text>
+<text class="w" x="953.0" y="176.0">a recorded exception to a rule or</text>
+<text class="w" x="953.0" y="193.0">control</text>
+<text class="ho" x="953.0" y="214.0"><tspan class="k">HOLDS</tspan>  what it waives, for whom,</text>
+<text class="ho" x="953.0" y="230.0">why, who granted it, and until when</text>
+<rect x="941.0" y="122.0" width="227.0" height="158.0" rx="9" fill="none" stroke="#0f766e" stroke-width="1.5"/>
+<clipPath id="c5"><rect x="32.0" y="344.0" width="227.0" height="156.0" rx="9"/></clipPath>
+<rect x="32.0" y="344.0" width="227.0" height="156.0" rx="9" fill="#ffffff"/>
+<rect x="32.0" y="344.0" width="227.0" height="30" fill="#ccfbf1" clip-path="url(#c5)"/>
+<line x1="32.0" y1="374.0" x2="259.0" y2="374.0" stroke="#0f766e" stroke-opacity=".35"/>
+<text class="h" x="44.0" y="364.5" style="fill:#134e4a">Approval</text>
+<text class="w" x="44.0" y="398.0">an actor's consent to a change or</text>
+<text class="w" x="44.0" y="415.0">a deployment</text>
+<text class="ho" x="44.0" y="436.0"><tspan class="k">HOLDS</tspan>  actor, subject, time</text>
+<rect x="32.0" y="344.0" width="227.0" height="156.0" rx="9" fill="none" stroke="#0f766e" stroke-width="1.5"/>
+<clipPath id="c6"><rect x="638.0" y="344.0" width="227.0" height="156.0" rx="9"/></clipPath>
+<rect x="638.0" y="344.0" width="227.0" height="156.0" rx="9" fill="#ffffff"/>
+<rect x="638.0" y="344.0" width="227.0" height="30" fill="#ccfbf1" clip-path="url(#c6)"/>
+<line x1="638.0" y1="374.0" x2="865.0" y2="374.0" stroke="#0f766e" stroke-opacity=".35"/>
+<text class="h" x="650.0" y="364.5" style="fill:#134e4a">Evidence</text>
+<text class="w" x="650.0" y="398.0">a signed statement, made by a CI</text>
+<text class="w" x="650.0" y="415.0">run, about a subject</text>
+<text class="ho" x="650.0" y="436.0"><tspan class="k">HOLDS</tspan>  the subject's digest, its kind,</text>
+<text class="ho" x="650.0" y="452.0">the statement, the run's identity,</text>
+<text class="ho" x="650.0" y="468.0">kit's version and the policy's, the</text>
+<text class="ho" x="650.0" y="484.0">time</text>
+<rect x="638.0" y="344.0" width="227.0" height="156.0" rx="9" fill="none" stroke="#0f766e" stroke-width="1.5"/>
+<clipPath id="c7"><rect x="941.0" y="344.0" width="227.0" height="156.0" rx="9"/></clipPath>
+<rect x="941.0" y="344.0" width="227.0" height="156.0" rx="9" fill="#ffffff"/>
+<rect x="941.0" y="344.0" width="227.0" height="30" fill="#ccfbf1" clip-path="url(#c7)"/>
+<line x1="941.0" y1="374.0" x2="1168.0" y2="374.0" stroke="#0f766e" stroke-opacity=".35"/>
+<text class="h" x="953.0" y="364.5" style="fill:#134e4a">Finding</text>
+<text class="w" x="953.0" y="398.0">a check's result anywhere</text>
+<text class="w" x="953.0" y="415.0">evidence cannot be made: a desk,</text>
+<text class="w" x="953.0" y="432.0">an agent's session, a fork's run</text>
+<text class="ho" x="953.0" y="453.0"><tspan class="k">HOLDS</tspan>  the same as evidence,</text>
+<text class="ho" x="953.0" y="469.0">unsigned</text>
+<rect x="941.0" y="344.0" width="227.0" height="156.0" rx="9" fill="none" stroke="#0f766e" stroke-width="1.5"/>
+<clipPath id="c8"><rect x="638.0" y="564.0" width="227.0" height="124.0" rx="9"/></clipPath>
+<rect x="638.0" y="564.0" width="227.0" height="124.0" rx="9" fill="#ffffff"/>
+<rect x="638.0" y="564.0" width="227.0" height="30" fill="#ccfbf1" clip-path="url(#c8)"/>
+<line x1="638.0" y1="594.0" x2="865.0" y2="594.0" stroke="#0f766e" stroke-opacity=".35"/>
+<text class="h" x="650.0" y="584.5" style="fill:#134e4a">Evidence store</text>
+<text class="w" x="650.0" y="618.0">where evidence is kept, outside</text>
+<text class="w" x="650.0" y="635.0">the platform that made it</text>
+<text class="ho" x="650.0" y="656.0"><tspan class="k">HOLDS</tspan>  service, location, retention,</text>
+<text class="ho" x="650.0" y="672.0">how it is verified</text>
+<rect x="638.0" y="564.0" width="227.0" height="124.0" rx="9" fill="none" stroke="#0f766e" stroke-width="1.5"/>
+  <rect x="48" y="766" width="470" height="44" rx="9" fill="#fff" stroke="#0f766e" stroke-width="1.2"/>
+  <text class="w" x="60" y="793">A CI run on a protected branch, with the identity the CI service vouches for</text>
+  <path class="edge" d="M 522 788 H 572"/>
+  <rect x="576" y="766" width="576" height="44" rx="9" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.2"/>
+  <text class="h" x="588" y="785" style="fill:#134e4a">Evidence</text>
+  <text class="ho" x="588" y="801">signed in an in-toto statement, shipped to the store</text>
+  <rect x="48" y="822" width="470" height="44" rx="9" fill="#fff" stroke="#64748b" stroke-width="1.2"/>
+  <text class="w" x="60" y="849">A desk, an agent's session, a fork's run, an unprotected branch</text>
+  <path class="edge" d="M 522 844 H 572"/>
+  <rect x="576" y="822" width="576" height="44" rx="9" fill="#f1f5f9" stroke="#64748b" stroke-width="1.2"/>
+  <text class="h" x="588" y="841" style="fill:#334155">Finding</text>
+  <text class="ho" x="588" y="857">the same output, unsigned, advisory, never evidence</text>
+  <rect x="48.0" y="940" width="84.0" height="50" rx="9" fill="#ede9fe" stroke="#6d28d9" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#4c1d95" x="90.0" y="969.5">Issue</text>
+  <path class="edge" style="stroke-width:1.4" d="M 135.0 965.0 H 147.0"/>
+  <rect x="150.0" y="940" width="84.0" height="50" rx="9" fill="#dcfce7" stroke="#15803d" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#14532d" x="192.0" y="969.5">Branch</text>
+  <path class="edge" style="stroke-width:1.4" d="M 237.0 965.0 H 249.0"/>
+  <rect x="252.0" y="940" width="84.0" height="50" rx="9" fill="#dcfce7" stroke="#15803d" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#14532d" x="294.0" y="962.0">Signed</text>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#14532d" x="294.0" y="977.0">commits</text>
+  <path class="edge" style="stroke-width:1.4" d="M 339.0 965.0 H 351.0"/>
+  <rect x="354.0" y="940" width="84.0" height="50" rx="9" fill="#dcfce7" stroke="#15803d" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#14532d" x="396.0" y="969.5">Change</text>
+  <path class="edge" style="stroke-width:1.4" d="M 441.0 965.0 H 453.0"/>
+  <rect x="456.0" y="940" width="84.0" height="50" rx="9" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#134e4a" x="498.0" y="962.0">Reviews,</text>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#134e4a" x="498.0" y="977.0">approvals</text>
+  <path class="edge" style="stroke-width:1.4" d="M 543.0 965.0 H 555.0"/>
+  <rect x="558.0" y="940" width="84.0" height="50" rx="9" fill="#ffe4e6" stroke="#be123c" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#881337" x="600.0" y="969.5">Run</text>
+  <path class="edge" style="stroke-width:1.4" d="M 645.0 965.0 H 657.0"/>
+  <rect x="660.0" y="940" width="84.0" height="50" rx="9" fill="#ccfbf1" stroke="#0f766e" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#134e4a" x="702.0" y="969.5">Evidence</text>
+  <path class="edge" style="stroke-width:1.4" d="M 747.0 965.0 H 759.0"/>
+  <rect x="762.0" y="940" width="84.0" height="50" rx="9" fill="#ffe4e6" stroke="#be123c" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#881337" x="804.0" y="969.5">Artifact</text>
+  <path class="edge" style="stroke-width:1.4" d="M 849.0 965.0 H 861.0"/>
+  <rect x="864.0" y="940" width="84.0" height="50" rx="9" fill="#ffe4e6" stroke="#be123c" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#881337" x="906.0" y="969.5">Release</text>
+  <path class="edge" style="stroke-width:1.4" d="M 951.0 965.0 H 963.0"/>
+  <rect x="966.0" y="940" width="84.0" height="50" rx="9" fill="#ffe4e6" stroke="#be123c" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#881337" x="1008.0" y="969.5">Deployment</text>
+  <path class="edge" style="stroke-width:1.4" d="M 1053.0 965.0 H 1065.0"/>
+  <rect x="1068.0" y="940" width="84.0" height="50" rx="9" fill="#ffe4e6" stroke="#be123c" stroke-width="1.2"/>
+  <text class="w" text-anchor="middle" style="font-weight:600;fill:#881337" x="1110.0" y="969.5">Target</text>
+  <text class="ho" x="48" y="1020.0">From a deployed digest, kit names the issues, the reviewers, the checks, and the policy version; from an issue, where its code runs now.</text>
+  <circle cx="54" cy="1092.0" r="2.2" fill="#0f766e"/>
+  <text class="w" x="66" y="1096.0">One format: an in-toto statement in a signed envelope. Its kinds are kit's verdict, build provenance, test results, and a bill of materials.</text>
+  <circle cx="54" cy="1114.0" r="2.2" fill="#0f766e"/>
+  <text class="w" x="66" y="1118.0">The signer is the run's workload identity (OpenID Connect) with a short-lived certificate, so no long-lived key exists to steal.</text>
+  <circle cx="54" cy="1136.0" r="2.2" fill="#0f766e"/>
+  <text class="w" x="66" y="1140.0">A control is met when the store holds evidence of the right kind for every subject in its scope. A waiver always has an expiry, except a bot's.</text>
+  <path class="edge" d="M 259.0 137.0 H 335.0"/>
+  <text class="lbl" text-anchor="middle" x="297.0" y="130.0">holds</text>
+  <path class="edge" d="M 941.0 137.0 H 865.0"/>
+  <text class="lbl" text-anchor="middle" x="903.0" y="130.0">excuses</text>
+  <path class="edge" d="M 751.5 344.0 V 280.0"/>
+  <text class="lbl" x="759.5" y="316.0">satisfies</text>
+  <path class="edge dash" d="M 941.0 359.0 H 865.0"/>
+  <text class="lbl" text-anchor="middle" x="903.0" y="352.0">unsigned</text>
+  <path class="edge" d="M 751.5 500.0 V 564.0"/>
+  <text class="lbl" x="759.5" y="536.0">kept in</text>
+</svg>

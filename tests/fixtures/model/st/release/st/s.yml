@@ -1,0 +1,15 @@
+# Two pairs on itself, two relations that are their own inverse, and four relations to the far domain.
+entity: S
+layer: logical
+means: entity S
+relations:
+  parentsoftheverylongname: {to: S, arity: many, ordered: true, inverse: S.childrenoftheverylongname}
+  childrenoftheverylongname: {to: S, arity: many, inverse: S.parentsoftheverylongname}
+  next: {to: S, arity: option, inverse: S.prev}
+  prev: {to: S, arity: option, inverse: S.next}
+  peers: {to: S, arity: many, inverse: S.peers}
+  twin: {to: S, arity: option, inverse: S.twin}
+  far1: {to: Far, derived: x}
+  far2: {to: Away, derived: x}
+  far3: {to: Gone, derived: x}
+  far4: {to: Far, arity: many, derived: x}

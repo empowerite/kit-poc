@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 538" width="1200" height="538" role="img" aria-labelledby="title desc">
+  <title id="title">kit's content</title>
+  <desc id="desc">Entities of kit's content domain: Source, Release, Package, Bundle, Kind, Rule file, Style, Template, and Region, and how a release delivers them.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+    text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; fill: #0f172a; }
+    .title { font-size: 24px; font-weight: 700; }
+    .intro { font-size: 13.5px; fill: #475569; }
+    .h { font-size: 15px; font-weight: 700; }
+    .w { font-size: 12.5px; fill: #1e293b; }
+    .k { font-size: 11px; font-weight: 700; fill: #64748b; letter-spacing: .06em; }
+    .ho { font-size: 12px; fill: #475569; }
+    .m { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11.5px; fill: #334155; }
+    .f { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; fill: #334155; }
+    .lbl { font-size: 11.5px; fill: #475569; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
+    .sec { font-size: 12px; font-weight: 700; fill: #475569; letter-spacing: .07em; }
+    .edge { stroke: #475569; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .dash { stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+  <rect x="0.5" y="0.5" width="1199" height="537" rx="14" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="32" y="22" width="6" height="28" rx="3" fill="#4d7c0f"/>
+  <text class="title" x="50" y="45" style="fill:#365314">kit's content</text>
+  <text class="intro" x="32" y="72">What a release delivers. These entities exist today and keep their meaning; packages.md and architecture.md define them.</text>
+<clipPath id="c1"><rect x="32.0" y="103.0" width="227.0" height="103.0" rx="9"/></clipPath>
+<rect x="32.0" y="103.0" width="227.0" height="103.0" rx="9" fill="#ffffff"/>
+<rect x="32.0" y="103.0" width="227.0" height="30" fill="#ecfccb" clip-path="url(#c1)"/>
+<line x1="32.0" y1="133.0" x2="259.0" y2="133.0" stroke="#4d7c0f" stroke-opacity=".35"/>
+<text class="h" x="44.0" y="123.5" style="fill:#365314">Source</text>
+<text class="w" x="44.0" y="157.0">another release a repository</text>
+<text class="w" x="44.0" y="174.0">takes packages from, pinned by</text>
+<text class="w" x="44.0" y="191.0">digest</text>
+<rect x="32.0" y="103.0" width="227.0" height="103.0" rx="9" fill="none" stroke="#4d7c0f" stroke-width="1.5"/>
+<clipPath id="c2"><rect x="335.0" y="103.0" width="227.0" height="103.0" rx="9"/></clipPath>
+<rect x="335.0" y="103.0" width="227.0" height="103.0" rx="9" fill="#ffffff"/>
+<rect x="335.0" y="103.0" width="227.0" height="30" fill="#ecfccb" clip-path="url(#c2)"/>
+<line x1="335.0" y1="133.0" x2="562.0" y2="133.0" stroke="#4d7c0f" stroke-opacity=".35"/>
+<text class="h" x="347.0" y="123.5" style="fill:#365314">Release</text>
+<text class="w" x="347.0" y="157.0">a kit version, one tarball</text>
+<rect x="335.0" y="103.0" width="227.0" height="103.0" rx="9" fill="none" stroke="#4d7c0f" stroke-width="1.5"/>
+<clipPath id="c3"><rect x="638.0" y="103.0" width="227.0" height="103.0" rx="9"/></clipPath>
+<rect x="638.0" y="103.0" width="227.0" height="103.0" rx="9" fill="#ffffff"/>
+<rect x="638.0" y="103.0" width="227.0" height="30" fill="#ecfccb" clip-path="url(#c3)"/>
+<line x1="638.0" y1="133.0" x2="865.0" y2="133.0" stroke="#4d7c0f" stroke-opacity=".35"/>
+<text class="h" x="650.0" y="123.5" style="fill:#365314">Package</text>
+<text class="w" x="650.0" y="157.0">a unit of delivered content: files,</text>
+<text class="w" x="650.0" y="174.0">rules, templates, and settings</text>
+<rect x="638.0" y="103.0" width="227.0" height="103.0" rx="9" fill="none" stroke="#4d7c0f" stroke-width="1.5"/>
+<clipPath id="c4"><rect x="941.0" y="103.0" width="227.0" height="103.0" rx="9"/></clipPath>
+<rect x="941.0" y="103.0" width="227.0" height="103.0" rx="9" fill="#ffffff"/>
+<rect x="941.0" y="103.0" width="227.0" height="30" fill="#ecfccb" clip-path="url(#c4)"/>
+<line x1="941.0" y1="133.0" x2="1168.0" y2="133.0" stroke="#4d7c0f" stroke-opacity=".35"/>
+<text class="h" x="953.0" y="123.5" style="fill:#365314">Bundle</text>
+<text class="w" x="953.0" y="157.0">a package of packages</text>
+<rect x="941.0" y="103.0" width="227.0" height="103.0" rx="9" fill="none" stroke="#4d7c0f" stroke-width="1.5"/>
+<clipPath id="c5"><rect x="335.0" y="270.0" width="227.0" height="86.0" rx="9"/></clipPath>
+<rect x="335.0" y="270.0" width="227.0" height="86.0" rx="9" fill="#ffffff"/>
+<rect x="335.0" y="270.0" width="227.0" height="30" fill="#ecfccb" clip-path="url(#c5)"/>
+<line x1="335.0" y1="300.0" x2="562.0" y2="300.0" stroke="#4d7c0f" stroke-opacity=".35"/>
+<text class="h" x="347.0" y="290.5" style="fill:#365314">Rule file</text>
+<text class="w" x="347.0" y="324.0">what the work must do for a kind</text>
+<text class="w" x="347.0" y="341.0">of file to be trusted</text>
+<rect x="335.0" y="270.0" width="227.0" height="86.0" rx="9" fill="none" stroke="#4d7c0f" stroke-width="1.5"/>
+<clipPath id="c6"><rect x="638.0" y="270.0" width="227.0" height="86.0" rx="9"/></clipPath>
+<rect x="638.0" y="270.0" width="227.0" height="86.0" rx="9" fill="#ffffff"/>
+<rect x="638.0" y="270.0" width="227.0" height="30" fill="#ecfccb" clip-path="url(#c6)"/>
+<line x1="638.0" y1="300.0" x2="865.0" y2="300.0" stroke="#4d7c0f" stroke-opacity=".35"/>
+<text class="h" x="650.0" y="290.5" style="fill:#365314">Style</text>
+<text class="w" x="650.0" y="324.0">how a kind of file looks</text>
+<rect x="638.0" y="270.0" width="227.0" height="86.0" rx="9" fill="none" stroke="#4d7c0f" stroke-width="1.5"/>
+<clipPath id="c7"><rect x="941.0" y="270.0" width="227.0" height="86.0" rx="9"/></clipPath>
+<rect x="941.0" y="270.0" width="227.0" height="86.0" rx="9" fill="#ffffff"/>
+<rect x="941.0" y="270.0" width="227.0" height="30" fill="#ecfccb" clip-path="url(#c7)"/>
+<line x1="941.0" y1="300.0" x2="1168.0" y2="300.0" stroke="#4d7c0f" stroke-opacity=".35"/>
+<text class="h" x="953.0" y="290.5" style="fill:#365314">Template</text>
+<text class="w" x="953.0" y="324.0">a shape a file of a kind can take</text>
+<rect x="941.0" y="270.0" width="227.0" height="86.0" rx="9" fill="none" stroke="#4d7c0f" stroke-width="1.5"/>
+<clipPath id="c8"><rect x="32.0" y="420.0" width="227.0" height="86.0" rx="9"/></clipPath>
+<rect x="32.0" y="420.0" width="227.0" height="86.0" rx="9" fill="#ffffff"/>
+<rect x="32.0" y="420.0" width="227.0" height="30" fill="#ecfccb" clip-path="url(#c8)"/>
+<line x1="32.0" y1="450.0" x2="259.0" y2="450.0" stroke="#4d7c0f" stroke-opacity=".35"/>
+<text class="h" x="44.0" y="440.5" style="fill:#365314">Region</text>
+<text class="w" x="44.0" y="474.0">a delimited part of a file that kit</text>
+<text class="w" x="44.0" y="491.0">owns</text>
+<rect x="32.0" y="420.0" width="227.0" height="86.0" rx="9" fill="none" stroke="#4d7c0f" stroke-width="1.5"/>
+<clipPath id="c9"><rect x="335.0" y="420.0" width="833.0" height="86.0" rx="9"/></clipPath>
+<rect x="335.0" y="420.0" width="833.0" height="86.0" rx="9" fill="#ffffff"/>
+<rect x="335.0" y="420.0" width="833.0" height="30" fill="#ecfccb" clip-path="url(#c9)"/>
+<line x1="335.0" y1="450.0" x2="1168.0" y2="450.0" stroke="#4d7c0f" stroke-opacity=".35"/>
+<text class="h" x="347.0" y="440.5" style="fill:#365314">Kind</text>
+<text class="w" x="347.0" y="474.0">a type of file, by path glob and first line</text>
+<rect x="335.0" y="420.0" width="833.0" height="86.0" rx="9" fill="none" stroke="#4d7c0f" stroke-width="1.5"/>
+  <path class="edge" d="M 259.0 118.0 H 335.0"/>
+  <text class="lbl" text-anchor="middle" x="297.0" y="111.0">pins</text>
+  <path class="edge" d="M 562.0 118.0 H 638.0"/>
+  <text class="lbl" text-anchor="middle" x="600.0" y="111.0">ships</text>
+  <path class="edge" d="M 941.0 118.0 H 865.0"/>
+  <text class="lbl" text-anchor="middle" x="903.0" y="111.0">bundles</text>
+  <path class="edge" d="M 751.5 206.0 V 270.0"/>
+  <text class="lbl" x="759.5" y="228.0">delivers</text>
+  <path class="edge" d="M 751.5 206.0 V 238.0 H 448.5 V 270.0"/>
+  <path class="edge" d="M 751.5 206.0 V 238.0 H 1054.5 V 270.0"/>
+  <path class="edge" d="M 448.5 356.0 V 388.0 H 473.8 V 420.0"/>
+  <text class="lbl" text-anchor="middle" x="461.2" y="381.0">for</text>
+  <path class="edge" d="M 751.5 356.0 V 420.0"/>
+  <text class="lbl" x="759.5" y="392.0">for</text>
+  <path class="edge" d="M 1054.5 356.0 V 388.0 H 1029.2 V 420.0"/>
+  <text class="lbl" text-anchor="middle" x="1041.8" y="381.0">for</text>
+</svg>

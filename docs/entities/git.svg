@@ -1,0 +1,262 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1944 1336" width="1944" height="1336" role="img" aria-labelledby="title desc">
+  <title id="title">Git</title>
+  <desc id="desc">Entities of the Git domain: GitBlob, GitCommit, GitMessage, GitObject, GitObjectSignature, GitSignature, GitTag, GitTrailer, GitTree, GitTreeEntry, and GitTreeTarget.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+    text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; fill: #0f172a; }
+    .title { font-size: 24px; font-weight: 700; }
+    .intro { font-size: 13.5px; fill: #475569; }
+    .h { font-size: 15px; font-weight: 700; }
+    .w { font-size: 12.5px; fill: #1e293b; }
+    .ho { font-size: 12px; fill: #475569; }
+    .p { font-size: 12px; }
+    .m { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11.5px; fill: #334155; }
+    .f { font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; fill: #334155; }
+    .lbl { font-size: 11.5px; fill: #475569; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
+    .far { fill: #94a3b8; }
+    .edge { stroke: #475569; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .both { marker-start: url(#arrow); }
+    .dash { stroke-dasharray: 5 4; }
+    </style>
+  </defs>
+  <rect x="0.5" y="0.5" width="1943" height="1335" rx="14" fill="#ffffff" stroke="#e2e8f0"/>
+  <rect x="32" y="22" width="6" height="28" rx="3" fill="#a21caf"/>
+  <text class="title" x="50" y="45" style="fill:#701a75">Git</text>
+  <text class="intro" x="32" y="72">The objects git itself stores. Kit reads them and defines none of them.</text>
+  <g transform="translate(1681.3,30)"><circle cx="5" cy="0" r="4.5" fill="#16a34a"/><text class="ho" x="16" y="3.5" style="font-size:11.5px">held by kit</text><circle cx="112" cy="0" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/><text class="ho" x="123" y="3.5" style="font-size:11.5px">not held yet</text></g>
+  <path class="edge dash" d="M 1107.6 1273 L 1107.6 1298 L 544.6 1298 L 544.6 1273"/>
+  <path class="edge dash" d="M 1225.6 1120.3 L 1249.6 1120.3"/>
+  <path class="edge dash" d="M 1225.6 1196.7 L 1249.6 1196.7"/>
+  <path class="edge dash" d="M 1146.9 1014 L 1146.9 920 L 1186.2 920 L 1186.2 874"/>
+  <path class="edge both" d="M 492.1 874 L 492.1 926 L 91 926 L 91 1014"/>
+  <path class="edge both" d="M 701.9 748.2 L 715.9 748.2 L 715.9 773.3 L 701.9 773.3"/>
+  <path class="edge both" d="M 518.3 874 L 518.3 932 L 150 932 L 150 1014"/>
+  <path class="edge both" d="M 492.1 693 L 492.1 599 L 518.3 599 L 518.3 565"/>
+  <path class="edge dash" d="M 701.9 798.5 L 725.9 798.5"/>
+  <path class="edge both" d="M 597 874 L 597 938 L 1068.2 938 L 1068.2 874"/>
+  <path class="edge both" d="M 675.7 693 L 675.7 605 L 1566.1 605 L 1566.1 565"/>
+  <path class="edge dash" d="M 544.6 874 L 544.6 944 L 570.8 944 L 570.8 1014"/>
+  <path class="edge dash" d="M 701.9 823.7 L 725.9 823.7"/>
+  <path class="edge both" d="M 544.6 693 L 544.6 611 L 570.8 611 L 570.8 565"/>
+  <path class="edge dash" d="M 701.9 848.8 L 725.9 848.8"/>
+  <path class="edge dash" d="M 623.2 874 L 623.2 950 L 1107.6 950 L 1107.6 874"/>
+  <path class="edge both" d="M 597 693 L 597 617 L 1036.8 617 L 1036.8 565"/>
+  <path class="edge both" d="M 1644.7 565 L 1644.7 623 L 1202 623 L 1202 693"/>
+  <path class="edge both" d="M 1566.1 340 L 1566.1 312 L 1644.7 312 L 1644.7 284"/>
+  <path class="edge" d="M 268 467.5 L 292 467.5"/>
+  <path class="edge both" d="M 150 565 L 150 629 L 1013.2 629 L 1013.2 693"/>
+  <path class="edge both" d="M 623.2 565 L 623.2 635 L 1060.4 635 L 1060.4 693"/>
+  <path class="edge both" d="M 649.5 565 L 649.5 641 L 1084 641 L 1084 693"/>
+  <path class="edge both" d="M 209 1014 L 209 956 L 1028.9 956 L 1028.9 874"/>
+  <path class="edge dash" d="M 1225.6 836.3 L 1249.6 836.3"/>
+  <path class="edge dash" d="M 1225.6 760.8 L 1239.6 760.8 L 1239.6 798.5 L 1225.6 798.5"/>
+  <path class="edge both" d="M 1107.6 565 L 1107.6 647 L 965.6 647 L 965.6 962 L 649.5 962 L 649.5 1014"/>
+  <path class="edge dash" d="M 1131.2 565 L 1131.2 653 L 971.6 653 L 971.6 968 L 675.7 968 L 675.7 1014"/>
+  <path class="edge dash" d="M 1225.6 435 L 1249.6 435"/>
+  <path class="edge dash" d="M 1225.6 500 L 1249.6 500"/>
+  <path class="edge dash" d="M 1154.8 565 L 1154.8 659 L 1178.4 659 L 1178.4 693"/>
+  <path class="edge" d="M 701.9 1158.5 L 725.9 1158.5"/>
+  <path class="edge both" d="M 623.2 1273 L 623.2 1304 L 1605.4 1304 L 1605.4 1273"/>
+  <path class="edge" d="M 1723.4 1158.5 L 1747.4 1158.5"/>
+  <rect x="989.6" y="1014" width="236" height="259" rx="9" fill="#ffffff"/>
+  <path d="M 989.6 1044 V 1023 A 9 9 0 0 1 998.6 1014 H 1216.6 A 9 9 0 0 1 1225.6 1023 V 1044 Z" fill="#fae8ff"/>
+  <line x1="989.6" y1="1044" x2="1225.6" y2="1044" stroke="#a21caf" stroke-opacity=".35"/>
+  <text class="h" x="1001.6" y="1034.5" style="fill:#701a75">GitBlob</text>
+  <text class="w" x="1001.6" y="1068">The bytes of one file or one</text>
+  <text class="w" x="1001.6" y="1085">symlink&apos;s target, stored under the</text>
+  <text class="w" x="1001.6" y="1102">hash of those bytes.</text>
+  <text class="ho" x="1001.6" y="1124">native: git</text>
+  <text class="ho" x="1001.6" y="1146">3 held, 0 planned, 0 unused</text>
+  <line x1="1001.6" y1="1239" x2="1213.6" y2="1239" stroke="#e2e8f0"/>
+  <circle cx="1008.6" cy="1249.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="1019.6" y="1253">kit facts</text>
+  <rect x="989.6" y="1014" width="236" height="259" rx="9" fill="none" stroke="#a21caf" stroke-width="1.5"/>
+  <rect x="465.9" y="693" width="236" height="181" rx="9" fill="#ffffff"/>
+  <path d="M 465.9 723 V 702 A 9 9 0 0 1 474.9 693 H 692.9 A 9 9 0 0 1 701.9 702 V 723 Z" fill="#fae8ff"/>
+  <line x1="465.9" y1="723" x2="701.9" y2="723" stroke="#a21caf" stroke-opacity=".35"/>
+  <text class="h" x="477.9" y="713.5" style="fill:#701a75">GitCommit</text>
+  <text class="w" x="477.9" y="747">A snapshot of the tree, with its</text>
+  <text class="w" x="477.9" y="764">parents, its author and committer,</text>
+  <text class="w" x="477.9" y="781">and the message that says why.</text>
+  <text class="ho" x="477.9" y="803">native: git</text>
+  <text class="ho" x="477.9" y="825">1 held, 0 planned, 3 unused</text>
+  <line x1="477.9" y1="840" x2="689.9" y2="840" stroke="#e2e8f0"/>
+  <circle cx="484.9" cy="850.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="495.9" y="854">kit workspace</text>
+  <rect x="465.9" y="693" width="236" height="181" rx="9" fill="none" stroke="#a21caf" stroke-width="1.5"/>
+  <rect x="1487.4" y="340" width="236" height="225" rx="9" fill="#ffffff"/>
+  <path d="M 1487.4 370 V 349 A 9 9 0 0 1 1496.4 340 H 1714.4 A 9 9 0 0 1 1723.4 349 V 370 Z" fill="#fae8ff"/>
+  <line x1="1487.4" y1="370" x2="1723.4" y2="370" stroke="#a21caf" stroke-opacity=".35"/>
+  <text class="h" x="1499.4" y="360.5" style="fill:#701a75">GitMessage</text>
+  <text class="w" x="1499.4" y="394">What a commit or a tag says in</text>
+  <text class="w" x="1499.4" y="411">words, with its subject, its body,</text>
+  <text class="w" x="1499.4" y="428">and its trailers.</text>
+  <text class="ho" x="1499.4" y="450">native: git</text>
+  <text class="ho" x="1499.4" y="472">1 held, 0 planned, 2 unused</text>
+  <line x1="1499.4" y1="531" x2="1711.4" y2="531" stroke="#e2e8f0"/>
+  <circle cx="1506.4" cy="541.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="1517.4" y="545">kit workspace</text>
+  <rect x="1487.4" y="340" width="236" height="225" rx="9" fill="none" stroke="#a21caf" stroke-width="1.5"/>
+  <rect x="32" y="340" width="236" height="225" rx="9" fill="#ffffff"/>
+  <path d="M 32 370 V 349 A 9 9 0 0 1 41 340 H 259 A 9 9 0 0 1 268 349 V 370 Z" fill="#fae8ff"/>
+  <line x1="32" y1="370" x2="268" y2="370" stroke="#a21caf" stroke-opacity=".35"/>
+  <text class="h" x="44" y="360.5" style="fill:#701a75">GitObject</text>
+  <text class="w" x="44" y="394">An object git stores under its id,</text>
+  <text class="w" x="44" y="411">which is a blob, a tree, a commit,</text>
+  <text class="w" x="44" y="428">or an annotated tag.</text>
+  <text class="ho" x="44" y="450">native: git</text>
+  <text class="m" x="44" y="471">Blob(blob: GitBlob)</text>
+  <text class="m" x="44" y="486">Commit(commit: GitCommit)</text>
+  <text class="m" x="44" y="501">Tag(tag: GitTag)</text>
+  <text class="m" x="44" y="516">Tree(tree: GitTree)</text>
+  <line x1="44" y1="531" x2="256" y2="531" stroke="#e2e8f0"/>
+  <circle cx="51" cy="541.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="62" y="545">not held yet</text>
+  <rect x="32" y="340" width="236" height="225" rx="9" fill="none" stroke="#a21caf" stroke-width="1.5"/>
+  <rect x="465.9" y="340" width="236" height="225" rx="9" fill="#ffffff"/>
+  <path d="M 465.9 370 V 349 A 9 9 0 0 1 474.9 340 H 692.9 A 9 9 0 0 1 701.9 349 V 370 Z" fill="#fae8ff"/>
+  <line x1="465.9" y1="370" x2="701.9" y2="370" stroke="#a21caf" stroke-opacity=".35"/>
+  <text class="h" x="477.9" y="360.5" style="fill:#701a75">GitObjectSignature</text>
+  <text class="w" x="477.9" y="394">A detached signature over a</text>
+  <text class="w" x="477.9" y="411">commit&apos;s or a tag&apos;s content, with</text>
+  <text class="w" x="477.9" y="428">what checking it finds.</text>
+  <text class="ho" x="477.9" y="450">native: git</text>
+  <text class="ho" x="477.9" y="472">0 held, 3 planned, 6 unused</text>
+  <line x1="477.9" y1="531" x2="689.9" y2="531" stroke="#e2e8f0"/>
+  <circle cx="484.9" cy="541.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="495.9" y="545">not held yet</text>
+  <rect x="465.9" y="340" width="236" height="225" rx="9" fill="none" stroke="#a21caf" stroke-width="1.5"/>
+  <rect x="32" y="1014" width="236" height="259" rx="9" fill="#ffffff"/>
+  <path d="M 32 1044 V 1023 A 9 9 0 0 1 41 1014 H 259 A 9 9 0 0 1 268 1023 V 1044 Z" fill="#fae8ff"/>
+  <line x1="32" y1="1044" x2="268" y2="1044" stroke="#a21caf" stroke-opacity=".35"/>
+  <text class="h" x="44" y="1034.5" style="fill:#701a75">GitSignature</text>
+  <text class="w" x="44" y="1068">An identity and a moment, as one</text>
+  <text class="w" x="44" y="1085">line of a commit or a tag.</text>
+  <text class="ho" x="44" y="1107">native: git</text>
+  <text class="ho" x="44" y="1129">1 held, 1 planned, 2 unused</text>
+  <line x1="44" y1="1239" x2="256" y2="1239" stroke="#e2e8f0"/>
+  <circle cx="51" cy="1249.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="62" y="1253">kit workspace</text>
+  <rect x="32" y="1014" width="236" height="259" rx="9" fill="none" stroke="#a21caf" stroke-width="1.5"/>
+  <rect x="989.6" y="693" width="236" height="181" rx="9" fill="#ffffff"/>
+  <path d="M 989.6 723 V 702 A 9 9 0 0 1 998.6 693 H 1216.6 A 9 9 0 0 1 1225.6 702 V 723 Z" fill="#fae8ff"/>
+  <line x1="989.6" y1="723" x2="1225.6" y2="723" stroke="#a21caf" stroke-opacity=".35"/>
+  <text class="h" x="1001.6" y="713.5" style="fill:#701a75">GitTag</text>
+  <text class="w" x="1001.6" y="747">A named, dated pointer to one</text>
+  <text class="w" x="1001.6" y="764">object, with a message and, when</text>
+  <text class="w" x="1001.6" y="781">signed, a signature.</text>
+  <text class="ho" x="1001.6" y="803">native: git</text>
+  <text class="ho" x="1001.6" y="825">0 held, 0 planned, 5 unused</text>
+  <line x1="1001.6" y1="840" x2="1213.6" y2="840" stroke="#e2e8f0"/>
+  <circle cx="1008.6" cy="850.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="1019.6" y="854">not held yet</text>
+  <rect x="989.6" y="693" width="236" height="181" rx="9" fill="none" stroke="#a21caf" stroke-width="1.5"/>
+  <rect x="1487.4" y="103" width="236" height="181" rx="9" fill="#ffffff"/>
+  <path d="M 1487.4 133 V 112 A 9 9 0 0 1 1496.4 103 H 1714.4 A 9 9 0 0 1 1723.4 112 V 133 Z" fill="#fae8ff"/>
+  <line x1="1487.4" y1="133" x2="1723.4" y2="133" stroke="#a21caf" stroke-opacity=".35"/>
+  <text class="h" x="1499.4" y="123.5" style="fill:#701a75">GitTrailer</text>
+  <text class="w" x="1499.4" y="157">A token and a value at the end of a</text>
+  <text class="w" x="1499.4" y="174">message, such as Signed-off-by or</text>
+  <text class="w" x="1499.4" y="191">Co-Authored-By.</text>
+  <text class="ho" x="1499.4" y="213">native: git</text>
+  <text class="ho" x="1499.4" y="235">2 held, 0 planned, 1 unused</text>
+  <line x1="1499.4" y1="250" x2="1711.4" y2="250" stroke="#e2e8f0"/>
+  <circle cx="1506.4" cy="260.5" r="4.5" fill="#16a34a"/>
+  <text class="f" x="1517.4" y="264">kit facts</text>
+  <rect x="1487.4" y="103" width="236" height="181" rx="9" fill="none" stroke="#a21caf" stroke-width="1.5"/>
+  <rect x="989.6" y="340" width="236" height="225" rx="9" fill="#ffffff"/>
+  <path d="M 989.6 370 V 349 A 9 9 0 0 1 998.6 340 H 1216.6 A 9 9 0 0 1 1225.6 349 V 370 Z" fill="#fae8ff"/>
+  <line x1="989.6" y1="370" x2="1225.6" y2="370" stroke="#a21caf" stroke-opacity=".35"/>
+  <text class="h" x="1001.6" y="360.5" style="fill:#701a75">GitTree</text>
+  <text class="w" x="1001.6" y="394">One directory of a snapshot, as a</text>
+  <text class="w" x="1001.6" y="411">sorted list of entries.</text>
+  <text class="ho" x="1001.6" y="433">native: git</text>
+  <text class="ho" x="1001.6" y="455">0 held, 0 planned, 2 unused</text>
+  <line x1="1001.6" y1="531" x2="1213.6" y2="531" stroke="#e2e8f0"/>
+  <circle cx="1008.6" cy="541.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="1019.6" y="545">not held yet</text>
+  <rect x="989.6" y="340" width="236" height="225" rx="9" fill="none" stroke="#a21caf" stroke-width="1.5"/>
+  <rect x="465.9" y="1014" width="236" height="259" rx="9" fill="#ffffff"/>
+  <path d="M 465.9 1044 V 1023 A 9 9 0 0 1 474.9 1014 H 692.9 A 9 9 0 0 1 701.9 1023 V 1044 Z" fill="#fae8ff"/>
+  <line x1="465.9" y1="1044" x2="701.9" y2="1044" stroke="#a21caf" stroke-opacity=".35"/>
+  <text class="h" x="477.9" y="1034.5" style="fill:#701a75">GitTreeEntry</text>
+  <text class="w" x="477.9" y="1068">One name in a directory, with its</text>
+  <text class="w" x="477.9" y="1085">mode and the object it names.</text>
+  <text class="ho" x="477.9" y="1107">native: git</text>
+  <text class="ho" x="477.9" y="1129">0 held, 0 planned, 2 unused</text>
+  <line x1="477.9" y1="1239" x2="689.9" y2="1239" stroke="#e2e8f0"/>
+  <circle cx="484.9" cy="1249.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="495.9" y="1253">not held yet</text>
+  <rect x="465.9" y="1014" width="236" height="259" rx="9" fill="none" stroke="#a21caf" stroke-width="1.5"/>
+  <rect x="1487.4" y="1014" width="236" height="259" rx="9" fill="#ffffff"/>
+  <path d="M 1487.4 1044 V 1023 A 9 9 0 0 1 1496.4 1014 H 1714.4 A 9 9 0 0 1 1723.4 1023 V 1044 Z" fill="#fae8ff"/>
+  <line x1="1487.4" y1="1044" x2="1723.4" y2="1044" stroke="#a21caf" stroke-opacity=".35"/>
+  <text class="h" x="1499.4" y="1034.5" style="fill:#701a75">GitTreeTarget</text>
+  <text class="w" x="1499.4" y="1068">What a tree entry names: a blob, a</text>
+  <text class="w" x="1499.4" y="1085">tree, a symlink, which is a blob of</text>
+  <text class="w" x="1499.4" y="1102">mode 120000, or a gitlink, a</text>
+  <text class="w" x="1499.4" y="1119">submodule&apos;s commit that need not</text>
+  <text class="w" x="1499.4" y="1136">be in this repository.</text>
+  <text class="ho" x="1499.4" y="1158">native: git</text>
+  <text class="m" x="1499.4" y="1179">Blob(blob: GitBlob)</text>
+  <text class="m" x="1499.4" y="1194">Gitlink(commit: GitCommit)</text>
+  <text class="m" x="1499.4" y="1209">Symlink(blob: GitBlob)</text>
+  <text class="m" x="1499.4" y="1224">Tree(tree: GitTree)</text>
+  <line x1="1499.4" y1="1239" x2="1711.4" y2="1239" stroke="#e2e8f0"/>
+  <circle cx="1506.4" cy="1249.5" r="4" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text class="f" x="1517.4" y="1253">not held yet</text>
+  <rect x="1487.4" y="1014" width="236" height="259" rx="9" fill="none" stroke="#a21caf" stroke-width="1.5"/>
+  <text class="lbl" xml:space="preserve" x="539.6" y="1286" text-anchor="end">named-by  0..*  derived</text>
+  <text class="lbl" xml:space="preserve" x="1255.6" y="1124.3">referenced-by  0..*  derived  <tspan class="far">GitRef</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1255.6" y="1200.7">staged-by  0..*  derived  <tspan class="far">GitIndexEntry</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1191.2" y="899">tagged-by  0..*  derived</text>
+  <text class="lbl" xml:space="preserve" x="487.1" y="899" text-anchor="end">authored  0..1</text>
+  <text class="lbl" xml:space="preserve" x="96" y="1009">author  1</text>
+  <text class="lbl" xml:space="preserve" x="721.9" y="752.2">parents  0..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="721.9" y="777.3">children  0..*</text>
+  <text class="lbl" xml:space="preserve" x="483.3" y="887" text-anchor="end">committed  0..1</text>
+  <text class="lbl" xml:space="preserve" x="150" y="997" text-anchor="middle">committer  1</text>
+  <text class="lbl" xml:space="preserve" x="487.1" y="688" text-anchor="end">compat-commit  0..1</text>
+  <text class="lbl" xml:space="preserve" x="513.3" y="578" text-anchor="end">compat-signature  0..1</text>
+  <text class="lbl" xml:space="preserve" x="731.9" y="802.5">detached-in  0..*  derived  <tspan class="far">GitWorktreeDir</tspan></text>
+  <text class="lbl" xml:space="preserve" x="632" y="887">merged-by  0..*</text>
+  <text class="lbl" xml:space="preserve" x="1073.2" y="887">mergetags  0..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="680.7" y="688">commit  0..1</text>
+  <text class="lbl" xml:space="preserve" x="1571.1" y="578">message  1</text>
+  <text class="lbl" xml:space="preserve" x="565.8" y="1009" text-anchor="end">named-by  0..*  derived</text>
+  <text class="lbl" xml:space="preserve" x="731.9" y="827.7">referenced-by  0..*  derived  <tspan class="far">GitRef</tspan></text>
+  <text class="lbl" xml:space="preserve" x="544.6" y="664" text-anchor="middle">commit  0..1</text>
+  <text class="lbl" xml:space="preserve" x="570.8" y="590" text-anchor="middle">signature  0..1</text>
+  <text class="lbl" xml:space="preserve" x="731.9" y="852.8">staged-by  0..*  derived  <tspan class="far">GitIndexEntry</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1112.6" y="911">tagged-by  0..*  derived</text>
+  <text class="lbl" xml:space="preserve" x="597" y="676" text-anchor="middle">commits  0..*</text>
+  <text class="lbl" xml:space="preserve" x="1041.8" y="578">tree  1</text>
+  <text class="lbl" xml:space="preserve" x="1649.7" y="578">message  1</text>
+  <text class="lbl" xml:space="preserve" x="1207" y="676">tag  0..1</text>
+  <text class="lbl" xml:space="preserve" x="1571.1" y="335">message  1</text>
+  <text class="lbl" xml:space="preserve" x="1649.7" y="297">trailers  0..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="298" y="471.5">referenced-by  0..*  <tspan class="far">GitRef</tspan></text>
+  <text class="lbl" xml:space="preserve" x="155" y="578">target  1</text>
+  <text class="lbl" xml:space="preserve" x="1013.2" y="676" text-anchor="middle">tagged-by  0..*</text>
+  <text class="lbl" xml:space="preserve" x="658.2" y="578">compat-signature  0..1</text>
+  <text class="lbl" xml:space="preserve" x="1089.4" y="688">compat-tag  0..1</text>
+  <text class="lbl" xml:space="preserve" x="654.5" y="590">signature  0..1</text>
+  <text class="lbl" xml:space="preserve" x="1089" y="676">tag  0..1</text>
+  <text class="lbl" xml:space="preserve" x="214" y="1009">tagger  0..1</text>
+  <text class="lbl" xml:space="preserve" x="1028.9" y="899" text-anchor="middle">tagged  0..1</text>
+  <text class="lbl" xml:space="preserve" x="1255.6" y="840.3">referenced-by  0..*  derived  <tspan class="far">GitRef</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1245.6" y="802.5">tagged-by  0..*  derived</text>
+  <text class="lbl" xml:space="preserve" x="1102.6" y="590" text-anchor="end">tree  1</text>
+  <text class="lbl" xml:space="preserve" x="684.5" y="997">entries  0..* {ordered}</text>
+  <text class="lbl" xml:space="preserve" x="680.7" y="1009">named-by  0..*  derived</text>
+  <text class="lbl" xml:space="preserve" x="1255.6" y="439">referenced-by  0..*  derived  <tspan class="far">GitRef</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1255.6" y="504">staged-by  0..*  derived  <tspan class="far">GitIndexEntry</tspan></text>
+  <text class="lbl" xml:space="preserve" x="1207.4" y="688">tagged-by  0..*  derived</text>
+  <text class="lbl" xml:space="preserve" x="731.9" y="1162.5">submodule  0..1  <tspan class="far">GitSubmodule</tspan></text>
+  <text class="lbl" xml:space="preserve" x="628.2" y="1286">named-by  0..*</text>
+  <text class="lbl" xml:space="preserve" x="1610.4" y="1286">target  1</text>
+  <text class="lbl" xml:space="preserve" x="1753.4" y="1162.5">staged-by  0..*  <tspan class="far">GitIndexEntry</tspan></text>
+</svg>

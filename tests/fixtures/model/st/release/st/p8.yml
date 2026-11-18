@@ -1,0 +1,6 @@
+# A derived relation to S.
+entity: P8
+layer: logical
+means: entity P8
+relations:
+  s: {to: S, derived: x}

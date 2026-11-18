@@ -1,0 +1,4 @@
+opa	1.21.4	linux-x64	both	release:open-policy-agent/opa@v1.21.4/opa_linux_amd64	sha256:5ae411b3ae2cb093ac1f70cc20df4b372eead7be61f7de989b33a3dbd6cbe09b	.
+opa	1.21.4	linux-arm64	both	release:open-policy-agent/opa@v1.21.4/opa_linux_arm64	sha256:327e9bdd754972b2eb604fd52ebfd6c01af3596700d1d0a060f3b9cd09e0bc2e	.
+opa	1.21.4	macos-x64	both	release:open-policy-agent/opa@v1.21.4/opa_darwin_amd64	sha256:8802bd39bc14b58a705e6b3d4f4dd14f7f24ee657f0362c737338be243190c7e	.
+opa	1.21.4	macos-arm64	both	release:open-policy-agent/opa@v1.21.4/opa_darwin_arm64	sha256:4c105208a9282f590385bccbe600875c011f0894ccf9431782dfe855e1f99aa6	.
