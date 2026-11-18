@@ -78,7 +78,7 @@ answers, and each run fails at its last step, `answers`:
    and the folder `/ (root)`. From a terminal, this does the same:
 
    ```bash
-   gh api --method POST repos/empowerite/kit/pages -f 'source[branch]=gh-pages' -f 'source[path]=/'
+   gh api --method POST repos/empowerite/kit-poc/pages -f 'source[branch]=gh-pages' -f 'source[path]=/'
    ```
 
 3. Check that the site answers, with the address of a copy that is published. This asks until the address answers,

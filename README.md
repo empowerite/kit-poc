@@ -2,10 +2,10 @@
 
 [![kit CI][ci-badge]][ci] [![release][release-badge]][releases] [![license: MIT][license-badge]](LICENSE)
 
-[ci-badge]: https://github.com/empowerite/kit/actions/workflows/kit-ci.yml/badge.svg?event=pull_request
-[ci]: https://github.com/empowerite/kit/actions/workflows/kit-ci.yml
-[release-badge]: https://img.shields.io/github/v/release/empowerite/kit?include_prereleases&display_name=release
-[releases]: https://github.com/empowerite/kit/releases
+[ci-badge]: https://github.com/empowerite/kit-poc/actions/workflows/kit-ci.yml/badge.svg?event=pull_request
+[ci]: https://github.com/empowerite/kit-poc/actions/workflows/kit-ci.yml
+[release-badge]: https://img.shields.io/github/v/release/empowerite/kit-poc?include_prereleases&display_name=release
+[releases]: https://github.com/empowerite/kit-poc/releases
 [license-badge]: https://img.shields.io/badge/license-MIT-blue
 
 AI coding agents take the same shortcuts people do: they call work done when it is not, skip tests, and rewrite
@@ -119,7 +119,7 @@ blocks a merge only when a branch ruleset requires its check. kit does not ship 
 and hooks work only in that agent.
 
 A repository keeps its own rules next to the ones kit delivers. The design is in
-[#1](https://github.com/empowerite/kit/issues/1) and [#4](https://github.com/empowerite/kit/issues/4).
+[#1](https://github.com/empowerite/kit-poc/issues/1) and [#4](https://github.com/empowerite/kit-poc/issues/4).
 
 ## Why a release, and not a copy
 
@@ -135,12 +135,12 @@ the file with a package of your own. `.kit/1st.md` explains how, under "Changing
 ## Install
 
 macOS and Linux, by download. Set `version` to the release you want: a stable one, such as `0.1.0`, or a release
-candidate, such as `0.1.0-rc.7`. The [releases](https://github.com/empowerite/kit/releases) page lists both, and
+candidate, such as `0.1.0-rc.7`. The [releases](https://github.com/empowerite/kit-poc/releases) page lists both, and
 until the first stable release is out, only release candidates:
 
 ```sh
 version=0.1.0
-release="https://github.com/empowerite/kit/releases/download/release/${version}"
+release="https://github.com/empowerite/kit-poc/releases/download/release/${version}"
 curl --fail --location --output "kit-${version}.tar.gz" "${release}/kit-${version}.tar.gz"
 curl --fail --location --output "kit-${version}.tar.gz.sha256" "${release}/kit-${version}.tar.gz.sha256"
 shasum --algorithm 256 --check "kit-${version}.tar.gz.sha256" &&

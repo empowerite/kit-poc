@@ -125,7 +125,7 @@ release:fetch() {
   fi
   step "Fetching kit ${version} from its release"
   file:scratch fresh || return 1
-  tarball="https://github.com/empowerite/kit/releases/download/release/${version}/kit-${version}.tar.gz"
+  tarball="https://github.com/empowerite/kit-poc/releases/download/release/${version}/kit-${version}.tar.gz"
   if ! curl --fail --silent --location --output "${fresh}/kit.tar.gz" "${tarball}" 2>/dev/null
   then
     rm -rf "${fresh}"

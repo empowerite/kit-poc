@@ -141,7 +141,7 @@ tap-world() {
   [[ "$output" == "# kit - "* ]]
   [[ "$output" == *"class Kit < Formula"* ]]
   [[ "$output" == *'generate_completions_from_executable(bin/"kit", "completion", shells: [:zsh])'* ]]
-  [[ "$output" == *'url "https://github.com/empowerite/kit/releases/download/release/1.2.3/kit-1.2.3.tar.gz"'* ]]
+  [[ "$output" == *'url "https://github.com/empowerite/kit-poc/releases/download/release/1.2.3/kit-1.2.3.tar.gz"'* ]]
   [[ "$output" == *"sha256 \"${digest}\""* ]]
   [[ "$output" != *"{{"* ]]
   run "${repo_bin}/release" formula release/1.2.3 not-a-digest
@@ -358,7 +358,7 @@ install-lines() {
   # the pin follows, for the person's own mise config and not the repository's, and kit install after it
   [[ "$(<"${fakes}/notes")" == *'Or add it to your own ~/.config/mise/config.toml:'* ]]
   [[ "$(<"${fakes}/notes")" != *'mise.toml'* ]]
-  [[ "$(<"${fakes}/notes")" == *'"github:empowerite/kit" = { version = "9.9.9", version_prefix = "release/" }'* ]]
+  [[ "$(<"${fakes}/notes")" == *'"github:empowerite/kit-poc" = { version = "9.9.9", version_prefix = "release/" }'* ]]
   [[ "$(<"${fakes}/notes")" == *'kit install'* ]]
   # a pre-release's notes name its own version
   run env GITHUB_ACTIONS=true "${repo_bin}/release" publish release/9.9.9-rc.1

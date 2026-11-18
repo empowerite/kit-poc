@@ -18,12 +18,12 @@ kit serves every repository, whatever release each one pins.
 ### By download
 
 On macOS, Linux, or Windows Subsystem for Linux (WSL). A stable release is named by a version such as `0.1.0`, and a
-release candidate by one with a suffix, such as `0.1.0-rc.7`. The [releases](https://github.com/empowerite/kit/releases)
-page lists both. Set `version` to the one you want:
+release candidate by one with a suffix, such as `0.1.0-rc.7`. The
+[releases](https://github.com/empowerite/kit-poc/releases) page lists both. Set `version` to the one you want:
 
 ```sh
 version=0.1.0
-release="https://github.com/empowerite/kit/releases/download/release/${version}"
+release="https://github.com/empowerite/kit-poc/releases/download/release/${version}"
 curl --fail --location --output "kit-${version}.tar.gz" "${release}/kit-${version}.tar.gz"
 curl --fail --location --output "kit-${version}.tar.gz.sha256" "${release}/kit-${version}.tar.gz.sha256"
 shasum --algorithm 256 --check "kit-${version}.tar.gz.sha256" &&
@@ -33,7 +33,7 @@ shasum --algorithm 256 --check "kit-${version}.tar.gz.sha256" &&
 ```
 
 - The two `curl` lines download the release's tarball and the `.sha256` published beside it. With `gh`,
-  `gh release download "release/${version}" --repo empowerite/kit` downloads the same two files in their place.
+  `gh release download "release/${version}" --repo empowerite/kit-poc` downloads the same two files in their place.
 - `shasum` checks the tarball against that digest, and the lines after it run only when the two match, so a tarball
   with other bytes is never unpacked. On a Linux machine with no `shasum`, `sha256sum --check` reads the same file.
 - The tarball holds one directory, `kit-<version>/`, which lands in `~/.local/share/`, and `~/.local/bin/kit` is a
@@ -44,9 +44,9 @@ To take the newest of either kind, set `version` with `gh` in place of its first
 
 ```sh
 # stable
-version=$(gh release list --repo empowerite/kit --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName | ltrimstr("release/")')
+version=$(gh release list --repo empowerite/kit-poc --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName | ltrimstr("release/")')
 # or the newest release candidate
-version=$(gh release list --repo empowerite/kit --limit 20 --json tagName,isPrerelease --jq '[.[] | select(.isPrerelease)][0].tagName | ltrimstr("release/")')
+version=$(gh release list --repo empowerite/kit-poc --limit 20 --json tagName,isPrerelease --jq '[.[] | select(.isPrerelease)][0].tagName | ltrimstr("release/")')
 ```
 
 Until the first stable release is out, the stable line finds nothing; use a release candidate.
@@ -74,7 +74,7 @@ Add kit as a tool in your own `~/.config/mise/config.toml`:
 
 ```toml
 [tools]
-"github:empowerite/kit" = { version = "0.1.0", version_prefix = "release/" }
+"github:empowerite/kit-poc" = { version = "0.1.0", version_prefix = "release/" }
 ```
 
 mise downloads the release's tarball itself, and puts its `bin/` on `PATH`.

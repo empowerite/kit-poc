@@ -16,5 +16,5 @@ members, and that is all it does.
 `kit packages add style/just` ends the exclusion. Removing the bundle itself leaves its members active.
 
 The bundle is in the release until a package can come from a source of its own, such as a repository of
-Empowerite's; see [#20](https://github.com/empowerite/kit/issues/20). This repository's `house` package depends on
+Empowerite's; see [#20](https://github.com/empowerite/kit-poc/issues/20). This repository's `house` package depends on
 it, and adds the taste that applies here only.

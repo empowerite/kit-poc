@@ -52,7 +52,7 @@ ci-step() {
   [ "${lines[-1]}" = "${XDG_CACHE_HOME}/kit/kit-9.9.9" ]
   [ -x "${XDG_CACHE_HOME}/kit/kit-9.9.9/bin/kit" ]
   [ "$(paste -s -d ' ' - < "${FAKE_RELEASES}/curl.calls")" = \
-    "https://github.com/empowerite/kit/releases/download/release/9.9.9/kit-9.9.9.tar.gz https://github.com/empowerite/kit/releases/download/release/9.9.9/kit-9.9.9.tar.gz.sha256" ]
+    "https://github.com/empowerite/kit-poc/releases/download/release/9.9.9/kit-9.9.9.tar.gz https://github.com/empowerite/kit-poc/releases/download/release/9.9.9/kit-9.9.9.tar.gz.sha256" ]
   run kit-bash 'release:fetch 9.9.9'
   [ "$status" -eq 0 ]
   [ "$(wc -l < "${FAKE_RELEASES}/curl.calls")" -eq 2 ]

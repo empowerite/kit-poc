@@ -397,7 +397,7 @@ is_version() {
 # digest the release publishes beside it, as modules/bash/release.sh's release:fetch does. It unpacks beside <dir>,
 # in a directory named for this process, so the move into place stays on one file system. It says why when it cannot.
 fetch() {
-  fetch_tarball="https://github.com/empowerite/kit/releases/download/release/$1/kit-$1.tar.gz"
+  fetch_tarball="https://github.com/empowerite/kit-poc/releases/download/release/$1/kit-$1.tar.gz"
   fetch_fresh="${2%/*}/.fetch-$1-$$"
   mkdir -p "${2%/*}"
   rm -rf "${fetch_fresh}"

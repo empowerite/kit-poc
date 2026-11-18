@@ -1,11 +1,11 @@
 # kit - keeps AI coding agents trustworthy
 #
-# Written by `bin/release tap` of https://github.com/empowerite/kit when a release is published; do not edit it by
-# hand, since the next release writes it again. Change projects/homebrew/formula.rb.in in kit instead.
+# Written by `bin/release tap` of https://github.com/empowerite/kit-poc when a release is published; do not edit it
+# by hand, since the next release writes it again. Change projects/homebrew/formula.rb.in in kit-poc instead.
 class Kit < Formula
   desc "Rules for AI coding agents, and checks that they followed them"
-  homepage "https://github.com/empowerite/kit"
-  url "https://github.com/empowerite/kit/releases/download/release/{{version}}/kit-{{version}}.tar.gz"
+  homepage "https://github.com/empowerite/kit-poc"
+  url "https://github.com/empowerite/kit-poc/releases/download/release/{{version}}/kit-{{version}}.tar.gz"
   sha256 "{{sha256}}"
   license "MIT"
 

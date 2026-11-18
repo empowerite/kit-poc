@@ -190,7 +190,7 @@ case "${verb}" in
     # shellcheck disable=SC2064  # expanded now on purpose: the path is fixed from here on
     trap "rm -rf '${into}'" EXIT
     run "${self}" pack "${tag}" "${into}"
-    pin=$(printf '"github:empowerite/kit" = { version = "%s", version_prefix = "release/" }' "${version}")
+    pin=$(printf '"github:empowerite/kit-poc" = { version = "%s", version_prefix = "release/" }' "${version}")
     lines=$(download-lines "${version}") || exit 1
     notes=$(printf 'Install it by download, with the digest checked before anything is unpacked:\n\n'
       printf '    %s\n' "${lines//$'\n'/$'\n'    }"
@@ -248,7 +248,7 @@ case "${verb}" in
     # shellcheck disable=SC2064  # expanded now on purpose: the path is fixed from here on
     trap "rm -rf '${work}'" EXIT
     # The digest is the one published beside the release, which the loader checks too, not one made again here.
-    gh release download "${tag}" --repo empowerite/kit --pattern '*.sha256' --dir "${work}" \
+    gh release download "${tag}" --repo empowerite/kit-poc --pattern '*.sha256' --dir "${work}" \
       || refuse-tag "${tag} has no published digest to write into the tap"
     digest=$(cut -d' ' -f1 "${work}/kit-${version}.tar.gz.sha256")
     [[ "${digest}" =~ ^[0-9a-f]{64}$ ]] || refuse-tag "the digest published beside ${tag} is not a sha256"
@@ -273,7 +273,7 @@ case "${verb}" in
     (
       cd "${work}/tap"
       gh pr create --repo "${tap}" --base main --head "${branch}" --title "${name} ${version}" \
-        --body "Written by bin/release tap of empowerite/kit for ${tag}."
+        --body "Written by bin/release tap of empowerite/kit-poc for ${tag}."
       gh pr merge "${branch}" --repo "${tap}" --squash --delete-branch
     )
     ok "${tap} holds ${name} ${version}"
